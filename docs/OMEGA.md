@@ -57,3 +57,13 @@ The upstream module requires Go `1.26.4`; do not downgrade the upstream dependen
 - `npm run build`: passed.
 - `npm test`: 509 tests passed in 31 files; the suite emitted DOM/CodeMirror environment warnings.
 - Go tests: not run locally. Go is absent; attempts to obtain the exact SDK from go.dev, dl.google.com, storage.googleapis.com and proxy.golang.org failed with SSL connection errors. The separate OMEGA GitHub Actions workflow runs on the session branch; its result must be checked independently.
+
+### GitHub validation
+
+[OMEGA validation run 34789427947](https://github.com/Dark-Sky07/OMEGA/actions/runs/34789427947) passed for checkpoint `30beac1`:
+
+- `go test -race ./internal/reseller`: passed on GitHub's runner using the upstream Go version.
+- `go test ./internal/database`: passed, including the additive migration test.
+- Frontend typecheck, tests and production build: passed.
+
+These are foundation checks, not an end-to-end validation of a working reseller feature.
