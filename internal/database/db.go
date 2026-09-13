@@ -59,6 +59,9 @@ const (
 func initModels() error {
 	models := []any{
 		&model.User{},
+		&model.Reseller{},
+		&model.ResellerInbound{},
+		&model.ResellerClient{},
 		&model.Inbound{},
 		&model.OutboundTraffics{},
 		&model.Setting{},
