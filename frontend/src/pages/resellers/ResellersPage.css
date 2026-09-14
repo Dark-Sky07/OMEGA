@@ -1,0 +1,43 @@
+.resellers-page {
+  --bg-page: #e6e8ec;
+  --bg-card: #ffffff;
+  min-height: 100vh;
+  background: var(--bg-page);
+}
+
+.resellers-page.is-dark {
+  --bg-page: #1a1b1f;
+  --bg-card: #23252b;
+}
+
+.resellers-page.is-dark.is-ultra {
+  --bg-page: #000;
+  --bg-card: #101013;
+}
+
+.resellers-page .ant-layout,
+.resellers-page .ant-layout-content {
+  background: transparent;
+}
+
+.resellers-page .content-shell {
+  min-height: 100vh;
+}
+
+.resellers-page .content-area {
+  padding: 16px;
+}
+
+.resellers-page .ant-card {
+  background: var(--bg-card);
+}
+
+.resellers-page .summary-card {
+  margin-bottom: 4px;
+}
+
+@media (max-width: 768px) {
+  .resellers-page .content-area {
+    padding: 8px;
+  }
+}
