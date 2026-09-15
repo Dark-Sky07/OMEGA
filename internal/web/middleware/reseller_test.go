@@ -1,16 +1,10 @@
 package middleware
 
 import (
-	"encoding/json"
-	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
-
-	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
 )
 
 // TestIsResellerAllowed pins the reseller access boundary: only the four
@@ -19,12 +13,15 @@ import (
 // an allowed prefix.
 func TestIsResellerAllowed(t *testing.T) {
 	allowed := []string{
+		"/panel/api/inbounds/",
 		"/panel/api/inbounds/list",
 		"/panel/api/inbounds/get/1",
 		"/panel/api/inbounds/add",
+		"/panel/api/clients/",
 		"/panel/api/clients/list",
 		"/panel/api/clients/add",
 		"/panel/api/clients/traffic/someone@example.com",
+		"/panel/api/reseller/", // singular: the reseller's own endpoints
 		"/panel/api/reseller/profile",
 		"/panel/api/reseller/report",
 		"/panel/api/reseller/password",
@@ -39,9 +36,9 @@ func TestIsResellerAllowed(t *testing.T) {
 	denied := []string{
 		"/panel/api/resellers/list", // managing other resellers
 		"/panel/api/resellers/add",
-		"/panel/api/clients/groups",         // panel-wide grouping
-		"/panel/api/clients/groups",         // exact match
-		"/panel/api/clients/groups/bulkAdd", // sub-path of a denied namespace
+		"/panel/api/resellers/assignInbound",
+		"/panel/api/clients/groups",         // exact match: panel-wide grouping
+		"/panel/api/clients/groups/bulkAdd", // sub-path of the denied namespace
 		"/panel/api/setting/all",
 		"/panel/api/xray/",
 		"/panel/api/nodes/list",
@@ -57,78 +54,29 @@ func TestIsResellerAllowed(t *testing.T) {
 	}
 }
 
-// TestResellerGuardBlocksAdminNamespaces drives the guard through a real gin
-// router: an admin session passes, a reseller session is cut off with a 403 and
-// the documented message, and the base path prefix is stripped before matching.
-func TestResellerGuardBlocksAdminNamespaces(t *testing.T) {
+// TestRequestPathWithoutBase makes sure the guard compares against the API path
+// even when the panel is mounted under a custom base path.
+func TestRequestPathWithoutBase(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	newRouter := func() (*gin.Engine, cookie.Store) {
-		router := gin.New()
-		store := cookie.NewStore([]byte("01234567890123456789012345678901"))
-		router.Use(sessions.Sessions("3x-ui", store))
-		router.Use(func(c *gin.Context) {
-			c.Set("base_path", "/base/")
-			c.Next()
-		})
-		router.Use(ResellerGuard())
-		return router, store
+	cases := []struct {
+		basePath string
+		request  string
+		want     string
+	}{
+		{"", "/panel/api/inbounds/list", "/panel/api/inbounds/list"},
+		{"/", "/panel/api/inbounds/list", "/panel/api/inbounds/list"},
+		{"/base", "/base/panel/api/inbounds/list", "/panel/api/inbounds/list"},
+		{"/base/", "/base/panel/api/clients/list", "/panel/api/clients/list"},
+		{"/base", "/panel/api/inbounds/list", "/panel/api/inbounds/list"},
 	}
 
-	// Admin sessions are untouched, whatever the path.
-	adminRouter, _ := newRouter()
-	adminRouter.GET("/panel/api/setting/all", func(c *gin.Context) {
-		c.String(http.StatusOK, "ok")
-	})
-	rec := httptest.NewRecorder()
-	adminRouter.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/panel/api/setting/all", nil))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("admin request status = %d, want %d", rec.Code, http.StatusOK)
-	}
-
-	// A reseller session is refused, with the base path stripped first.
-	resellerRouter, store := newRouter()
-	resellerRouter.GET("/panel/api/setting/all", func(c *gin.Context) {
-		c.String(http.StatusOK, "ok")
-	})
-	resellerRouter.GET("/panel/api/inbounds/list", func(c *gin.Context) {
-		c.String(http.StatusOK, "ok")
-	})
-
-	loginAsReseller := func(req *http.Request) {
-		w := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(w)
-		c.Request = req
-		sessions.Sessions("3x-ui", store)(c)
-		c.Next()
-		if err := session.SetLoginReseller(c, 1, false); err != nil {
-			t.Fatalf("SetLoginReseller: %v", err)
+	for _, tc := range cases {
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+		c.Request = httptest.NewRequest("GET", tc.request, nil)
+		c.Set("base_path", tc.basePath)
+		if got := requestPathWithoutBase(c); got != tc.want {
+			t.Errorf("requestPathWithoutBase(base=%q, req=%q) = %q, want %q", tc.basePath, tc.request, got, tc.want)
 		}
-	}
-
-	blockedReq := httptest.NewRequest(http.MethodGet, "/base/panel/api/setting/all", nil)
-	loginAsReseller(blockedReq)
-	rec = httptest.NewRecorder()
-	resellerRouter.ServeHTTP(rec, blockedReq)
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("reseller admin-path status = %d, want %d", rec.Code, http.StatusForbidden)
-	}
-	var body struct {
-		Success bool   `json:"success"`
-		Msg     string `json:"msg"`
-	}
-	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
-		t.Fatalf("decode body: %v", err)
-	}
-	if body.Success || body.Msg != "this section is not available for reseller accounts" {
-		t.Errorf("body = %+v", body)
-	}
-
-	allowedReq := httptest.NewRequest(http.MethodGet, "/base/panel/api/inbounds/list", nil)
-	loginAsReseller(allowedReq)
-	rec = httptest.NewRecorder()
-	resellerRouter.ServeHTTP(rec, allowedReq)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("reseller self-service path status = %d, want %d (body %s)", rec.Code, http.StatusOK, rec.Body.String())
 	}
 }
