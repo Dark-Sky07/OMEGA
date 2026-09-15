@@ -1,5 +1,7 @@
 [English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md)
 
+> **OMEGA** — 3x-ui v3.3.1 + Resellers (نمایندگی). Install: `bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)`. Docs: [English](README.md) · [فارسی](README.fa_IR.md)
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./media/3x-ui-dark.png">
@@ -70,7 +72,7 @@ Construido como un fork mejorado del proyecto X-UI original, 3X-UI añade un sop
 ## Inicio Rápido
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
 ```
 
 Durante la instalación se generan un nombre de usuario, una contraseña y una ruta de acceso aleatorios. Tras la instalación, ejecuta `x-ui` para abrir el menú de gestión, donde puedes iniciar/detener el servicio, ver o restablecer tus credenciales de acceso, gestionar certificados SSL y mucho más.
