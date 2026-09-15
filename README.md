@@ -300,6 +300,16 @@ For anything that is not about the reseller feature or the OMEGA branding, the u
 [3x-ui repository](https://github.com/MHSanaei/3x-ui) and its [Wiki](https://github.com/MHSanaei/3x-ui/wiki)
 are the authoritative references.
 
+## Security notes
+
+- The panel pins the **exact 3x-ui v3.3.1 dependency set** on purpose (`go.mod` / `frontend/package-lock.json`
+  are untouched). Advisories published after that release therefore show up in CI's `govulncheck` and
+  `npm audit` steps; those two steps report without failing the build. Fixing them would mean changing the
+  pinned dependencies, which is outside the "3x-ui v3.3.1 + resellers only" scope — upstream's newer releases
+  carry those fixes.
+- Keep the panel on a private port or behind a VPN/HTTPS reverse proxy, change the default `admin/admin` login,
+  and rotate reseller passwords from the **Resellers** page whenever one is shared with too many people.
+
 ## Credits & License
 
 - **Upstream project:** [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — this repository is a fork of
