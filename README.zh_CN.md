@@ -1,5 +1,7 @@
 [English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md)
 
+> **OMEGA** — 3x-ui v3.3.1 + Resellers (نمایندگی). Install: `bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)`. Docs: [English](README.md) · [فارسی](README.fa_IR.md)
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./media/3x-ui-dark.png">
@@ -70,7 +72,7 @@
 ## 快速开始
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
 ```
 
 安装过程中会生成随机的用户名、密码和访问路径。安装完成后，运行 `x-ui` 打开管理菜单，您可以在其中启动/停止服务、查看或重置登录凭据、管理 SSL 证书等。

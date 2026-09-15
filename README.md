@@ -1,32 +1,47 @@
+<div align="center">
+
+<img src="./media/omega-banner.png" alt="OMEGA" width="100%">
+
 # OMEGA
 
-**OMEGA** is [3x-ui](https://github.com/MHSanaei/3x-ui) **v3.3.1** with a single feature added on top —
-**Resellers (نمایندگی)** — and the panel UI rebranded to OMEGA. Nothing else about 3x-ui was changed:
-the panel version stays `3.3.1`, system paths, service names and the Go module path are untouched.
+**A panel for managing Xray-core servers — built on [3x-ui](https://github.com/MHSanaei/3x-ui) `v3.3.1`, with one feature added on top: [Resellers (نمایندگی)](#-resellers-نمایندگی).**
 
-## Resellers (نمایندگی)
+English · [فارسی](README.fa_IR.md)
 
-A reseller is a panel sub-account that owns a slice of the panel:
+[![Release](https://img.shields.io/github/v/release/Dark-Sky07/OMEGA?include_prereleases&label=release&color=blue)](https://github.com/Dark-Sky07/OMEGA/releases)
+[![Build](https://img.shields.io/github/actions/workflow/status/Dark-Sky07/OMEGA/release.yml?label=build)](https://github.com/Dark-Sky07/OMEGA/actions)
+[![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
+[![Base](https://img.shields.io/badge/base-3x--ui%20v3.3.1-informational)](https://github.com/MHSanaei/3x-ui/releases/tag/v3.3.1)
+[![Go](https://img.shields.io/github/go-mod/go-version/Dark-Sky07/OMEGA)](go.mod)
+[![Platforms](https://img.shields.io/badge/platforms-linux%20%7C%20windows-lightgrey)](#supported-platforms)
 
-- **Own login** — resellers sign in on the same login page with their own username/password. The session is
-  restricted to `/panel/api/inbounds/*`, `/panel/api/clients/*`, `/panel/api/reseller/*` and `/panel/api/auth/me`;
-  anything else answers `403`, and the WebSocket hub is admin-only.
-- **Scoped ownership** — an inbound can be handed to a reseller (`reseller_inbounds`), and single clients can be
-  assigned directly (`reseller_clients`). A reseller only ever sees and manages what it owns; the admin keeps full
-  control over everything. Wrong-owner access answers `inbound not found` / `client not found`.
-- **Quotas** — traffic cap (sum of client quotas), client count, inbound count, plus an optional expiry date.
-  A zero quota means "no limit". Limits are enforced on create, update, bulk operations and inbound import.
-- **Sales reports & billing** — per-reseller usage report (per client: quota, usage, cost, inbounds) with a price
-  per GB, a prepaid balance (deposits/withdrawals ledger) and settlement history. The reseller sees its own report.
-- **Admin API** — `/panel/api/resellers/*` (list, get, assignments, report, add, update, del, setEnable,
-  resetPassword, assignInbound, unassignInbound, assignClient, unassignClient, balance), documented in the panel's
-  API docs page.
+**Install in one line** — on a fresh server, as `root`:
 
-Panel UI: **Resellers** page for the admin, plus **Report** and **Profile** pages for the reseller account.
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+```
+
+</div>
+
+> [!NOTE]
+> OMEGA is a fork: the panel **is** 3x-ui v3.3.1. Only the reseller feature was added and the UI was branded
+> OMEGA. The service name (`x-ui`), install paths (`/usr/local/x-ui`, `/etc/x-ui`), environment variables,
+> config format and version string (`3.3.1`) are unchanged, so every 3x-ui guide, script or tool keeps working.
 
 ---
 
-## Installation
+## :sparkles: What's different from upstream 3x-ui
+
+| | Change |
+| --- | --- |
+| ➕ **Added** | **Resellers (نمایندگی)** — sub-accounts with their own login, scoped ownership, quotas and sales/billing reports. |
+| 🎨 **Branding** | Panel name shown as **OMEGA** (sidebar, login page, page titles, API docs, translations). UI-only — no paths, service names or version numbers touched. |
+| 🛠 **Install** | [`install-omega.sh`](install-omega.sh) installs *this* panel from *this* repository; [`x-ui.sh`](x-ui.sh) updates from here too, so `x-ui update` can never silently swap in vanilla 3x-ui. |
+| ✅ **Unchanged** | Everything else — all of 3x-ui v3.3.1 (protocols, transports, nodes, subscriptions, Telegram bot, routing, API, themes, 13 languages). |
+
+---
+
+## :rocket: Installation
 
 ### One-line install (recommended)
 
@@ -36,82 +51,130 @@ On a fresh server, as **root**:
 bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
 ```
 
-The installer downloads the packaged release for your architecture (panel + Xray-core + geo data + mtg),
-installs it to `/usr/local/x-ui` under the unchanged `x-ui` systemd service, keeps your existing
-database/settings on upgrades, and prints the access URL. Default port is `2053`, default login `admin` / `admin`
-— change both right away.
-
-If the main branch has not been updated yet, pin the release tag instead:
+Pin a specific release instead (useful before a branch is merged):
 
 ```bash
 bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.1-omega/install-omega.sh)
 ```
 
-### Management
+The installer takes care of everything:
+
+1. installs the required packages (`curl`, `tar`, `socat`, `openssl`, `tzdata`, cron …),
+2. downloads the packaged release for your architecture (panel **+ Xray-core + geoip/geosite + mtg**),
+3. installs it to `/usr/local/x-ui` and registers the unchanged `x-ui` systemd service,
+4. keeps an existing database/settings when upgrading, and
+5. restarts the panel and prints the access URL.
+
+Defaults: port **2053**, login **admin / admin** — change both right after your first login.
+
+### Managing the panel
 
 ```bash
-x-ui            # management menu (start/stop/restart/settings/log/update/uninstall)
-x-ui status     # service status
-x-ui settings   # current settings and the web base path
-x-ui update     # update to the newest OMEGA release (never downgrades to vanilla 3x-ui)
-x-ui uninstall  # remove
+x-ui              # management menu: start / stop / restart / settings / log / update / uninstall
+x-ui status       # service status
+x-ui settings     # current settings, including the hidden web base path
+x-ui log          # panel log
+x-ui update       # update to the newest OMEGA release (never downgrades to vanilla 3x-ui)
+x-ui uninstall    # full removal (the database in /etc/x-ui is kept; back it up first)
 ```
 
 ### Manual install
 
-Download `x-ui-linux-<arch>.tar.gz` (amd64, arm64, armv7, armv6, 386, armv5, s390x) from the
-[releases page](https://github.com/Dark-Sky07/OMEGA/releases), unpack it, copy the binary and service unit
-into place and `systemctl enable --now x-ui`.
+Grab `x-ui-linux-<arch>.tar.gz` from the [releases page](https://github.com/Dark-Sky07/OMEGA/releases)
+(`amd64`, `arm64`, `armv7`, `armv6`, `386`, `armv5`, `s390x`), then on the server:
 
-A Persian step-by-step guide lives in [docs/OMEGA-INSTALL.fa.md](docs/OMEGA-INSTALL.fa.md).
+```bash
+tar zxvf x-ui-linux-amd64.tar.gz
+cd x-ui && chmod +x x-ui bin/xray-linux-*
+./x-ui                                             # first run creates the database
+cp -f x-ui.service /etc/systemd/system/ 2>/dev/null \
+  || cp -f x-ui.service.debian /etc/systemd/system/x-ui.service
+cp -f x-ui.sh /usr/bin/x-ui && chmod +x /usr/bin/x-ui
+systemctl daemon-reload && systemctl enable --now x-ui
+```
 
-> `install-omega.sh` is the upstream 3x-ui installer with every download URL repointed at this repository;
-> `x-ui.sh` (the management script) equally fetches OMEGA artefacts, so `x-ui update` cannot silently replace
-> the panel with upstream 3x-ui. Service names, install paths and the panel version string are untouched.
+### Upgrade / backup
 
-[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md)
+```bash
+x-ui update                                   # upgrade in place, settings preserved
+cp /etc/x-ui/x-ui.db /root/x-ui-backup.db     # or use Settings → Backup inside the panel
+```
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./media/3x-ui-dark.png">
-    <img alt="3x-ui" src="./media/3x-ui-light.png">
-  </picture>
-</p>
+📖 **Persian step-by-step guide:** [docs/OMEGA-INSTALL.fa.md](docs/OMEGA-INSTALL.fa.md) — نصب، ساخت اولین نمایندگی،
+بروزرسانی، بکاپ و نکات امنیتی.
 
-<p align="center">
-  <a href="https://github.com/MHSanaei/3x-ui/releases"><img src="https://img.shields.io/github/v/release/mhsanaei/3x-ui" alt="Release"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg" alt="Build"></a>
-  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg" alt="GO Version"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/releases/latest"><img src="https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg" alt="Downloads"></a>
-  <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
-  <a href="https://pkg.go.dev/github.com/mhsanaei/3x-ui/v3"><img src="https://pkg.go.dev/badge/github.com/mhsanaei/3x-ui/v3.svg" alt="Go Reference"></a>
-  <a href="https://goreportcard.com/report/github.com/mhsanaei/3x-ui/v3"><img src="https://goreportcard.com/badge/github.com/mhsanaei/3x-ui/v3" alt="Go Report Card"></a>
-</p>
+---
 
-**3X-UI** is an advanced, open-source web control panel for managing [Xray-core](https://github.com/XTLS/Xray-core) servers. It provides a clean, multi-language interface for deploying, configuring, and monitoring a wide range of proxy and VPN protocols — from a single VPS to multi-node deployments.
+## :briefcase: Resellers (نمایندگی)
 
-Built as an enhanced fork of the original X-UI project, 3X-UI adds broader protocol support, improved stability, per-client traffic accounting, and many quality-of-life features.
+A **reseller** is a panel sub-account that owns a slice of the panel: some of the inbounds, some of the clients,
+and a defined set of quotas — while the admin keeps full control over everything.
 
-> [!IMPORTANT]
-> This project is intended for personal use only. Please do not use it for illegal purposes or in a production environment.
+### How it works
 
-## Features
+- **Own login.** A reseller signs in on the same login page with its own username/password. Its session can only
+  reach `/panel/api/inbounds/*`, `/panel/api/clients/*`, `/panel/api/reseller/*` and `/panel/api/auth/me` — every
+  other endpoint answers `403`, and the panel-wide WebSocket feed is admin-only.
+- **Scoped ownership.** An inbound can be handed to a reseller, and individual clients can be assigned directly.
+  A reseller sees exactly what it owns; anything else answers `inbound not found` / `client not found`.
+  Ownership is stored in mapping tables, so the base inbound/client tables stay pristine.
+- **Quotas.** Traffic cap (the sum of the quotas it allocates to clients), maximum client count, maximum inbound
+  count, plus an optional expiry date. A quota of `0` means *unlimited*. Limits are enforced on create, update,
+  bulk operations and inbound import — not just in the UI.
+- **Sales & billing.** Per-client usage report (quota, usage, cost, attached inbounds), a price per GB, a prepaid
+  balance, deposit/withdrawal ledger and settlement history. Balance = deposit − (used GB × price per GB).
+- **Disable / reset.** Disabling a reseller blocks the login and turns its inbounds off; a password reset
+  invalidates every live session of that reseller immediately.
 
-- **Multi-protocol inbounds** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, Hysteria2, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel, and TUN.
-- **Modern transports & security** — TCP (Raw), mKCP, WebSocket, gRPC, HTTPUpgrade, and XHTTP, secured with TLS, XTLS, and REALITY.
-- **Fallbacks** — serve multiple protocols on a single port (e.g. VLESS and Trojan on 443) using Xray's fallback support.
-- **Per-client management** — traffic quotas, expiry dates, IP limits, live online status, and one-click share links, QR codes, and subscriptions.
-- **Traffic statistics** — per inbound, per client, and per outbound, with reset controls.
-- **Multi-node support** — manage and scale across multiple servers from a single panel.
-- **Outbound & routing** — WARP, NordVPN, custom routing rules, load balancers, and outbound proxy chaining.
-- **Built-in subscription server** with multiple output formats and [custom page templates](docs/custom-subscription-templates.md).
-- **Telegram bot** for remote monitoring and management.
-- **RESTful API** with in-panel Swagger documentation.
-- **Flexible storage** — SQLite (default) or PostgreSQL.
-- **13 UI languages** with dark and light themes.
-- **Fail2ban integration** for enforcing per-client IP limits.
+```mermaid
+flowchart LR
+    A[Admin panel<br/>admin / admin] -->|assign inbounds| B[Reseller: ali]
+    A -->|assign single clients| B
+    A -->|quotas: traffic · clients · inbounds| B
+    A -->|price per GB · deposit| B
+    B -->|own login| C[Sees only own inbounds & clients]
+    C --> D[Creates / edits / deletes own clients<br/>within its quotas]
+    D --> E[Sales report<br/>usage · cost · balance · ledger]
+    A --> F[Admin still sees and manages everything]
+```
 
-## Screenshots
+### Panel pages
+
+| Role | Pages |
+| --- | --- |
+| **Admin** | **Resellers** (list, create/edit, quotas, assign inbounds, assign clients, balance, reset password, report drawer) + everything 3x-ui has |
+| **Reseller** | **Report** (usage, cost, balance, per-client rows, ledger), **Profile** (quotas, usage, change password), **Inbounds** and **Clients** (its own only) |
+
+### API
+
+The admin-side management API lives under `/panel/api/resellers` and is documented in the panel's **API Docs** page:
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` | `/panel/api/resellers/list` | Every reseller with a live usage snapshot |
+| `GET` | `/panel/api/resellers/get/:id` | One reseller |
+| `GET` | `/panel/api/resellers/assignments` | Ownership map (inbounds + explicitly assigned clients) |
+| `GET` | `/panel/api/resellers/report/:id` | Usage + per-client rows + money ledger |
+| `POST` | `/panel/api/resellers/add` · `update/:id` · `del/:id` | Create / update / delete |
+| `POST` | `/panel/api/resellers/setEnable/:id` · `resetPassword/:id` | Enable-disable · password reset |
+| `POST` | `/panel/api/resellers/assignInbound` · `unassignInbound` | Hand an inbound over / take it back |
+| `POST` | `/panel/api/resellers/assignClient` · `unassignClient` | Assign / unassign a single client |
+| `POST` | `/panel/api/resellers/balance` | Deposit (+) or withdraw (−) on the reseller account |
+
+And the reseller's own endpoints (reachable with a reseller session):
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` | `/panel/api/reseller/profile` · `stats` | Own account, quotas and live usage |
+| `GET` | `/panel/api/reseller/report` | Own sales report and ledger |
+| `POST` | `/panel/api/reseller/password` | Change own password |
+| `GET` | `/panel/api/auth/me` | Session role (`admin` or `reseller`) — used by the UI |
+
+---
+
+## :camera: Screenshots
+
+Panel pages inherited from 3x-ui v3.3.1 (the reseller pages follow the same design):
 
 <details>
 <summary>Click to expand</summary>
@@ -138,18 +201,25 @@ Built as an enhanced fork of the original X-UI project, 3X-UI adds broader proto
 
 </details>
 
-## Quick Start
+---
 
-```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
-```
+## Features
 
-See [Installation](#installation) above for the pinned-tag variant, the manual install and the Persian guide.
-After installation, run `x-ui` to open the management menu (start/stop the service, view or reset credentials,
-manage SSL certificates, update, and more).
+Inherited from 3x-ui v3.3.1, untouched:
 
-Everything else in this README documents 3x-ui v3.3.1 itself; upstream documentation lives in the
-[3x-ui Wiki](https://github.com/MHSanaei/3x-ui/wiki).
+- **Multi-protocol inbounds** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, Hysteria2, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel, and TUN.
+- **Modern transports & security** — TCP (Raw), mKCP, WebSocket, gRPC, HTTPUpgrade, and XHTTP, secured with TLS, XTLS, and REALITY.
+- **Fallbacks** — serve multiple protocols on a single port (e.g. VLESS and Trojan on 443) using Xray's fallback support.
+- **Per-client management** — traffic quotas, expiry dates, IP limits, live online status, and one-click share links, QR codes, and subscriptions.
+- **Traffic statistics** — per inbound, per client, and per outbound, with reset controls.
+- **Multi-node support** — manage and scale across multiple servers from a single panel.
+- **Outbound & routing** — WARP, NordVPN, custom routing rules, load balancers, and outbound proxy chaining.
+- **Built-in subscription server** with multiple output formats and [custom page templates](docs/custom-subscription-templates.md).
+- **Telegram bot** for remote monitoring and management.
+- **RESTful API** with in-panel Swagger documentation.
+- **Flexible storage** — SQLite (default) or PostgreSQL.
+- **13 UI languages** with dark and light themes.
+- **Fail2ban integration** for enforcing per-client IP limits.
 
 ## Supported Platforms
 
@@ -159,7 +229,7 @@ Everything else in this README documents 3x-ui v3.3.1 itself; upstream documenta
 
 ## Database Options
 
-3X-UI supports two backends, chosen during the install:
+OMEGA/3x-ui supports two backends, chosen during the install:
 
 - **SQLite** (default) — a single file at `/etc/x-ui/x-ui.db`. Zero setup, ideal for small and medium deployments.
 - **PostgreSQL** — recommended for high client counts or multi-node setups. The installer can install PostgreSQL locally for you, or accept a DSN to an existing server.
@@ -183,17 +253,24 @@ The source SQLite file is left untouched; remove it manually once you have verif
 
 ### Docker
 
-The default `docker compose up -d` keeps using SQLite. To run with the bundled PostgreSQL service, uncomment the two `XUI_DB_*` env lines in `docker-compose.yml` and start with the profile:
+This fork does not publish images; build one from the repository with the bundled `Dockerfile`, then run it:
+
+```bash
+git clone https://github.com/Dark-Sky07/OMEGA.git && cd OMEGA
+docker build -t omega-panel .
+
+docker run -d --name omega --restart unless-stopped \
+  --cap-add=NET_ADMIN --cap-add=NET_RAW \
+  -p 2053:2053 -v /etc/x-ui:/etc/x-ui omega-panel
+```
+
+`docker-compose.yml` in this repository builds the same image and keeps SQLite by default. To run with the bundled PostgreSQL service, uncomment the two `XUI_DB_*` env lines and start with the profile:
 
 ```bash
 docker compose --profile postgres up -d
 ```
 
-The image bundles Fail2ban (enabled by default) to enforce per-client **IP limits**. Fail2ban bans offenders with `iptables`, which requires the `NET_ADMIN` capability. `docker-compose.yml` already grants it via `cap_add`; if you start the container with `docker run` instead, add the capabilities yourself, otherwise bans are logged but never applied:
-
-```bash
-docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
-```
+The image bundles Fail2ban (enabled by default) to enforce per-client **IP limits**. Fail2ban bans offenders with `iptables`, which requires the `NET_ADMIN` capability — `docker-compose.yml` already grants it via `cap_add`, and the `docker run` above passes it explicitly. Without it, bans are logged but never applied.
 
 ## Environment Variables
 
@@ -219,9 +296,17 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 
 Contributions are welcome. Please read the [Contributing Guide](/CONTRIBUTING.md) before opening an issue or pull request.
 
-## A Special Thanks to
+For anything that is not about the reseller feature or the OMEGA branding, the upstream
+[3x-ui repository](https://github.com/MHSanaei/3x-ui) and its [Wiki](https://github.com/MHSanaei/3x-ui/wiki)
+are the authoritative references.
 
-- [alireza0](https://github.com/alireza0/)
+## Credits & License
+
+- **Upstream project:** [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — this repository is a fork of
+  **3x-ui v3.3.1** and inherits its design, documentation and licence. Thanks to
+  [alireza0](https://github.com/alireza0/) and every upstream contributor.
+- **Added here:** the reseller (نمایندگی) feature, the OMEGA branding, and the fork-aware installer.
+- **Licence:** [GPL-3.0](LICENSE) — same as upstream.
 
 ## Acknowledgment
 
@@ -234,9 +319,9 @@ Tools and integrations built by the community around 3x-ui.
 
 - [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (License: **MIT**): _Manage inbounds, clients, panel settings, and Xray configuration as code with Terraform / OpenTofu._
 
-## Support project
+## Support the upstream project
 
-**If this project is helpful to you, you may wish to give it a**:star2:
+**If this project is helpful to you, you may wish to give it a** :star2: — donations go to the original 3x-ui author:
 
 <a href="https://www.buymeacoffee.com/MHSanaei" target="_blank">
 <img src="./media/default-yellow.png" alt="Buy Me A Coffee" style="height: 70px !important;width: 277px !important;" >
@@ -249,4 +334,4 @@ Tools and integrations built by the community around 3x-ui.
 
 ## Stargazers over Time
 
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)
+[![Stargazers over time](https://starchart.cc/Dark-Sky07/OMEGA.svg?variant=adaptive)](https://starchart.cc/Dark-Sky07/OMEGA)

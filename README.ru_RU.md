@@ -1,5 +1,7 @@
 [English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md)
 
+> **OMEGA** — 3x-ui v3.3.1 + Resellers (نمایندگی). Install: `bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)`. Docs: [English](README.md) · [فارسی](README.fa_IR.md)
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./media/3x-ui-dark.png">
@@ -70,7 +72,7 @@
 ## Быстрый старт
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
 ```
 
 Во время установки генерируются случайные имя пользователя, пароль и путь доступа. После установки выполните `x-ui`, чтобы открыть меню управления, где можно запускать/останавливать сервис, просматривать или сбрасывать учётные данные для входа, управлять SSL-сертификатами и многое другое.
