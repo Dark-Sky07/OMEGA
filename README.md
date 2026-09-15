@@ -26,6 +26,49 @@ Panel UI: **Resellers** page for the admin, plus **Report** and **Profile** page
 
 ---
 
+## Installation
+
+### One-line install (recommended)
+
+On a fresh server, as **root**:
+
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+```
+
+The installer downloads the packaged release for your architecture (panel + Xray-core + geo data + mtg),
+installs it to `/usr/local/x-ui` under the unchanged `x-ui` systemd service, keeps your existing
+database/settings on upgrades, and prints the access URL. Default port is `2053`, default login `admin` / `admin`
+— change both right away.
+
+If the main branch has not been updated yet, pin the release tag instead:
+
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.1-omega/install-omega.sh)
+```
+
+### Management
+
+```bash
+x-ui            # management menu (start/stop/restart/settings/log/update/uninstall)
+x-ui status     # service status
+x-ui settings   # current settings and the web base path
+x-ui update     # update to the newest OMEGA release (never downgrades to vanilla 3x-ui)
+x-ui uninstall  # remove
+```
+
+### Manual install
+
+Download `x-ui-linux-<arch>.tar.gz` (amd64, arm64, armv7, armv6, 386, armv5, s390x) from the
+[releases page](https://github.com/Dark-Sky07/OMEGA/releases), unpack it, copy the binary and service unit
+into place and `systemctl enable --now x-ui`.
+
+A Persian step-by-step guide lives in [docs/OMEGA-INSTALL.fa.md](docs/OMEGA-INSTALL.fa.md).
+
+> `install-omega.sh` is the upstream 3x-ui installer with every download URL repointed at this repository;
+> `x-ui.sh` (the management script) equally fetches OMEGA artefacts, so `x-ui update` cannot silently replace
+> the panel with upstream 3x-ui. Service names, install paths and the panel version string are untouched.
+
 [English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md)
 
 <p align="center">
@@ -98,12 +141,15 @@ Built as an enhanced fork of the original X-UI project, 3X-UI adds broader proto
 ## Quick Start
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
 ```
 
-During installation a random username, password, and access path are generated. After installation, run `x-ui` to open the management menu, where you can start/stop the service, view or reset your login credentials, manage SSL certificates, and more.
+See [Installation](#installation) above for the pinned-tag variant, the manual install and the Persian guide.
+After installation, run `x-ui` to open the management menu (start/stop the service, view or reset credentials,
+manage SSL certificates, update, and more).
 
-For full documentation, please visit the [project Wiki](https://github.com/MHSanaei/3x-ui/wiki).
+Everything else in this README documents 3x-ui v3.3.1 itself; upstream documentation lives in the
+[3x-ui Wiki](https://github.com/MHSanaei/3x-ui/wiki).
 
 ## Supported Platforms
 

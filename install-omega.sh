@@ -1143,6 +1143,23 @@ EOF
     ${xui_folder}/x-ui migrate
 }
 
+# Panel-side assets (x-ui.sh, systemd units, x-ui.rc) are fetched from the OMEGA
+# repository at the ref being installed — the release tag — so a given panel
+# version always installs the matching management script and units. Set
+# OMEGA_REF to force a specific ref instead (e.g. OMEGA_REF=main to track the
+# branch); "main" is used as the fallback when a tag lacks a file.
+omega_ref="${OMEGA_REF:-${tag_version:-main}}"
+omega_ref_fallback="main"
+[[ -n "${OMEGA_REF:-}" ]] && omega_ref_fallback="${OMEGA_REF}"
+omega_raw_fetch() {
+    local out="$1" path="$2"
+    curl -fLRo "$out" "https://raw.githubusercontent.com/${OMEGA_REPO}/${omega_ref}/${path}" > /dev/null 2>&1
+    if [[ $? -ne 0 && "${omega_ref}" != "${omega_ref_fallback}" ]]; then
+        echo -e "${yellow}Ref '${omega_ref}' has no ${path}, trying ${omega_ref_fallback}...${plain}"
+        curl -fLRo "$out" "https://raw.githubusercontent.com/${OMEGA_REPO}/${omega_ref_fallback}/${path}" > /dev/null 2>&1
+    fi
+}
+
 install_x-ui() {
     cd ${xui_folder%/x-ui}/
 
@@ -1181,8 +1198,8 @@ install_x-ui() {
             exit 1
         fi
     fi
-    curl -4fLRo /usr/bin/x-ui-temp https://raw.githubusercontent.com/${OMEGA_REPO}/main/x-ui.sh
-    if [[ $? -ne 0 ]]; then
+    omega_raw_fetch /usr/bin/x-ui-temp x-ui.sh
+    if [[ ! -s /usr/bin/x-ui-temp ]]; then
         echo -e "${red}Failed to download x-ui.sh${plain}"
         exit 1
     fi
@@ -1247,7 +1264,7 @@ install_x-ui() {
     fi
 
     if [[ $release == "alpine" ]]; then
-        curl -4fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/${OMEGA_REPO}/main/x-ui.rc
+        omega_raw_fetch /etc/init.d/x-ui x-ui.rc > /dev/null 2>&1
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Failed to download x-ui.rc${plain}"
             exit 1
@@ -1304,13 +1321,13 @@ install_x-ui() {
             echo -e "${yellow}Service files not found in tar.gz, downloading from GitHub...${plain}"
             case "${release}" in
                 ubuntu | debian | armbian)
-                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/${OMEGA_REPO}/main/x-ui.service.debian > /dev/null 2>&1
+                    omega_raw_fetch "${xui_service}/x-ui.service" x-ui.service.debian > /dev/null 2>&1
                     ;;
                 arch | manjaro | parch)
-                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/${OMEGA_REPO}/main/x-ui.service.arch > /dev/null 2>&1
+                    omega_raw_fetch "${xui_service}/x-ui.service" x-ui.service.arch > /dev/null 2>&1
                     ;;
                 *)
-                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/${OMEGA_REPO}/main/x-ui.service.rhel > /dev/null 2>&1
+                    omega_raw_fetch "${xui_service}/x-ui.service" x-ui.service.rhel > /dev/null 2>&1
                     ;;
             esac
 
