@@ -1,6 +1,9 @@
 name: CI
 
 on:
+  # Allow running the suite against the default branch on demand (e.g. after a
+  # CI-config-only change, which the path filters below would not trigger).
+  workflow_dispatch:
   pull_request:
     paths:
       - "**.go"

@@ -1,19 +1,23 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
+# OMEGA pins the exact dependency set of 3x-ui v3.3.1 (go.mod and
+# frontend/package-lock.json are intentionally untouched), so automated
+# *version* updates are disabled: open-pull-requests-limit 0 keeps the file
+# (and the security-alert integration) in place without opening bump PRs that
+# would move the panel off its pinned base.
 # https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
-
 version: 2
 updates:
-  - package-ecosystem: "github-actions" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 0
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 0
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 0
