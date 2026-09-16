@@ -1780,7 +1780,6 @@
     "comment": "یادداشت",
     "trafficLimit": "سقف ترافیک",
     "clientLimit": "سقف تعداد کلاینت",
-    "inboundLimit": "سقف تعداد ورودی",
     "pricePerGb": "قیمت هر گیگابایت",
     "deposit": "شارژ اولیه",
     "zeroUnlimited": "۰ = نامحدود",

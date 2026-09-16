@@ -36,7 +36,6 @@ const statFixture = {
     enable: true,
     trafficLimit: 53687091200,
     clientLimit: 10,
-    inboundLimit: 2,
     expiryTime: 0,
     pricePerGb: 0.5,
     deposit: 20,
@@ -131,7 +130,7 @@ describe('reseller pages', () => {
     await waitFor(() => expect(screen.getByText('Ali')).toBeTruthy());
 
     const list = document.body.textContent ?? '';
-    expect(list).toContain('1 / 2'); // inbounds used / limit
+    expect(list).not.toContain('1 / 2'); // inbounds have no cap anymore: plain count
     expect(list).toContain('2 / 10'); // clients used / limit
     expect(list).toContain('30.00 GB / 50.00 GB'); // allocated / limit
     expect(list).toContain('19.00'); // balance = deposit - cost
@@ -154,8 +153,9 @@ describe('reseller pages', () => {
     );
     expect(within(dialog).getByText('Traffic quota')).toBeTruthy();
     expect(within(dialog).getByText('Client limit')).toBeTruthy();
-    expect(within(dialog).getByText('Inbound limit')).toBeTruthy();
+    expect(within(dialog).queryByText('Inbound limit')).toBeNull();
     expect(within(dialog).getByText('Price per GB')).toBeTruthy();
+    expect(within(dialog).getByText('Assigned inbounds')).toBeTruthy();
   });
 
   it('reseller report page shows usage, cost, balance and the client rows', async () => {
