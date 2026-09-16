@@ -13,6 +13,12 @@ func TestIsNewerVersion(t *testing.T) {
 		{"v2.9.3", "2.9.3", false},
 		{"v2.9.2", "2.9.3", false},
 		{"v3.0.0", "2.9.3", true},
+		// OMEGA ships "-omega" suffixed tags; the suffix must not break the
+		// numeric comparison.
+		{"v3.3.4-omega", "3.3.4-omega", false},
+		{"v3.3.4-omega", "3.3.3-omega", true},
+		{"v3.3.3-omega", "3.3.4-omega", false},
+		{"v3.3.10-omega", "3.3.9-omega", true},
 	}
 
 	for _, tc := range cases {
