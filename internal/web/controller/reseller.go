@@ -86,10 +86,14 @@ func (a *ResellerController) report(c *gin.Context) {
 }
 
 // assignments returns the ownership map (inbound -> reseller, client -> reseller)
-// so the admin UI can show who owns what without N+1 requests.
+// so the admin UI can show who owns what without N+1 requests. Names are
+// included so consumers (e.g. the clients page owner tags) can label the
+// owner without a second /resellers/list round trip.
 func (a *ResellerController) assignments(c *gin.Context) {
 	type ownership struct {
 		ResellerId int      `json:"resellerId"`
+		Name       string   `json:"name"`
+		Username   string   `json:"username"`
 		InboundIds []int    `json:"inboundIds"`
 		Emails     []string `json:"emails"`
 	}
@@ -117,7 +121,13 @@ func (a *ResellerController) assignments(c *gin.Context) {
 		if emails == nil {
 			emails = []string{}
 		}
-		out = append(out, ownership{ResellerId: reseller.Id, InboundIds: inboundIds, Emails: emails})
+		out = append(out, ownership{
+			ResellerId: reseller.Id,
+			Name:       reseller.Name,
+			Username:   reseller.Username,
+			InboundIds: inboundIds,
+			Emails:     emails,
+		})
 	}
 	jsonObj(c, out, nil)
 }

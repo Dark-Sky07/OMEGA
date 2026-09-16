@@ -1769,6 +1769,7 @@
   },
   "resellers": {
     "unlimited": "نامحدود",
+    "createdBy": "ساخته‌شده توسط",
     "manage": "مدیریت",
     "overview": "گزارش کلی",
     "statusActive": "فعال",
