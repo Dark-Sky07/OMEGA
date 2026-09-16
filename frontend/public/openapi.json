@@ -8222,7 +8222,7 @@
         "tags": [
           "Resellers (نمایندگی)"
         ],
-        "summary": "Ownership map for the admin UI: for every reseller, the inbound ids it owns and the client emails assigned to it directly.",
+        "summary": "Ownership map for the admin UI: for every reseller, the inbound ids it owns and the client emails assigned to it directly. The display name and username are included so consumers (e.g. the clients page owner tags) can label the owner without a second request.",
         "operationId": "get_panel_api_resellers_assignments",
         "responses": {
           "200": {
@@ -8246,6 +8246,8 @@
                   "obj": [
                     {
                       "resellerId": 1,
+                      "name": "Ali",
+                      "username": "ali",
                       "inboundIds": [
                         3,
                         4
