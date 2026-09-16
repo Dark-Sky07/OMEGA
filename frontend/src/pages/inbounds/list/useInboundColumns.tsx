@@ -30,6 +30,7 @@ interface UseInboundColumnsParams {
   trafficDiff: number;
   onRowAction: (action: { key: RowAction; dbInbound: DBInboundRecord }) => void;
   onSwitchEnable: (dbInbound: DBInboundRecord, next: boolean) => void;
+  isReseller?: boolean;
 }
 
 export function useInboundColumns({
@@ -43,6 +44,7 @@ export function useInboundColumns({
   trafficDiff,
   onRowAction,
   onSwitchEnable,
+  isReseller,
 }: UseInboundColumnsParams): TableColumnType<DBInboundRecord>[] {
   const { t } = useTranslation();
   const { datepicker } = useDatepicker();
@@ -67,6 +69,7 @@ export function useInboundColumns({
             subEnable={subEnable}
             hasClients={(clientCount[record.id]?.clients || 0) > 0}
             onClick={(key) => onRowAction({ key, dbInbound: record })}
+            isReseller={isReseller}
           />
         ),
       },
@@ -78,6 +81,7 @@ export function useInboundColumns({
         render: (_, record) => (
           <Switch
             checked={record.enable}
+            disabled={isReseller}
             onChange={(next) => onSwitchEnable(record, next)}
           />
         ),
@@ -283,5 +287,5 @@ export function useInboundColumns({
     );
 
     return cols;
-  }, [t, hasAnyRemark, hasAnySubSortIndex, hasActiveNode, nodesById, clientCount, subEnable, expireDiff, trafficDiff, datepicker, onRowAction, onSwitchEnable]);
+  }, [t, hasAnyRemark, hasAnySubSortIndex, hasActiveNode, nodesById, clientCount, subEnable, expireDiff, trafficDiff, datepicker, onRowAction, onSwitchEnable, isReseller]);
 }
