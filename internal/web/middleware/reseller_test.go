@@ -26,6 +26,7 @@ func TestIsResellerAllowed(t *testing.T) {
 		"/panel/api/reseller/report",
 		"/panel/api/reseller/password",
 		"/panel/api/auth/me",
+		"/panel/api/setting/defaultSettings", // exact: shared non-sensitive UI defaults
 	}
 	for _, path := range allowed {
 		if !isResellerAllowed(path) {

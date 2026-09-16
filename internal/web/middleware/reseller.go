@@ -11,7 +11,9 @@ import (
 
 // resellerAllowedPrefixes lists the panel-API namespaces a reseller
 // (نمایندگی) session may reach. Everything else — settings, xray config, nodes,
-// server management, API tokens, backups and other resellers — is admin-only.
+// server management, API tokens, backups and other resellers — is admin-only,
+// with the single exception of resellerAllowedExact (the shared, non-sensitive
+// default-settings read used by the UI chrome).
 //
 // Ownership inside the allowed namespaces is enforced by the handlers
 // themselves: a reseller only ever sees and edits its own inbounds/clients.
@@ -26,6 +28,16 @@ var resellerAllowedPrefixes = []string{
 // limits because they expose panel-wide data (client groups are global).
 var resellerDeniedExact = []string{
 	"/panel/api/clients/groups",
+}
+
+// resellerAllowedExact are read-only, non-sensitive endpoints outside the
+// self-service namespaces that the shared UI still needs: the default-settings
+// payload drives the datepicker (Jalali calendar), page size, client share
+// links and expiry/traffic thresholds. It carries no per-tenant data and no
+// credentials. Everything else under /panel/api/setting/ (all, update,
+// updateUser, restartPanel, apiTokens) stays admin-only.
+var resellerAllowedExact = []string{
+	"/panel/api/setting/defaultSettings",
 }
 
 // ResellerGuard blocks reseller sessions from the admin-only parts of the panel
@@ -63,6 +75,11 @@ func isResellerAllowed(path string) bool {
 	for _, denied := range resellerDeniedExact {
 		if path == denied || strings.HasPrefix(path, denied+"/") {
 			return false
+		}
+	}
+	for _, exact := range resellerAllowedExact {
+		if path == exact {
+			return true
 		}
 	}
 	for _, prefix := range resellerAllowedPrefixes {
