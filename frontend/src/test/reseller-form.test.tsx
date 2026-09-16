@@ -149,7 +149,7 @@ describe('reseller form (admin)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /New Reseller/i }));
     const dialog = await openFormDialog();
-    await waitFor(() => expect(within(dialog).getByText('Assigned inbounds')).toBeTruthy());
+    await waitFor(() => expect(within(dialog).getByText('Attach Inbound')).toBeTruthy());
 
     const inputs = textInputs(dialog);
     fireEvent.change(inputs[0], { target: { value: 'sara' } });
@@ -179,7 +179,7 @@ describe('reseller form (admin)', () => {
 
     fireEvent.click(rowButton(rowFor('Ali'), 'edit'));
     const dialog = await openFormDialog();
-    await waitFor(() => expect(within(dialog).getByText('Assigned inbounds')).toBeTruthy());
+    await waitFor(() => expect(within(dialog).getByText('Attach Inbound')).toBeTruthy());
 
     // Ali owns #1: uncheck it, check #2 instead.
     const first = within(dialog).getByRole('checkbox', { name: /res-inb/ }) as HTMLInputElement;

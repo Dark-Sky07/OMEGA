@@ -1781,11 +1781,9 @@
     "comment": "Note",
     "trafficLimit": "Traffic quota",
     "clientLimit": "Client limit",
-    "pricePerGb": "Price per GB",
-    "deposit": "Initial deposit",
     "zeroUnlimited": "0 = unlimited",
-    "inbounds": "Assigned inbounds",
-    "inboundsHint": "Turn an inbound on to assign it to this reseller. Resellers can only see and manage the inbounds that are assigned to them.",
+    "inbounds": "Attach Inbound",
+    "inboundsHint": "Select which inbounds this reseller can access. The admin controls inbound access via this list.",
     "owned": "Assigned",
     "owner": "Owner",
     "noOwner": "Admin",
@@ -1847,6 +1845,7 @@
       "clientAssigned": "Client assigned",
       "clientUnassigned": "Client unassigned",
       "passwordChanged": "Password changed"
-    }
+    },
+    "emptyInbounds": "No inbounds available"
   }
 }

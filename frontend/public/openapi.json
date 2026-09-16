@@ -1899,7 +1899,7 @@
     },
     {
       "name": "Resellers (نمایندگی)",
-      "description": "Panel sub-accounts that own a slice of the panel: their own inbounds, their own clients, and two quotas (clients, traffic). A reseller signs in with its own username/password on the same login page; its session reads <code>/panel/api/inbounds/*</code> and <code>/panel/api/reseller/*</code>, manages its clients under <code>/panel/api/clients/*</code> and reaches <code>/panel/api/auth/me</code> — inbound writes and everything else answer 403. The endpoints below are the admin-side management API under <code>/panel/api/resellers</code>; a wrong-owner access answers 403 with <code>inbound not found</code> / <code>client not found</code>."
+      "description": "Panel sub-accounts that own a slice of the panel: their own inbounds, their own clients, and two quotas (clients, traffic). Inbounds are attached by the admin via the Attach Inbound list — the reseller can only see/manage assigned inbounds. A reseller signs in with its own username/password on the same login page; its session reads <code>/panel/api/inbounds/*</code> and <code>/panel/api/reseller/*</code>, manages its clients under <code>/panel/api/clients/*</code> and reaches <code>/panel/api/auth/me</code> — inbound writes and everything else answer 403. The endpoints below are the admin-side management API under <code>/panel/api/resellers</code>; a wrong-owner access answers 403 with <code>inbound not found</code> / <code>client not found</code>."
     },
     {
       "name": "WebSocket",
@@ -8134,7 +8134,7 @@
         "tags": [
           "Resellers (نمایندگی)"
         ],
-        "summary": "Every reseller with its live usage snapshot: inbound/client counts, allocated and consumed traffic, cost (used GB × price per GB), balance and quota flags.",
+        "summary": "Every reseller with its live usage snapshot: inbound/client counts, allocated and consumed traffic and quota flags.",
         "operationId": "get_panel_api_resellers_list",
         "responses": {
           "200": {
@@ -8161,16 +8161,12 @@
                         "id": 1,
                         "username": "reseller1",
                         "trafficLimit": 1099511627776,
-                        "clientLimit": 100,
-                        "pricePerGb": 0.5,
-                        "deposit": 50
+                        "clientLimit": 100
                       },
                       "inboundCount": 2,
                       "clientCount": 12,
                       "usedTraffic": 10737418240,
-                      "allocatedTraffic": 549755813888,
-                      "cost": 5,
-                      "balance": 45
+                      "allocatedTraffic": 549755813888
                     }
                   ]
                 }
@@ -8272,7 +8268,7 @@
         "tags": [
           "Resellers (نمایندگی)"
         ],
-        "summary": "Full billing/usage report of one reseller: usage snapshot, one row per client (quota, usage, cost, attached inbounds) and the money ledger.",
+        "summary": "Full usage report of one reseller: usage snapshot and one row per client (quota, usage, attached inbounds).",
         "operationId": "get_panel_api_resellers_report_id",
         "parameters": [
           {
