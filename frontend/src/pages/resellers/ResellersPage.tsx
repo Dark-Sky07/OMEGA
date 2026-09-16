@@ -20,6 +20,7 @@ import {
   Progress,
   Row,
   Select,
+  Segmented,
   Space,
   Spin,
   Statistic,
@@ -50,6 +51,7 @@ import { keys } from '@/api/queryKeys';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useTheme } from '@/hooks/useTheme';
 import type { ResellerReport, ResellerStat } from '@/api/queries/useSession';
+import ResellersOverview from './ResellersOverview';
 import './ResellersPage.css';
 
 const GB = 1024 * 1024 * 1024;
@@ -91,6 +93,7 @@ export default function ResellersPage() {
   }, [messageApi]);
 
   const [formOpen, setFormOpen] = useState(false);
+  const [view, setView] = useState<'manage' | 'overview'>('manage');
   const [editing, setEditing] = useState<ResellerStat | null>(null);
   const [passwordFor, setPasswordFor] = useState<ResellerStat | null>(null);
   const [reportFor, setReportFor] = useState<ResellerStat | null>(null);
@@ -110,10 +113,14 @@ export default function ResellersPage() {
   const listQuery = useQuery({
     queryKey: keys.resellers.list(),
     queryFn: async (): Promise<ResellerStat[]> => {
-      const msg = await HttpUtil.get<ResellerStat[]>('/panel/api/resellers/list');
+      const msg = await HttpUtil.get<ResellerStat[]>('/panel/api/resellers/list', undefined, { silent: true });
       if (!msg.success) throw new Error(msg.msg || 'failed');
       return msg.obj || [];
     },
+    // The overview view should feel live: refresh on a gentle timer in
+    // addition to websocket invalidation (the hub is admin-only, and a
+    // dropped connection would otherwise leave the numbers stale).
+    refetchInterval: 60_000,
   });
 
   const inboundsQuery = useQuery({
@@ -523,6 +530,14 @@ export default function ResellersPage() {
                     </Col>
                     <Col xs={24} md={16}>
                       <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
+                        <Segmented
+                          value={view}
+                          onChange={(value) => setView(value as 'manage' | 'overview')}
+                          options={[
+                            { label: t('resellers.manage'), value: 'manage' },
+                            { label: t('resellers.overview'), value: 'overview' },
+                          ]}
+                        />
                         <Button icon={<ReloadOutlined />} onClick={() => refreshAll()} loading={listQuery.isFetching}>
                           {t('refresh')}
                         </Button>
@@ -540,16 +555,20 @@ export default function ResellersPage() {
                   {listQuery.isError && (
                     <Alert type="error" showIcon message={t('somethingWentWrong')} style={{ marginBottom: 12 }} />
                   )}
-                  <Table<ResellerStat>
-                    rowKey={(stat) => String(stat.reseller.id)}
-                    size="small"
-                    loading={listQuery.isLoading}
-                    columns={columns}
-                    dataSource={rows}
-                    pagination={rows.length > 20 ? { pageSize: 20 } : false}
-                    scroll={{ x: 'max-content' }}
-                    locale={{ emptyText: <Empty description={t('resellers.empty')} /> }}
-                  />
+                  {view === 'overview' ? (
+                    <ResellersOverview stats={rows} loading={listQuery.isLoading} />
+                  ) : (
+                    <Table<ResellerStat>
+                      rowKey={(stat) => String(stat.reseller.id)}
+                      size="small"
+                      loading={listQuery.isLoading}
+                      columns={columns}
+                      dataSource={rows}
+                      pagination={rows.length > 20 ? { pageSize: 20 } : false}
+                      scroll={{ x: 'max-content' }}
+                      locale={{ emptyText: <Empty description={t('resellers.empty')} /> }}
+                    />
+                  )}
                 </Card>
               </Col>
             </Row>
