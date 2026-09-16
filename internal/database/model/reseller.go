@@ -3,8 +3,10 @@ package model
 // Reseller is a panel sub-account (نمایندگی / نماینده) that manages a subset of
 // the panel's inbounds and clients. A reseller signs in on the same panel with
 // its own username/password, only ever sees the inbounds and clients that were
-// assigned to it (directly or by inbound ownership), and is bounded by three
-// quotas: inbounds, clients and total traffic.
+// assigned to it (directly or by inbound ownership), and is bounded by two
+// quotas: clients and total traffic. Inbounds are assigned by the admin and
+// read-only for the reseller (an inbound_limit column lingering in upgraded
+// databases is ignored).
 //
 // Ownership itself is stored in the mapping tables (ResellerInbound,
 // ResellerClient) so the base inbound/client tables stay pristine and a single
@@ -21,7 +23,6 @@ type Reseller struct {
 	// Quotas. A zero value means "no limit".
 	TrafficLimit int64 `json:"trafficLimit" form:"trafficLimit" gorm:"column:traffic_limit;default:0" example:"1099511627776"` // Bytes, cap on the sum of the reseller's client quotas
 	ClientLimit  int   `json:"clientLimit" form:"clientLimit" gorm:"column:client_limit;default:0" example:"100"`
-	InboundLimit int   `json:"inboundLimit" form:"inboundLimit" gorm:"column:inbound_limit;default:0" example:"5"`
 	ExpiryTime   int64 `json:"expiryTime" form:"expiryTime" gorm:"column:expiry_time;default:0" example:"1735689600000"` // Unix ms, 0 = never expires
 
 	// Billing. PricePerGB is the rate the reseller is charged for every GB its

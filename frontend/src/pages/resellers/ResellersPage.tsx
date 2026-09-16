@@ -1,10 +1,11 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
   Button,
   Card,
+  Checkbox,
   Col,
   ConfigProvider,
   Descriptions,
@@ -20,6 +21,7 @@ import {
   Row,
   Select,
   Space,
+  Spin,
   Statistic,
   Switch,
   Table,
@@ -34,7 +36,6 @@ import {
   DeleteOutlined,
   EditOutlined,
   ExportOutlined,
-  ImportOutlined,
   KeyOutlined,
   PlusOutlined,
   ReloadOutlined,
@@ -61,7 +62,7 @@ interface ResellerFormValues {
   enable: boolean;
   trafficLimitGb?: number | null;
   clientLimit?: number | null;
-  inboundLimit?: number | null;
+  inboundIds?: number[];
   pricePerGb?: number | null;
   deposit?: number | null;
 }
@@ -88,7 +89,6 @@ export default function ResellersPage() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ResellerStat | null>(null);
-  const [inboundsFor, setInboundsFor] = useState<ResellerStat | null>(null);
   const [balanceFor, setBalanceFor] = useState<ResellerStat | null>(null);
   const [passwordFor, setPasswordFor] = useState<ResellerStat | null>(null);
   const [reportFor, setReportFor] = useState<ResellerStat | null>(null);
@@ -122,7 +122,7 @@ export default function ResellersPage() {
       if (!msg.success) throw new Error(msg.msg || 'failed');
       return msg.obj || [];
     },
-    enabled: inboundsFor !== null,
+    enabled: formOpen,
   });
 
   const assignmentsQuery = useQuery({
@@ -134,7 +134,7 @@ export default function ResellersPage() {
       if (!msg.success) throw new Error(msg.msg || 'failed');
       return msg.obj || [];
     },
-    enabled: inboundsFor !== null,
+    enabled: formOpen || clientFor !== null,
   });
 
   const clientsQuery = useQuery({
@@ -180,7 +180,6 @@ export default function ResellersPage() {
         enable: stat.reseller.enable,
         trafficLimitGb: stat.reseller.trafficLimit ? stat.reseller.trafficLimit / GB : 0,
         clientLimit: stat.reseller.clientLimit,
-        inboundLimit: stat.reseller.inboundLimit,
         pricePerGb: stat.reseller.pricePerGb,
         deposit: stat.reseller.deposit,
       });
@@ -202,7 +201,6 @@ export default function ResellersPage() {
         enable: values.enable,
         trafficLimit: Math.round((values.trafficLimitGb || 0) * GB),
         clientLimit: values.clientLimit || 0,
-        inboundLimit: values.inboundLimit || 0,
         pricePerGb: values.pricePerGb || 0,
         deposit: values.deposit || 0,
       };
@@ -210,6 +208,27 @@ export default function ResellersPage() {
         ? await HttpUtil.post(`/panel/api/resellers/update/${editing.reseller.id}`, body)
         : await HttpUtil.post('/panel/api/resellers/add', body);
       if (msg.success) {
+        // The form owns the assigned inbounds: persist the checked set as an
+        // assign/unassign diff so Save never drops (or duplicates) ownership.
+        const selected: number[] = values.inboundIds || [];
+        const targetId = editing ? editing.reseller.id : (msg.obj as { id: number } | null)?.id;
+        if (targetId) {
+          const prevOwned = editing
+            ? (assignmentsQuery.data || []).find((entry) => entry.resellerId === editing.reseller.id)?.inboundIds || []
+            : [];
+          const prev = new Set(prevOwned);
+          const next = new Set(selected);
+          for (const id of selected) {
+            if (!prev.has(id)) {
+              await HttpUtil.post('/panel/api/resellers/assignInbound', { resellerId: targetId, inboundId: id });
+            }
+          }
+          for (const id of prevOwned) {
+            if (!next.has(id)) {
+              await HttpUtil.post('/panel/api/resellers/unassignInbound', { resellerId: targetId, inboundId: id });
+            }
+          }
+        }
         messageApi.success(t(editing ? 'resellers.toasts.updated' : 'resellers.toasts.created'));
         setFormOpen(false);
         refreshAll();
@@ -217,7 +236,7 @@ export default function ResellersPage() {
     } finally {
       setSubmitting(false);
     }
-  }, [editing, form, messageApi, refreshAll, t]);
+  }, [editing, form, messageApi, refreshAll, t, assignmentsQuery.data]);
 
   const toggleEnable = useCallback(
     async (stat: ResellerStat, enable: boolean) => {
@@ -270,22 +289,6 @@ export default function ResellersPage() {
     }
   }, [messageApi, passwordFor, passwordForm, t]);
 
-  const toggleInbound = useCallback(
-    async (inboundId: number, owned: boolean) => {
-      if (!inboundsFor) return;
-      const endpoint = owned ? 'unassignInbound' : 'assignInbound';
-      const msg = await HttpUtil.post(`/panel/api/resellers/${endpoint}`, {
-        resellerId: inboundsFor.reseller.id,
-        inboundId,
-      });
-      if (msg.success) {
-        queryClient.invalidateQueries({ queryKey: keys.resellers.assignments() });
-        queryClient.invalidateQueries({ queryKey: keys.resellers.list() });
-      }
-    },
-    [inboundsFor, queryClient],
-  );
-
   const submitAssignClient = useCallback(async () => {
     const values = await clientForm.validateFields().catch(() => null);
     if (!values) return;
@@ -328,6 +331,15 @@ export default function ResellersPage() {
     [assignments, clientFor],
   );
 
+  // The assignment map loads lazily when the form opens, so on the first edit
+  // it is usually still empty when openEdit runs. Re-apply the owned set once
+  // it arrives so the checkboxes always reflect the stored ownership.
+  useEffect(() => {
+    if (!formOpen || !editing) return;
+    const owned = assignments.find((entry) => entry.resellerId === editing.reseller.id)?.inboundIds || [];
+    form.setFieldsValue({ inboundIds: owned });
+  }, [formOpen, editing, assignments, form]);
+
   const columns: ColumnsType<ResellerStat> = [
     {
       title: t('resellers.table.reseller'),
@@ -361,7 +373,7 @@ export default function ResellersPage() {
       title: t('resellers.table.inbounds'),
       key: 'inbounds',
       width: 120,
-      render: (_value, stat) => <span>{quotaText(stat.inboundCount, stat.reseller.inboundLimit, t)}</span>,
+      render: (_value, stat) => <span>{stat.inboundCount}</span>,
     },
     {
       title: t('resellers.table.clients'),
@@ -421,17 +433,6 @@ export default function ResellersPage() {
         <Space size={1} wrap>
           <Tooltip title={t('resellers.report')}>
             <Button size="small" icon={<AccountBookOutlined />} onClick={() => setReportFor(stat)} />
-          </Tooltip>
-          <Tooltip title={t('resellers.inbounds')}>
-            <Button
-              size="small"
-              icon={<ImportOutlined />}
-              onClick={() => {
-                setInboundsFor(stat);
-                inboundsQuery.refetch();
-                assignmentsQuery.refetch();
-              }}
-            />
           </Tooltip>
           <Tooltip title={t('resellers.assignClient')}>
             <Button
@@ -574,13 +575,8 @@ export default function ResellersPage() {
                       <InputNumber min={0} step={10} style={{ width: '100%' }} addonAfter="GB" />
                     </Form.Item>
                   </Col>
-                  <Col span={6}>
+                  <Col span={12}>
                     <Form.Item name="clientLimit" label={t('resellers.clientLimit')} extra={t('resellers.zeroUnlimited')}>
-                      <InputNumber min={0} style={{ width: '100%' }} />
-                    </Form.Item>
-                  </Col>
-                  <Col span={6}>
-                    <Form.Item name="inboundLimit" label={t('resellers.inboundLimit')} extra={t('resellers.zeroUnlimited')}>
                       <InputNumber min={0} style={{ width: '100%' }} />
                     </Form.Item>
                   </Col>
@@ -597,63 +593,39 @@ export default function ResellersPage() {
                     </Form.Item>
                   </Col>
                 </Row>
+                <Form.Item name="inboundIds" label={t('resellers.inbounds')} extra={t('resellers.inboundsHint')}>
+                  {inboundsQuery.isLoading ? (
+                    <Spin size="small" />
+                  ) : (
+                    <Checkbox.Group style={{ width: '100%' }}>
+                      <Space orientation="vertical" style={{ width: '100%' }}>
+                        {(inboundsQuery.data || []).map((row) => {
+                          const owner = ownerByInbound.get(row.id);
+                          const takenByOther = owner !== undefined && (!editing || owner !== editing.reseller.id);
+                          const ownerName =
+                            owner === undefined
+                              ? null
+                              : rows.find((r) => r.reseller.id === owner)?.reseller.name || `#${owner}`;
+                          return (
+                            <Checkbox key={row.id} value={row.id} disabled={takenByOther}>
+                              <Space size={4}>
+                                <span>{row.remark || `#${row.id}`}</span>
+                                <Tag>{row.protocol}</Tag>
+                                <Tag>:{row.port}</Tag>
+                                {owner !== undefined && (
+                                  <Tag color={editing && owner === editing.reseller.id ? 'green' : 'blue'}>
+                                    {ownerName}
+                                  </Tag>
+                                )}
+                              </Space>
+                            </Checkbox>
+                          );
+                        })}
+                      </Space>
+                    </Checkbox.Group>
+                  )}
+                </Form.Item>
               </Form>
-            </Modal>
-
-            <Modal
-              open={inboundsFor !== null}
-              title={`${t('resellers.inbounds')} — ${inboundsFor?.reseller.name || ''}`}
-              onCancel={() => setInboundsFor(null)}
-              footer={<Button onClick={() => setInboundsFor(null)}>{t('close')}</Button>}
-              width={isMobile ? '95%' : 720}
-            >
-              <Typography.Paragraph type="secondary">{t('resellers.inboundsHint')}</Typography.Paragraph>
-              <Table<InboundRow>
-                rowKey={(row) => String(row.id)}
-                size="small"
-                loading={inboundsQuery.isLoading}
-                dataSource={inboundsQuery.data || []}
-                pagination={{ pageSize: 8 }}
-                columns={[
-                  {
-                    title: t('resellers.owned'),
-                    key: 'owned',
-                    width: 90,
-                    render: (_value, row) => {
-                      const owner = ownerByInbound.get(row.id);
-                      const isMine = owner === inboundsFor?.reseller.id;
-                      return (
-                        <Switch
-                          size="small"
-                          checked={isMine}
-                          disabled={owner !== undefined && !isMine}
-                          onChange={(checked) => toggleInbound(row.id, !checked)}
-                        />
-                      );
-                    },
-                  },
-                  { title: t('pages.inbounds.remark'), dataIndex: 'remark', key: 'remark' },
-                  { title: t('pages.inbounds.port'), dataIndex: 'port', key: 'port', width: 90 },
-                  {
-                    title: t('pages.inbounds.protocol'),
-                    dataIndex: 'protocol',
-                    key: 'protocol',
-                    width: 110,
-                    render: (value: string) => <Tag>{value}</Tag>,
-                  },
-                  {
-                    title: t('resellers.owner'),
-                    key: 'owner',
-                    width: 140,
-                    render: (_value, row) => {
-                      const owner = ownerByInbound.get(row.id);
-                      if (owner === undefined) return <Typography.Text type="secondary">{t('resellers.noOwner')}</Typography.Text>;
-                      const ownerName = rows.find((r) => r.reseller.id === owner)?.reseller.name || `#${owner}`;
-                      return <Tag color={owner === inboundsFor?.reseller.id ? 'green' : 'blue'}>{ownerName}</Tag>;
-                    },
-                  },
-                ]}
-              />
             </Modal>
 
             <Modal
@@ -777,8 +749,8 @@ export default function ResellersPage() {
                     <Descriptions.Item label={t('resellers.clientLimit')}>
                       {reportQuery.data.stat.clientCount} / {reportQuery.data.stat.reseller.clientLimit || t('resellers.unlimited')}
                     </Descriptions.Item>
-                    <Descriptions.Item label={t('resellers.inboundLimit')}>
-                      {reportQuery.data.stat.inboundCount} / {reportQuery.data.stat.reseller.inboundLimit || t('resellers.unlimited')}
+                    <Descriptions.Item label={t('resellers.table.inbounds')}>
+                      {reportQuery.data.stat.inboundCount}
                     </Descriptions.Item>
                     <Descriptions.Item label={t('resellers.pricePerGb')}>{reportQuery.data.stat.reseller.pricePerGb}</Descriptions.Item>
                     <Descriptions.Item label={t('resellers.online')}>{reportQuery.data.stat.onlineCount}</Descriptions.Item>

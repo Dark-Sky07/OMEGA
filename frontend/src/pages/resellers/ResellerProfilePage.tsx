@@ -148,14 +148,7 @@ export default function ResellerProfilePage() {
                           />
                         </Col>
                         <Col span={12}>
-                          <Statistic
-                            title={t('resellers.table.inbounds')}
-                            value={
-                              stat?.reseller.inboundLimit
-                                ? `${stat.inboundCount} / ${stat.reseller.inboundLimit}`
-                                : `${stat?.inboundCount ?? 0} / ${t('resellers.unlimited')}`
-                            }
-                          />
+                          <Statistic title={t('resellers.table.inbounds')} value={stat?.inboundCount ?? 0} />
                         </Col>
                       </Row>
                       <Row gutter={8}>
