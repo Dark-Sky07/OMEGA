@@ -40,12 +40,12 @@ import {
   PlusOutlined,
   ReloadOutlined,
   ShopOutlined,
-  WalletOutlined,
 } from '@ant-design/icons';
 
 import AppSidebar from '@/layouts/AppSidebar';
 import { HttpUtil } from '@/utils';
 import { SizeFormatter } from '@/utils';
+import { setMessageInstance } from '@/utils/messageBus';
 import { keys } from '@/api/queryKeys';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useTheme } from '@/hooks/useTheme';
@@ -63,8 +63,6 @@ interface ResellerFormValues {
   trafficLimitGb?: number | null;
   clientLimit?: number | null;
   inboundIds?: number[];
-  pricePerGb?: number | null;
-  deposit?: number | null;
 }
 
 interface InboundRow {
@@ -87,15 +85,17 @@ export default function ResellersPage() {
   const queryClient = useQueryClient();
   const [messageApi, messageContextHolder] = message.useMessage();
 
+  useEffect(() => {
+    setMessageInstance(messageApi);
+  }, [messageApi]);
+
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ResellerStat | null>(null);
-  const [balanceFor, setBalanceFor] = useState<ResellerStat | null>(null);
   const [passwordFor, setPasswordFor] = useState<ResellerStat | null>(null);
   const [reportFor, setReportFor] = useState<ResellerStat | null>(null);
   const [clientFor, setClientFor] = useState<ResellerStat | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm<ResellerFormValues>();
-  const [balanceForm] = Form.useForm<{ amount: number; comment?: string }>();
   const [passwordForm] = Form.useForm<{ password: string }>();
   const [clientForm] = Form.useForm<{ email: string; resellerId: number }>();
 
@@ -165,7 +165,7 @@ export default function ResellersPage() {
   const openCreate = useCallback(() => {
     setEditing(null);
     form.resetFields();
-    form.setFieldsValue({ enable: true });
+    form.setFieldsValue({ enable: true, inboundIds: [] });
     setFormOpen(true);
   }, [form]);
 
@@ -180,8 +180,6 @@ export default function ResellersPage() {
         enable: stat.reseller.enable,
         trafficLimitGb: stat.reseller.trafficLimit ? stat.reseller.trafficLimit / GB : 0,
         clientLimit: stat.reseller.clientLimit,
-        pricePerGb: stat.reseller.pricePerGb,
-        deposit: stat.reseller.deposit,
       });
       setFormOpen(true);
     },
@@ -189,8 +187,12 @@ export default function ResellersPage() {
   );
 
   const submitForm = useCallback(async () => {
-    const values = await form.validateFields().catch(() => null);
-    if (!values) return;
+    let values: ResellerFormValues;
+    try {
+      values = await form.validateFields();
+    } catch {
+      return;
+    }
     setSubmitting(true);
     try {
       const body = {
@@ -198,45 +200,62 @@ export default function ResellersPage() {
         password: values.password || '',
         name: values.name || values.username,
         comment: values.comment || '',
-        enable: values.enable,
+        enable: values.enable ?? true,
         trafficLimit: Math.round((values.trafficLimitGb || 0) * GB),
         clientLimit: values.clientLimit || 0,
-        pricePerGb: values.pricePerGb || 0,
-        deposit: values.deposit || 0,
       };
       const msg = editing
         ? await HttpUtil.post(`/panel/api/resellers/update/${editing.reseller.id}`, body)
         : await HttpUtil.post('/panel/api/resellers/add', body);
-      if (msg.success) {
-        // The form owns the assigned inbounds: persist the checked set as an
-        // assign/unassign diff so Save never drops (or duplicates) ownership.
-        const selected: number[] = values.inboundIds || [];
-        const targetId = editing ? editing.reseller.id : (msg.obj as { id: number } | null)?.id;
-        if (targetId) {
-          const prevOwned = editing
-            ? (assignmentsQuery.data || []).find((entry) => entry.resellerId === editing.reseller.id)?.inboundIds || []
-            : [];
-          const prev = new Set(prevOwned);
-          const next = new Set(selected);
-          for (const id of selected) {
-            if (!prev.has(id)) {
-              await HttpUtil.post('/panel/api/resellers/assignInbound', { resellerId: targetId, inboundId: id });
-            }
-          }
-          for (const id of prevOwned) {
-            if (!next.has(id)) {
-              await HttpUtil.post('/panel/api/resellers/unassignInbound', { resellerId: targetId, inboundId: id });
+
+      if (!msg.success) {
+        messageApi.error(msg.msg || t('somethingWentWrong'));
+        return;
+      }
+
+      // Attach inbound: admin decides which inbounds the reseller can access.
+      const selected: number[] = values.inboundIds || [];
+      const targetId = editing ? editing.reseller.id : (msg.obj as { id: number } | null)?.id;
+      if (targetId) {
+        const prevOwned = editing
+          ? (assignmentsQuery.data || []).find((entry) => entry.resellerId === editing.reseller.id)?.inboundIds || []
+          : [];
+        const prev = new Set(prevOwned);
+        const next = new Set(selected);
+        for (const id of selected) {
+          if (!prev.has(id)) {
+            const assignMsg = await HttpUtil.post('/panel/api/resellers/assignInbound', {
+              resellerId: targetId,
+              inboundId: id,
+            });
+            if (!assignMsg.success) {
+              messageApi.error(assignMsg.msg || t('somethingWentWrong'));
             }
           }
         }
-        messageApi.success(t(editing ? 'resellers.toasts.updated' : 'resellers.toasts.created'));
-        setFormOpen(false);
-        refreshAll();
+        for (const id of prevOwned) {
+          if (!next.has(id)) {
+            const unassignMsg = await HttpUtil.post('/panel/api/resellers/unassignInbound', {
+              resellerId: targetId,
+              inboundId: id,
+            });
+            if (!unassignMsg.success) {
+              messageApi.error(unassignMsg.msg || t('somethingWentWrong'));
+            }
+          }
+        }
       }
+      messageApi.success(t(editing ? 'resellers.toasts.updated' : 'resellers.toasts.created'));
+      setFormOpen(false);
+      refreshAll();
+      queryClient.invalidateQueries({ queryKey: keys.resellers.assignments() });
+    } catch (err) {
+      const m = err instanceof Error ? err.message : String(err);
+      messageApi.error(m || t('somethingWentWrong'));
     } finally {
       setSubmitting(false);
     }
-  }, [editing, form, messageApi, refreshAll, t, assignmentsQuery.data]);
+  }, [editing, form, messageApi, refreshAll, t, assignmentsQuery.data, queryClient]);
 
   const toggleEnable = useCallback(
     async (stat: ResellerStat, enable: boolean) => {
@@ -244,6 +263,8 @@ export default function ResellersPage() {
       if (msg.success) {
         messageApi.success(t('resellers.toasts.updated'));
         refreshAll();
+      } else {
+        messageApi.error(msg.msg || t('somethingWentWrong'));
       }
     },
     [messageApi, refreshAll, t],
@@ -255,26 +276,12 @@ export default function ResellersPage() {
       if (msg.success) {
         messageApi.success(t('resellers.toasts.deleted'));
         refreshAll();
+      } else {
+        messageApi.error(msg.msg || t('somethingWentWrong'));
       }
     },
     [messageApi, refreshAll, t],
   );
-
-  const submitBalance = useCallback(async () => {
-    const values = await balanceForm.validateFields().catch(() => null);
-    if (!values) return;
-    const msg = await HttpUtil.post('/panel/api/resellers/balance', {
-      resellerId: balanceFor?.reseller.id,
-      amount: values.amount,
-      comment: values.comment || '',
-    });
-    if (msg.success) {
-      messageApi.success(t('resellers.toasts.balanceUpdated'));
-      setBalanceFor(null);
-      balanceForm.resetFields();
-      refreshAll();
-    }
-  }, [balanceFor, balanceForm, messageApi, refreshAll, t]);
 
   const submitPassword = useCallback(async () => {
     const values = await passwordForm.validateFields().catch(() => null);
@@ -286,6 +293,8 @@ export default function ResellersPage() {
       messageApi.success(t('resellers.toasts.passwordReset'));
       setPasswordFor(null);
       passwordForm.resetFields();
+    } else {
+      messageApi.error(msg.msg || t('somethingWentWrong'));
     }
   }, [messageApi, passwordFor, passwordForm, t]);
 
@@ -301,6 +310,8 @@ export default function ResellersPage() {
       clientForm.resetFields();
       queryClient.invalidateQueries({ queryKey: keys.resellers.assignments() });
       refreshAll();
+    } else {
+      messageApi.error(msg.msg || t('somethingWentWrong'));
     }
   }, [clientFor, clientForm, messageApi, queryClient, refreshAll, t]);
 
@@ -314,6 +325,8 @@ export default function ResellersPage() {
         messageApi.success(t('resellers.toasts.clientUnassigned'));
         queryClient.invalidateQueries({ queryKey: keys.resellers.assignments() });
         refreshAll();
+      } else {
+        messageApi.error(msg.msg || t('somethingWentWrong'));
       }
     },
     [clientFor, messageApi, queryClient, refreshAll, t],
@@ -327,7 +340,7 @@ export default function ResellersPage() {
     return map;
   }, [assignments]);
   const explicitEmails = useMemo(
-    () => (assignments.find((entry) => entry.resellerId === clientFor?.reseller.id)?.emails || []),
+    () => assignments.find((entry) => entry.resellerId === clientFor?.reseller.id)?.emails || [],
     [assignments, clientFor],
   );
 
@@ -384,7 +397,7 @@ export default function ResellersPage() {
     {
       title: t('resellers.table.traffic'),
       key: 'traffic',
-      width: 230,
+      width: 260,
       render: (_value, stat) => {
         const percent = stat.reseller.trafficLimit
           ? Math.min(100, Math.round((stat.allocatedTraffic / stat.reseller.trafficLimit) * 100))
@@ -411,24 +424,9 @@ export default function ResellersPage() {
       },
     },
     {
-      title: t('resellers.table.balance'),
-      key: 'balance',
-      width: 160,
-      render: (_value, stat) => (
-        <Space orientation="vertical" size={0}>
-          <span>
-            {t('resellers.table.cost')}: <b>{stat.cost.toFixed(2)}</b>
-          </span>
-          <Typography.Text type={stat.balance < 0 ? 'danger' : 'secondary'}>
-            {t('resellers.table.balance')}: {stat.balance.toFixed(2)}
-          </Typography.Text>
-        </Space>
-      ),
-    },
-    {
       title: t('resellers.table.actions'),
       key: 'actions',
-      width: isMobile ? 90 : 260,
+      width: isMobile ? 90 : 220,
       render: (_value, stat) => (
         <Space size={1} wrap>
           <Tooltip title={t('resellers.report')}>
@@ -443,17 +441,6 @@ export default function ResellersPage() {
                 clientForm.resetFields();
                 clientForm.setFieldsValue({ resellerId: stat.reseller.id });
                 assignmentsQuery.refetch();
-              }}
-            />
-          </Tooltip>
-          <Tooltip title={t('resellers.balance')}>
-            <Button
-              size="small"
-              icon={<WalletOutlined />}
-              onClick={() => {
-                setBalanceFor(stat);
-                balanceForm.resetFields();
-                balanceForm.setFieldsValue({ amount: 0, comment: '' });
               }}
             />
           </Tooltip>
@@ -581,18 +568,6 @@ export default function ResellersPage() {
                     </Form.Item>
                   </Col>
                 </Row>
-                <Row gutter={8}>
-                  <Col span={12}>
-                    <Form.Item name="pricePerGb" label={t('resellers.pricePerGb')}>
-                      <InputNumber min={0} step={0.1} style={{ width: '100%' }} />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item name="deposit" label={t('resellers.deposit')}>
-                      <InputNumber min={0} step={1} style={{ width: '100%' }} />
-                    </Form.Item>
-                  </Col>
-                </Row>
                 <Form.Item name="inboundIds" label={t('resellers.inbounds')} extra={t('resellers.inboundsHint')}>
                   {inboundsQuery.isLoading ? (
                     <Spin size="small" />
@@ -621,6 +596,9 @@ export default function ResellersPage() {
                             </Checkbox>
                           );
                         })}
+                        {(!inboundsQuery.data || inboundsQuery.data.length === 0) && (
+                          <Typography.Text type="secondary">{t('resellers.emptyInbounds') || 'No inbounds'}</Typography.Text>
+                        )}
                       </Space>
                     </Checkbox.Group>
                   )}
@@ -677,24 +655,6 @@ export default function ResellersPage() {
             </Modal>
 
             <Modal
-              open={balanceFor !== null}
-              title={`${t('resellers.balance')} — ${balanceFor?.reseller.name || ''}`}
-              onCancel={() => setBalanceFor(null)}
-              onOk={submitBalance}
-              okText={t('save')}
-              cancelText={t('close')}
-            >
-              <Form form={balanceForm} layout="vertical">
-                <Form.Item name="amount" label={t('resellers.amount')} extra={t('resellers.amountHint')} rules={[{ required: true }]}>
-                  <InputNumber style={{ width: '100%' }} />
-                </Form.Item>
-                <Form.Item name="comment" label={t('resellers.comment')}>
-                  <Input />
-                </Form.Item>
-              </Form>
-            </Modal>
-
-            <Modal
               open={passwordFor !== null}
               title={`${t('resellers.resetPassword')} — ${passwordFor?.reseller.name || ''}`}
               onCancel={() => setPasswordFor(null)}
@@ -735,14 +695,10 @@ export default function ResellersPage() {
                       />
                     </Col>
                     <Col xs={12} md={6}>
-                      <Statistic title={t('resellers.table.cost')} value={reportQuery.data.stat.cost.toFixed(2)} />
+                      <Statistic title={t('resellers.table.inbounds')} value={reportQuery.data.stat.inboundCount} />
                     </Col>
                     <Col xs={12} md={6}>
-                      <Statistic
-                        title={t('resellers.table.balance')}
-                        value={reportQuery.data.stat.balance.toFixed(2)}
-                        valueStyle={{ color: reportQuery.data.stat.balance < 0 ? '#cf1322' : undefined }}
-                      />
+                      <Statistic title={t('resellers.online')} value={reportQuery.data.stat.onlineCount} />
                     </Col>
                   </Row>
                   <Descriptions size="small" bordered column={isMobile ? 1 : 2}>
@@ -752,8 +708,12 @@ export default function ResellersPage() {
                     <Descriptions.Item label={t('resellers.table.inbounds')}>
                       {reportQuery.data.stat.inboundCount}
                     </Descriptions.Item>
-                    <Descriptions.Item label={t('resellers.pricePerGb')}>{reportQuery.data.stat.reseller.pricePerGb}</Descriptions.Item>
                     <Descriptions.Item label={t('resellers.online')}>{reportQuery.data.stat.onlineCount}</Descriptions.Item>
+                    <Descriptions.Item label={t('resellers.expiry')}>
+                      {reportQuery.data.stat.reseller.expiryTime
+                        ? new Date(reportQuery.data.stat.reseller.expiryTime).toLocaleString()
+                        : t('resellers.never')}
+                    </Descriptions.Item>
                   </Descriptions>
                   <Card size="small" title={t('resellers.clientsTitle')}>
                     <Table
@@ -774,33 +734,11 @@ export default function ResellersPage() {
                           key: 'used',
                           render: (_v, row) => SizeFormatter.sizeFormat(row.used),
                         },
-                        { title: t('resellers.table.cost'), dataIndex: 'cost', key: 'cost', render: (v: number) => v.toFixed(2) },
                         {
                           title: t('resellers.owner'),
                           key: 'inbounds',
                           render: (_v, row) => row.inboundIds.map((id) => <Tag key={id}>#{id}</Tag>),
                         },
-                      ]}
-                    />
-                  </Card>
-                  <Card size="small" title={t('resellers.ledger')}>
-                    <Table
-                      rowKey="id"
-                      size="small"
-                      dataSource={reportQuery.data.transactions}
-                      pagination={{ pageSize: 10 }}
-                      locale={{ emptyText: <Empty description={t('resellers.noTransactions')} /> }}
-                      columns={[
-                        {
-                          title: t('resellers.table.date'),
-                          dataIndex: 'createdAt',
-                          key: 'createdAt',
-                          render: (value: number) => new Date(value).toLocaleString(),
-                        },
-                        { title: t('resellers.type'), dataIndex: 'type', key: 'type', render: (v: string) => <Tag>{v}</Tag> },
-                        { title: t('resellers.amount'), dataIndex: 'amount', key: 'amount' },
-                        { title: t('resellers.table.balance'), dataIndex: 'balance', key: 'balance' },
-                        { title: t('resellers.comment'), dataIndex: 'comment', key: 'comment' },
                       ]}
                     />
                   </Card>
