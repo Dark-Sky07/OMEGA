@@ -1770,6 +1770,7 @@
   },
   "resellers": {
     "unlimited": "Unlimited",
+    "createdBy": "Created by",
     "manage": "Manage",
     "overview": "Overview",
     "statusActive": "Active",

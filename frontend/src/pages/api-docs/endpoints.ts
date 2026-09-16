@@ -1247,9 +1247,9 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/resellers/assignments',
         summary:
-          'Ownership map for the admin UI: for every reseller, the inbound ids it owns and the client emails assigned to it directly.',
+          'Ownership map for the admin UI: for every reseller, the inbound ids it owns and the client emails assigned to it directly. The display name and username are included so consumers (e.g. the clients page owner tags) can label the owner without a second request.',
         response:
-          '{\n  "success": true,\n  "obj": [ { "resellerId": 1, "inboundIds": [3, 4], "emails": ["user1", "user2"] } ]\n}',
+          '{\n  "success": true,\n  "obj": [ { "resellerId": 1, "name": "Ali", "username": "ali", "inboundIds": [3, 4], "emails": ["user1", "user2"] } ]\n}',
       },
       {
         method: 'GET',
