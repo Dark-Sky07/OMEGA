@@ -131,6 +131,7 @@ export default function InboundList({
     trafficDiff,
     onRowAction,
     onSwitchEnable,
+    isReseller,
   });
 
   const paginationFor = (rows: DBInboundRecord[]) => {
@@ -138,14 +139,20 @@ export default function InboundList({
     return { pageSize: size, showSizeChanger: false, hideOnSinglePage: true };
   };
 
+  // Inbounds are read-only for resellers: no import, no traffic reset — only
+  // the export actions survive.
   const generalActionsMenu: MenuProps = {
     items: [
-      { key: 'import', icon: <ImportOutlined />, label: t('pages.inbounds.importInbound') },
+      ...(!isReseller
+        ? [{ key: 'import', icon: <ImportOutlined />, label: t('pages.inbounds.importInbound') }]
+        : []),
       { key: 'export', icon: <ExportOutlined />, label: t('pages.inbounds.export') },
       ...(subEnable
         ? [{ key: 'subs', icon: <ExportOutlined />, label: `${t('pages.inbounds.export')} — ${t('pages.settings.subSettings')}` }]
         : []),
-      { key: 'resetInbounds', icon: <ReloadOutlined />, label: t('pages.inbounds.resetAllTraffic') },
+      ...(!isReseller
+        ? [{ key: 'resetInbounds', icon: <ReloadOutlined />, label: t('pages.inbounds.resetAllTraffic') }]
+        : []),
     ],
     onClick: ({ key }) => onGeneralAction(key as GeneralAction),
   };
@@ -155,9 +162,11 @@ export default function InboundList({
       hoverable
       title={(
         <Space>
-          <Button type="primary" onClick={onAddInbound} icon={<PlusOutlined />}>
-            {!isMobile && t('pages.inbounds.addInbound')}
-          </Button>
+          {!isReseller && (
+            <Button type="primary" onClick={onAddInbound} icon={<PlusOutlined />}>
+              {!isMobile && t('pages.inbounds.addInbound')}
+            </Button>
+          )}
           <Dropdown trigger={['click']} menu={generalActionsMenu}>
             <Button type="primary" icon={<MenuOutlined />}>
               {!isMobile && t('pages.inbounds.generalActions')}
@@ -172,7 +181,7 @@ export default function InboundList({
               style={{ minWidth: isMobile ? 90 : 140 }}
             />
           )}
-          {selectedRowKeys.length > 0 && (
+          {!isReseller && selectedRowKeys.length > 0 && (
             <>
               <Tag color="blue" closable onClose={() => setSelectedRowKeys([])} style={{ marginInlineEnd: 0 }}>
                 {t('pages.inbounds.selectedCount', { count: selectedRowKeys.length })}
@@ -195,25 +204,29 @@ export default function InboundList({
               </div>
             ) : (
               <>
-              <div className="card-bulk-bar">
-                <Checkbox
-                  checked={allSelected}
-                  indeterminate={someSelected}
-                  onChange={(e) => selectAll(e.target.checked)}
-                >
-                  {t('pages.inbounds.selectAll')}
-                </Checkbox>
-                {selectedRowKeys.length > 0 && (
-                  <span className="bulk-count">{selectedRowKeys.length}</span>
-                )}
-              </div>
+              {!isReseller && (
+                <div className="card-bulk-bar">
+                  <Checkbox
+                    checked={allSelected}
+                    indeterminate={someSelected}
+                    onChange={(e) => selectAll(e.target.checked)}
+                  >
+                    {t('pages.inbounds.selectAll')}
+                  </Checkbox>
+                  {selectedRowKeys.length > 0 && (
+                    <span className="bulk-count">{selectedRowKeys.length}</span>
+                  )}
+                </div>
+              )}
               {visibleInbounds.map((record) => (
                 <div key={record.id} className={`inbound-card${selectedRowKeys.includes(record.id) ? ' is-selected' : ''}`}>
                   <div className="card-head">
-                    <Checkbox
-                      checked={selectedRowKeys.includes(record.id)}
-                      onChange={(e) => toggleSelect(record.id, e.target.checked)}
-                    />
+                    {!isReseller && (
+                      <Checkbox
+                        checked={selectedRowKeys.includes(record.id)}
+                        onChange={(e) => toggleSelect(record.id, e.target.checked)}
+                      />
+                    )}
                     <span className="card-id">#{record.id}</span>
                     <span className="tag-name">{record.remark}</span>
                     <div className="card-actions" onClick={(e) => e.stopPropagation()}>
@@ -223,6 +236,7 @@ export default function InboundList({
                       <Switch
                         checked={record.enable}
                         size="small"
+                        disabled={isReseller}
                         onChange={(next) => onSwitchEnable(record, next)}
                       />
                       <Dropdown
@@ -247,7 +261,7 @@ export default function InboundList({
             columns={columns}
             dataSource={visibleInbounds}
             rowKey={(r) => r.id}
-            rowSelection={{
+            rowSelection={isReseller ? undefined : {
               selectedRowKeys,
               onChange: (keys: Key[]) => setSelectedRowKeys(keys as number[]),
             }}
