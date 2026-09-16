@@ -37,8 +37,6 @@ const statFixture = {
     trafficLimit: 53687091200,
     clientLimit: 10,
     expiryTime: 0,
-    pricePerGb: 0.5,
-    deposit: 20,
     createdAt: 1789343363011,
     updatedAt: 1789343363011,
   },
@@ -48,8 +46,6 @@ const statFixture = {
   usedTraffic: 2147483648,
   allocatedTraffic: 32212254720,
   remainingTraffic: 21474836480,
-  cost: 1,
-  balance: 19,
   expired: false,
   overQuota: false,
   disabled: false,
@@ -124,7 +120,7 @@ describe('reseller pages', () => {
     });
   });
 
-  it('admin reseller list renders quotas, cost and balance from the API', async () => {
+  it('admin reseller list renders quotas from the API', async () => {
     renderPage(<ResellersPage />);
 
     await waitFor(() => expect(screen.getByText('Ali')).toBeTruthy());
@@ -133,7 +129,6 @@ describe('reseller pages', () => {
     expect(list).not.toContain('1 / 2'); // inbounds have no cap anymore: plain count
     expect(list).toContain('2 / 10'); // clients used / limit
     expect(list).toContain('30.00 GB / 50.00 GB'); // allocated / limit
-    expect(list).toContain('19.00'); // balance = deposit - cost
     expect(HttpUtil.get).toHaveBeenCalledWith('/panel/api/resellers/list');
   });
 
@@ -154,20 +149,18 @@ describe('reseller pages', () => {
     expect(within(dialog).getByText('Traffic quota')).toBeTruthy();
     expect(within(dialog).getByText('Client limit')).toBeTruthy();
     expect(within(dialog).queryByText('Inbound limit')).toBeNull();
-    expect(within(dialog).getByText('Price per GB')).toBeTruthy();
-    expect(within(dialog).getByText('Assigned inbounds')).toBeTruthy();
+    expect(within(dialog).queryByText('Price per GB')).toBeNull();
+    expect(within(dialog).queryByText('Initial deposit')).toBeNull();
+    expect(within(dialog).getByText('Attach Inbound')).toBeTruthy();
   });
 
-  it('reseller report page shows usage, cost, balance and the client rows', async () => {
+  it('reseller report page shows usage and the client rows', async () => {
     sessionState.role = 'reseller';
     renderPage(<ResellerReportPage />);
 
     await waitFor(() => expect(screen.getByText('ali-c2')).toBeTruthy());
     const text = document.body.textContent ?? '';
     expect(text).toContain('2.00 GB'); // used traffic
-    expect(text).toContain('1.00'); // cost
-    expect(text).toContain('19.00'); // balance
-    expect(text).toContain('deposit'); // ledger row type
     expect(HttpUtil.get).toHaveBeenCalledWith('/panel/api/reseller/report');
   });
 
@@ -211,7 +204,6 @@ describe('reseller pages', () => {
       'POST /panel/api/resellers/unassignInbound',
       'POST /panel/api/resellers/assignClient',
       'POST /panel/api/resellers/unassignClient',
-      'POST /panel/api/resellers/balance',
       'GET /panel/api/reseller/profile',
       'GET /panel/api/reseller/report',
       'POST /panel/api/reseller/password',

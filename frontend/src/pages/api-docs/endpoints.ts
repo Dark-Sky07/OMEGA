@@ -1227,15 +1227,15 @@ export const sections: readonly Section[] = [
     id: 'resellers',
     title: 'Resellers (نمایندگی)',
     description:
-      'Panel sub-accounts that own a slice of the panel: their own inbounds, their own clients, and two quotas (clients, traffic). A reseller signs in with its own username/password on the same login page; its session reads <code>/panel/api/inbounds/*</code> and <code>/panel/api/reseller/*</code>, manages its clients under <code>/panel/api/clients/*</code> and reaches <code>/panel/api/auth/me</code> — inbound writes and everything else answer 403. The endpoints below are the admin-side management API under <code>/panel/api/resellers</code>; a wrong-owner access answers 403 with <code>inbound not found</code> / <code>client not found</code>.',
+      'Panel sub-accounts that own a slice of the panel: their own inbounds, their own clients, and two quotas (clients, traffic). Inbounds are attached by the admin via the Attach Inbound list — the reseller can only see/manage assigned inbounds. A reseller signs in with its own username/password on the same login page; its session reads <code>/panel/api/inbounds/*</code> and <code>/panel/api/reseller/*</code>, manages its clients under <code>/panel/api/clients/*</code> and reaches <code>/panel/api/auth/me</code> — inbound writes and everything else answer 403. The endpoints below are the admin-side management API under <code>/panel/api/resellers</code>; a wrong-owner access answers 403 with <code>inbound not found</code> / <code>client not found</code>.',
     endpoints: [
       {
         method: 'GET',
         path: '/panel/api/resellers/list',
         summary:
-          'Every reseller with its live usage snapshot: inbound/client counts, allocated and consumed traffic, cost (used GB × price per GB), balance and quota flags.',
+          'Every reseller with its live usage snapshot: inbound/client counts, allocated and consumed traffic and quota flags.',
         response:
-          '{\n  "success": true,\n  "obj": [\n    {\n      "reseller": { "id": 1, "username": "reseller1", "trafficLimit": 1099511627776, "clientLimit": 100, "pricePerGb": 0.5, "deposit": 50 },\n      "inboundCount": 2,\n      "clientCount": 12,\n      "usedTraffic": 10737418240,\n      "allocatedTraffic": 549755813888,\n      "cost": 5,\n      "balance": 45\n    }\n  ]\n}',
+          '{\n  "success": true,\n  "obj": [\n    {\n      "reseller": { "id": 1, "username": "reseller1", "trafficLimit": 1099511627776, "clientLimit": 100, "clientLimit": 100 },\n      "inboundCount": 2,\n      "clientCount": 12,\n      "usedTraffic": 10737418240,\n      "allocatedTraffic": 549755813888\n    }\n  ]\n}',
       },
       {
         method: 'GET',
@@ -1255,7 +1255,7 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/resellers/report/:id',
         summary:
-          'Full billing/usage report of one reseller: usage snapshot, one row per client (quota, usage, cost, attached inbounds) and the money ledger.',
+          'Full usage report of one reseller: usage snapshot and one row per client (quota, usage, attached inbounds).',
         params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Reseller id.' }],
       },
       {
@@ -1272,8 +1272,6 @@ export const sections: readonly Section[] = [
           { name: 'trafficLimit', in: 'body (json)', type: 'integer', optional: true, desc: 'Bytes. Cap on the sum of the reseller client quotas.' },
           { name: 'clientLimit', in: 'body (json)', type: 'integer', optional: true },
           { name: 'expiryTime', in: 'body (json)', type: 'integer', optional: true, desc: 'Unix ms, 0 = never.' },
-          { name: 'pricePerGb', in: 'body (json)', type: 'number', optional: true },
-          { name: 'deposit', in: 'body (json)', type: 'number', optional: true },
         ],
       },
       {

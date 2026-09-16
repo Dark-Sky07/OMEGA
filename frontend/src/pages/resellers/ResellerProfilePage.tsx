@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -24,6 +24,7 @@ import { ShopOutlined, UserOutlined } from '@ant-design/icons';
 import AppSidebar from '@/layouts/AppSidebar';
 import { HttpUtil } from '@/utils';
 import { SizeFormatter } from '@/utils';
+import { setMessageInstance } from '@/utils/messageBus';
 import { keys } from '@/api/queryKeys';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useTheme } from '@/hooks/useTheme';
@@ -38,6 +39,10 @@ export default function ResellerProfilePage() {
   const [messageApi, messageContextHolder] = message.useMessage();
   const [saving, setSaving] = useState(false);
   const [passwordForm] = Form.useForm<{ oldPassword: string; newPassword: string; confirmPassword: string }>();
+
+  useEffect(() => {
+    setMessageInstance(messageApi);
+  }, [messageApi]);
 
   const pageClass = useMemo(() => {
     const classes = ['resellers-page'];
@@ -73,6 +78,8 @@ export default function ResellerProfilePage() {
         messageApi.success(t('resellers.toasts.passwordChanged'));
         passwordForm.resetFields();
         queryClient.invalidateQueries({ queryKey: keys.session.me() });
+      } else {
+        messageApi.error(msg.msg || t('somethingWentWrong'));
       }
     } finally {
       setSaving(false);
@@ -153,22 +160,10 @@ export default function ResellerProfilePage() {
                       </Row>
                       <Row gutter={8}>
                         <Col span={12}>
-                          <Statistic title={t('resellers.table.cost')} value={(stat?.cost || 0).toFixed(2)} />
-                        </Col>
-                        <Col span={12}>
-                          <Statistic
-                            title={t('resellers.table.balance')}
-                            value={(stat?.balance || 0).toFixed(2)}
-                            valueStyle={{ color: (stat?.balance || 0) < 0 ? '#cf1322' : undefined }}
-                          />
-                        </Col>
-                      </Row>
-                      <Row gutter={8}>
-                        <Col span={12}>
-                          <Statistic title={t('resellers.pricePerGb')} value={stat?.reseller.pricePerGb || 0} />
-                        </Col>
-                        <Col span={12}>
                           <Statistic title={t('resellers.online')} value={stat?.onlineCount || 0} />
+                        </Col>
+                        <Col span={12}>
+                          <Statistic title={t('resellers.usedTraffic')} value={SizeFormatter.sizeFormat(stat?.usedTraffic || 0)} />
                         </Col>
                       </Row>
                     </Space>

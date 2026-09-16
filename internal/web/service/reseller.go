@@ -120,6 +120,8 @@ func (s *ResellerService) StatFor(id int) (*ResellerStat, error) {
 }
 
 // Add creates a reseller. The password is stored as a bcrypt hash.
+// Billing fields (pricePerGb, deposit) are intentionally ignored and forced to 0
+// because the panel now uses attach-inbound instead of billing.
 func (s *ResellerService) Add(reseller *model.Reseller, password string) error {
 	if reseller == nil {
 		return errors.New("reseller is required")
@@ -142,6 +144,9 @@ func (s *ResellerService) Add(reseller *model.Reseller, password string) error {
 	if reseller.Name == "" {
 		reseller.Name = reseller.Username
 	}
+	// Force billing to 0 - removed from UI per admin request
+	reseller.PricePerGB = 0
+	reseller.Deposit = 0
 	reseller.LoginEpoch = 1
 	reseller.CreatedAt = time.Now().UnixMilli()
 	reseller.UpdatedAt = reseller.CreatedAt
@@ -178,8 +183,6 @@ func (s *ResellerService) Update(reseller *model.Reseller, password string) erro
 		"traffic_limit": reseller.TrafficLimit,
 		"client_limit":  reseller.ClientLimit,
 		"expiry_time":   reseller.ExpiryTime,
-		"price_per_gb":  reseller.PricePerGB,
-		"deposit":       reseller.Deposit,
 		"updated_at":    time.Now().UnixMilli(),
 	}
 	if strings.TrimSpace(password) != "" {
@@ -588,8 +591,9 @@ func (s *ResellerService) Stat(reseller *model.Reseller) (*ResellerStat, error) 
 		}
 	}
 
-	stat.Cost = Round2(float64(stat.UsedTraffic) * reseller.PricePerGB / bytesPerGB)
-	stat.Balance = Round2(reseller.Deposit - stat.Cost)
+	// Billing removed: cost/balance always 0, kept for backward compat
+	stat.Cost = 0
+	stat.Balance = 0
 	stat.Expired = IsExpired(reseller.ExpiryTime)
 	if reseller.TrafficLimit > 0 {
 		stat.RemainingTraffic = reseller.TrafficLimit - stat.AllocatedTraffic
@@ -672,7 +676,7 @@ func (s *ResellerService) Report(resellerId int) (*ResellerReport, error) {
 			Up:         up,
 			Down:       down,
 			Used:       used,
-			Cost:       Round2(float64(used) * reseller.PricePerGB / bytesPerGB),
+			Cost:       0,
 			InboundIds: ids,
 			SubID:      rec.SubID,
 		})

@@ -14,8 +14,9 @@ export interface ResellerStat {
     trafficLimit: number;
     clientLimit: number;
     expiryTime: number;
-    pricePerGb: number;
-    deposit: number;
+    // Kept for backward compat, billing is now removed from UI
+    pricePerGb?: number;
+    deposit?: number;
     createdAt?: number;
     updatedAt?: number;
   };
@@ -25,8 +26,8 @@ export interface ResellerStat {
   usedTraffic: number;
   allocatedTraffic: number;
   remainingTraffic: number;
-  cost: number;
-  balance: number;
+  cost?: number;
+  balance?: number;
   expired: boolean;
   overQuota: boolean;
   disabled: boolean;
@@ -42,7 +43,7 @@ export interface ResellerClientRow {
   up: number;
   down: number;
   used: number;
-  cost: number;
+  cost?: number;
   inboundIds: number[];
   subId?: string;
 }
