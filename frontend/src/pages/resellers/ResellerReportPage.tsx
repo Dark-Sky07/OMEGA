@@ -126,8 +126,8 @@ export default function ResellerReportPage() {
                         <Descriptions.Item label={t('resellers.clientLimit')}>
                           {stat.clientCount} / {stat.reseller.clientLimit || t('resellers.unlimited')}
                         </Descriptions.Item>
-                        <Descriptions.Item label={t('resellers.inboundLimit')}>
-                          {stat.inboundCount} / {stat.reseller.inboundLimit || t('resellers.unlimited')}
+                        <Descriptions.Item label={t('resellers.table.inbounds')}>
+                          {stat.inboundCount}
                         </Descriptions.Item>
                         <Descriptions.Item label={t('resellers.pricePerGb')}>{stat.reseller.pricePerGb}</Descriptions.Item>
                         <Descriptions.Item label={t('resellers.online')}>{stat.onlineCount}</Descriptions.Item>

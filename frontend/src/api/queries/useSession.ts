@@ -13,7 +13,6 @@ export interface ResellerStat {
     enable: boolean;
     trafficLimit: number;
     clientLimit: number;
-    inboundLimit: number;
     expiryTime: number;
     pricePerGb: number;
     deposit: number;

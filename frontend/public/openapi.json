@@ -1899,7 +1899,7 @@
     },
     {
       "name": "Resellers (نمایندگی)",
-      "description": "Panel sub-accounts that own a slice of the panel: their own inbounds, their own clients, and three quotas (inbounds, clients, traffic). A reseller signs in with its own username/password on the same login page; its session can only reach <code>/panel/api/inbounds/*</code>, <code>/panel/api/clients/*</code>, <code>/panel/api/reseller/*</code> and <code>/panel/api/auth/me</code> — everything else answers 403. The endpoints below are the admin-side management API under <code>/panel/api/resellers</code>; a wrong-owner access answers 403 with <code>inbound not found</code> / <code>client not found</code>."
+      "description": "Panel sub-accounts that own a slice of the panel: their own inbounds, their own clients, and two quotas (clients, traffic). A reseller signs in with its own username/password on the same login page; its session reads <code>/panel/api/inbounds/*</code> and <code>/panel/api/reseller/*</code>, manages its clients under <code>/panel/api/clients/*</code> and reaches <code>/panel/api/auth/me</code> — inbound writes and everything else answer 403. The endpoints below are the admin-side management API under <code>/panel/api/resellers</code>; a wrong-owner access answers 403 with <code>inbound not found</code> / <code>client not found</code>."
     },
     {
       "name": "WebSocket",
@@ -8162,7 +8162,6 @@
                         "username": "reseller1",
                         "trafficLimit": 1099511627776,
                         "clientLimit": 100,
-                        "inboundLimit": 5,
                         "pricePerGb": 0.5,
                         "deposit": 50
                       },
