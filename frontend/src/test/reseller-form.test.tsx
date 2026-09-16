@@ -159,12 +159,22 @@ describe('reseller form (admin)', () => {
     fireEvent.click(within(dialog).getByRole('checkbox', { name: /second-inb/ }));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
 
-    await waitFor(() => expect(HttpUtil.post).toHaveBeenCalledWith('/panel/api/resellers/add', expect.anything()));
     await waitFor(() =>
-      expect(HttpUtil.post).toHaveBeenCalledWith('/panel/api/resellers/assignInbound', {
-        resellerId: 2,
-        inboundId: 2,
-      }),
+      expect(HttpUtil.post).toHaveBeenCalledWith(
+        '/panel/api/resellers/add',
+        expect.anything(),
+        expect.objectContaining({ headers: expect.objectContaining({ 'Content-Type': 'application/json' }) }),
+      ),
+    );
+    await waitFor(() =>
+      expect(HttpUtil.post).toHaveBeenCalledWith(
+        '/panel/api/resellers/assignInbound',
+        {
+          resellerId: 2,
+          inboundId: 2,
+        },
+        expect.objectContaining({ headers: expect.objectContaining({ 'Content-Type': 'application/json' }) }),
+      ),
     );
     const payload = vi.mocked(HttpUtil.post).mock.calls.find((c) => c[0] === '/panel/api/resellers/add')?.[1] as Record<
       string,
@@ -191,19 +201,31 @@ describe('reseller form (admin)', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
 
     await waitFor(() =>
-      expect(HttpUtil.post).toHaveBeenCalledWith('/panel/api/resellers/update/1', expect.anything()),
+      expect(HttpUtil.post).toHaveBeenCalledWith(
+        '/panel/api/resellers/update/1',
+        expect.anything(),
+        expect.objectContaining({ headers: expect.objectContaining({ 'Content-Type': 'application/json' }) }),
+      ),
     );
     await waitFor(() =>
-      expect(HttpUtil.post).toHaveBeenCalledWith('/panel/api/resellers/unassignInbound', {
-        resellerId: 1,
-        inboundId: 1,
-      }),
+      expect(HttpUtil.post).toHaveBeenCalledWith(
+        '/panel/api/resellers/unassignInbound',
+        {
+          resellerId: 1,
+          inboundId: 1,
+        },
+        expect.objectContaining({ headers: expect.objectContaining({ 'Content-Type': 'application/json' }) }),
+      ),
     );
     await waitFor(() =>
-      expect(HttpUtil.post).toHaveBeenCalledWith('/panel/api/resellers/assignInbound', {
-        resellerId: 1,
-        inboundId: 2,
-      }),
+      expect(HttpUtil.post).toHaveBeenCalledWith(
+        '/panel/api/resellers/assignInbound',
+        {
+          resellerId: 1,
+          inboundId: 2,
+        },
+        expect.objectContaining({ headers: expect.objectContaining({ 'Content-Type': 'application/json' }) }),
+      ),
     );
   });
 });
