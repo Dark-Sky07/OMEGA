@@ -17,12 +17,17 @@ import (
 )
 
 // InboundController handles HTTP requests related to Xray inbounds management.
+//
+// Inbounds are read-only for reseller (نمایندگی) sessions: the GET endpoints
+// below scope their output to the reseller's own inbounds, while every POST
+// endpoint rejects reseller sessions up front via rejectResellerInboundWrite
+// (403 + {success:false, msg}). Write-capable reseller APIs live in the
+// clients controller (its own clients) and the reseller-self controller.
 type InboundController struct {
 	inboundService  service.InboundService
 	clientService   service.ClientService
 	xrayService     service.XrayService
 	fallbackService service.FallbackService
-	resellerService service.ResellerService
 }
 
 // NewInboundController creates a new InboundController and sets up its routes.
@@ -61,15 +66,9 @@ func (a *InboundController) broadcastInboundsUpdate(userId int) {
 }
 
 // notifyInboundsChanged pushes a live update to the other open sessions.
-// Admin sessions receive the full (panel-wide) inbound list; reseller sessions
-// only send an invalidate signal so their scoped view never reaches the admin
-// UI.
+// Only admin sessions reach this helper — reseller sessions are rejected by
+// every inbound write endpoint before any mutation runs.
 func (a *InboundController) notifyInboundsChanged(c *gin.Context) {
-	if resellerSession(c) != nil {
-		websocket.BroadcastInvalidate(websocket.MessageTypeInbounds)
-		notifyClientsChanged()
-		return
-	}
 	if user := session.GetLoginUser(c); user != nil {
 		a.broadcastInboundsUpdate(user.Id)
 	}
@@ -183,25 +182,12 @@ func (a *InboundController) getInbound(c *gin.Context) {
 
 // addInbound creates a new inbound configuration.
 func (a *InboundController) addInbound(c *gin.Context) {
+	if !rejectResellerInboundWrite(c) {
+		return
+	}
 	inbound, ok := middleware.BindAndValidate[model.Inbound](c)
 	if !ok {
 		return
-	}
-	reseller := resellerSession(c)
-	var resellerErr error
-	if reseller != nil {
-		if resellerErr = a.resellerService.EnsureActive(reseller); resellerErr == nil {
-			resellerErr = a.resellerService.CheckInboundQuota(reseller, 1)
-		}
-		if resellerErr == nil {
-			resellerErr = a.resellerService.CheckClientQuota(reseller, len(inboundClientList(inbound)), inboundClientBytes(inbound))
-		}
-		if resellerErr != nil {
-			jsonMsg(c, I18nWeb(c, "somethingWentWrong"), resellerErr)
-			return
-		}
-		// Resellers never pick a node; their inbounds always run locally.
-		inbound.NodeID = nil
 	}
 	user := session.GetLoginUser(c)
 	if user != nil {
@@ -220,13 +206,6 @@ func (a *InboundController) addInbound(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
-	if reseller != nil {
-		// The new inbound belongs to the reseller that created it.
-		if err := a.resellerService.AssignInbound(reseller.Id, inbound.Id); err != nil {
-			jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
-			return
-		}
-	}
 	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundCreateSuccess"), inbound, nil)
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
@@ -236,23 +215,18 @@ func (a *InboundController) addInbound(c *gin.Context) {
 
 // delInbound deletes an inbound configuration by its ID.
 func (a *InboundController) delInbound(c *gin.Context) {
+	if !rejectResellerInboundWrite(c) {
+		return
+	}
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundDeleteSuccess"), err)
 		return
 	}
-	if reseller := resellerSession(c); reseller != nil {
-		if !ensureInboundOwned(c, reseller, id) {
-			return
-		}
-	}
 	needRestart, err := a.inboundService.DelInbound(id)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
-	}
-	if reseller := resellerSession(c); reseller != nil {
-		_ = a.resellerService.UnassignInbound(reseller.Id, id)
 	}
 	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundDeleteSuccess"), id, nil)
 	if needRestart {
@@ -268,27 +242,13 @@ type bulkDelInboundsRequest struct {
 // bulkDelInbounds deletes several inbounds in one call. Failures are
 // reported per id and the rest still proceed; xray restarts at most once.
 func (a *InboundController) bulkDelInbounds(c *gin.Context) {
+	if !rejectResellerInboundWrite(c) {
+		return
+	}
 	var req bulkDelInboundsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
-	}
-	if reseller := resellerSession(c); reseller != nil {
-		owned, err := a.resellerService.OwnedInboundIdSet(reseller.Id)
-		if err != nil {
-			jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
-			return
-		}
-		allowed := make([]int, 0, len(req.Ids))
-		for _, id := range req.Ids {
-			if _, ok := owned[id]; ok {
-				allowed = append(allowed, id)
-			}
-		}
-		if len(allowed) != len(req.Ids) {
-			abortForbidden(c, errNotYourInbound)
-			return
-		}
 	}
 	result, needRestart, err := a.inboundService.DelInbounds(req.Ids)
 	if err != nil {
@@ -304,6 +264,9 @@ func (a *InboundController) bulkDelInbounds(c *gin.Context) {
 
 // updateInbound updates an existing inbound configuration.
 func (a *InboundController) updateInbound(c *gin.Context) {
+	if !rejectResellerInboundWrite(c) {
+		return
+	}
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), err)
@@ -314,21 +277,6 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 	}
 	if !middleware.BindAndValidateInto(c, inbound) {
 		return
-	}
-	if reseller := resellerSession(c); reseller != nil {
-		if !ensureInboundOwned(c, reseller, id) {
-			return
-		}
-		if err := a.resellerService.EnsureActive(reseller); err != nil {
-			jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
-			return
-		}
-		if err := a.checkResellerInboundUpdate(reseller, id, inbound); err != nil {
-			jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
-			return
-		}
-		// Resellers cannot move an inbound onto a node.
-		inbound.NodeID = nil
 	}
 	// Same NodeID=0 → nil normalisation as addInbound. UpdateInbound
 	// loads the existing row's NodeID from DB anyway (Phase 1 doesn't
@@ -355,6 +303,9 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 // on inbounds with thousands of clients. Frontend optimistically updates
 // the UI; we just persist + sync xray + nudge other open admin sessions.
 func (a *InboundController) setInboundEnable(c *gin.Context) {
+	if !rejectResellerInboundWrite(c) {
+		return
+	}
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), err)
@@ -367,11 +318,6 @@ func (a *InboundController) setInboundEnable(c *gin.Context) {
 	if err := c.ShouldBind(&f); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
-	}
-	if reseller := resellerSession(c); reseller != nil {
-		if !ensureInboundOwned(c, reseller, id) {
-			return
-		}
 	}
 	needRestart, err := a.inboundService.SetInboundEnable(id, f.Enable)
 	if err != nil {
@@ -391,17 +337,15 @@ func (a *InboundController) setInboundEnable(c *gin.Context) {
 
 // resetInboundTraffic resets traffic counters for a specific inbound.
 func (a *InboundController) resetInboundTraffic(c *gin.Context) {
+	if !rejectResellerInboundWrite(c) {
+		return
+	}
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), err)
 		return
 	}
 
-	if reseller := resellerSession(c); reseller != nil {
-		if !ensureInboundOwned(c, reseller, id) {
-			return
-		}
-	}
 	err = a.inboundService.ResetInboundTraffic(id)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
@@ -418,15 +362,13 @@ func (a *InboundController) resetInboundTraffic(c *gin.Context) {
 // which handles per-inbound JSON rewriting, runtime user removal, traffic
 // row cleanup, and the SyncInbound mapping pass in one optimized cycle.
 func (a *InboundController) delAllInboundClients(c *gin.Context) {
+	if !rejectResellerInboundWrite(c) {
+		return
+	}
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
-	}
-	if reseller := resellerSession(c); reseller != nil {
-		if !ensureInboundOwned(c, reseller, id) {
-			return
-		}
 	}
 	emails, err := a.inboundService.EmailsByInbound(id)
 	if err != nil {
@@ -451,25 +393,9 @@ func (a *InboundController) delAllInboundClients(c *gin.Context) {
 	notifyClientsChanged()
 }
 
-// resetAllTraffics resets all traffic counters across all inbounds. A reseller
-// only resets the inbounds it owns.
+// resetAllTraffics resets all traffic counters across all inbounds.
 func (a *InboundController) resetAllTraffics(c *gin.Context) {
-	if reseller := resellerSession(c); reseller != nil {
-		ids, err := a.resellerService.OwnedInboundIds(reseller.Id)
-		if err != nil {
-			jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
-			return
-		}
-		for _, id := range ids {
-			if err := a.inboundService.ResetInboundTraffic(id); err != nil {
-				jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
-				return
-			}
-		}
-		if len(ids) > 0 {
-			a.xrayService.SetToNeedRestart()
-		}
-		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.resetAllTrafficSuccess"), nil)
+	if !rejectResellerInboundWrite(c) {
 		return
 	}
 	err := a.inboundService.ResetAllTraffics()
@@ -485,6 +411,9 @@ func (a *InboundController) resetAllTraffics(c *gin.Context) {
 // pushClientTraffics receives a master panel's aggregated per-client usage
 // (see InboundService.AcceptGlobalTraffic for the storage semantics).
 func (a *InboundController) pushClientTraffics(c *gin.Context) {
+	if !rejectResellerInboundWrite(c) {
+		return
+	}
 	var req struct {
 		MasterGuid string                `json:"masterGuid"`
 		Traffics   []*xray.ClientTraffic `json:"traffics"`
@@ -502,6 +431,9 @@ func (a *InboundController) pushClientTraffics(c *gin.Context) {
 
 // importInbound imports an inbound configuration from provided data.
 func (a *InboundController) importInbound(c *gin.Context) {
+	if !rejectResellerInboundWrite(c) {
+		return
+	}
 	inbound := &model.Inbound{}
 	err := json.Unmarshal([]byte(c.PostForm("data")), inbound)
 	if err != nil {
@@ -511,21 +443,6 @@ func (a *InboundController) importInbound(c *gin.Context) {
 	user := session.GetLoginUser(c)
 	if user != nil {
 		inbound.UserId = user.Id
-	}
-	if reseller := resellerSession(c); reseller != nil {
-		if err := a.resellerService.EnsureActive(reseller); err != nil {
-			jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
-			return
-		}
-		if err := a.resellerService.CheckInboundQuota(reseller, 1); err != nil {
-			jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
-			return
-		}
-		if err := a.resellerService.CheckClientQuota(reseller, len(inboundClientList(inbound)), inboundClientBytes(inbound)); err != nil {
-			jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
-			return
-		}
-		inbound.NodeID = nil
 	}
 	inbound.Id = 0
 	// Node IDs are panel-local and not portable across panels. Drop a node
@@ -549,12 +466,6 @@ func (a *InboundController) importInbound(c *gin.Context) {
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
-	}
-	if reseller := resellerSession(c); reseller != nil {
-		if err := a.resellerService.AssignInbound(reseller.Id, inbound.Id); err != nil {
-			jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
-			return
-		}
 	}
 	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundCreateSuccess"), inbound, nil)
 	if needRestart {
@@ -612,6 +523,9 @@ func (a *InboundController) getFallbacks(c *gin.Context) {
 // setFallbacks atomically replaces the master inbound's fallback list
 // and triggers an Xray restart so the new settings.fallbacks take effect.
 func (a *InboundController) setFallbacks(c *gin.Context) {
+	if !rejectResellerInboundWrite(c) {
+		return
+	}
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
@@ -624,11 +538,6 @@ func (a *InboundController) setFallbacks(c *gin.Context) {
 	if err := c.ShouldBindJSON(&b); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
-	}
-	if reseller := resellerSession(c); reseller != nil {
-		if !ensureInboundOwned(c, reseller, id) {
-			return
-		}
 	}
 	if err := a.fallbackService.SetByMaster(id, b.Fallbacks); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)

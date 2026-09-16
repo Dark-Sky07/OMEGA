@@ -1781,7 +1781,6 @@
     "comment": "Note",
     "trafficLimit": "Traffic quota",
     "clientLimit": "Client limit",
-    "inboundLimit": "Inbound limit",
     "pricePerGb": "Price per GB",
     "deposit": "Initial deposit",
     "zeroUnlimited": "0 = unlimited",
