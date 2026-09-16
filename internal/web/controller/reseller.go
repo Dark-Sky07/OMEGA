@@ -124,7 +124,7 @@ func (a *ResellerController) assignments(c *gin.Context) {
 
 func (a *ResellerController) add(c *gin.Context) {
 	var form resellerForm
-	if err := c.ShouldBindJSON(&form); err != nil {
+	if err := c.ShouldBind(&form); err != nil {
 		jsonMsg(c, "", err)
 		return
 	}
@@ -143,7 +143,7 @@ func (a *ResellerController) update(c *gin.Context) {
 		return
 	}
 	var form resellerForm
-	if err := c.ShouldBindJSON(&form); err != nil {
+	if err := c.ShouldBind(&form); err != nil {
 		jsonMsg(c, "", err)
 		return
 	}

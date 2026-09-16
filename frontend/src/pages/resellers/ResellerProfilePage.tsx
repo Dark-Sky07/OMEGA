@@ -44,6 +44,8 @@ export default function ResellerProfilePage() {
     setMessageInstance(messageApi);
   }, [messageApi]);
 
+  const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
+
   const pageClass = useMemo(() => {
     const classes = ['resellers-page'];
     if (isDark) classes.push('is-dark');
@@ -70,10 +72,14 @@ export default function ResellerProfilePage() {
     if (!values) return;
     setSaving(true);
     try {
-      const msg = await HttpUtil.post('/panel/api/reseller/password', {
-        oldPassword: values.oldPassword,
-        newPassword: values.newPassword,
-      });
+      const msg = await HttpUtil.post(
+        '/panel/api/reseller/password',
+        {
+          oldPassword: values.oldPassword,
+          newPassword: values.newPassword,
+        },
+        { ...JSON_HEADERS, silent: true } as never,
+      );
       if (msg.success) {
         messageApi.success(t('resellers.toasts.passwordChanged'));
         passwordForm.resetFields();
