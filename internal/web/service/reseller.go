@@ -177,7 +177,6 @@ func (s *ResellerService) Update(reseller *model.Reseller, password string) erro
 		"enable":        reseller.Enable,
 		"traffic_limit": reseller.TrafficLimit,
 		"client_limit":  reseller.ClientLimit,
-		"inbound_limit": reseller.InboundLimit,
 		"expiry_time":   reseller.ExpiryTime,
 		"price_per_gb":  reseller.PricePerGB,
 		"deposit":       reseller.Deposit,
@@ -597,8 +596,7 @@ func (s *ResellerService) Stat(reseller *model.Reseller) (*ResellerStat, error) 
 	}
 	stat.OverQuota = stat.Expired || !reseller.Enable ||
 		(reseller.TrafficLimit > 0 && (stat.AllocatedTraffic > reseller.TrafficLimit || stat.UsedTraffic >= reseller.TrafficLimit)) ||
-		(reseller.ClientLimit > 0 && stat.ClientCount > reseller.ClientLimit) ||
-		(reseller.InboundLimit > 0 && stat.InboundCount > reseller.InboundLimit)
+		(reseller.ClientLimit > 0 && stat.ClientCount > reseller.ClientLimit)
 	stat.Disabled = !reseller.Enable
 	return stat, nil
 }
@@ -759,21 +757,6 @@ func (s *ResellerService) EnsureActive(reseller *model.Reseller) error {
 	}
 	if IsExpired(reseller.ExpiryTime) {
 		return errors.New("your reseller account has expired, please contact the administrator")
-	}
-	return nil
-}
-
-// CheckInboundQuota verifies that one more inbound is allowed.
-func (s *ResellerService) CheckInboundQuota(reseller *model.Reseller, adding int) error {
-	if reseller.InboundLimit <= 0 {
-		return nil
-	}
-	ids, err := s.OwnedInboundIds(reseller.Id)
-	if err != nil {
-		return err
-	}
-	if len(ids)+adding > reseller.InboundLimit {
-		return fmt.Errorf("inbound limit reached: %d of %d used", len(ids), reseller.InboundLimit)
 	}
 	return nil
 }
