@@ -31,6 +31,10 @@ import { useTheme } from '@/hooks/useTheme';
 import type { ResellerStat } from '@/api/queries/useSession';
 import './ResellersPage.css';
 
+// axios defaults to application/x-www-form-urlencoded; the panel API binds JSON,
+// so every POST from this page must declare the content type explicitly.
+const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
+
 export default function ResellerProfilePage() {
   const { t } = useTranslation();
   const { isDark, isUltra, antdThemeConfig } = useTheme();
@@ -70,10 +74,14 @@ export default function ResellerProfilePage() {
     if (!values) return;
     setSaving(true);
     try {
-      const msg = await HttpUtil.post('/panel/api/reseller/password', {
-        oldPassword: values.oldPassword,
-        newPassword: values.newPassword,
-      });
+      const msg = await HttpUtil.post(
+        '/panel/api/reseller/password',
+        {
+          oldPassword: values.oldPassword,
+          newPassword: values.newPassword,
+        },
+        { ...JSON_HEADERS, silent: true } as never,
+      );
       if (msg.success) {
         messageApi.success(t('resellers.toasts.passwordChanged'));
         passwordForm.resetFields();

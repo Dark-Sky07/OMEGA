@@ -53,6 +53,7 @@ import type { ResellerReport, ResellerStat } from '@/api/queries/useSession';
 import './ResellersPage.css';
 
 const GB = 1024 * 1024 * 1024;
+const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
 
 interface ResellerFormValues {
   username: string;
@@ -205,8 +206,14 @@ export default function ResellersPage() {
         clientLimit: values.clientLimit || 0,
       };
       const msg = editing
-        ? await HttpUtil.post(`/panel/api/resellers/update/${editing.reseller.id}`, body)
-        : await HttpUtil.post('/panel/api/resellers/add', body);
+        ? await HttpUtil.post(`/panel/api/resellers/update/${editing.reseller.id}`, body, {
+            ...JSON_HEADERS,
+            silent: true,
+          } as never)
+        : await HttpUtil.post('/panel/api/resellers/add', body, {
+            ...JSON_HEADERS,
+            silent: true,
+          } as never);
 
       if (!msg.success) {
         messageApi.error(msg.msg || t('somethingWentWrong'));
@@ -224,10 +231,14 @@ export default function ResellersPage() {
         const next = new Set(selected);
         for (const id of selected) {
           if (!prev.has(id)) {
-            const assignMsg = await HttpUtil.post('/panel/api/resellers/assignInbound', {
-              resellerId: targetId,
-              inboundId: id,
-            });
+            const assignMsg = await HttpUtil.post(
+              '/panel/api/resellers/assignInbound',
+              {
+                resellerId: targetId,
+                inboundId: id,
+              },
+              { ...JSON_HEADERS, silent: true } as never,
+            );
             if (!assignMsg.success) {
               messageApi.error(assignMsg.msg || t('somethingWentWrong'));
             }
@@ -235,10 +246,14 @@ export default function ResellersPage() {
         }
         for (const id of prevOwned) {
           if (!next.has(id)) {
-            const unassignMsg = await HttpUtil.post('/panel/api/resellers/unassignInbound', {
-              resellerId: targetId,
-              inboundId: id,
-            });
+            const unassignMsg = await HttpUtil.post(
+              '/panel/api/resellers/unassignInbound',
+              {
+                resellerId: targetId,
+                inboundId: id,
+              },
+              { ...JSON_HEADERS, silent: true } as never,
+            );
             if (!unassignMsg.success) {
               messageApi.error(unassignMsg.msg || t('somethingWentWrong'));
             }
@@ -259,7 +274,10 @@ export default function ResellersPage() {
 
   const toggleEnable = useCallback(
     async (stat: ResellerStat, enable: boolean) => {
-      const msg = await HttpUtil.post(`/panel/api/resellers/setEnable/${stat.reseller.id}`, { enable });
+      const msg = await HttpUtil.post(`/panel/api/resellers/setEnable/${stat.reseller.id}`, { enable }, {
+        ...JSON_HEADERS,
+        silent: true,
+      } as never);
       if (msg.success) {
         messageApi.success(t('resellers.toasts.updated'));
         refreshAll();
@@ -272,7 +290,10 @@ export default function ResellersPage() {
 
   const removeReseller = useCallback(
     async (stat: ResellerStat) => {
-      const msg = await HttpUtil.post(`/panel/api/resellers/del/${stat.reseller.id}`);
+      const msg = await HttpUtil.post(`/panel/api/resellers/del/${stat.reseller.id}`, undefined, {
+        ...JSON_HEADERS,
+        silent: true,
+      } as never);
       if (msg.success) {
         messageApi.success(t('resellers.toasts.deleted'));
         refreshAll();
@@ -286,9 +307,13 @@ export default function ResellersPage() {
   const submitPassword = useCallback(async () => {
     const values = await passwordForm.validateFields().catch(() => null);
     if (!values) return;
-    const msg = await HttpUtil.post(`/panel/api/resellers/resetPassword/${passwordFor?.reseller.id}`, {
-      password: values.password,
-    });
+    const msg = await HttpUtil.post(
+      `/panel/api/resellers/resetPassword/${passwordFor?.reseller.id}`,
+      {
+        password: values.password,
+      },
+      { ...JSON_HEADERS, silent: true } as never,
+    );
     if (msg.success) {
       messageApi.success(t('resellers.toasts.passwordReset'));
       setPasswordFor(null);
@@ -301,10 +326,14 @@ export default function ResellersPage() {
   const submitAssignClient = useCallback(async () => {
     const values = await clientForm.validateFields().catch(() => null);
     if (!values) return;
-    const msg = await HttpUtil.post('/panel/api/resellers/assignClient', {
-      resellerId: clientFor?.reseller.id,
-      email: values.email,
-    });
+    const msg = await HttpUtil.post(
+      '/panel/api/resellers/assignClient',
+      {
+        resellerId: clientFor?.reseller.id,
+        email: values.email,
+      },
+      { ...JSON_HEADERS, silent: true } as never,
+    );
     if (msg.success) {
       messageApi.success(t('resellers.toasts.clientAssigned'));
       clientForm.resetFields();
@@ -317,10 +346,14 @@ export default function ResellersPage() {
 
   const unassignClient = useCallback(
     async (email: string) => {
-      const msg = await HttpUtil.post('/panel/api/resellers/unassignClient', {
-        resellerId: clientFor?.reseller.id,
-        email,
-      });
+      const msg = await HttpUtil.post(
+        '/panel/api/resellers/unassignClient',
+        {
+          resellerId: clientFor?.reseller.id,
+          email,
+        },
+        { ...JSON_HEADERS, silent: true } as never,
+      );
       if (msg.success) {
         messageApi.success(t('resellers.toasts.clientUnassigned'));
         queryClient.invalidateQueries({ queryKey: keys.resellers.assignments() });
