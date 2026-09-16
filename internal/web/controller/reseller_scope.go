@@ -1,9 +1,7 @@
 package controller
 
 import (
-	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -38,7 +36,24 @@ func abortForbidden(c *gin.Context, msg string) {
 const (
 	errNotYourInbound = "inbound not found"
 	errNotYourClient  = "client not found"
+	// errResellerInboundReadOnly is reported when a reseller session reaches
+	// an inbound write endpoint. Inbounds are assigned by the admin and are
+	// read-only for resellers — unlike a wrong-owner access this is not a
+	// probe-able fact, so the message says so plainly.
+	errResellerInboundReadOnly = "inbounds are read-only for reseller accounts"
 )
+
+// rejectResellerInboundWrite is the guard every inbound POST handler calls
+// first, before parsing any parameter or body. Reseller sessions are answered
+// with the 403 contract ({success:false, msg}) and the handler must stop;
+// admin sessions always proceed. It returns false when the caller must stop.
+func rejectResellerInboundWrite(c *gin.Context) bool {
+	if resellerSession(c) != nil {
+		abortForbidden(c, errResellerInboundReadOnly)
+		return false
+	}
+	return true
+}
 
 // ensureInboundOwned verifies that a reseller owns an inbound. It returns true
 // when the caller may proceed (admin sessions always may).
@@ -80,65 +95,6 @@ func scopeClientPageEmails(reseller *model.Reseller) (*[]string, error) {
 		emails = []string{}
 	}
 	return &emails, nil
-}
-
-// inboundClients extracts settings.clients[] from an inbound payload.
-func inboundClients(inbound *model.Inbound) []model.Client {
-	if inbound == nil || strings.TrimSpace(inbound.Settings) == "" {
-		return nil
-	}
-	settings := map[string][]model.Client{}
-	if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
-		return nil
-	}
-	return settings["clients"]
-}
-
-// inboundClientList is the nil-safe variant of inboundClients.
-func inboundClientList(inbound *model.Inbound) []model.Client {
-	clients := inboundClients(inbound)
-	if clients == nil {
-		return []model.Client{}
-	}
-	return clients
-}
-
-// inboundClientBytes is the total quota (in bytes) carried by an inbound's
-// settings.clients[].
-func inboundClientBytes(inbound *model.Inbound) int64 {
-	var total int64
-	for _, client := range inboundClients(inbound) {
-		total += client.TotalGB
-	}
-	return total
-}
-
-// checkResellerInboundUpdate keeps an inbound update inside the reseller quota:
-// only the difference between the stored client list and the submitted one is
-// charged, so shrinking an inbound is always allowed.
-func (a *InboundController) checkResellerInboundUpdate(reseller *model.Reseller, inboundId int, payload *model.Inbound) error {
-	current, err := a.inboundService.GetInbound(inboundId)
-	if err != nil {
-		return err
-	}
-	oldClients, err := a.inboundService.GetClients(current)
-	if err != nil {
-		oldClients = nil
-	}
-	newClients := inboundClients(payload)
-	if newClients == nil {
-		// The update did not carry a client list (the panel's inbound form
-		// never does) — nothing to re-charge.
-		return nil
-	}
-	var oldBytes, newBytes int64
-	for _, client := range oldClients {
-		oldBytes += client.TotalGB
-	}
-	for _, client := range newClients {
-		newBytes += client.TotalGB
-	}
-	return a.resellerService.CheckClientQuota(reseller, len(newClients)-len(oldClients), newBytes-oldBytes)
 }
 
 // resellerEmailSet returns the reseller's owned client emails as a set.
