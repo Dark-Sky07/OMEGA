@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -23,6 +23,7 @@ import { ShopOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import AppSidebar from '@/layouts/AppSidebar';
 import { HttpUtil } from '@/utils';
 import { SizeFormatter } from '@/utils';
+import { setMessageInstance } from '@/utils/messageBus';
 import { keys } from '@/api/queryKeys';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useTheme } from '@/hooks/useTheme';
@@ -33,7 +34,11 @@ export default function ResellerReportPage() {
   const { t } = useTranslation();
   const { isDark, isUltra, antdThemeConfig } = useTheme();
   const { isMobile } = useMediaQuery();
-  const [, messageContextHolder] = message.useMessage();
+  const [messageApi, messageContextHolder] = message.useMessage();
+
+  useEffect(() => {
+    setMessageInstance(messageApi);
+  }, [messageApi]);
 
   const pageClass = useMemo(() => {
     const classes = ['resellers-page'];
@@ -84,14 +89,10 @@ export default function ResellerReportPage() {
                         />
                       </Col>
                       <Col xs={12} md={6}>
-                        <Statistic title={t('resellers.table.cost')} value={(stat?.cost || 0).toFixed(2)} />
+                        <Statistic title={t('resellers.table.inbounds')} value={stat?.inboundCount || 0} />
                       </Col>
                       <Col xs={12} md={6}>
-                        <Statistic
-                          title={t('resellers.table.balance')}
-                          value={(stat?.balance || 0).toFixed(2)}
-                          valueStyle={{ color: (stat?.balance || 0) < 0 ? '#cf1322' : undefined }}
-                        />
+                        <Statistic title={t('resellers.online')} value={stat?.onlineCount || 0} />
                       </Col>
                     </Row>
                     {stat && (
@@ -129,7 +130,6 @@ export default function ResellerReportPage() {
                         <Descriptions.Item label={t('resellers.table.inbounds')}>
                           {stat.inboundCount}
                         </Descriptions.Item>
-                        <Descriptions.Item label={t('resellers.pricePerGb')}>{stat.reseller.pricePerGb}</Descriptions.Item>
                         <Descriptions.Item label={t('resellers.online')}>{stat.onlineCount}</Descriptions.Item>
                         <Descriptions.Item label={t('resellers.expiry')}>
                           {stat.reseller.expiryTime
@@ -167,40 +167,10 @@ export default function ResellerReportPage() {
                           render: (_v, row) => SizeFormatter.sizeFormat(row.used),
                         },
                         {
-                          title: t('resellers.table.cost'),
-                          dataIndex: 'cost',
-                          key: 'cost',
-                          render: (value: number) => value.toFixed(2),
-                        },
-                        {
                           title: t('resellers.inbounds'),
                           key: 'inbounds',
                           render: (_v, row) => row.inboundIds.map((id) => <Tag key={id}>#{id}</Tag>),
                         },
-                      ]}
-                    />
-                  </Card>
-                </Col>
-
-                <Col span={24}>
-                  <Card size="small" hoverable title={t('resellers.ledger')}>
-                    <Table
-                      rowKey="id"
-                      size="small"
-                      dataSource={reportQuery.data?.transactions || []}
-                      pagination={{ pageSize: 10 }}
-                      locale={{ emptyText: <Empty description={t('resellers.noTransactions')} /> }}
-                      columns={[
-                        {
-                          title: t('resellers.table.date'),
-                          dataIndex: 'createdAt',
-                          key: 'createdAt',
-                          render: (value: number) => new Date(value).toLocaleString(),
-                        },
-                        { title: t('resellers.type'), dataIndex: 'type', key: 'type', render: (v: string) => <Tag>{v}</Tag> },
-                        { title: t('resellers.amount'), dataIndex: 'amount', key: 'amount' },
-                        { title: t('resellers.table.balance'), dataIndex: 'balance', key: 'balance' },
-                        { title: t('resellers.comment'), dataIndex: 'comment', key: 'comment' },
                       ]}
                     />
                   </Card>
