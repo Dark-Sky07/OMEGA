@@ -107,4 +107,3 @@ func (j *OpenvpnJob) Run() {
 	}
 }
 
-// (ci diagnostics step added upstream; this line anchors the path filter)

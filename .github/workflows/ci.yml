@@ -22,10 +22,7 @@ on:
       - ".nvmrc"
 
 permissions:
-  contents: write   # TEMP (diagnostics)
-  actions: write    # TEMP (diagnostics): lets the go-test job upload its output on failure
-  issues: write     # TEMP (diagnostics): post the failure tail as a PR comment
-  pull-requests: write # TEMP (diagnostics)
+  contents: read
 
 jobs:
   go-test:
@@ -41,47 +38,7 @@ jobs:
       - name: Test
         run: |
           go list ./... | grep -v '/frontend/node_modules/' > /tmp/go-packages.txt
-          go test $(cat /tmp/go-packages.txt) > /tmp/go-test-output.txt 2>&1
-          status=$?
-          tail -n 80 /tmp/go-test-output.txt
-          exit $status
-      - name: Upload test output (TEMP diagnostics)
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: go-test-output
-          path: /tmp/go-test-output.txt
-          if-no-files-found: ignore
-      - name: Post failure tail to PR (TEMP diagnostics)
-        if: failure() && github.event.pull_request.number != ''
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_ISSUE_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          set -x
-          {
-            echo "### TEMP go-test failure tail (for diagnostics, will be reverted)"
-            echo '```'
-            grep -n -A 3 -E "^--- FAIL|^FAIL|\.go:[0-9]+:|panic" /tmp/go-test-output.txt | head -90
-            echo '--- tail ---'
-            tail -n 40 /tmp/go-test-output.txt
-            echo '```'
-          } > /tmp/pr-comment.md
-          wc -c /tmp/pr-comment.md
-          python3 - <<'PY'
-          import json, urllib.request, os
-          body = open('/tmp/pr-comment.md').read()[:50000]
-          req = urllib.request.Request(
-              "https://api.github.com/repos/%s/issues/%s/comments" % (os.environ["GITHUB_REPOSITORY"], os.environ["GITHUB_ISSUE_NUMBER"]),
-              data=json.dumps({"body": body}).encode(),
-              headers={"Authorization": "Bearer %s" % os.environ["GH_TOKEN"],
-                       "Accept": "application/vnd.github+json"},
-              method="POST")
-          try:
-              print(urllib.request.urlopen(req).status)
-          except urllib.error.HTTPError as e:
-              print("HTTP", e.code, e.read()[:500])
-          PY
+          go test $(cat /tmp/go-packages.txt)
 
   codegen:
     runs-on: ubuntu-latest
