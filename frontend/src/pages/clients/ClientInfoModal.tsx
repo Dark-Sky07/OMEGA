@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Divider, Modal, Popover, Tag, Tooltip, message } from 'antd';
-import { CopyOutlined, EyeOutlined, QrcodeOutlined, ReloadOutlined } from '@ant-design/icons';
+import { CopyOutlined, DownloadOutlined, EyeOutlined, QrcodeOutlined, ReloadOutlined } from '@ant-design/icons';
 
 import { ClipboardManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
@@ -23,6 +23,7 @@ const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
   http: 'purple',
   mixed: 'lime',
   tunnel: 'orange',
+  openvpn: 'red',
 };
 
 const INBOUND_CHIP_LIMIT = 1;
@@ -47,6 +48,7 @@ interface ClientInfoModalProps {
 
 interface ApiMsg<T = unknown> {
   success?: boolean;
+  msg?: string;
   obj?: T;
 }
 
@@ -103,6 +105,48 @@ export default function ClientInfoModal({
     })();
     return () => { cancelled = true; };
   }, [open, client?.subId]);
+
+  // OpenVPN inbounds are daemon-served (no share links), so the only thing
+  // worth surfacing here is the per-client .ovpn profile.
+  const openvpnInboundCount = useMemo(() => {
+    const ids = client?.inboundIds ?? [];
+    return ids.filter((id) => inboundsById[id]?.protocol === 'openvpn').length;
+  }, [client?.inboundIds, inboundsById]);
+  const [ovpnProfile, setOvpnProfile] = useState('');
+  const [ovpnLoading, setOvpnLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) setOvpnProfile('');
+  }, [open]);
+
+  async function fetchOvpnProfile() {
+    if (!client) return;
+    setOvpnLoading(true);
+    try {
+      const msg = await HttpUtil.get(
+        `/panel/api/clients/openvpn/${encodeURIComponent(client.email)}`,
+      ) as ApiMsg<{ profile: string }>;
+      if (msg?.success && typeof msg.obj?.profile === 'string' && msg.obj.profile) {
+        setOvpnProfile(msg.obj.profile);
+      } else {
+        messageApi.error(msg?.msg || t('error'));
+      }
+    } finally {
+      setOvpnLoading(false);
+    }
+  }
+
+  function downloadOvpnProfile() {
+    if (!ovpnProfile || !client) return;
+    const safeName = client.email.replace(/[^a-zA-Z0-9._-]/g, '_') || 'client';
+    const blob = new Blob([ovpnProfile], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${safeName}.ovpn`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   const traffic = client?.traffic || null;
   const totalBytes = client?.totalGB || 0;
@@ -385,6 +429,42 @@ export default function ClientInfoModal({
                     </div>
                   );
                 })}
+              </>
+            )}
+
+            {openvpnInboundCount > 0 && (
+              <>
+                <Divider>{t('pages.clients.openvpnConfig')}</Divider>
+                <div className="link-row">
+                  <Tag color="red" className="link-row-tag">OVPN</Tag>
+                  <span className="link-row-title" title={t('pages.clients.openvpnConfigHint')}>
+                    {t('pages.clients.openvpnConfig')}
+                  </span>
+                  <div className="link-row-actions">
+                    <Tooltip title={t('pages.clients.openvpnFetch')}>
+                      <Button
+                        size="small"
+                        icon={<ReloadOutlined />}
+                        loading={ovpnLoading}
+                        onClick={fetchOvpnProfile}
+                      />
+                    </Tooltip>
+                    {ovpnProfile && (
+                      <>
+                        <Tooltip title={t('copy')}>
+                          <Button
+                            size="small"
+                            icon={<CopyOutlined />}
+                            onClick={() => copyValue(ovpnProfile)}
+                          />
+                        </Tooltip>
+                        <Tooltip title={t('pages.clients.openvpnDownload')}>
+                          <Button size="small" icon={<DownloadOutlined />} onClick={downloadOvpnProfile} />
+                        </Tooltip>
+                      </>
+                    )}
+                  </div>
+                </div>
               </>
             )}
 

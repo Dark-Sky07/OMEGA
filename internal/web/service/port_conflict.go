@@ -24,6 +24,16 @@ func inboundTransports(protocol model.Protocol, streamSettings, settings string)
 		return transportUDP
 	case model.MTProto:
 		return transportTCP
+	case model.OpenVPN:
+		// The openvpn daemon listens on the inbound port with the transport
+		// chosen in its own settings (proto: udp | tcp).
+		var ss map[string]any
+		if json.Unmarshal([]byte(settings), &ss) == nil {
+			if p, _ := ss["proto"].(string); strings.HasPrefix(p, "tcp") {
+				return transportTCP
+			}
+		}
+		return transportUDP
 	}
 
 	var bits transportBits

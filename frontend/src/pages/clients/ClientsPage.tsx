@@ -135,6 +135,7 @@ const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
   http: 'purple',
   mixed: 'lime',
   tunnel: 'orange',
+  openvpn: 'red',
 };
 const INBOUND_CHIP_LIMIT = 1;
 

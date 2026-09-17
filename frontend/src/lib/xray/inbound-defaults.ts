@@ -4,6 +4,7 @@ import type { HttpInboundSettings } from '@/schemas/protocols/inbound/http';
 import type { HysteriaClient, HysteriaInboundSettings } from '@/schemas/protocols/inbound/hysteria';
 import type { MixedInboundSettings } from '@/schemas/protocols/inbound/mixed';
 import type { MtprotoInboundSettings } from '@/schemas/protocols/inbound/mtproto';
+import type { OpenvpnInboundSettings } from '@/schemas/protocols/inbound/openvpn';
 import type { ShadowsocksClient, ShadowsocksInboundSettings } from '@/schemas/protocols/inbound/shadowsocks';
 import type { TrojanClient, TrojanInboundSettings } from '@/schemas/protocols/inbound/trojan';
 import type { TunInboundSettings } from '@/schemas/protocols/inbound/tun';
@@ -239,6 +240,19 @@ export function createDefaultMtprotoInboundSettings(): MtprotoInboundSettings {
   };
 }
 
+// OpenVPN defaults: UDP listener on the well-known 1194, full tunnel with
+// pushed public DNS. Certificates are generated server-side per client —
+// there is no per-client secret to seed here.
+export function createDefaultOpenvpnInboundSettings(): OpenvpnInboundSettings {
+  return {
+    proto: 'udp',
+    redirectGateway: true,
+    pushDNS: true,
+    dns1: '1.1.1.1',
+    dns2: '8.8.8.8',
+  };
+}
+
 export function createDefaultTunnelInboundSettings(): TunnelInboundSettings {
   return {
     portMap: {},
@@ -301,7 +315,8 @@ export type AnyInboundSettings =
   | TunInboundSettings
   | TunnelInboundSettings
   | WireguardInboundSettings
-  | MtprotoInboundSettings;
+  | MtprotoInboundSettings
+  | OpenvpnInboundSettings;
 
 export function createDefaultInboundSettings(protocol: string): AnyInboundSettings | null {
   switch (protocol) {
@@ -316,6 +331,7 @@ export function createDefaultInboundSettings(protocol: string): AnyInboundSettin
     case 'tun':         return createDefaultTunInboundSettings();
     case 'wireguard':   return createDefaultWireguardInboundSettings();
     case 'mtproto':     return createDefaultMtprotoInboundSettings();
+    case 'openvpn':     return createDefaultOpenvpnInboundSettings();
     default:            return null;
   }
 }

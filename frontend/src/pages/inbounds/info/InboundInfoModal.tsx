@@ -695,6 +695,32 @@ export default function InboundInfoModal({
         </dl>
       )}
 
+      {inbound.protocol === Protocols.OPENVPN && inbound.settings && (
+        <dl className="info-list info-list-block">
+          <div className="info-row">
+            <dt>{t('pages.inbounds.form.openvpnProto')}</dt>
+            <dd><Tag color="blue" className="value-tag">{(inbound.settings.proto as string) || 'udp'}</Tag></dd>
+          </div>
+          <div className="info-row">
+            <dt>{t('pages.inbounds.form.openvpnRedirectGateway')}</dt>
+            <dd>
+              <Tag color={inbound.settings.redirectGateway === false ? 'orange' : 'green'} className="value-tag">
+                {inbound.settings.redirectGateway === false ? t('disabled') : t('enabled')}
+              </Tag>
+            </dd>
+          </div>
+          {inbound.settings.pushDNS !== false && (
+            <div className="info-row">
+              <dt>{t('pages.inbounds.form.openvpnPushDNS')}</dt>
+              <dd>
+                <Tag color="green" className="value-tag">{(inbound.settings.dns1 as string) || '1.1.1.1'}</Tag>
+                <Tag color="green" className="value-tag">{(inbound.settings.dns2 as string) || '8.8.8.8'}</Tag>
+              </dd>
+            </div>
+          )}
+        </dl>
+      )}
+
       {dbInbound.isMixed && inbound.settings && (
         <dl className="info-list info-list-block">
           <div className="info-row">
