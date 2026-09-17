@@ -265,7 +265,10 @@ func pruneClientCerts(dir string, keep []string) error {
 	return nil
 }
 
-// certPEM encodes a parsed certificate's DER as PEM.
+// certPEM returns the certificate's DER bytes. Despite the historical name
+// it must NOT be PEM-encoded here: the callers hand the result to writePEM,
+// which does the single PEM encoding. Double-encoding produced unreadable
+// cert files.
 func certPEM(crt *x509.Certificate) ([]byte, error) {
-	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: crt.Raw}), nil
+	return crt.Raw, nil
 }
