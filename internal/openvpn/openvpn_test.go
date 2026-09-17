@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -282,8 +283,9 @@ func TestWriteConfigCreatesFiles(t *testing.T) {
 // fakeMgmtServer speaks just enough of the OpenVPN management protocol to
 // drive clientList and the manager's traffic accounting.
 type fakeMgmtServer struct {
-	ln     net.Listener
-	port   int
+	ln      net.Listener
+	port    int
+	mu      sync.Mutex
 	clients map[string]clientCounters
 }
 
@@ -306,6 +308,16 @@ func (s *fakeMgmtServer) start(t *testing.T) {
 	}()
 }
 
+func (s *fakeMgmtServer) snapshot() map[string]clientCounters {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make(map[string]clientCounters, len(s.clients))
+	for k, v := range s.clients {
+		out[k] = v
+	}
+	return out
+}
+
 func (s *fakeMgmtServer) serveConn(conn net.Conn) {
 	defer conn.Close()
 	fmt.Fprintln(conn, "OK")
@@ -317,10 +329,22 @@ func (s *fakeMgmtServer) serveConn(conn net.Conn) {
 	}
 	fmt.Fprintln(conn, "<CLIENT_LIST VERSION 1")
 	fmt.Fprintln(conn, "<CLIENT_LIST HEADER ID Common Name Real Address Virtual Address Bytes Received Bytes Sent Connected Since")
-	for cn, c := range s.clients {
+	for cn, c := range s.snapshot() {
 		fmt.Fprintf(conn, "<CLIENT_LIST 1 %s 203.0.113.7:40000 10.0.0.2 %d %d 1735689600\n", cn, c.Rx, c.Tx)
 	}
 	fmt.Fprintln(conn, "<END")
+}
+
+func (s *fakeMgmtServer) setClient(cn string, c clientCounters) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.clients[cn] = c
+}
+
+func (s *fakeMgmtServer) clearClients() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.clients = map[string]clientCounters{}
 }
 
 func (s *fakeMgmtServer) close() {
@@ -403,7 +427,7 @@ func TestManagerCollectTrafficDeltas(t *testing.T) {
 	}
 
 	// Second poll: only the increment is reported.
-	srv.clients["a@x.com"] = clientCounters{Rx: 1600, Tx: 800}
+	srv.setClient("a@x.com", clientCounters{Rx: 1600, Tx: 800})
 	ins, cls = m.CollectTraffic()
 	if len(ins) != 1 || ins[0].Up != 600 || ins[0].Down != 300 {
 		t.Fatalf("second poll must report deltas only: %+v", ins)
@@ -422,14 +446,14 @@ func TestManagerCollectTrafficDeltas(t *testing.T) {
 	}
 
 	// Counter reset (daemon restart) must count from zero, never negative.
-	srv.clients["a@x.com"] = clientCounters{Rx: 10, Tx: 20}
+	srv.setClient("a@x.com", clientCounters{Rx: 10, Tx: 20})
 	ins, _ = m.CollectTraffic()
 	if len(ins) != 1 || ins[0].Up != 10 || ins[0].Down != 20 {
 		t.Fatalf("reset handling wrong: %+v", ins)
 	}
 
 	// Client disconnects: dropped from the online set, counters forgotten.
-	srv.clients = map[string]clientCounters{}
+	srv.clearClients()
 	_, _ = m.CollectTraffic()
 	if online := m.OnlineEmails(); len(online) != 0 {
 		t.Fatalf("disconnected client must leave the online set: %v", online)
@@ -518,11 +542,11 @@ func TestBuildProfileMissingCert(t *testing.T) {
 
 func TestSanitizeCertName(t *testing.T) {
 	cases := map[string]string{
-		"plain@example.com":    "plain_example.com",
-		"first.last+x@ex.com":  "first.last+x_ex.com",
-		"ünïcödé@ex.com":       "n_c_d_ex.com",
-		"":                     "client",
-		"//\\<>|?\"@ex.com":    "________ex.com",
+		"plain@example.com": "plain_example.com",
+		"first.last+x@ex.com": "first.last+x_ex.com",
+		"ünïcödé@ex.com":      "_n_c_d__ex.com",
+		"":                    "client",
+		"//\\<>|?\"@ex.com":   "_________ex.com",
 	}
 	for in, want := range cases {
 		if got := sanitizeCertName(in); got != want {
