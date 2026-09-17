@@ -763,6 +763,17 @@ export const sections: readonly Section[] = [
         response:
           '{\n  "success": true,\n  "obj": [\n    "vless://uuid@host:443?...#user1"\n  ]\n}',
       },
+      {
+        method: 'GET',
+        path: '/panel/api/clients/openvpn/:email',
+        summary:
+          'Return the ready-to-import .ovpn profile for a client\'s openvpn inbound: client/dev/proto/remote plus the embedded CA, server certificate and the client\'s own keypair (CN = client email). Resellers may only fetch profiles of their own clients. Fails when the client has no enabled local openvpn inbound or the daemon has not provisioned the certificates yet.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
+        ],
+        response:
+          '{\n  "success": true,\n  "obj": {\n    "inboundId": 7,\n    "inboundTag": "openvpn1",\n    "profile": "client\\ndev tun\\nproto udp\\nremote vpn.example.com 1194\\n...\\n<ca>\\n-----BEGIN CERTIFICATE-----\\n...\\n</ca>\\n<cert>\\n...\\n</cert>\\n<key>\\n...\\n</key>"\n  }\n}',
+      },
     ],
   },
 

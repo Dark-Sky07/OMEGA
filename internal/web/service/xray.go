@@ -135,6 +135,11 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		if inbound.Protocol == model.MTProto {
 			continue
 		}
+		// OpenVPN inbounds are served by a local openvpn daemon that binds the
+		// inbound port directly; they must never appear in the Xray config.
+		if inbound.Protocol == model.OpenVPN {
+			continue
+		}
 		settings := map[string]any{}
 		json.Unmarshal([]byte(inbound.Settings), &settings)
 
