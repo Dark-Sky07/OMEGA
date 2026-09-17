@@ -136,7 +136,7 @@ func TestCertGenerationChain(t *testing.T) {
 	if !caCrt.IsCA {
 		t.Fatal("CA certificate must have IsCA set")
 	}
-	if _, err := caCrt.CheckSignatureFrom(caCrt); err != nil {
+	if err := caCrt.CheckSignatureFrom(caCrt); err != nil {
 		t.Fatalf("CA self-signature invalid: %v", err)
 	}
 	_ = caKey
