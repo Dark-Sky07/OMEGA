@@ -475,7 +475,7 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	if stopXray {
 		s.xrayService.StopXray()
 		mtproto.GetManager().StopAll()
-		openvpn.Manager().StopAll()
+		openvpn.GetManager().StopAll()
 	}
 	if s.cron != nil {
 		s.cron.Stop()

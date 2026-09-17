@@ -75,7 +75,7 @@ func (j *OpenvpnJob) Run() {
 		}
 	}
 
-	mgr := openvpn.Manager()
+	mgr := openvpn.GetManager()
 	mgr.Reconcile(desired)
 
 	inboundDeltas, clientDeltas := mgr.CollectTraffic()

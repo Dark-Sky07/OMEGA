@@ -267,5 +267,5 @@ func pruneClientCerts(dir string, keep []string) error {
 
 // certPEM encodes a parsed certificate's DER as PEM.
 func certPEM(crt *x509.Certificate) ([]byte, error) {
-	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: crt.Raw})
+	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: crt.Raw}), nil
 }

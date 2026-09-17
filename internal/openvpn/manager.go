@@ -59,8 +59,8 @@ var (
 	manager     *Manager
 )
 
-// Manager returns the process-wide openvpn manager singleton.
-func Manager() *Manager {
+// GetManager returns the process-wide openvpn manager singleton.
+func GetManager() *Manager {
 	managerOnce.Do(func() {
 		manager = &Manager{procs: map[int]*managed{}}
 	})
@@ -223,7 +223,9 @@ func (m *Manager) CollectTraffic() (inbounds []InboundTraffic, clients []ClientT
 	}
 	probes := make([]probe, 0, len(m.procs))
 	for id, man := range m.procs {
-		if man.proc.IsRunning() && man.mgmtPort > 0 {
+		// A nil proc only happens in tests; in production every entry has
+		// one. A dead daemon is handled by the clientList error path below.
+		if man.mgmtPort > 0 && (man.proc == nil || man.proc.IsRunning()) {
 			probes = append(probes, probe{id: id, tag: man.tag, mgmtPort: man.mgmtPort, man: man})
 		} else {
 			// Not running: its online set is stale.

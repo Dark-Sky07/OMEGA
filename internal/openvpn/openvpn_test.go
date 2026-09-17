@@ -33,7 +33,7 @@ func inboundStub() *model.Inbound {
 
 func TestInstanceFromInboundDefaults(t *testing.T) {
 	tempBinFolder(t)
-	ib := &inboundStub()
+	ib := inboundStub()
 	inst, ok := InstanceFromInbound(ib, []string{"b@x.com", "a@x.com"})
 	if !ok {
 		t.Fatal("expected a usable instance")
@@ -60,7 +60,7 @@ func TestInstanceFromInboundDefaults(t *testing.T) {
 
 func TestInstanceFromInboundExplicitFalse(t *testing.T) {
 	tempBinFolder(t)
-	ib := &inboundStub()
+	ib := inboundStub()
 	ib.Settings = `{"proto":"tcp","redirectGateway":false,"pushDNS":false,"dns1":"9.9.9.9"}`
 	inst, ok := InstanceFromInbound(ib, nil)
 	if !ok {
@@ -79,7 +79,7 @@ func TestInstanceFromInboundExplicitFalse(t *testing.T) {
 
 func TestInstanceFromInboundRejectsOtherProtocols(t *testing.T) {
 	tempBinFolder(t)
-	ib := &inboundStub()
+	ib := inboundStub()
 	ib.Protocol = "vless"
 	if _, ok := InstanceFromInbound(ib, nil); ok {
 		t.Fatal("vless inbound must not produce an openvpn instance")
@@ -88,23 +88,30 @@ func TestInstanceFromInboundRejectsOtherProtocols(t *testing.T) {
 
 func TestFingerprintChangesWithClientsAndSettings(t *testing.T) {
 	base := Instance{Id: 1, Port: 1194, Proto: "udp", RedirectGw: true, PushDNS: true, Clients: []string{"a@x.com"}}
-	if Instance{Id: 1, Port: 1194, Proto: "udp", RedirectGw: true, PushDNS: true, Clients: []string{"a@x.com"}}.fingerprint() != base.fingerprint() {
+	same := Instance{Id: 1, Port: 1194, Proto: "udp", RedirectGw: true, PushDNS: true, Clients: []string{"a@x.com"}}
+	addClient := Instance{Id: 1, Port: 1194, Proto: "udp", RedirectGw: true, PushDNS: true, Clients: []string{"a@x.com", "b@x.com"}}
+	newPort := Instance{Id: 1, Port: 1195, Proto: "udp", RedirectGw: true, PushDNS: true, Clients: []string{"a@x.com"}}
+	newProto := Instance{Id: 1, Port: 1194, Proto: "tcp", RedirectGw: true, PushDNS: true, Clients: []string{"a@x.com"}}
+	newGw := Instance{Id: 1, Port: 1194, Proto: "udp", RedirectGw: false, PushDNS: true, Clients: []string{"a@x.com"}}
+	reordered1 := Instance{Id: 1, Port: 1194, Proto: "udp", RedirectGw: true, PushDNS: true, Clients: []string{"c@x.com", "a@x.com"}}
+	reordered2 := Instance{Id: 1, Port: 1194, Proto: "udp", RedirectGw: true, PushDNS: true, Clients: []string{"a@x.com", "c@x.com"}}
+	if same.fingerprint() != base.fingerprint() {
 		t.Fatal("identical instances must have identical fingerprints")
 	}
-	if Instance{Id: 1, Port: 1194, Proto: "udp", RedirectGw: true, PushDNS: true, Clients: []string{"a@x.com", "b@x.com"}}.fingerprint() == base.fingerprint() {
+	if addClient.fingerprint() == base.fingerprint() {
 		t.Fatal("adding a client must change the fingerprint")
 	}
-	if Instance{Id: 1, Port: 1195, Proto: "udp", RedirectGw: true, PushDNS: true, Clients: []string{"a@x.com"}}.fingerprint() == base.fingerprint() {
+	if newPort.fingerprint() == base.fingerprint() {
 		t.Fatal("port change must change the fingerprint")
 	}
-	if Instance{Id: 1, Port: 1194, Proto: "tcp", RedirectGw: true, PushDNS: true, Clients: []string{"a@x.com"}}.fingerprint() == base.fingerprint() {
+	if newProto.fingerprint() == base.fingerprint() {
 		t.Fatal("proto change must change the fingerprint")
 	}
-	if Instance{Id: 1, Port: 1194, Proto: "udp", RedirectGw: false, PushDNS: true, Clients: []string{"a@x.com"}}.fingerprint() == base.fingerprint() {
+	if newGw.fingerprint() == base.fingerprint() {
 		t.Fatal("redirect-gateway change must change the fingerprint")
 	}
 	// Order of the client list must not matter.
-	if Instance{Id: 1, Port: 1194, Proto: "udp", RedirectGw: true, PushDNS: true, Clients: []string{"c@x.com", "a@x.com"}}.fingerprint() != Instance{Id: 1, Port: 1194, Proto: "udp", RedirectGw: true, PushDNS: true, Clients: []string{"a@x.com", "c@x.com"}}.fingerprint() {
+	if reordered1.fingerprint() != reordered2.fingerprint() {
 		t.Fatal("client order must not affect the fingerprint")
 	}
 }
@@ -135,8 +142,8 @@ func TestCertGenerationChain(t *testing.T) {
 	_ = caKey
 
 	// Server cert chains to the CA and carries server auth.
-	srvCrtPath, _ := serverFiles(dir)
-	srvCrt, _, err := loadKeyPair(srvCrtPath, serverFiles(dir)[1])
+	srvCrtPath, srvKeyPath := serverFiles(dir)
+	srvCrt, _, err := loadKeyPair(srvCrtPath, srvKeyPath)
 	if err != nil {
 		t.Fatalf("load server cert: %v", err)
 	}
@@ -203,10 +210,12 @@ func TestPruneClientCerts(t *testing.T) {
 	if err := pruneClientCerts(dir, []string{keep}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(clientFiles(dir, drop)[0]); !os.IsNotExist(err) {
+	dropCrt, _ := clientFiles(dir, drop)
+	if _, err := os.Stat(dropCrt); !os.IsNotExist(err) {
 		t.Fatal("dropped client cert must be removed")
 	}
-	if _, err := os.Stat(clientFiles(dir, keep)[0]); err != nil {
+	keepCrt, _ := clientFiles(dir, keep)
+	if _, err := os.Stat(keepCrt); err != nil {
 		t.Fatal("kept client cert must survive pruning")
 	}
 }

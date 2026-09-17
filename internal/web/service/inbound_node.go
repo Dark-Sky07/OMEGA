@@ -776,7 +776,7 @@ func (s *InboundService) GetOnlineClients() []string {
 		return []string{}
 	}
 	out := p.GetOnlineClients()
-	return appendOnlineEmails(out, openvpn.Manager().OnlineEmails())
+	return appendOnlineEmails(out, openvpn.GetManager().OnlineEmails())
 }
 
 // appendOnlineEmails unions `extra` into `emails`, deduplicating. The openvpn
@@ -816,7 +816,7 @@ func (s *InboundService) GetOnlineClientsByGuid() map[string][]string {
 	out := p.GetMergedNodeTrees()
 	local := p.GetLocalOnlineClients()
 	// OpenVPN clients connect to a local daemon, never to a remote node.
-	local = appendOnlineEmails(local, openvpn.Manager().OnlineEmails())
+	local = appendOnlineEmails(local, openvpn.GetManager().OnlineEmails())
 	if len(local) > 0 {
 		if guid := s.panelGuid(); guid != "" {
 			out[guid] = mergeEmails(out[guid], local)
