@@ -5,6 +5,7 @@ import { HttpUtil, Msg } from '@/utils';
 import { parseMsg } from '@/utils/zodValidate';
 import { keys } from '@/api/queryKeys';
 import { markLocalInvalidate } from '@/api/invalidationTracker';
+import { useSession } from '@/api/queries/useSession';
 import {
   ClientHydrateSchema,
   ClientPageResponseSchema,
@@ -148,8 +149,18 @@ async function fetchDefaults(): Promise<Record<string, unknown>> {
   return validated.obj || {};
 }
 
+// One reseller entry from GET /panel/api/resellers/assignments.
+interface ResellerAssignment {
+  resellerId: number;
+  name?: string;
+  username?: string;
+  inboundIds: number[];
+  emails: string[];
+}
+
 export function useClients() {
   const queryClient = useQueryClient();
+  const { isReseller } = useSession();
 
   const [query, setQueryState] = useState<ClientQueryParams>(DEFAULT_QUERY);
   // setQuery shallow-compares so callers can pass a fresh object every render
@@ -208,6 +219,57 @@ export function useClients() {
     },
     staleTime: Infinity,
   });
+
+  // Who created each client: the ownership map behind the reseller feature.
+  // Admin-only — reseller sessions only ever see their own clients, and the
+  // endpoint is admin-only anyway.
+  const ownershipQuery = useQuery({
+    queryKey: keys.resellers.assignments(),
+    queryFn: async (): Promise<ResellerAssignment[]> => {
+      const msg = await HttpUtil.get<ResellerAssignment[]>('/panel/api/resellers/assignments', undefined, {
+        silent: true,
+      });
+      if (!msg.success) throw new Error(msg.msg || 'Failed to fetch reseller assignments');
+      return msg.obj || [];
+    },
+    enabled: !isReseller,
+    refetchInterval: 60_000,
+  });
+
+  const ownership = useMemo(() => {
+    const byEmail = new Map<string, string>();
+    const byInbound = new Map<number, string>();
+    for (const a of ownershipQuery.data ?? []) {
+      const label = a.name || a.username || `#${a.resellerId}`;
+      for (const email of a.emails ?? []) byEmail.set(email, label);
+      for (const id of a.inboundIds ?? []) byInbound.set(id, label);
+    }
+    return { byEmail, byInbound };
+  }, [ownershipQuery.data]);
+
+  /**
+   * Display name of the reseller that owns this client, or null when the
+   * client belongs to the panel admin. Undefined while the ownership data
+   * is still loading — callers should render nothing then rather than
+   * mislabel the client as admin-owned.
+   *
+   * A client is owned by a reseller when it is explicitly assigned to that
+   * reseller (wins) or when one of its attached inbounds is assigned to it.
+   */
+  const ownerOf = useCallback(
+    (email: string, inboundIds?: (number | null)[] | null): string | null | undefined => {
+      if (ownershipQuery.data === undefined) return undefined;
+      const direct = ownership.byEmail.get(email);
+      if (direct) return direct;
+      for (const id of inboundIds ?? []) {
+        if (id == null) continue;
+        const viaInbound = ownership.byInbound.get(id);
+        if (viaInbound) return viaInbound;
+      }
+      return null;
+    },
+    [ownershipQuery.data, ownership],
+  );
 
   const clients = listQuery.data?.items ?? [];
   const total = listQuery.data?.total ?? 0;
@@ -523,6 +585,7 @@ export function useClients() {
     summary,
     allGroups,
     hydrate,
+    ownerOf,
     query,
     setQuery,
     inbounds,

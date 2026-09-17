@@ -135,6 +135,7 @@ const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
   http: 'purple',
   mixed: 'lime',
   tunnel: 'orange',
+  openvpn: 'red',
 };
 const INBOUND_CHIP_LIMIT = 1;
 
@@ -205,6 +206,7 @@ export default function ClientsPage() {
     applyTrafficEvent, applyClientStatsEvent,
     refresh,
     hydrate,
+    ownerOf,
   } = useClients();
 
   useWebSocket({
@@ -666,13 +668,26 @@ export default function ClientsPage() {
       title: t('pages.clients.client'),
       key: 'email',
       width: 220,
-      render: (_v, record) => (
-        <div className="email-cell">
-          <span className="email">{record.email}</span>
-          {record.subId && <span className="sub" title={record.subId}>{record.subId}</span>}
-          {record.comment && <span className="sub" title={record.comment}>{record.comment}</span>}
-        </div>
-      ),
+      render: (_v, record) => {
+        const owner = ownerOf(record.email, record.inboundIds);
+        return (
+          <div className="email-cell">
+            <span className="email">{record.email}</span>
+            {record.subId && <span className="sub" title={record.subId}>{record.subId}</span>}
+            {record.comment && <span className="sub" title={record.comment}>{record.comment}</span>}
+            {owner !== undefined &&
+              (owner ? (
+                <Tooltip title={`${t('resellers.createdBy')}: ${owner}`}>
+                  <Tag color="blue" style={{ marginTop: 2 }}>
+                    {owner}
+                  </Tag>
+                </Tooltip>
+              ) : (
+                <Tag style={{ marginTop: 2 }}>{t('resellers.noOwner')}</Tag>
+              ))}
+          </div>
+        );
+      },
     },
     {
       title: t('pages.clients.group'),

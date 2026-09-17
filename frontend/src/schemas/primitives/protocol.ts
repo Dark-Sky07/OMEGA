@@ -33,4 +33,5 @@ export const Protocols = Object.freeze({
   TUNNEL: 'tunnel',
   TUN: 'tun',
   MTPROTO: 'mtproto',
+  OPENVPN: 'openvpn',
 });

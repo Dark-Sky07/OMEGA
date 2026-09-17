@@ -18,6 +18,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
+	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/controller"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/job"
@@ -284,6 +285,11 @@ func (s *Server) startTask(restartXray bool) {
 	s.cron.AddJob("@every 10s", mtJob)
 	go mtJob.Run()
 
+	// Reconcile openvpn daemons and scrape their per-client traffic
+	ovpnJob := job.NewOpenvpnJob()
+	s.cron.AddJob("@every 10s", ovpnJob)
+	go ovpnJob.Run()
+
 	// check client ips from log file every 10 sec
 	s.cron.AddJob("@every 10s", job.NewCheckClientIpJob())
 
@@ -469,6 +475,7 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	if stopXray {
 		s.xrayService.StopXray()
 		mtproto.GetManager().StopAll()
+		openvpn.GetManager().StopAll()
 	}
 	if s.cron != nil {
 		s.cron.Stop()

@@ -46,6 +46,9 @@ export function useWebSocketBridge() {
         } else {
           queryClient.invalidateQueries({ queryKey: ['clients'] });
         }
+        // Reseller usage (online count, traffic, quotas) changes with
+        // inbounds/clients too — keep the reseller list + overview live.
+        queryClient.invalidateQueries({ queryKey: ['resellers'] });
       }, 200);
     };
 

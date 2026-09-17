@@ -1321,7 +1321,8 @@
               "mixed",
               "tunnel",
               "tun",
-              "mtproto"
+              "mtproto",
+              "openvpn"
             ],
             "example": "vless",
             "type": "string"
@@ -5997,6 +5998,55 @@
         }
       }
     },
+    "/panel/api/clients/openvpn/{email}": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Return the ready-to-import .ovpn profile for a client's openvpn inbound: client/dev/proto/remote plus the embedded CA, server certificate and the client's own keypair (CN = client email). Resellers may only fetch profiles of their own clients. Fails when the client has no enabled local openvpn inbound or the daemon has not provisioned the certificates yet.",
+        "operationId": "get_panel_api_clients_openvpn_email",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email (unique identifier).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "inboundId": 7,
+                    "inboundTag": "openvpn1",
+                    "profile": "client\ndev tun\nproto udp\nremote vpn.example.com 1194\n...\n<ca>\n-----BEGIN CERTIFICATE-----\n...\n</ca>\n<cert>\n...\n</cert>\n<key>\n...\n</key>"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/nodes/list": {
       "get": {
         "tags": [
@@ -8222,7 +8272,7 @@
         "tags": [
           "Resellers (نمایندگی)"
         ],
-        "summary": "Ownership map for the admin UI: for every reseller, the inbound ids it owns and the client emails assigned to it directly.",
+        "summary": "Ownership map for the admin UI: for every reseller, the inbound ids it owns and the client emails assigned to it directly. The display name and username are included so consumers (e.g. the clients page owner tags) can label the owner without a second request.",
         "operationId": "get_panel_api_resellers_assignments",
         "responses": {
           "200": {
@@ -8246,6 +8296,8 @@
                   "obj": [
                     {
                       "resellerId": 1,
+                      "name": "Ali",
+                      "username": "ali",
                       "inboundIds": [
                         3,
                         4

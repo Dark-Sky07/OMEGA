@@ -763,6 +763,17 @@ export const sections: readonly Section[] = [
         response:
           '{\n  "success": true,\n  "obj": [\n    "vless://uuid@host:443?...#user1"\n  ]\n}',
       },
+      {
+        method: 'GET',
+        path: '/panel/api/clients/openvpn/:email',
+        summary:
+          'Return the ready-to-import .ovpn profile for a client\'s openvpn inbound: client/dev/proto/remote plus the embedded CA, server certificate and the client\'s own keypair (CN = client email). Resellers may only fetch profiles of their own clients. Fails when the client has no enabled local openvpn inbound or the daemon has not provisioned the certificates yet.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
+        ],
+        response:
+          '{\n  "success": true,\n  "obj": {\n    "inboundId": 7,\n    "inboundTag": "openvpn1",\n    "profile": "client\\ndev tun\\nproto udp\\nremote vpn.example.com 1194\\n...\\n<ca>\\n-----BEGIN CERTIFICATE-----\\n...\\n</ca>\\n<cert>\\n...\\n</cert>\\n<key>\\n...\\n</key>"\n  }\n}',
+      },
     ],
   },
 
@@ -1247,9 +1258,9 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/resellers/assignments',
         summary:
-          'Ownership map for the admin UI: for every reseller, the inbound ids it owns and the client emails assigned to it directly.',
+          'Ownership map for the admin UI: for every reseller, the inbound ids it owns and the client emails assigned to it directly. The display name and username are included so consumers (e.g. the clients page owner tags) can label the owner without a second request.',
         response:
-          '{\n  "success": true,\n  "obj": [ { "resellerId": 1, "inboundIds": [3, 4], "emails": ["user1", "user2"] } ]\n}',
+          '{\n  "success": true,\n  "obj": [ { "resellerId": 1, "name": "Ali", "username": "ali", "inboundIds": [3, 4], "emails": ["user1", "user2"] } ]\n}',
       },
       {
         method: 'GET',
