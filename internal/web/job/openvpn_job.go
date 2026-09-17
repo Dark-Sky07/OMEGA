@@ -19,6 +19,8 @@ type OpenvpnJob struct {
 }
 
 // NewOpenvpnJob creates a new openvpn reconcile/traffic job instance.
+// Zero-value services are fine: like the other jobs, this one resolves
+// state through the global database handle inside the service methods.
 func NewOpenvpnJob() *OpenvpnJob {
 	return new(OpenvpnJob)
 }
