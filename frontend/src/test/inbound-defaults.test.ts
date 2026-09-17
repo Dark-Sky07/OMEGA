@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   createDefaultHttpInboundSettings,
+  createDefaultInboundSettings,
+  createDefaultOpenvpnInboundSettings,
   createDefaultHysteriaClient,
   createDefaultHysteriaInboundSettings,
   createDefaultMixedInboundSettings,
@@ -20,6 +22,7 @@ import { createHysteriaTlsSettingsWithDefaultCert } from '@/lib/xray/inbound-tls
 import { HttpInboundSettingsSchema } from '@/schemas/protocols/inbound/http';
 import { HysteriaClientSchema, HysteriaInboundSettingsSchema } from '@/schemas/protocols/inbound/hysteria';
 import { MixedInboundSettingsSchema } from '@/schemas/protocols/inbound/mixed';
+import { OpenvpnInboundSettingsSchema } from '@/schemas/protocols/inbound/openvpn';
 import { ShadowsocksClientSchema, ShadowsocksInboundSettingsSchema } from '@/schemas/protocols/inbound/shadowsocks';
 import { TrojanClientSchema, TrojanInboundSettingsSchema } from '@/schemas/protocols/inbound/trojan';
 import { TunnelInboundSettingsSchema } from '@/schemas/protocols/inbound/tunnel';
@@ -146,6 +149,21 @@ describe('createDefault*InboundSettings factories', () => {
     });
     expect(s).toMatchSnapshot();
     expect(WireguardInboundSettingsSchema.parse(s)).toEqual(s);
+  });
+
+  it('openvpn', () => {
+    const s = createDefaultOpenvpnInboundSettings();
+    expect(s).toEqual({
+      proto: 'udp',
+      redirectGateway: true,
+      pushDNS: true,
+      dns1: '1.1.1.1',
+      dns2: '8.8.8.8',
+    });
+    expect(OpenvpnInboundSettingsSchema.parse(s)).toEqual(s);
+    // The dispatch helper must know the protocol.
+    expect(createDefaultInboundSettings('openvpn')).toEqual(s);
+    expect(createDefaultInboundSettings('openvpn-not-real')).toBeNull();
   });
 });
 

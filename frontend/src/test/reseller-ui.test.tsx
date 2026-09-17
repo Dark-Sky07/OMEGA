@@ -129,7 +129,7 @@ describe('reseller pages', () => {
     expect(list).not.toContain('1 / 2'); // inbounds have no cap anymore: plain count
     expect(list).toContain('2 / 10'); // clients used / limit
     expect(list).toContain('30.00 GB / 50.00 GB'); // allocated / limit
-    expect(HttpUtil.get).toHaveBeenCalledWith('/panel/api/resellers/list');
+    expect(HttpUtil.get).toHaveBeenCalledWith('/panel/api/resellers/list', undefined, { silent: true });
   });
 
   it('admin can open the create form and it posts the documented payload', async () => {

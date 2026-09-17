@@ -57,6 +57,7 @@ import {
   HysteriaFields,
   MixedFields,
   MtprotoFields,
+  OpenvpnFields,
   ShadowsocksFields,
   TunFields,
   TunnelFields,
@@ -426,14 +427,20 @@ export default function InboundFormModal({
             }],
           },
         });
-      } else if (next === Protocols.WIREGUARD || next === Protocols.TUNNEL) {
+      } else if (next === Protocols.WIREGUARD || next === Protocols.TUNNEL || next === Protocols.OPENVPN) {
         // Wireguard and Tunnel (dokodemo-door) have no user-selectable
         // transport: wireguard is always a UDP listener, and tunnel only needs
-        // `sockopt.tproxy` for its TProxy/redirect mode. Drop the leftover
-        // network/transport slices so the stream tab doesn't render a TCP
-        // sub-form and the wire payload carries no dead tcpSettings — the
-        // sockopt section (with TProxy) stays available.
+        // `sockopt.tproxy` for its TProxy/redirect mode. OpenVPN is the same
+        // story — its daemon binds the port directly with the transport from
+        // its own settings (proto: udp|tcp), never the Xray stream transport.
+        // Drop the leftover network/transport slices so the stream tab doesn't
+        // render a TCP sub-form and the wire payload carries no dead
+        // tcpSettings — the sockopt section (with TProxy) stays available.
         form.setFieldValue('streamSettings', { security: 'none' });
+        if (next === Protocols.OPENVPN) {
+          // Well-known default for OpenVPN; the port field stays editable.
+          form.setFieldValue('port', 1194);
+        }
       } else {
         const current = form.getFieldValue('streamSettings') as { network?: string } | undefined;
         if (current?.network === 'hysteria' || !current?.network) {
@@ -685,6 +692,8 @@ export default function InboundFormModal({
 
       {protocol === Protocols.MTPROTO && <MtprotoFields />}
 
+      {protocol === Protocols.OPENVPN && <OpenvpnFields />}
+
       {protocol === Protocols.SHADOWSOCKS && <ShadowsocksFields form={form} isSSWith2022={isSSWith2022} />}
 
       {protocol === Protocols.VLESS && <VlessFields saving={saving} selectedVlessAuth={selectedVlessAuth} network={network} security={security} getNewVlessEnc={getNewVlessEnc} clearVlessEnc={clearVlessEnc} />}
@@ -805,9 +814,10 @@ export default function InboundFormModal({
       )}
 
       {/* externalProxy only feeds client share links. Wireguard's per-peer
-          .conf fanout resolves its host elsewhere, and tunnel (dokodemo-door)
-          has no clients at all — the section is dead weight on both. */}
-      {protocol !== Protocols.WIREGUARD && protocol !== Protocols.TUNNEL && (
+          .conf fanout resolves its host elsewhere, openvpn embeds the host
+          in its .ovpn profile, and tunnel (dokodemo-door) has no clients at
+          all — the section is dead weight on all three. */}
+      {protocol !== Protocols.WIREGUARD && protocol !== Protocols.TUNNEL && protocol !== Protocols.OPENVPN && (
         <ExternalProxyForm toggleExternalProxy={toggleExternalProxy} />
       )}
 
@@ -1021,15 +1031,17 @@ export default function InboundFormModal({
               Protocols.TUN,
               Protocols.WIREGUARD,
               Protocols.MTPROTO,
+              Protocols.OPENVPN,
             ] as string[]).includes(protocol) || isFallbackHost
               ? [{ key: 'protocol', label: t('pages.inbounds.protocol'), children: protocolTab, forceRender: true }]
               : []),
             ...(streamEnabled
               ? [
                 { key: 'stream', label: t('pages.inbounds.streamTab'), children: streamTab, forceRender: true },
-                // Wireguard and Tunnel can't do TLS/Reality (canEnableTls is false), so
-                // the security tab would only show a fully disabled radio.
-                ...(protocol !== Protocols.WIREGUARD && protocol !== Protocols.TUNNEL
+                // Wireguard, Tunnel and OpenVPN can't do TLS/Reality
+                // (canEnableTls is false), so the security tab would only
+                // show a fully disabled radio.
+                ...(protocol !== Protocols.WIREGUARD && protocol !== Protocols.TUNNEL && protocol !== Protocols.OPENVPN
                   ? [{ key: 'security', label: t('pages.inbounds.securityTab'), children: securityTab, forceRender: true }]
                   : []),
               ]

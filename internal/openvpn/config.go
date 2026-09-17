@@ -1,0 +1,72 @@
+package openvpn
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+)
+
+// dataDirForID is the per-inbound directory holding the CA, server and client
+// material, the rendered openvpn.conf, the daemon log and the pid file. It
+// lives under the bin folder next to the panel's own binaries, mirroring the
+// mtproto (mtg) layout.
+func dataDirForID(id int) string {
+	return openvpnDir() + "/" + strconv.Itoa(id)
+}
+
+func confPathForID(id int) string  { return filepath.Join(dataDirForID(id), "openvpn.conf") }
+func pidPathForID(id int) string   { return filepath.Join(dataDirForID(id), "openvpn.pid") }
+func logPathForID(id int) string   { return filepath.Join(dataDirForID(id), "openvpn.log") }
+func devNameForID(id int) string   { return "tun" + strconv.Itoa(id) }
+
+// renderServerConf builds the openvpn.conf for one inbound. Directives are
+// deliberately limited to ones present since OpenVPN 2.4 so the generated
+// file works on both 2.4/2.5 and 2.6 installations.
+func renderServerConf(inst Instance, mgmtPort int) string {
+	proto := "udp"
+	if inst.protoFor() == "tcp" {
+		proto = "tcp-server"
+	}
+	network, mask := inst.serverSubnet()
+	dir := dataDirForID(inst.Id)
+
+	var b strings.Builder
+	b.WriteString("mode server\n")
+	if listen := inst.listenFor(); listen != "" {
+		fmt.Fprintf(&b, "local %s\n", listen)
+	}
+	fmt.Fprintf(&b, "port %d\n", inst.Port)
+	fmt.Fprintf(&b, "proto %s\n", proto)
+	fmt.Fprintf(&b, "dev %s\n", devNameForID(inst.Id))
+	fmt.Fprintf(&b, "ca %s\n", filepath.Join(dir, "ca.crt"))
+	fmt.Fprintf(&b, "cert %s\n", filepath.Join(dir, "server.crt"))
+	fmt.Fprintf(&b, "key %s\n", filepath.Join(dir, "server.key"))
+	b.WriteString("tls-server\ntls-version-min 1.2\n")
+	b.WriteString("auth sha256\ncipher AES-256-GCM\n")
+	fmt.Fprintf(&b, "server %s %s\n", network, mask)
+	b.WriteString("client-to-client\n")
+	b.WriteString("keepalive 10 120\nping-restart 0\n")
+	b.WriteString("mute-replay-warning\nstatus-version 2\nverb 0\n")
+	fmt.Fprintf(&b, "writepid %s\n", pidPathForID(inst.Id))
+	fmt.Fprintf(&b, "log %s\n", logPathForID(inst.Id))
+	fmt.Fprintf(&b, "management 127.0.0.1 %d\n", mgmtPort)
+	if inst.RedirectGw {
+		b.WriteString(`push "redirect-gateway def1 bypass-dns"` + "\n")
+	}
+	if inst.PushDNS {
+		fmt.Fprintf(&b, `push "dhcp-option DNS %s"`+"\n", inst.dns1For())
+		fmt.Fprintf(&b, `push "dhcp-option DNS %s"`+"\n", inst.dns2For())
+	}
+	return b.String()
+}
+
+// writeConfig renders the server config into the inbound's data directory.
+func writeConfig(inst Instance, mgmtPort int) error {
+	dir := dataDirForID(inst.Id)
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return err
+	}
+	return os.WriteFile(confPathForID(inst.Id), []byte(renderServerConf(inst, mgmtPort)), 0o640)
+}

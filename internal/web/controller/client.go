@@ -55,6 +55,7 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.GET("/traffic/:email", a.getTrafficByEmail)
 	g.GET("/subLinks/:subId", a.getSubLinks)
 	g.GET("/links/:email", a.getClientLinks)
+	g.GET("/openvpn/:email", a.getOpenvpnProfile)
 
 	g.POST("/add", a.create)
 	g.POST("/update/:email", a.update)
@@ -699,6 +700,24 @@ func (a *ClientController) getClientLinks(c *gin.Context) {
 		return
 	}
 	jsonObj(c, links, nil)
+}
+
+// getOpenvpnProfile returns the rendered .ovpn profile for a client's
+// openvpn inbound. Resellers may only fetch profiles of their own clients,
+// mirroring the other per-client read endpoints.
+func (a *ClientController) getOpenvpnProfile(c *gin.Context) {
+	email := c.Param("email")
+	if reseller := resellerSession(c); reseller != nil {
+		if !ensureClientOwned(c, reseller, email) {
+			return
+		}
+	}
+	profile, inbound, err := a.inboundService.GetOpenvpnProfile(resolveHost(c), email)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+		return
+	}
+	jsonObj(c, gin.H{"inboundId": inbound.Id, "inboundTag": inbound.Tag, "profile": profile}, nil)
 }
 
 func (a *ClientController) detach(c *gin.Context) {

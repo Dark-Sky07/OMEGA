@@ -12,6 +12,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
@@ -774,7 +775,33 @@ func (s *InboundService) GetOnlineClients() []string {
 	if p == nil {
 		return []string{}
 	}
-	return p.GetOnlineClients()
+	out := p.GetOnlineClients()
+	return appendOnlineEmails(out, openvpn.GetManager().OnlineEmails())
+}
+
+// appendOnlineEmails unions `extra` into `emails`, deduplicating. The openvpn
+// daemon reports its connected clients through its management interface (see
+// internal/openvpn), which the xray online pipeline never sees — merged at
+// read time so the two sources never fight over the stored online set.
+func appendOnlineEmails(emails []string, extra []string) []string {
+	if len(extra) == 0 {
+		return emails
+	}
+	seen := make(map[string]bool, len(emails))
+	out := make([]string, 0, len(emails)+len(extra))
+	for _, e := range emails {
+		if !seen[e] {
+			seen[e] = true
+			out = append(out, e)
+		}
+	}
+	for _, e := range extra {
+		if !seen[e] {
+			seen[e] = true
+			out = append(out, e)
+		}
+	}
+	return out
 }
 
 // GetOnlineClientsByGuid returns online emails keyed by the panelGuid of the
@@ -787,7 +814,10 @@ func (s *InboundService) GetOnlineClientsByGuid() map[string][]string {
 		return map[string][]string{}
 	}
 	out := p.GetMergedNodeTrees()
-	if local := p.GetLocalOnlineClients(); len(local) > 0 {
+	local := p.GetLocalOnlineClients()
+	// OpenVPN clients connect to a local daemon, never to a remote node.
+	local = appendOnlineEmails(local, openvpn.GetManager().OnlineEmails())
+	if len(local) > 0 {
 		if guid := s.panelGuid(); guid != "" {
 			out[guid] = mergeEmails(out[guid], local)
 		}

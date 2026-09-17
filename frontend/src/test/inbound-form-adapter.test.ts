@@ -205,6 +205,31 @@ describe('formValuesToWirePayload', () => {
     expect(payload.sniffing).toBe('');
   });
 
+  it('accepts openvpn with a network-less streamSettings', () => {
+    const result = InboundFormSchema.safeParse({
+      port: 1194,
+      protocol: 'openvpn',
+      settings: { proto: 'udp', redirectGateway: true, pushDNS: true, dns1: '1.1.1.1', dns2: '8.8.8.8' },
+      streamSettings: { security: 'none' },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('emits empty sniffing for openvpn (daemon-served, not Xray) and keeps its settings', () => {
+    const values = rawInboundToFormValues({
+      ...vlessRow,
+      protocol: 'openvpn',
+      settings: { proto: 'tcp', redirectGateway: false, pushDNS: false },
+    });
+    const payload = formValuesToWirePayload(values);
+    expect(payload.protocol).toBe('openvpn');
+    expect(payload.sniffing).toBe('');
+    const settings = JSON.parse(payload.settings) as Record<string, unknown>;
+    expect(settings.proto).toBe('tcp');
+    expect(settings.redirectGateway).toBe(false);
+    expect(settings.pushDNS).toBe(false);
+  });
+
   it('omits nodeId when null', () => {
     const values = rawInboundToFormValues({ ...vlessRow, nodeId: null });
     const payload = formValuesToWirePayload(values);
