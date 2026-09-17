@@ -295,14 +295,19 @@ func (m *Manager) CollectTraffic() (inbounds []InboundTraffic, clients []ClientT
 }
 
 // OnlineEmails returns the union of connected client CNs across all running
-// daemons — the openvpn half of the panel's online-client set.
+// daemons — the openvpn half of the panel's online-client set. A client
+// attached to several openvpn inbounds is listed once.
 func (m *Manager) OnlineEmails() []string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	seen := make(map[string]bool, 4)
 	out := make([]string, 0, 4)
 	for _, man := range m.procs {
 		for cn := range man.online {
-			out = append(out, cn)
+			if !seen[cn] {
+				seen[cn] = true
+				out = append(out, cn)
+			}
 		}
 	}
 	return out
