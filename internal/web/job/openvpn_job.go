@@ -106,3 +106,5 @@ func (j *OpenvpnJob) Run() {
 		logger.Warning("openvpn job: add traffic failed:", err)
 	}
 }
+
+// (ci diagnostics step added upstream; this line anchors the path filter)
