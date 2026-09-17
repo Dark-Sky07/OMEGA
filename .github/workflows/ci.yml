@@ -24,6 +24,7 @@ on:
 permissions:
   contents: read
   actions: write # TEMP (diagnostics): lets the go-test job upload its output on failure
+  issues: write  # TEMP (diagnostics): lets the go-test job post its failure tail on the PR
 
 jobs:
   go-test:
@@ -50,6 +51,18 @@ jobs:
           name: go-test-output
           path: /tmp/go-test-output.txt
           if-no-files-found: ignore
+      - name: Post failure tail to PR (TEMP diagnostics)
+        if: failure() && github.event.pull_request.number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo "### TEMP go-test failure tail (for diagnostics, will be reverted)"
+            echo '```'
+            grep -n -A 3 -E "^--- FAIL|^FAIL|\.go:[0-9]+:|panic" /tmp/go-test-output.txt | head -90
+            echo '```'
+          } > /tmp/pr-comment.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/pr-comment.md
 
   codegen:
     runs-on: ubuntu-latest
