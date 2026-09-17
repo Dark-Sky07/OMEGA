@@ -191,7 +191,7 @@ func killStaleDaemon(dataDir string) {
 		_ = os.Remove(pidPath)
 		return
 	}
-	if err := syscall.Kill(pid, syscall.SIGTERM); err == nil {
+	if err := signalProcess(pid, syscall.SIGTERM); err == nil {
 		for i := 0; i < 20; i++ {
 			if !isProcessAlive(pid) {
 				break
@@ -199,19 +199,14 @@ func killStaleDaemon(dataDir string) {
 			time.Sleep(250 * time.Millisecond)
 		}
 		if isProcessAlive(pid) {
-			_ = syscall.Kill(pid, syscall.SIGKILL)
+			_ = signalProcess(pid, syscall.SIGKILL)
 		}
 		logger.Infof("openvpn: terminated stale daemon (pid %d) from a previous run", pid)
 	}
 	_ = os.Remove(pidPath)
 }
 
-func isProcessAlive(pid int) bool {
-	if runtime.GOOS == "windows" {
-		return true // best effort; Stop() handles the rest
-	}
-	return syscall.Kill(pid, 0) == nil
-}
+// isProcessAlive is platform-specific (signal_unix.go / signal_windows.go).
 
 func processLooksLikeOpenVPN(pid int) bool {
 	if runtime.GOOS == "windows" {
