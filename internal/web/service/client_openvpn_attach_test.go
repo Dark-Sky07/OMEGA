@@ -1,8 +1,8 @@
 package service
 
 import (
+	"encoding/json"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -79,7 +79,12 @@ func TestAttachOpenvpnInbound_NoClientsArray(t *testing.T) {
 	if len(clients) != 1 || clients[0].Email != email {
 		t.Fatalf("openvpn settings must contain the attached client, got %#v", clients)
 	}
-	if !strings.Contains(fresh.Settings, `"proto":"udp"`) {
+	var parsedSettings map[string]any
+	if err := json.Unmarshal([]byte(fresh.Settings), &parsedSettings); err != nil {
+		t.Fatalf("openvpn settings must stay valid JSON: %v", err)
+	}
+	if parsedSettings["proto"] != "udp" || parsedSettings["redirectGateway"] != true ||
+		parsedSettings["pushDNS"] != true || parsedSettings["dns1"] != "1.1.1.1" || parsedSettings["dns2"] != "8.8.8.8" {
 		t.Errorf("openvpn-specific settings keys must be preserved, settings: %s", fresh.Settings)
 	}
 
