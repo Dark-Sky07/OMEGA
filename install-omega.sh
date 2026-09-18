@@ -215,6 +215,67 @@ install_openvpn() {
     echo -e "${green}OpenVPN prerequisite is ready: $(openvpn --version 2>/dev/null | head -1)${plain}"
 }
 
+install_l2tp_ipsec() {
+    # L2TP/IPsec is deliberately managed as two foreground daemons by x-ui.
+    # Install the binaries plus PPP and iptables, then fail early when the
+    # kernel PPP device cannot be prepared instead of exposing a dead inbound.
+    local packages="strongswan xl2tpd ppp iptables iproute2"
+    echo -e "${green}Installing strongSwan/xl2tpd/PPP for L2TP/IPsec inbounds...${plain}"
+    case "${release}" in
+        ubuntu | debian | armbian | linuxmint)
+            apt-get update && apt-get install -y -q $packages || return 1
+            ;;
+        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
+            dnf install -y -q $packages || return 1
+            ;;
+        centos)
+            if [[ "${VERSION_ID}" =~ ^7 ]]; then
+                yum install -y $packages || return 1
+            else
+                dnf install -y -q $packages || return 1
+            fi
+            ;;
+        arch | manjaro | parch)
+            pacman -S --noconfirm $packages || return 1
+            ;;
+        opensuse-tumbleweed | opensuse-leap)
+            zypper --non-interactive install $packages || return 1
+            ;;
+        alpine)
+            apk add --no-cache $packages || return 1
+            ;;
+        *)
+            echo -e "${red}Could not identify a supported package manager for L2TP/IPsec. Install strongswan, xl2tpd, ppp, iptables, and iproute2 manually.${plain}"
+            return 1
+            ;;
+    esac
+
+    for command_name in ipsec xl2tpd pppd iptables sysctl; do
+        if ! command -v "$command_name" > /dev/null 2>&1; then
+            echo -e "${red}L2TP/IPsec prerequisite is missing: $command_name${plain}"
+            return 1
+        fi
+    done
+
+    if [[ ! -e /dev/ppp ]]; then
+        if command -v modprobe > /dev/null 2>&1; then
+            modprobe ppp_generic > /dev/null 2>&1 || true
+        fi
+    fi
+    if [[ ! -c /dev/ppp ]]; then
+        mkdir -p /dev
+        # Linux PPP uses char device major 108, minor 0. mknod may be denied
+        # by a restricted container; in that case the explicit diagnostic is
+        # more useful than a later xl2tpd startup failure.
+        mknod /dev/ppp c 108 0 > /dev/null 2>&1 || true
+    fi
+    if [[ ! -c /dev/ppp ]]; then
+        echo -e "${red}L2TP/IPsec needs /dev/ppp. Load ppp_generic or expose /dev/ppp (and NET_ADMIN in Docker).${plain}"
+        return 1
+    fi
+    echo -e "${green}L2TP/IPsec prerequisites are ready: $(ipsec --version 2>/dev/null | head -1)${plain}"
+}
+
 install_postgres_local() {
     local pg_user pg_pass
     pg_pass=$(gen_random_string 24)
@@ -1468,6 +1529,10 @@ install_base
 # .ovpn profile never points at a panel whose VPN listener is silently absent.
 if ! install_openvpn; then
     echo -e "${red}OpenVPN setup failed; installation aborted. Fix the prerequisite above and rerun this installer.${plain}"
+    exit 1
+fi
+if ! install_l2tp_ipsec; then
+    echo -e "${red}L2TP/IPsec setup failed; installation aborted. Fix the prerequisite above and rerun this installer.${plain}"
     exit 1
 fi
 install_x-ui $1

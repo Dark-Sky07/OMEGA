@@ -11,6 +11,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
@@ -772,17 +773,19 @@ func (s *InboundService) restartRemoteNodesOnDisable(nodeIDs []int) {
 }
 
 func (s *InboundService) GetOnlineClients() []string {
-	if p == nil {
-		return []string{}
+	out := []string{}
+	if p != nil {
+		out = p.GetOnlineClients()
 	}
-	out := p.GetOnlineClients()
-	return appendOnlineEmails(out, openvpn.GetManager().OnlineEmails())
+	online := append([]string{}, openvpn.GetManager().OnlineEmails()...)
+	online = append(online, l2tp.GetManager().OnlineEmails()...)
+	return appendOnlineEmails(out, online)
 }
 
-// appendOnlineEmails unions `extra` into `emails`, deduplicating. The openvpn
-// daemon reports its connected clients through its management interface (see
-// internal/openvpn), which the xray online pipeline never sees — merged at
-// read time so the two sources never fight over the stored online set.
+// appendOnlineEmails unions daemon-reported emails into `emails`, deduplicating.
+// OpenVPN and L2TP report connected users outside the Xray online pipeline; the
+// merge happens at read time so stored Xray state remains authoritative for
+// Xray inbounds.
 func appendOnlineEmails(emails []string, extra []string) []string {
 	if len(extra) == 0 {
 		return emails
@@ -810,13 +813,16 @@ func appendOnlineEmails(emails []string, extra []string) []string {
 // node-id keying so a client three hops down is attributed to its real node,
 // not the intermediate one it was synced through.
 func (s *InboundService) GetOnlineClientsByGuid() map[string][]string {
-	if p == nil {
-		return map[string][]string{}
+	out := map[string][]string{}
+	local := []string{}
+	if p != nil {
+		out = p.GetMergedNodeTrees()
+		local = p.GetLocalOnlineClients()
 	}
-	out := p.GetMergedNodeTrees()
-	local := p.GetLocalOnlineClients()
-	// OpenVPN clients connect to a local daemon, never to a remote node.
-	local = appendOnlineEmails(local, openvpn.GetManager().OnlineEmails())
+	// Daemon clients connect to this Linux host, never to a remote node.
+	daemonOnline := append([]string{}, openvpn.GetManager().OnlineEmails()...)
+	daemonOnline = append(daemonOnline, l2tp.GetManager().OnlineEmails()...)
+	local = appendOnlineEmails(local, daemonOnline)
 	if len(local) > 0 {
 		if guid := s.panelGuid(); guid != "" {
 			out[guid] = mergeEmails(out[guid], local)

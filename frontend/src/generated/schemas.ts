@@ -1296,7 +1296,8 @@ export const SCHEMAS: Record<string, unknown> = {
           "tunnel",
           "tun",
           "mtproto",
-          "openvpn"
+          "openvpn",
+          "l2tp"
         ],
         "example": "vless",
         "type": "string"

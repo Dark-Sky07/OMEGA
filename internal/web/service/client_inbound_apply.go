@@ -9,6 +9,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
@@ -24,6 +25,24 @@ func clientsFromSettings(settings map[string]any) []any {
 		return clients
 	}
 	return []any{}
+}
+
+// reconcileL2TPRuntime makes client attach/update/delete operations visible to
+// the host daemon before the periodic job runs. It is intentionally a no-op
+// for every other protocol so the existing Xray runtime path is unchanged.
+func reconcileL2TPRuntime(inbound *model.Inbound) error {
+	if inbound == nil || inbound.Protocol != model.L2TP || inbound.NodeID != nil {
+		return nil
+	}
+	if !inbound.Enable {
+		l2tp.GetManager().Remove(inbound.Id)
+		return nil
+	}
+	instance, ok := l2tp.InstanceFromInbound(inbound, nil)
+	if !ok {
+		return common.NewError("invalid l2tp settings or credentials")
+	}
+	return l2tp.GetManager().Ensure(instance)
 }
 
 // delInboundClients removes several clients from a single inbound in one pass:
@@ -168,6 +187,10 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 	if err := db.Save(oldInbound).Error; err != nil {
 		return needRestart, err
 	}
+	if err := reconcileL2TPRuntime(oldInbound); err != nil {
+		logger.Warning("l2tp: synchronous client removal reconcile failed:", err)
+		needRestart = true
+	}
 	finalClients, gcErr := inboundSvc.GetClients(oldInbound)
 	if gcErr != nil {
 		return needRestart, gcErr
@@ -268,9 +291,12 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 			return false, common.NewError("client email is required")
 		}
 		switch oldInbound.Protocol {
-		case model.OpenVPN:
-			// OpenVPN client identity is the email (certificate CN); no
-			// UUID/password credential is required.
+		case model.OpenVPN, model.L2TP:
+			// Daemon identity is the email. L2TP additionally consumes
+			// Client.Password as the PPP/MS-CHAPv2 password.
+			if oldInbound.Protocol == model.L2TP && client.Password == "" {
+				return false, common.NewError("l2tp client password is required")
+			}
 		case "trojan":
 			if client.Password == "" {
 				return false, common.NewError("empty client ID")
@@ -393,6 +419,10 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 	if err = tx.Save(oldInbound).Error; err != nil {
 		return false, err
 	}
+	if err := reconcileL2TPRuntime(oldInbound); err != nil {
+		logger.Warning("l2tp: synchronous client reconcile failed:", err)
+		needRestart = true
+	}
 	finalClients, gcErr := inboundSvc.GetClients(oldInbound)
 	if gcErr != nil {
 		err = gcErr
@@ -435,8 +465,11 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 
 	newClientId := ""
 	switch oldInbound.Protocol {
-	case model.OpenVPN:
-		// Identity is the email (certificate CN) — no UUID to require.
+	case model.OpenVPN, model.L2TP:
+		// Identity is the email. L2TP uses Password for PPP authentication.
+		if oldInbound.Protocol == model.L2TP && clients[0].Password == "" {
+			return false, common.NewError("l2tp client password is required")
+		}
 		newClientId = clients[0].Email
 	case "trojan":
 		newClientId = clients[0].Password
@@ -671,6 +704,10 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	if err = tx.Save(oldInbound).Error; err != nil {
 		return false, err
 	}
+	if err := reconcileL2TPRuntime(oldInbound); err != nil {
+		logger.Warning("l2tp: synchronous client reconcile failed:", err)
+		needRestart = true
+	}
 	finalClients, gcErr := inboundSvc.GetClients(oldInbound)
 	if gcErr != nil {
 		err = gcErr
@@ -793,6 +830,10 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 
 	if err := db.Save(oldInbound).Error; err != nil {
 		return false, err
+	}
+	if err := reconcileL2TPRuntime(oldInbound); err != nil {
+		logger.Warning("l2tp: synchronous client deletion reconcile failed:", err)
+		needRestart = true
 	}
 	finalClients, gcErr := inboundSvc.GetClients(oldInbound)
 	if gcErr != nil {

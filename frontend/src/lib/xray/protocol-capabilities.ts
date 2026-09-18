@@ -67,11 +67,11 @@ export function canEnableStream(values: { protocol: string }): boolean {
   return STREAM_PROTOCOLS.includes(values.protocol);
 }
 
-// mtproto is served by an external mtg process, and openvpn by a local openvpn
-// daemon — neither touches the Xray config, so the Xray sniffing block does
-// not apply to them. Every other inbound supports sniffing.
+// mtproto, openvpn, and l2tp are served by host daemons rather than Xray,
+// so the Xray sniffing block does not apply to them. Every other inbound
+// supports sniffing.
 export function canEnableSniffing(values: { protocol: string }): boolean {
-  return values.protocol !== 'mtproto' && values.protocol !== 'openvpn';
+  return values.protocol !== 'mtproto' && values.protocol !== 'openvpn' && values.protocol !== 'l2tp';
 }
 
 // Vision seed applies only when XTLS Vision (TCP/TLS) flow is selected

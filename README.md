@@ -36,6 +36,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega
 | --- | --- |
 | ➕ **Added** | **Resellers (نمایندگی)** — sub-accounts with their own login, scoped ownership, quotas and sales/billing reports. |
 | ➕ **Added** | **OpenVPN inbounds** — an OpenVPN daemon per inbound binds the port directly; per-client certificates are generated automatically (CN = email), each client gets a ready-to-import `.ovpn` (copy/download from the client info), and per-client traffic + online status flow into the normal stats pipeline. The tagged release installer installs and verifies the host `openvpn` package and `/dev/net/tun`; the panel then renders one daemon config per enabled local OpenVPN inbound. The release archive does not embed an OS package, so use the installer rather than copying only the panel tarball. |
+| ➕ **Added** | **L2TP/IPsec inbounds** — one global local Linux daemon group (strongSwan + xl2tpd/PPP) uses existing client email/password credentials, persists an IPsec PSK, reconciles daemon config and `chap-secrets`, enables IPv4 forwarding/NAT, and reports PPP online/traffic state. It is not an Xray inbound and does not generate a profile file; the UI shows native client parameters. |
 | 🎨 **Branding** | Panel name shown as **OMEGA** (sidebar, login page, page titles, API docs, translations). UI-only — no paths, service names or version numbers touched. |
 | 🛠 **Install** | [`install-omega.sh`](install-omega.sh) installs *this* panel from *this* repository; [`x-ui.sh`](x-ui.sh) updates from here too, so `x-ui update` can never silently swap in vanilla 3x-ui. |
 | ✅ **Unchanged** | Everything else — all of 3x-ui v3.3.1 (protocols, transports, nodes, subscriptions, Telegram bot, routing, API, themes, 13 languages). |
@@ -63,6 +64,25 @@ systemctl restart x-ui
 
 The `x-ui update` script shipped in this release resolves the latest stable release tag and runs its matching installer; it no longer downloads an unpinned, possibly stale `main` installer. For an OpenVPN inbound, allow the configured port on both the host firewall and the VPS/provider firewall using the selected transport (`udp` or `tcp`). When **Redirect gateway** is enabled, the host must also have IPv4 forwarding and NAT/masquerading configured for the generated `10.x.x.0/24` tunnel subnet; the panel does not overwrite an operator's firewall policy. If a profile imports but remains on `Trying to connect`, check `command -v openvpn`, `/dev/net/tun`, the listener with `ss -lunpt`, and `/var/log/x-ui/3xui.log` plus `bin/openvpn/<inbound-id>/openvpn.log`.
 
+### L2TP/IPsec installation and host checklist
+
+L2TP/IPsec is a host daemon, not an Xray protocol. The installer installs and verifies `strongswan`, `xl2tpd`, `ppp`, `iptables`, and `iproute2`, and checks `/dev/ppp`. Only one enabled local L2TP/IPsec inbound is allowed because the daemon group owns UDP 500 (IKE), UDP 4500 (NAT-T), and UDP 1701 (L2TP). PPTP is not part of OMEGA.
+
+The panel writes managed runtime files under `bin/l2tp/<inbound-id>/`, enables IPv4 forwarding, opens the three UDP listeners in iptables, and installs `FORWARD` plus `MASQUERADE` rules for the configured pool. Attach existing clients from the normal Clients page; their email is the PPP username and their password is the MS-CHAPv2 credential. The inbound info view shows the PSK, pool, DNS, and fixed ports. Configure clients with their native L2TP/IPsec settings; no profile file is generated.
+
+Verify a host or manual installation with:
+
+```bash
+command -v ipsec xl2tpd pppd iptables sysctl
+ipsec --version | head -2
+command -v xl2tpd && command -v pppd
+# On a host installation:
+test -c /dev/ppp && echo "PPP is ready"
+ss -lunp | grep -E ':(500|4500|1701)\\b'
+```
+
+For Docker, the container needs `NET_ADMIN`, `NET_RAW`, `/dev/ppp`, `/dev/net/tun`, IPv4 forwarding, and published UDP 500, 4500, and 1701. The repository `docker-compose.yml` contains these settings. The host kernel must provide PPP and XFRM/IPsec; a Docker container cannot load a missing host kernel module.
+
 ---
 
 ## :rocket: Installation
@@ -83,8 +103,8 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega
 
 The installer takes care of everything:
 
-1. installs the required packages (`curl`, `tar`, `socat`, `openssl`, `tzdata`, cron …) plus the host `openvpn` package,
-2. verifies that `/dev/net/tun` is available; installation stops if the OpenVPN prerequisite is not usable,
+1. installs the required packages (`curl`, `tar`, `socat`, `openssl`, `tzdata`, cron …) plus the host `openvpn`, strongSwan, xl2tpd, PPP, iptables, and iproute2 packages,
+2. verifies that `/dev/net/tun` and `/dev/ppp` are available; installation stops if the VPN prerequisite is not usable,
 3. downloads the packaged release for your architecture (panel **+ Xray-core + geoip/geosite + mtg**),
 4. installs it to `/usr/local/x-ui` and registers the unchanged `x-ui` systemd service,
 5. keeps an existing database/settings when upgrading, and
@@ -106,12 +126,13 @@ x-ui uninstall    # full removal (the database in /etc/x-ui is kept; back it up 
 ### Manual install
 
 Grab `x-ui-linux-<arch>.tar.gz` from the [releases page](https://github.com/Dark-Sky07/OMEGA/releases)
-(`amd64`, `arm64`, `armv7`, `armv6`, `386`, `armv5`, `s390x`), then on the server. Manual extraction of the tarball does **not** install the host OpenVPN package; run the following first if you use this path:
+(`amd64`, `arm64`, `armv7`, `armv6`, `386`, `armv5`, `s390x`), then on the server. Manual extraction of the tarball does **not** install host VPN packages; run the following first if you use this path:
 
 ```bash
-apt-get update && apt-get install -y openvpn
+apt-get update && apt-get install -y openvpn strongswan xl2tpd ppp iptables iproute2
 modprobe tun 2>/dev/null || true
-test -c /dev/net/tun
+modprobe ppp_generic 2>/dev/null || true
+test -c /dev/net/tun && test -c /dev/ppp
 ```
 
 ```bash
@@ -292,8 +313,10 @@ docker build -t omega-panel .
 
 docker run -d --name omega --restart unless-stopped \
   --cap-add=NET_ADMIN --cap-add=NET_RAW \
-  --device /dev/net/tun:/dev/net/tun \
+  --device /dev/net/tun:/dev/net/tun --device /dev/ppp:/dev/ppp \
+  --sysctl net.ipv4.ip_forward=1 \
   -p 2053:2053 -p 1194:1194/udp -p 1194:1194/tcp \
+  -p 500:500/udp -p 4500:4500/udp -p 1701:1701/udp \
   -v /etc/x-ui:/etc/x-ui omega-panel
 ```
 
