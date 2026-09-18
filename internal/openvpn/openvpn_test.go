@@ -235,6 +235,8 @@ func TestRenderServerConf(t *testing.T) {
 		"dev tun5",
 		"tls-server",
 		"tls-version-min 1.2",
+		"dh none",
+		"ecdh-curve prime256v1",
 		"auth sha256",
 		"cipher AES-256-GCM",
 		"server 10.5.0.0 255.255.255.0",

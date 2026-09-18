@@ -18,7 +18,7 @@
 **نصب با یک دستور** — روی سرور تازه، با کاربر `root`:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.13-omega/install-omega.sh) v3.3.13-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega/install-omega.sh) v3.3.14-omega
 ```
 
 </div>
@@ -48,9 +48,9 @@ OpenVPN یک daemon سیستم‌عامل است، نه بخشی از Xray و ن
 برای نصب یا تعمیر سرور موجود با آخرین release پایدار، با کاربر `root` اجرا کنید:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.13-omega/install-omega.sh \
+curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega/install-omega.sh \
   -o /tmp/install-omega.sh
-env OMEGA_REF=v3.3.13-omega bash /tmp/install-omega.sh v3.3.13-omega
+env OMEGA_REF=v3.3.14-omega bash /tmp/install-omega.sh v3.3.14-omega
 ```
 
 پیش‌نیاز را قبل از بررسی شبکه verify کنید:
@@ -73,13 +73,13 @@ systemctl restart x-ui
 روی سرور تازه، با کاربر **root**:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.13-omega/install-omega.sh) v3.3.13-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega/install-omega.sh) v3.3.14-omega
 ```
 
 اگر می‌خواهید نسخه‌ی مشخصی نصب شود (مثلاً قبل از merge شدن شاخه‌ی اصلی):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.13-omega/install-omega.sh) v3.3.13-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega/install-omega.sh) v3.3.14-omega
 ```
 
 نصب‌کننده خودش این کارها را انجام می‌دهد:

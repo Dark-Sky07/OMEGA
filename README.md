@@ -18,7 +18,7 @@ English · [فارسی](README.fa_IR.md)
 **Install in one line** — on a fresh server, as `root`:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.13-omega/install-omega.sh) v3.3.13-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega/install-omega.sh) v3.3.14-omega
 ```
 
 </div>
@@ -47,9 +47,9 @@ OpenVPN is a host daemon, not an Xray component and not a file inside the `x-ui`
 To install or repair an existing host with the exact stable release, run as `root`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.13-omega/install-omega.sh \
+curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega/install-omega.sh \
   -o /tmp/install-omega.sh
-env OMEGA_REF=v3.3.13-omega bash /tmp/install-omega.sh v3.3.13-omega
+env OMEGA_REF=v3.3.14-omega bash /tmp/install-omega.sh v3.3.14-omega
 ```
 
 Verify the prerequisite before troubleshooting the network:
@@ -72,13 +72,13 @@ The `x-ui update` script shipped in this release resolves the latest stable rele
 On a fresh server, as **root**:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.13-omega/install-omega.sh) v3.3.13-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega/install-omega.sh) v3.3.14-omega
 ```
 
 Pin a specific release instead (useful before a branch is merged):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.13-omega/install-omega.sh) v3.3.13-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega/install-omega.sh) v3.3.14-omega
 ```
 
 The installer takes care of everything:
