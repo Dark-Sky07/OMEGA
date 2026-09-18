@@ -18,7 +18,7 @@ English · [فارسی](README.fa_IR.md)
 **Install in one line** — on a fresh server, as `root`:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.13-omega/install-omega.sh) v3.3.13-omega
 ```
 
 </div>
@@ -35,14 +35,33 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-
 | | Change |
 | --- | --- |
 | ➕ **Added** | **Resellers (نمایندگی)** — sub-accounts with their own login, scoped ownership, quotas and sales/billing reports. |
-| ➕ **Added** | **OpenVPN inbounds** — an openvpn daemon per inbound binds the port directly; per-client certificates are generated automatically (CN = email), each client gets a ready-to-import `.ovpn` (copy/download from the client info), and per-client traffic + online status flow into the normal stats pipeline. The installer installs the `openvpn` package on supported hosts; existing installs can run `apt-get install -y openvpn` (or the distro equivalent), or place an `openvpn` binary next to x-ui. Without the daemon, the panel still runs but VPN clients cannot connect. |
+| ➕ **Added** | **OpenVPN inbounds** — an OpenVPN daemon per inbound binds the port directly; per-client certificates are generated automatically (CN = email), each client gets a ready-to-import `.ovpn` (copy/download from the client info), and per-client traffic + online status flow into the normal stats pipeline. The tagged release installer installs and verifies the host `openvpn` package and `/dev/net/tun`; the panel then renders one daemon config per enabled local OpenVPN inbound. The release archive does not embed an OS package, so use the installer rather than copying only the panel tarball. |
 | 🎨 **Branding** | Panel name shown as **OMEGA** (sidebar, login page, page titles, API docs, translations). UI-only — no paths, service names or version numbers touched. |
 | 🛠 **Install** | [`install-omega.sh`](install-omega.sh) installs *this* panel from *this* repository; [`x-ui.sh`](x-ui.sh) updates from here too, so `x-ui update` can never silently swap in vanilla 3x-ui. |
 | ✅ **Unchanged** | Everything else — all of 3x-ui v3.3.1 (protocols, transports, nodes, subscriptions, Telegram bot, routing, API, themes, 13 languages). |
 
-### OpenVPN host checklist
+### OpenVPN installation and host checklist
 
-For an OpenVPN inbound, allow the configured port on both the host firewall and the VPS/provider firewall using the selected transport (`udp` or `tcp`). When **Redirect gateway** is enabled, the host must also have IPv4 forwarding and NAT/masquerading configured for the generated `10.x.x.0/24` tunnel subnet; the panel does not overwrite an operator's firewall policy. If a profile imports but remains on `Trying to connect`, check `command -v openvpn`, the listener with `ss -lunpt`, and `/var/log/x-ui/3xui.log` plus `bin/openvpn/<inbound-id>/openvpn.log`.
+OpenVPN is a host daemon, not an Xray component and not a file inside the `x-ui` release archive. The release installer installs the `openvpn` package, validates `/dev/net/tun`, and aborts instead of silently installing a panel that cannot serve an OpenVPN inbound. It intentionally does not enable a generic `openvpn.service`: OMEGA creates `bin/openvpn/<inbound-id>/openvpn.conf` and starts one daemon per enabled local OpenVPN inbound.
+
+To install or repair an existing host with the exact stable release, run as `root`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.13-omega/install-omega.sh \
+  -o /tmp/install-omega.sh
+env OMEGA_REF=v3.3.13-omega bash /tmp/install-omega.sh v3.3.13-omega
+```
+
+Verify the prerequisite before troubleshooting the network:
+
+```bash
+command -v openvpn
+openvpn --version | head -3
+test -c /dev/net/tun && echo "TUN is ready"
+systemctl restart x-ui
+```
+
+The `x-ui update` script shipped in this release resolves the latest stable release tag and runs its matching installer; it no longer downloads an unpinned, possibly stale `main` installer. For an OpenVPN inbound, allow the configured port on both the host firewall and the VPS/provider firewall using the selected transport (`udp` or `tcp`). When **Redirect gateway** is enabled, the host must also have IPv4 forwarding and NAT/masquerading configured for the generated `10.x.x.0/24` tunnel subnet; the panel does not overwrite an operator's firewall policy. If a profile imports but remains on `Trying to connect`, check `command -v openvpn`, `/dev/net/tun`, the listener with `ss -lunpt`, and `/var/log/x-ui/3xui.log` plus `bin/openvpn/<inbound-id>/openvpn.log`.
 
 ---
 
@@ -53,22 +72,23 @@ For an OpenVPN inbound, allow the configured port on both the host firewall and 
 On a fresh server, as **root**:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.13-omega/install-omega.sh) v3.3.13-omega
 ```
 
 Pin a specific release instead (useful before a branch is merged):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.1-omega/install-omega.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.13-omega/install-omega.sh) v3.3.13-omega
 ```
 
 The installer takes care of everything:
 
-1. installs the required packages (`curl`, `tar`, `socat`, `openssl`, `tzdata`, cron …),
-2. downloads the packaged release for your architecture (panel **+ Xray-core + geoip/geosite + mtg**),
-3. installs it to `/usr/local/x-ui` and registers the unchanged `x-ui` systemd service,
-4. keeps an existing database/settings when upgrading, and
-5. restarts the panel and prints the access URL.
+1. installs the required packages (`curl`, `tar`, `socat`, `openssl`, `tzdata`, cron …) plus the host `openvpn` package,
+2. verifies that `/dev/net/tun` is available; installation stops if the OpenVPN prerequisite is not usable,
+3. downloads the packaged release for your architecture (panel **+ Xray-core + geoip/geosite + mtg**),
+4. installs it to `/usr/local/x-ui` and registers the unchanged `x-ui` systemd service,
+5. keeps an existing database/settings when upgrading, and
+6. restarts the panel and prints the access URL.
 
 Defaults: port **2053**, login **admin / admin** — change both right after your first login.
 
@@ -86,7 +106,13 @@ x-ui uninstall    # full removal (the database in /etc/x-ui is kept; back it up 
 ### Manual install
 
 Grab `x-ui-linux-<arch>.tar.gz` from the [releases page](https://github.com/Dark-Sky07/OMEGA/releases)
-(`amd64`, `arm64`, `armv7`, `armv6`, `386`, `armv5`, `s390x`), then on the server:
+(`amd64`, `arm64`, `armv7`, `armv6`, `386`, `armv5`, `s390x`), then on the server. Manual extraction of the tarball does **not** install the host OpenVPN package; run the following first if you use this path:
+
+```bash
+apt-get update && apt-get install -y openvpn
+modprobe tun 2>/dev/null || true
+test -c /dev/net/tun
+```
 
 ```bash
 tar zxvf x-ui-linux-amd64.tar.gz

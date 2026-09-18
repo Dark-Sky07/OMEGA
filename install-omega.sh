@@ -127,47 +127,92 @@ gen_random_string() {
         | head -c "$length"
 }
 
+ensure_openvpn_tun() {
+    # OMEGA launches one openvpn process per enabled inbound. There is no
+    # useful global openvpn.service to enable; the kernel TUN device is the
+    # runtime prerequisite that must exist before x-ui can start a daemon.
+    if [[ ! -e /dev/net/tun ]]; then
+        mkdir -p /dev/net
+        if command -v modprobe > /dev/null 2>&1; then
+            modprobe tun > /dev/null 2>&1 || true
+        fi
+    fi
+
+    if [[ ! -c /dev/net/tun ]]; then
+        echo -e "${red}OpenVPN is installed, but /dev/net/tun is unavailable. Load the tun kernel module or expose the TUN device (and NET_ADMIN in Docker) before using OpenVPN inbounds.${plain}"
+        return 1
+    fi
+    echo -e "${green}OpenVPN TUN device is ready: /dev/net/tun${plain}"
+}
+
 install_openvpn() {
     if command -v openvpn > /dev/null 2>&1; then
         echo -e "${green}OpenVPN is already installed: $(command -v openvpn)${plain}"
-        return 0
-    fi
-
-    echo -e "${green}Installing OpenVPN for OpenVPN inbounds...${plain}"
-    case "${release}" in
-        ubuntu | debian | armbian | linuxmint)
-            apt-get update && apt-get install -y -q openvpn
-            ;;
-        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf install -y -q openvpn
-            ;;
-        centos)
-            if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum install -y openvpn
-            else
-                dnf install -y -q openvpn
-            fi
-            ;;
-        arch | manjaro | parch)
-            pacman -S --noconfirm openvpn
-            ;;
-        opensuse-tumbleweed | opensuse-leap)
-            zypper --non-interactive install openvpn
-            ;;
-        alpine)
-            apk add --no-cache openvpn
-            ;;
-        *)
-            echo -e "${yellow}Could not identify a supported package manager for OpenVPN; install the 'openvpn' package manually.${plain}"
-            return 0
-            ;;
-    esac
-
-    if command -v openvpn > /dev/null 2>&1; then
-        echo -e "${green}OpenVPN installed successfully: $(command -v openvpn)${plain}"
     else
-        echo -e "${yellow}OpenVPN installation did not complete. OpenVPN inbounds need the 'openvpn' package before they can accept connections.${plain}"
+        echo -e "${green}Installing OpenVPN for OpenVPN inbounds...${plain}"
+        case "${release}" in
+            ubuntu | debian | armbian | linuxmint)
+                if ! apt-get update || ! apt-get install -y -q openvpn; then
+                    echo -e "${red}Failed to install the 'openvpn' package with apt.${plain}"
+                    return 1
+                fi
+                ;;
+            fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
+                if ! dnf install -y -q openvpn; then
+                    echo -e "${red}Failed to install the 'openvpn' package with dnf.${plain}"
+                    return 1
+                fi
+                ;;
+            centos)
+                if [[ "${VERSION_ID}" =~ ^7 ]]; then
+                    if ! yum install -y openvpn; then
+                        echo -e "${red}Failed to install the 'openvpn' package with yum.${plain}"
+                        return 1
+                    fi
+                else
+                    if ! dnf install -y -q openvpn; then
+                        echo -e "${red}Failed to install the 'openvpn' package with dnf.${plain}"
+                        return 1
+                    fi
+                fi
+                ;;
+            arch | manjaro | parch)
+                if ! pacman -S --noconfirm openvpn; then
+                    echo -e "${red}Failed to install the 'openvpn' package with pacman.${plain}"
+                    return 1
+                fi
+                ;;
+            opensuse-tumbleweed | opensuse-leap)
+                if ! zypper --non-interactive install openvpn; then
+                    echo -e "${red}Failed to install the 'openvpn' package with zypper.${plain}"
+                    return 1
+                fi
+                ;;
+            alpine)
+                if ! apk add --no-cache openvpn; then
+                    echo -e "${red}Failed to install the 'openvpn' package with apk.${plain}"
+                    return 1
+                fi
+                ;;
+            *)
+                echo -e "${red}Could not identify a supported package manager for OpenVPN. Install the 'openvpn' package manually, then rerun the installer.${plain}"
+                return 1
+                ;;
+        esac
     fi
+
+    if ! command -v openvpn > /dev/null 2>&1; then
+        echo -e "${red}OpenVPN installation did not complete. The panel cannot serve OpenVPN inbounds without the 'openvpn' binary.${plain}"
+        return 1
+    fi
+    if ! openvpn --version > /dev/null 2>&1; then
+        echo -e "${red}The 'openvpn' command was found but could not execute. Repair the package before continuing.${plain}"
+        return 1
+    fi
+    if ! ensure_openvpn_tun; then
+        return 1
+    fi
+    echo -e "${green}OpenVPN prerequisite is ready: $(openvpn --version 2>/dev/null | head -1)${plain}"
 }
 
 install_postgres_local() {
@@ -1191,7 +1236,7 @@ EOF
 # version always installs the matching management script and units. Set
 # OMEGA_REF to force a specific ref instead (e.g. OMEGA_REF=main to track the
 # branch); "main" is used as the fallback when a tag lacks a file.
-omega_ref="${OMEGA_REF:-${tag_version:-main}}"
+omega_ref="${OMEGA_REF:-${1:-${tag_version:-main}}}"
 omega_ref_fallback="main"
 [[ -n "${OMEGA_REF:-}" ]] && omega_ref_fallback="${OMEGA_REF}"
 omega_raw_fetch() {
@@ -1418,8 +1463,11 @@ install_x-ui() {
 
 echo -e "${green}Running...${plain}"
 install_base
-# OpenVPN inbounds are served by a host-side OpenVPN daemon. Install the
-# dependency during both fresh installs and updates so a valid .ovpn profile
-# never points at a panel whose VPN listener is silently absent.
-install_openvpn
+# OpenVPN inbounds are served by a host-side OpenVPN daemon. Install and
+# validate the dependency during both fresh installs and updates so a valid
+# .ovpn profile never points at a panel whose VPN listener is silently absent.
+if ! install_openvpn; then
+    echo -e "${red}OpenVPN setup failed; installation aborted. Fix the prerequisite above and rerun this installer.${plain}"
+    exit 1
+fi
 install_x-ui $1
