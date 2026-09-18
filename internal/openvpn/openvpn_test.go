@@ -577,12 +577,22 @@ func TestBuildProfile(t *testing.T) {
 	}
 }
 
-func TestBuildProfileMissingCert(t *testing.T) {
+func TestBuildProfileProvisionsMissingMaterial(t *testing.T) {
 	tempBinFolder(t)
 	id := 12
+	email := "ghost@example.com"
 	inst := Instance{Id: id, Port: 1194, Proto: "udp"}
-	if _, err := BuildProfile(inst, "ghost@example.com", "h"); err == nil {
-		t.Fatal("expected an error when the client cert does not exist yet")
+	profile, err := BuildProfile(inst, email, "h")
+	if err != nil {
+		t.Fatalf("BuildProfile should provision missing material: %v", err)
+	}
+	if !strings.Contains(profile, "remote h 1194") {
+		t.Fatalf("profile rendered with wrong endpoint: %s", profile)
+	}
+	for _, name := range []string{"ca.crt", "server.crt", "server.key", "clients/ghost_example.com.crt", "clients/ghost_example.com.key"} {
+		if _, err := os.Stat(filepath.Join(dataDirForID(id), name)); err != nil {
+			t.Errorf("expected provisioned file %s: %v", name, err)
+		}
 	}
 }
 

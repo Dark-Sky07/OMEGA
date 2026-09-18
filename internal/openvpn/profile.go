@@ -22,7 +22,29 @@ import (
 // already authenticates the server certificate (which carries the serverAuth
 // EKU, enforced client-side via `remote-cert-tls server`), so no extra
 // non-standard block is needed.
+//
+// EnsureProfileMaterial is intentionally idempotent. The reconcile job normally
+// creates these files, but a user can request a profile immediately after
+// attaching a client, before the next ten-second reconcile tick. Provisioning
+// on demand closes that race and also heals a partially-created inbound.
+func EnsureProfileMaterial(inst Instance, email string) error {
+	if strings.TrimSpace(email) == "" {
+		return fmt.Errorf("openvpn: client email is empty")
+	}
+	dir := dataDirForID(inst.Id)
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return err
+	}
+	if err := ensureServerCert(dir); err != nil {
+		return err
+	}
+	return ensureClientCert(dir, email)
+}
+
 func BuildProfile(inst Instance, email, host string) (string, error) {
+	if err := EnsureProfileMaterial(inst, email); err != nil {
+		return "", fmt.Errorf("openvpn: provision certificate for client %s: %w", email, err)
+	}
 	dir := dataDirForID(inst.Id)
 	ca, err := os.ReadFile(filepath.Join(dir, "ca.crt"))
 	if err != nil {

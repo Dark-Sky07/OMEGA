@@ -128,8 +128,38 @@ before_show_menu() {
     show_menu
 }
 
+# Resolve and run the installer from the latest stable OMEGA release. Using
+# `main` here allowed an older branch to update the panel without installing
+# release-specific dependencies such as OpenVPN. A release tag keeps the
+# panel binary, management script, and dependency installer in sync.
+omega_latest_tag() {
+    local repo="${OMEGA_REPO:-Dark-Sky07/OMEGA}" tag
+    tag="${OMEGA_TAG:-$(curl -4fsSL "https://api.github.com/repos/${repo}/releases/latest" 2> /dev/null | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}"
+    [[ -n "${tag}" ]] || return 1
+    printf '%s\n' "${tag}"
+}
+
+omega_run_installer() {
+    local repo="${OMEGA_REPO:-Dark-Sky07/OMEGA}" tag tmp rc
+    tag="${1:-$(omega_latest_tag)}"
+    if [[ -z "${tag}" ]]; then
+        LOGE "Could not determine the latest OMEGA release tag."
+        return 1
+    fi
+    tmp="$(mktemp /tmp/omega-install.XXXXXX.sh)" || return 1
+    if ! curl -4fLRsS -o "${tmp}" "https://raw.githubusercontent.com/${repo}/${tag}/install-omega.sh"; then
+        rm -f "${tmp}"
+        LOGE "Could not download the OMEGA ${tag} installer."
+        return 1
+    fi
+    env OMEGA_REF="${tag}" bash "${tmp}" "${tag}"
+    rc=$?
+    rm -f "${tmp}"
+    return "${rc}"
+}
+
 install() {
-    bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+    omega_run_installer
     if [[ $? == 0 ]]; then
         if [[ $# == 0 ]]; then
             start
@@ -148,7 +178,7 @@ update() {
         fi
         return 0
     fi
-    bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+    omega_run_installer
     if [[ $? == 0 ]]; then
         LOGI "Update is complete, Panel has automatically restarted "
         before_show_menu
@@ -166,17 +196,16 @@ update_menu() {
         return 0
     fi
 
-    curl -fLRo /usr/bin/x-ui https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh
-    chmod +x ${xui_folder}/x-ui.sh
-    chmod +x /usr/bin/x-ui
-
-    if [[ $? == 0 ]]; then
-        echo -e "${green}Update successful. The panel has automatically restarted.${plain}"
-        exit 0
-    else
-        echo -e "${red}Failed to update the menu.${plain}"
+    local repo="${OMEGA_REPO:-Dark-Sky07/OMEGA}" tag
+    tag="$(omega_latest_tag)"
+    if [[ -z "${tag}" ]] || ! curl -fLRsS -o /usr/bin/x-ui "https://raw.githubusercontent.com/${repo}/${tag}/x-ui.sh"; then
+        echo -e "${red}Failed to update the release management script.${plain}"
         return 1
     fi
+    chmod +x ${xui_folder}/x-ui.sh
+    chmod +x /usr/bin/x-ui
+    echo -e "${green}Update successful. The panel has automatically restarted.${plain}"
+    exit 0
 }
 
 legacy_version() {
@@ -242,7 +271,7 @@ uninstall() {
     echo ""
     echo -e "Uninstalled Successfully.\n"
     echo "If you need to install this panel again, you can use below command:"
-    echo -e "${green}bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)${plain}"
+    echo -e "${green}bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.13-omega/install-omega.sh) v3.3.13-omega${plain}"
     echo ""
     # Trap the SIGTERM signal
     trap delete_script SIGTERM
@@ -775,10 +804,11 @@ enable_bbr() {
 }
 
 update_shell() {
-    curl -fLRo /usr/bin/x-ui -z /usr/bin/x-ui https://github.com/Dark-Sky07/OMEGA/raw/main/x-ui.sh
-    if [[ $? != 0 ]]; then
+    local repo="${OMEGA_REPO:-Dark-Sky07/OMEGA}" tag
+    tag="$(omega_latest_tag)"
+    if [[ -z "${tag}" ]] || ! curl -fLRsS -o /usr/bin/x-ui "https://raw.githubusercontent.com/${repo}/${tag}/x-ui.sh"; then
         echo ""
-        LOGE "Failed to download script, Please check whether the machine can connect Github"
+        LOGE "Failed to download the release management script, please check Github connectivity"
         before_show_menu
     else
         chmod +x /usr/bin/x-ui

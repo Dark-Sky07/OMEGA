@@ -18,7 +18,7 @@
 **نصب با یک دستور** — روی سرور تازه، با کاربر `root`:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.13-omega/install-omega.sh) v3.3.13-omega
 ```
 
 </div>
@@ -36,14 +36,33 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-
 | | تغییر |
 | --- | --- |
 | ➕ **اضافه‌شده** | **نمایندگی‌ها** — زیرحساب‌هایی با ورود مستقل، مالکیت محدود روی ورودی/کلاینت، سهمیه‌ی ترافیک و تعداد، و گزارش فروش و حساب. |
-| ➕ **اضافه‌شده** | **اینباندهای OpenVPN** — برای هر اینباند یک daemon محلی openvpn روی پورت آن گوش می‌کند؛ گواهی هر کلاینت خودکار ساخته می‌شود (CN = ایمیل)، هر کلاینت پروفایل آماده‌ی `.ovpn` دارد (کپی/دانلود از صفحه‌ی اطلاعات کلاینت) و ترافیک و آنلاین بودن هر کلاینت وارد همان خط لوله‌ی آمار می‌شود. اسکریپت نصب روی سیستم‌های پشتیبانی‌شده بسته‌ی `openvpn` را هم نصب می‌کند؛ در نصب موجود می‌توانید `apt-get install -y openvpn` (یا معادل توزیع خود) اجرا کنید یا باینری `openvpn` را کنار باینری x-ui قرار دهید. بدون daemon، پنل کار می‌کند اما کلاینت VPN وصل نمی‌شود. |
+| ➕ **اضافه‌شده** | **اینباندهای OpenVPN** — برای هر اینباند یک daemon محلی OpenVPN روی پورت آن گوش می‌کند؛ گواهی هر کلاینت خودکار ساخته می‌شود (CN = ایمیل)، هر کلاینت پروفایل آماده‌ی `.ovpn` دارد (کپی/دانلود از صفحه‌ی اطلاعات کلاینت) و ترافیک و آنلاین بودن هر کلاینت وارد همان خط لوله‌ی آمار می‌شود. installer نسخه‌ی tag‌شده بسته‌ی سیستم‌عامل `openvpn` و `/dev/net/tun` را نصب و بررسی می‌کند؛ سپس پنل برای هر اینباند محلی فعال، کانفیگ و daemon مستقل می‌سازد. فایل tar پنل به‌تنهایی بسته‌ی OpenVPN سیستم‌عامل را شامل نمی‌شود؛ باید installer اجرا شود. |
 | 🎨 **برندینگ** | نام پنل در سایدبار، صفحه‌ی ورود، عنوان صفحه‌ها، مستندات API و ترجمه‌ها **OMEGA** است. فقط ظاهر — بدون تغییر در مسیرها، نام سرویس و شماره‌ی نسخه. |
 | 🛠 **نصب** | [`install-omega.sh`](install-omega.sh) همین پنل را از همین ریپازیتوری نصب می‌کند و [`x-ui.sh`](x-ui.sh) هم از همین‌جا آپدیت می‌گیرد؛ بنابراین `x-ui update` هرگز پنل را با نسخه‌ی خام 3x-ui عوض نمی‌کند. |
 | ✅ **بدون تغییر** | بقیه‌ی همه‌چیز — تمام 3x-ui نسخه‌ی 3.3.1 (پروتکل‌ها، ترنسپورت‌ها، نودها، اشتراک‌ها، ربات تلگرام، روتینگ، API، تم‌ها و ۱۳ زبان). |
 
-### چک‌لیست سمت سرور برای OpenVPN
+### نصب OpenVPN و چک‌لیست سمت سرور
 
-برای اینباند OpenVPN، پورت تنظیم‌شده را با ترنسپورت انتخابی (`udp` یا `tcp`) هم در فایروال سرور و هم در فایروال ارائه‌دهندهٔ VPS باز کنید. اگر گزینهٔ **Redirect gateway** روشن است، روی سرور باید IPv4 forwarding و NAT/masquerade برای subnet تونل `10.x.x.0/24` هم تنظیم شده باشد؛ پنل سیاست فایروال شما را خودکار بازنویسی نمی‌کند. اگر پروفایل import می‌شود اما روی `Trying to connect` می‌ماند، این موارد را بررسی کنید: `command -v openvpn`، خروجی `ss -lunpt`، فایل `/var/log/x-ui/3xui.log` و فایل `bin/openvpn/<inbound-id>/openvpn.log`.
+OpenVPN یک daemon سیستم‌عامل است، نه بخشی از Xray و نه فایلی داخل tar پنل. installer نسخه‌ی release بسته‌ی `openvpn` را نصب، وجود `/dev/net/tun` را بررسی و در صورت شکست متوقف می‌شود؛ بنابراین پنل بی‌صدا بدون قابلیت VPN نصب نمی‌شود. پنل عمداً سرویس عمومی `openvpn.service` را فعال نمی‌کند؛ برای هر اینباند محلی فعال، فایل `bin/openvpn/<inbound-id>/openvpn.conf` و یک daemon مستقل می‌سازد.
+
+برای نصب یا تعمیر سرور موجود با آخرین release پایدار، با کاربر `root` اجرا کنید:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.13-omega/install-omega.sh \
+  -o /tmp/install-omega.sh
+env OMEGA_REF=v3.3.13-omega bash /tmp/install-omega.sh v3.3.13-omega
+```
+
+پیش‌نیاز را قبل از بررسی شبکه verify کنید:
+
+```bash
+command -v openvpn
+openvpn --version | head -3
+test -c /dev/net/tun && echo "TUN آماده است"
+systemctl restart x-ui
+```
+
+اسکریپت `x-ui update` که در این release قرار دارد، آخرین tag پایدار را پیدا و installer همان tag را اجرا می‌کند و دیگر installer قدیمی و بدون tag را از `main` نمی‌گیرد. برای اینباند OpenVPN، پورت تنظیم‌شده را با transport انتخابی (`udp` یا `tcp`) هم در فایروال سرور و هم در فایروال ارائه‌دهندهٔ VPS باز کنید. اگر گزینهٔ **Redirect gateway** روشن است، روی سرور باید IPv4 forwarding و NAT/masquerade برای subnet تونل `10.x.x.0/24` هم تنظیم شده باشد؛ پنل policy فایروال شما را خودکار بازنویسی نمی‌کند. اگر profile import می‌شود اما روی `Trying to connect` می‌ماند، این موارد را بررسی کنید: `command -v openvpn`، وجود `/dev/net/tun`، خروجی `ss -lunpt`، فایل `/var/log/x-ui/3xui.log` و فایل `bin/openvpn/<inbound-id>/openvpn.log`.
 
 ---
 
@@ -54,22 +73,23 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-
 روی سرور تازه، با کاربر **root**:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.13-omega/install-omega.sh) v3.3.13-omega
 ```
 
 اگر می‌خواهید نسخه‌ی مشخصی نصب شود (مثلاً قبل از merge شدن شاخه‌ی اصلی):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.1-omega/install-omega.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.13-omega/install-omega.sh) v3.3.13-omega
 ```
 
 نصب‌کننده خودش این کارها را انجام می‌دهد:
 
-1. نصب پیش‌نیازها (`curl`، `tar`، `socat`، `openssl`، `tzdata`، کرون و …)
-2. دانلود پکیج آماده‌ی معماری سرور (پنل **+ Xray-core + geoip/geosite + mtg**)
-3. نصب در `/usr/local/x-ui` و ساخت سرویس systemd با همان نام `x-ui`
-4. در آپدیت، **دیتابیس و تنظیمات قبلی حفظ می‌شود**
-5. ری‌استارت پنل و نمایش آدرس ورود
+1. نصب پیش‌نیازها (`curl`، `tar`، `socat`، `openssl`، `tzdata`، کرون و …) به‌علاوه‌ی بسته‌ی سیستم‌عامل `openvpn`
+2. بررسی وجود `/dev/net/tun`؛ اگر پیش‌نیاز OpenVPN قابل استفاده نباشد نصب متوقف می‌شود
+3. دانلود پکیج آماده‌ی معماری سرور (پنل **+ Xray-core + geoip/geosite + mtg**)
+4. نصب در `/usr/local/x-ui` و ساخت سرویس systemd با همان نام `x-ui`
+5. در آپدیت، **دیتابیس و تنظیمات قبلی حفظ می‌شود**
+6. ری‌استارت پنل و نمایش آدرس ورود
 
 پیش‌فرض‌ها: پورت **2053**، یوزر/پس **admin / admin** — بلافاصله بعد از اولین ورود هر دو را عوض کنید.
 
@@ -87,7 +107,13 @@ x-ui uninstall    # حذف کامل (دیتابیس در /etc/x-ui می‌مان
 ### نصب دستی
 
 از [صفحه‌ی ریلیزها](https://github.com/Dark-Sky07/OMEGA/releases) فایل `x-ui-linux-<arch>.tar.gz` معماری خودتان را
-بگیرید (`amd64`، `arm64`، `armv7`، `armv6`، `386`، `armv5`، `s390x`) و روی سرور:
+بگیرید (`amd64`، `arm64`، `armv7`، `armv6`، `386`، `armv5`، `s390x`) و روی سرور. استخراج دستی tar به‌تنهایی بسته‌ی OpenVPN سیستم‌عامل را نصب نمی‌کند؛ اگر این روش را استفاده می‌کنید ابتدا اجرا کنید:
+
+```bash
+apt-get update && apt-get install -y openvpn
+modprobe tun 2>/dev/null || true
+test -c /dev/net/tun
+```
 
 ```bash
 tar zxvf x-ui-linux-amd64.tar.gz
