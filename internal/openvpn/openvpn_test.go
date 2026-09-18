@@ -538,6 +538,28 @@ func TestBuildProfile(t *testing.T) {
 			t.Fatalf("profile <%s> block is not valid PEM", block)
 		}
 	}
+	// Strict clients (OpenVPN Connect, iOS/Android) require every inline tag
+	// on its own line, otherwise the import fails with
+	// `option <ca> was not properly closed out`.
+	for _, block := range []string{"ca", "cert", "key"} {
+		if !strings.Contains(profile, "\n<"+block+">\n") {
+			t.Errorf("profile <%s> opening tag must occupy its own line", block)
+		}
+		if !strings.Contains(profile, "\n</"+block+">\n") {
+			t.Errorf("profile </%s> closing tag must occupy its own line", block)
+		}
+	}
+	if strings.Contains(profile, "-----</") {
+		t.Errorf("closing tag must not share a line with the PEM footer:\n%s", profile)
+	}
+	// Only the standard inline options may be emitted; unknown blocks such
+	// as <ca-peer> are rejected by strict clients.
+	if strings.Contains(profile, "ca-peer") {
+		t.Errorf("profile must not contain the non-standard <ca-peer> block:\n%s", profile)
+	}
+	if !strings.HasSuffix(profile, "\n") {
+		t.Error("profile must end with a newline")
+	}
 }
 
 func TestBuildProfileMissingCert(t *testing.T) {

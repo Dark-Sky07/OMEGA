@@ -48,7 +48,7 @@ func renderServerConf(inst Instance, mgmtPort int) string {
 	fmt.Fprintf(&b, "server %s %s\n", network, mask)
 	b.WriteString("client-to-client\n")
 	b.WriteString("keepalive 10 120\nping-restart 0\n")
-	b.WriteString("mute-replay-warning\nstatus-version 2\nverb 0\n")
+	b.WriteString("mute-replay-warnings\nstatus-version 2\nverb 0\n")
 	fmt.Fprintf(&b, "writepid %s\n", pidPathForID(inst.Id))
 	fmt.Fprintf(&b, "log %s\n", logPathForID(inst.Id))
 	fmt.Fprintf(&b, "management 127.0.0.1 %d\n", mgmtPort)
