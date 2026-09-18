@@ -35,10 +35,14 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-
 | | Change |
 | --- | --- |
 | ➕ **Added** | **Resellers (نمایندگی)** — sub-accounts with their own login, scoped ownership, quotas and sales/billing reports. |
-| ➕ **Added** | **OpenVPN inbounds** — an openvpn daemon per inbound binds the port directly; per-client certificates are generated automatically (CN = email), each client gets a ready-to-import `.ovpn` (copy/download from the client info), and per-client traffic + online status flow into the normal stats pipeline. Install the `openvpn` package on the host (or drop an `openvpn` binary next to the x-ui binary) — without it the panel still runs, it just can't start the daemons. |
+| ➕ **Added** | **OpenVPN inbounds** — an openvpn daemon per inbound binds the port directly; per-client certificates are generated automatically (CN = email), each client gets a ready-to-import `.ovpn` (copy/download from the client info), and per-client traffic + online status flow into the normal stats pipeline. The installer installs the `openvpn` package on supported hosts; existing installs can run `apt-get install -y openvpn` (or the distro equivalent), or place an `openvpn` binary next to x-ui. Without the daemon, the panel still runs but VPN clients cannot connect. |
 | 🎨 **Branding** | Panel name shown as **OMEGA** (sidebar, login page, page titles, API docs, translations). UI-only — no paths, service names or version numbers touched. |
 | 🛠 **Install** | [`install-omega.sh`](install-omega.sh) installs *this* panel from *this* repository; [`x-ui.sh`](x-ui.sh) updates from here too, so `x-ui update` can never silently swap in vanilla 3x-ui. |
 | ✅ **Unchanged** | Everything else — all of 3x-ui v3.3.1 (protocols, transports, nodes, subscriptions, Telegram bot, routing, API, themes, 13 languages). |
+
+### OpenVPN host checklist
+
+For an OpenVPN inbound, allow the configured port on both the host firewall and the VPS/provider firewall using the selected transport (`udp` or `tcp`). When **Redirect gateway** is enabled, the host must also have IPv4 forwarding and NAT/masquerading configured for the generated `10.x.x.0/24` tunnel subnet; the panel does not overwrite an operator's firewall policy. If a profile imports but remains on `Trying to connect`, check `command -v openvpn`, the listener with `ss -lunpt`, and `/var/log/x-ui/3xui.log` plus `bin/openvpn/<inbound-id>/openvpn.log`.
 
 ---
 
@@ -262,7 +266,9 @@ docker build -t omega-panel .
 
 docker run -d --name omega --restart unless-stopped \
   --cap-add=NET_ADMIN --cap-add=NET_RAW \
-  -p 2053:2053 -v /etc/x-ui:/etc/x-ui omega-panel
+  --device /dev/net/tun:/dev/net/tun \
+  -p 2053:2053 -p 1194:1194/udp -p 1194:1194/tcp \
+  -v /etc/x-ui:/etc/x-ui omega-panel
 ```
 
 `docker-compose.yml` in this repository builds the same image and keeps SQLite by default. To run with the bundled PostgreSQL service, uncomment the two `XUI_DB_*` env lines and start with the profile:

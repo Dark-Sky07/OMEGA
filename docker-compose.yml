@@ -12,6 +12,11 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
+    # OpenVPN needs access to the host TUN device. The image includes the
+    # daemon; these capabilities/device mapping let an OpenVPN inbound create
+    # its tunnel interface inside the container.
+    devices:
+      - /dev/net/tun:/dev/net/tun
     volumes:
       - $PWD/db/:/etc/x-ui/
       - $PWD/cert/:/root/cert/
@@ -27,6 +32,10 @@ services:
     tty: true
     ports:
       - "2053:2053"
+      # Default OpenVPN inbound port; publish the custom inbound port too if
+      # the panel is configured with a different value.
+      - "1194:1194/udp"
+      - "1194:1194/tcp"
     restart: unless-stopped
 
   postgres:

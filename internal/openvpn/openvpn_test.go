@@ -238,7 +238,13 @@ func TestRenderServerConf(t *testing.T) {
 		"auth sha256",
 		"cipher AES-256-GCM",
 		"server 10.5.0.0 255.255.255.0",
+		"topology subnet",
 		"keepalive 10 120",
+		"verify-client-cert require",
+		"remote-cert-tls client",
+		"persist-key",
+		"persist-tun",
+		"verb 3",
 		"management 127.0.0.1 43210",
 		`push "redirect-gateway def1 bypass-dns"`,
 		`push "dhcp-option DNS 1.1.1.1"`,
@@ -252,6 +258,12 @@ func TestRenderServerConf(t *testing.T) {
 	if !strings.Contains(conf, filepath.Join(dataDirForID(5), "ca.crt")) {
 		t.Errorf("config missing ca path:\n%s", conf)
 	}
+	if strings.Contains(conf, "explicit-exit-notify") {
+		t.Error("TCP server must not emit explicit-exit-notify")
+	}
+	if strings.Contains(conf, "ping-restart 0") {
+		t.Error("server must not override keepalive with ping-restart 0")
+	}
 
 	// Toggles off -> no push directives, udp transport.
 	inst.Proto = "udp"
@@ -260,6 +272,9 @@ func TestRenderServerConf(t *testing.T) {
 	conf2 := renderServerConf(inst, 1)
 	if !strings.Contains(conf2, "proto udp") {
 		t.Errorf("expected proto udp:\n%s", conf2)
+	}
+	if !strings.Contains(conf2, "explicit-exit-notify 1") {
+		t.Errorf("UDP server must emit explicit-exit-notify:\n%s", conf2)
 	}
 	if strings.Contains(conf2, "redirect-gateway") || strings.Contains(conf2, "dhcp-option") {
 		t.Errorf("disabled pushes must be omitted:\n%s", conf2)

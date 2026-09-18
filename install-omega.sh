@@ -127,6 +127,49 @@ gen_random_string() {
         | head -c "$length"
 }
 
+install_openvpn() {
+    if command -v openvpn > /dev/null 2>&1; then
+        echo -e "${green}OpenVPN is already installed: $(command -v openvpn)${plain}"
+        return 0
+    fi
+
+    echo -e "${green}Installing OpenVPN for OpenVPN inbounds...${plain}"
+    case "${release}" in
+        ubuntu | debian | armbian | linuxmint)
+            apt-get update && apt-get install -y -q openvpn
+            ;;
+        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
+            dnf install -y -q openvpn
+            ;;
+        centos)
+            if [[ "${VERSION_ID}" =~ ^7 ]]; then
+                yum install -y openvpn
+            else
+                dnf install -y -q openvpn
+            fi
+            ;;
+        arch | manjaro | parch)
+            pacman -S --noconfirm openvpn
+            ;;
+        opensuse-tumbleweed | opensuse-leap)
+            zypper --non-interactive install openvpn
+            ;;
+        alpine)
+            apk add --no-cache openvpn
+            ;;
+        *)
+            echo -e "${yellow}Could not identify a supported package manager for OpenVPN; install the 'openvpn' package manually.${plain}"
+            return 0
+            ;;
+    esac
+
+    if command -v openvpn > /dev/null 2>&1; then
+        echo -e "${green}OpenVPN installed successfully: $(command -v openvpn)${plain}"
+    else
+        echo -e "${yellow}OpenVPN installation did not complete. OpenVPN inbounds need the 'openvpn' package before they can accept connections.${plain}"
+    fi
+}
+
 install_postgres_local() {
     local pg_user pg_pass
     pg_pass=$(gen_random_string 24)
@@ -1375,4 +1418,8 @@ install_x-ui() {
 
 echo -e "${green}Running...${plain}"
 install_base
+# OpenVPN inbounds are served by a host-side OpenVPN daemon. Install the
+# dependency during both fresh installs and updates so a valid .ovpn profile
+# never points at a panel whose VPN listener is silently absent.
+install_openvpn
 install_x-ui $1
