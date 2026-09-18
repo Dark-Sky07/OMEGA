@@ -291,6 +291,36 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 	return inbounds, nil
 }
 
+// GetOpenvpnEmailsBySubId returns the emails of the clients carrying subId
+// that are attached to an enabled, local openvpn inbound. OpenVPN inbounds
+// are daemon-served and produce no share link, so getInboundsBySubId can
+// never include them — the subscription page offers the per-client .ovpn
+// profile download separately for these emails.
+func (s *SubService) GetOpenvpnEmailsBySubId(subId string) ([]string, error) {
+	db := database.GetDB()
+	var emails []string
+	err := db.Raw(`SELECT DISTINCT clients.email
+		FROM clients
+		JOIN client_inbounds ON client_inbounds.client_id = clients.id
+		JOIN inbounds ON inbounds.id = client_inbounds.inbound_id
+		WHERE inbounds.protocol = 'openvpn'
+			AND inbounds.enable = ?
+			AND inbounds.node_id IS NULL
+			AND clients.sub_id = ?
+		ORDER BY clients.email ASC`, true, subId).Scan(&emails).Error
+	if err != nil {
+		return nil, err
+	}
+	return emails, nil
+}
+
+// GetOpenvpnProfile renders the .ovpn profile for an email toward this
+// request's host; it wraps the web InboundService so the subscription
+// controller does not duplicate inbound/certificate knowledge.
+func (s *SubService) GetOpenvpnProfile(host, email string) (string, *model.Inbound, error) {
+	return s.inboundService.GetOpenvpnProfile(host, email)
+}
+
 // projectThroughFallbackMaster mutates the inbound in place so its
 // Listen/Port/StreamSettings reflect the externally reachable master
 // when applicable. Covers both fallback mechanisms:
@@ -2108,6 +2138,10 @@ type PageData struct {
 	BasePath      string
 	SId           string
 	Enabled       bool
+	// Openvpn reports whether the subscription owner can download a per-client
+	// .ovpn profile (attached to an enabled local openvpn inbound). The SPA
+	// uses it to show the OpenVPN config row next to the share links.
+	Openvpn       bool
 	Download      string
 	Upload        string
 	Total         string

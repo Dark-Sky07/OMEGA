@@ -15,6 +15,17 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
+// clientsFromSettings returns the raw clients array of an inbound settings
+// map. Daemon-served inbounds (openvpn) carry no Xray-style clients array
+// until the first client attaches, so a missing or mistyped "clients" key
+// normalizes to an empty slice instead of panicking the type assertion.
+func clientsFromSettings(settings map[string]any) []any {
+	if clients, ok := settings["clients"].([]any); ok {
+		return clients
+	}
+	return []any{}
+}
+
 // delInboundClients removes several clients from a single inbound in one pass:
 // one settings rewrite, one runtime sweep, one Save and one SyncInbound for the
 // whole batch, instead of repeating the full per-client cycle. It mirrors the
@@ -46,10 +57,9 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 		}
 	}
 
-	interfaceClients, ok := settings["clients"].([]any)
-	if !ok {
-		return false, common.NewError("invalid clients format in inbound settings")
-	}
+	// Daemon-served settings (openvpn) may lack the clients array entirely —
+	// that just means there is nothing to remove here.
+	interfaceClients := clientsFromSettings(settings)
 
 	type removedClient struct {
 		email      string
@@ -225,7 +235,7 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 		return false, err
 	}
 
-	interfaceClients := settings["clients"].([]any)
+	interfaceClients := clientsFromSettings(settings)
 	nowTs := time.Now().Unix() * 1000
 	for i := range interfaceClients {
 		if cm, ok := interfaceClients[i].(map[string]any); ok {
@@ -287,7 +297,9 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 		applyShadowsocksClientMethod(interfaceClients, oldSettings)
 	}
 
-	oldClients := oldSettings["clients"].([]any)
+	// The target settings may have no clients array yet (openvpn attach) —
+	// normalize to empty so the append seeds it.
+	oldClients := clientsFromSettings(oldSettings)
 	oldClients = compactOrphans(database.GetDB(), oldClients)
 	oldClients = append(oldClients, interfaceClients...)
 
@@ -396,6 +408,9 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	if err != nil {
 		return false, err
 	}
+	if len(clients) == 0 {
+		return false, common.NewError("client email is required")
+	}
 
 	var settings map[string]any
 	err = json.Unmarshal([]byte(data.Settings), &settings)
@@ -403,7 +418,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		return false, err
 	}
 
-	interfaceClients := settings["clients"].([]any)
+	interfaceClients := clientsFromSettings(settings)
 
 	oldInbound, err := inboundSvc.GetInbound(data.Id)
 	if err != nil {
@@ -461,7 +476,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	if err != nil {
 		return false, err
 	}
-	settingsClients := oldSettings["clients"].([]any)
+	settingsClients := clientsFromSettings(oldSettings)
 	var preservedCreated any
 	var preservedSubID string
 	if clientIndex >= 0 && clientIndex < len(settingsClients) {
@@ -675,10 +690,9 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 		return false, err
 	}
 
-	interfaceClients, ok := settings["clients"].([]any)
-	if !ok {
-		return false, common.NewError("invalid clients format in inbound settings")
-	}
+	// Openvpn settings may carry no clients array at all — the client then
+	// simply is not on this inbound (callers tolerate ErrClientNotInInbound).
+	interfaceClients := clientsFromSettings(settings)
 
 	var newClients []any
 	needApiDel := false
