@@ -44,6 +44,10 @@ func renderServerConf(inst Instance, mgmtPort int) string {
 	fmt.Fprintf(&b, "cert %s\n", filepath.Join(dir, "server.crt"))
 	fmt.Fprintf(&b, "key %s\n", filepath.Join(dir, "server.key"))
 	b.WriteString("tls-server\ntls-version-min 1.2\n")
+	// The generated server certificate is ECDSA P-256. OpenVPN 2.5 still
+	// requires an explicit DH setting; `dh none` selects the ECDHE path instead
+	// of looking for a legacy finite-field DH parameter file.
+	b.WriteString("dh none\necdh-curve prime256v1\n")
 	b.WriteString("auth sha256\ncipher AES-256-GCM\n")
 	fmt.Fprintf(&b, "server %s %s\n", network, mask)
 	// Use subnet topology explicitly so modern OpenVPN Connect clients get
