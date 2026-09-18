@@ -164,9 +164,13 @@ func (p *Process) IsRunning() bool {
 }
 
 func commandRunning(cmd *exec.Cmd, done chan struct{}) bool {
-	if cmd == nil || cmd.Process == nil || cmd.ProcessState != nil {
+	if cmd == nil || cmd.Process == nil {
 		return false
 	}
+	// ProcessState is written by Cmd.Wait from the waiter goroutine. Rely on
+	// the closed done channel instead of reading it here, so IsRunning never
+	// races with that write (a closed channel also provides the required
+	// happens-before edge).
 	if done == nil {
 		return true
 	}

@@ -925,9 +925,20 @@ func (s *ClientService) bulkDelInboundClients(
 				res.perEmailSkipped[email] = txErr.Error()
 			}
 		}
-	} else if markDirty && oldInbound.NodeID != nil {
-		if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
-			logger.Warning("mark node dirty failed:", dErr)
+	} else {
+		// bulkDelInboundClients is intentionally an optimized lower-level path
+		// and does not call the normal client detach helper. Reconcile the
+		// non-Xray L2TP daemon after the settings transaction commits, otherwise
+		// BulkDelete/DelDepleted would leave deleted PPP credentials in
+		// chap-secrets until the periodic job happened to run.
+		if err := reconcileL2TPRuntime(oldInbound); err != nil {
+			logger.Warning("l2tp: synchronous bulk client deletion reconcile failed:", err)
+			res.needRestart = true
+		}
+		if markDirty && oldInbound.NodeID != nil {
+			if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
+				logger.Warning("mark node dirty failed:", dErr)
+			}
 		}
 	}
 
