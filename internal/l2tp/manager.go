@@ -3,6 +3,7 @@ package l2tp
 import (
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -39,6 +40,25 @@ func GetManager() *Manager {
 	return manager
 }
 
+func cleanupOrphanData(exceptID int) {
+	entries, err := os.ReadDir(l2tpRoot())
+	if err != nil {
+		return
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		id, err := strconv.Atoi(entry.Name())
+		if err != nil || id <= 0 || id == exceptID {
+			continue
+		}
+		stopOrphan(id)
+		GetNetworkManager().Remove(id)
+		_ = os.RemoveAll(dataDirForID(id))
+	}
+}
+
 // Ensure brings the daemon and firewall toward one desired instance.
 func (m *Manager) Ensure(inst Instance) error {
 	m.mu.Lock()
@@ -70,6 +90,10 @@ func (m *Manager) ensureLocked(inst Instance) error {
 		m.proc = nil
 		m.id = 0
 	}
+	// The process group and firewall manager are in-memory. Reclaim any
+	// previous group for this id before writing a fresh config after restart.
+	stopOrphan(inst.Id)
+	GetNetworkManager().Remove(inst.Id)
 	if err := writeConfig(inst); err != nil {
 		return err
 	}
@@ -105,13 +129,16 @@ func (m *Manager) Reconcile(desired []Instance) {
 			m.id = 0
 			m.ready = false
 		}
+		cleanupOrphanData(0)
 		return
 	}
 	if len(desired) > 1 {
 		logger.Warning("l2tp: more than one desired inbound was supplied; only the first will be reconciled")
 	}
 	inst := desired[0]
-	if err := m.ensureLocked(inst); err != nil {
+	err := m.ensureLocked(inst)
+	cleanupOrphanData(inst.Id)
+	if err != nil {
 		if m.proc != nil && time.Since(m.proc.lastErrAt) < time.Minute {
 			return
 		}
@@ -132,6 +159,15 @@ func (m *Manager) Remove(id int) {
 		m.proc = nil
 		m.id = 0
 		m.ready = false
+	}
+	if id == 0 {
+		cleanupOrphanData(0)
+		return
+	}
+	if m.proc == nil || m.id == id {
+		stopOrphan(id)
+		GetNetworkManager().Remove(id)
+		_ = os.RemoveAll(dataDirForID(id))
 	}
 }
 

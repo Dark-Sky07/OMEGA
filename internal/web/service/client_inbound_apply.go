@@ -285,6 +285,11 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 	if err != nil {
 		return false, err
 	}
+	if oldInbound.Protocol == model.L2TP {
+		if err := validateL2TPClientCredentials(clients); err != nil {
+			return false, err
+		}
+	}
 
 	for _, client := range clients {
 		if strings.TrimSpace(client.Email) == "" {
@@ -456,6 +461,11 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	oldInbound, err := inboundSvc.GetInbound(data.Id)
 	if err != nil {
 		return false, err
+	}
+	if oldInbound.Protocol == model.L2TP {
+		if err := validateL2TPClientCredentials(clients); err != nil {
+			return false, err
+		}
 	}
 
 	oldClients, err := inboundSvc.GetClients(oldInbound)

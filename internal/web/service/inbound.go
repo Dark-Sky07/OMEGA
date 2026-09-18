@@ -542,7 +542,7 @@ func (s *InboundService) normalizeL2TPSettings(inbound *model.Inbound) error {
 func validateL2TPClientCredentials(clients []model.Client) error {
 	for _, client := range clients {
 		if strings.TrimSpace(client.Email) == "" || client.Password == "" ||
-			strings.ContainsAny(client.Email, "\r\n*") || strings.ContainsAny(client.Password, "\r\n") {
+			strings.ContainsAny(client.Email, "\r\n*\t") || strings.ContainsAny(client.Password, "\r\n") {
 			return common.NewError("l2tp clients require a valid email and password")
 		}
 	}
@@ -683,6 +683,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		return inbound, false, err
 	}
 	if inbound.Protocol == model.L2TP {
+		if inbound.NodeID != nil {
+			return inbound, false, common.NewError("l2tp/ipsec is supported only on the local Linux host")
+		}
 		if err := s.checkL2TPSingleton(0); err != nil {
 			return inbound, false, err
 		}
