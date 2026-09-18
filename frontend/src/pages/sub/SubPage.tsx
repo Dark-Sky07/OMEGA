@@ -64,6 +64,10 @@ const datepicker = subData.datepicker || 'gregorian';
 // enabled local openvpn inbound (daemon-served → no share link possible).
 const openvpnAvailable = !!subData.openvpn;
 const ovpnUrl = subUrl ? `${subUrl}/openvpn` : '';
+// L2TP/IPsec is daemon-served too: render only native connection
+// parameters, never a synthetic Xray link or a profile file.
+const l2tpConnections = Array.isArray(subData.l2tp) ? subData.l2tp : [];
+const hasSubscriptionLinks = links.length > 0 || !!(subUrl || subJsonUrl || subClashUrl);
 
 const isUnlimited = totalByte <= 0 && expireMs === 0;
 const isActive = (() => {
@@ -522,22 +526,97 @@ export default function SubPage() {
                   </>
                 )}
 
-                <Row gutter={[8, 8]} justify="center" className="apps-row">
-                  <Col xs={24} sm={12} className="app-col">
-                    <Dropdown trigger={['click']} menu={{ items: androidMenuItems }}>
-                      <Button block={isMobile} size="large" type="primary">
-                        <AndroidOutlined /> Android <DownOutlined />
-                      </Button>
-                    </Dropdown>
-                  </Col>
-                  <Col xs={24} sm={12} className="app-col">
-                    <Dropdown trigger={['click']} menu={{ items: iosMenuItems }}>
-                      <Button block={isMobile} size="large" type="primary">
-                        <AppleOutlined /> iOS <DownOutlined />
-                      </Button>
-                    </Dropdown>
-                  </Col>
-                </Row>
+                {l2tpConnections.length > 0 && (
+                  <>
+                    <Divider>L2TP/IPsec</Divider>
+                    {l2tpConnections.map((l2tpConnection, index) => {
+                      const fixedPorts = l2tpConnection.fixedPorts || [500, 4500, 1701];
+                      return (
+                        <div className="l2tp-connection" key={`${l2tpConnection.username || 'client'}-${index}`}>
+                          <Descriptions bordered column={1} size="small">
+                            <Descriptions.Item label={t('pages.inbounds.form.l2tpServerAddress')}>
+                              <Space size={4} wrap>
+                                <Tag>{l2tpConnection.serverAddress || '-'}</Tag>
+                                {l2tpConnection.serverAddress && (
+                                  <Button size="small" icon={<CopyOutlined />} onClick={() => copy(l2tpConnection.serverAddress!)} aria-label={t('copy')} title={t('copy')} />
+                                )}
+                              </Space>
+                            </Descriptions.Item>
+                            <Descriptions.Item label={t('pages.inbounds.form.l2tpFixedPorts')}>
+                              <Space size={4} wrap>
+                                <Tag>{fixedPorts.map((port) => `UDP ${port}`).join(' / ')}</Tag>
+                                <Button size="small" icon={<CopyOutlined />} onClick={() => copy(fixedPorts.join(', '))} aria-label={t('copy')} title={t('copy')} />
+                              </Space>
+                            </Descriptions.Item>
+                            <Descriptions.Item label={t('pages.clients.email')}>
+                              <Space size={4} wrap>
+                                <Tag>{l2tpConnection.username || '-'}</Tag>
+                                {l2tpConnection.username && (
+                                  <Button size="small" icon={<CopyOutlined />} onClick={() => copy(l2tpConnection.username!)} aria-label={t('copy')} title={t('copy')} />
+                                )}
+                              </Space>
+                            </Descriptions.Item>
+                            <Descriptions.Item label={t('password')}>
+                              <Space size={4} wrap>
+                                <Tag>{l2tpConnection.password || '-'}</Tag>
+                                {l2tpConnection.password && (
+                                  <Button size="small" icon={<CopyOutlined />} onClick={() => copy(l2tpConnection.password!)} aria-label={t('copy')} title={t('copy')} />
+                                )}
+                              </Space>
+                            </Descriptions.Item>
+                            <Descriptions.Item label={t('pages.inbounds.form.l2tpPsk')}>
+                              <Space size={4} wrap>
+                                <Tag>{l2tpConnection.psk || '-'}</Tag>
+                                {l2tpConnection.psk && (
+                                  <Button size="small" icon={<CopyOutlined />} onClick={() => copy(l2tpConnection.psk!)} aria-label={t('copy')} title={t('copy')} />
+                                )}
+                              </Space>
+                            </Descriptions.Item>
+                            <Descriptions.Item label={t('pages.inbounds.form.l2tpPoolCIDR')}>
+                              <Tag>{l2tpConnection.poolCIDR || '-'}</Tag>
+                            </Descriptions.Item>
+                            <Descriptions.Item label={t('pages.inbounds.form.l2tpLocalIP')}>
+                              <Tag>{l2tpConnection.localIP || '-'}</Tag>
+                            </Descriptions.Item>
+                            <Descriptions.Item label={t('pages.inbounds.form.l2tpPoolRange')}>
+                              <Tag>{[l2tpConnection.poolStart, l2tpConnection.poolEnd].filter(Boolean).join(' — ') || '-'}</Tag>
+                            </Descriptions.Item>
+                            <Descriptions.Item label={t('pages.inbounds.form.l2tpDnsServers')}>
+                              <Tag>{[l2tpConnection.dns1, l2tpConnection.dns2].filter(Boolean).join(' / ') || '-'}</Tag>
+                            </Descriptions.Item>
+                            <Descriptions.Item label={t('pages.inbounds.form.l2tpFullTunnelHint')}>
+                              <Tag color={l2tpConnection.redirectGateway ? 'green' : 'default'}>
+                                {l2tpConnection.redirectGateway ? t('enabled') : t('disabled')}
+                              </Tag>
+                            </Descriptions.Item>
+                          </Descriptions>
+                          <div className="l2tp-connection-note">
+                            {t('pages.inbounds.form.l2tpManualParameters')}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+
+                {hasSubscriptionLinks && (
+                  <Row gutter={[8, 8]} justify="center" className="apps-row">
+                    <Col xs={24} sm={12} className="app-col">
+                      <Dropdown trigger={['click']} menu={{ items: androidMenuItems }}>
+                        <Button block={isMobile} size="large" type="primary">
+                          <AndroidOutlined /> Android <DownOutlined />
+                        </Button>
+                      </Dropdown>
+                    </Col>
+                    <Col xs={24} sm={12} className="app-col">
+                      <Dropdown trigger={['click']} menu={{ items: iosMenuItems }}>
+                        <Button block={isMobile} size="large" type="primary">
+                          <AppleOutlined /> iOS <DownOutlined />
+                        </Button>
+                      </Dropdown>
+                    </Col>
+                  </Row>
+                )}
               </Card>
             </Col>
           </Row>

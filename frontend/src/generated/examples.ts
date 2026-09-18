@@ -316,6 +316,20 @@ export const EXAMPLES: Record<string, unknown> = {
   },
   "InboundOption": {
     "id": 1,
+    "l2tp": {
+      "dns1": "",
+      "dns2": "",
+      "fixedPorts": [
+        0
+      ],
+      "localIP": "",
+      "poolCIDR": "",
+      "poolEnd": "",
+      "poolStart": "",
+      "psk": "",
+      "redirectGateway": false,
+      "serverAddress": ""
+    },
     "nodeId": null,
     "port": 443,
     "protocol": "vless",

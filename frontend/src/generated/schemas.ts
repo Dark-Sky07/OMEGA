@@ -1442,6 +1442,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": 1,
         "type": "integer"
       },
+      "l2tp": {
+        "$ref": "#/components/schemas/L2TPInboundOption"
+      },
       "nodeId": {
         "description": "Hosting node; nil for this panel's own inbounds. Lets the clients\npage map a node filter onto inbound IDs (#4997).",
         "nullable": true,
@@ -1479,6 +1482,56 @@ export const SCHEMAS: Record<string, unknown> = {
       "ssMethod",
       "tag",
       "tlsFlowCapable"
+    ],
+    "type": "object"
+  },
+  "L2TPInboundOption": {
+    "description": "L2TPInboundOption is the non-client portion of the native connection\nparameters needed by the admin Client Information dialog. Client username\nand password stay in the selected client record and are never broadcast as\npart of the inbound picker response.",
+    "properties": {
+      "dns1": {
+        "type": "string"
+      },
+      "dns2": {
+        "type": "string"
+      },
+      "fixedPorts": {
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
+      },
+      "localIP": {
+        "type": "string"
+      },
+      "poolCIDR": {
+        "type": "string"
+      },
+      "poolEnd": {
+        "type": "string"
+      },
+      "poolStart": {
+        "type": "string"
+      },
+      "psk": {
+        "type": "string"
+      },
+      "redirectGateway": {
+        "type": "boolean"
+      },
+      "serverAddress": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "dns1",
+      "dns2",
+      "fixedPorts",
+      "localIP",
+      "poolCIDR",
+      "poolEnd",
+      "poolStart",
+      "psk",
+      "redirectGateway"
     ],
     "type": "object"
   },

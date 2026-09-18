@@ -69,7 +69,7 @@ The `x-ui update` script shipped in this release resolves the latest stable rele
 
 L2TP/IPsec is a host daemon, not an Xray protocol. The installer installs and verifies `strongswan`, `xl2tpd`, `ppp`, `iptables`, and `iproute2`, and checks `/dev/ppp`. Only one enabled local L2TP/IPsec inbound is allowed because the daemon group owns UDP 500 (IKE), UDP 4500 (NAT-T), and UDP 1701 (L2TP). PPTP is not part of OMEGA.
 
-The panel writes managed runtime files under `bin/l2tp/<inbound-id>/`, enables IPv4 forwarding, opens the three UDP listeners in iptables, and installs `FORWARD` plus `MASQUERADE` rules for the configured pool. Attach existing clients from the normal Clients page; their email is the PPP username and their password is the MS-CHAPv2 credential. The inbound info view shows the PSK, pool, DNS, and fixed ports. Configure clients with their native L2TP/IPsec settings; no profile file is generated.
+The panel writes managed runtime files under `bin/l2tp/<inbound-id>/`, enables IPv4 forwarding, opens the three UDP listeners in iptables, and installs `FORWARD` plus `MASQUERADE` rules for the configured pool. Attach existing clients from the normal Clients page; their email is the PPP username and their password is the MS-CHAPv2 credential. The inbound info view shows the PSK, pool, DNS, and fixed ports. Subscription info shows one native parameter set for every attached client with that subscription ID, and the admin Client Information dialog shows the same values with copy buttons. Configure clients with their native L2TP/IPsec settings; no profile file or synthetic Xray link is generated.
 
 Verify a host or manual installation with:
 
