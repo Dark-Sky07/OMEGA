@@ -18,13 +18,14 @@ type L2TPJob struct {
 
 func NewL2TPJob() *L2TPJob { return new(L2TPJob) }
 
-func (j *L2TPJob) enabledClientsForInbound(ib *model.Inbound) []model.Client {
+func (j *L2TPJob) enabledClientsForInbound(ib *model.Inbound) ([]model.Client, bool) {
 	clients, err := j.clientService.ListForInbound(nil, ib.Id)
 	if err != nil {
 		logger.Warning("l2tp job: list clients failed:", err)
 		// A database error must not make the daemon fall back to credentials
-		// copied into inbound.settings from an older reconcile round.
-		return []model.Client{}
+		// copied into inbound.settings from an older reconcile round, nor
+		// should it make Reconcile([]) tear down a healthy current daemon.
+		return nil, false
 	}
 	enableMap := make(map[string]bool, len(ib.ClientStats))
 	for _, stat := range ib.ClientStats {
@@ -40,7 +41,7 @@ func (j *L2TPJob) enabledClientsForInbound(ib *model.Inbound) []model.Client {
 		}
 		out = append(out, client)
 	}
-	return out
+	return out, true
 }
 
 func (j *L2TPJob) Run() {
@@ -54,7 +55,10 @@ func (j *L2TPJob) Run() {
 		if ib.Protocol != model.L2TP || !ib.Enable || ib.NodeID != nil {
 			continue
 		}
-		clients := j.enabledClientsForInbound(ib)
+		clients, clientsOK := j.enabledClientsForInbound(ib)
+		if !clientsOK {
+			return
+		}
 		inst, ok := l2tp.InstanceFromInbound(ib, clients)
 		if !ok {
 			logger.Warningf("l2tp job: inbound %d has invalid settings or credentials", ib.Id)

@@ -1,10 +1,13 @@
 package l2tp
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -23,9 +26,33 @@ type NetworkManager struct {
 }
 
 type networkState struct {
-	poolCIDR       string
-	interfaceName  string
-	fixedInputPorts []int
+	poolCIDR        string   `json:"poolCIDR"`
+	interfaceName   string   `json:"interfaceName"`
+	fixedInputPorts []int    `json:"fixedInputPorts"`
+}
+
+func networkStatePath(id int) string {
+	return filepath.Join(dataDirForID(id), "network.json")
+}
+
+func loadNetworkState(id int) (networkState, bool) {
+	data, err := os.ReadFile(networkStatePath(id))
+	if err != nil {
+		return networkState{}, false
+	}
+	var state networkState
+	if err := json.Unmarshal(data, &state); err != nil || state.poolCIDR == "" {
+		return networkState{}, false
+	}
+	return state, true
+}
+
+func saveNetworkState(id int, state networkState) error {
+	data, err := json.Marshal(state)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(networkStatePath(id), data, 0o600)
 }
 
 type commandRunner func(name string, args ...string) ([]byte, error)
@@ -159,6 +186,8 @@ func (m *NetworkManager) Apply(inst Instance) error {
 	previousFixedPorts := []int(nil)
 	if previous, ok := m.rules[inst.Id]; ok {
 		previousFixedPorts = append(previousFixedPorts, previous.fixedInputPorts...)
+	} else if previous, ok := loadNetworkState(inst.Id); ok {
+		previousFixedPorts = append(previousFixedPorts, previous.fixedInputPorts...)
 	}
 	newFixedPorts, err := m.enableFixedPorts(iptables)
 	if err != nil {
@@ -198,7 +227,7 @@ func (m *NetworkManager) Apply(inst Instance) error {
 		masquerade = append(masquerade, "-o", iface)
 	}
 	masquerade = append(masquerade, "-j", "MASQUERADE")
-	_, err = m.ensureRule(iptables, "nat", masquerade)
+	masqInserted, err := m.ensureRule(iptables, "nat", masquerade)
 	if err != nil {
 		if backInserted {
 			m.removeRule(iptables, "", forwardBack)
@@ -209,7 +238,23 @@ func (m *NetworkManager) Apply(inst Instance) error {
 		m.removeFixedPorts(iptables, newFixedPorts)
 		return fmt.Errorf("l2tp: install MASQUERADE rule: %w", err)
 	}
-	m.rules[inst.Id] = networkState{poolCIDR: pool, interfaceName: iface, fixedInputPorts: fixedPorts}
+	state := networkState{poolCIDR: pool, interfaceName: iface, fixedInputPorts: fixedPorts}
+	if err := saveNetworkState(inst.Id, state); err != nil {
+		// The firewall is only considered managed once its rollback metadata is
+		// durable; otherwise a panel restart could leave unremovable rules.
+		if masqInserted {
+			m.removeRule(iptables, "nat", masquerade)
+		}
+		if backInserted {
+			m.removeRule(iptables, "", forwardBack)
+		}
+		if outInserted {
+			m.removeRule(iptables, "", forwardOut)
+		}
+		m.removeFixedPorts(iptables, newFixedPorts)
+		return fmt.Errorf("l2tp: persist firewall state: %w", err)
+	}
+	m.rules[inst.Id] = state
 	return nil
 }
 
@@ -221,37 +266,48 @@ func (m *NetworkManager) Remove(id int) {
 	defer m.mu.Unlock()
 	state, ok := m.rules[id]
 	if !ok {
-		return
+		state, ok = loadNetworkState(id)
 	}
 	iptables, err := m.available()
 	if err != nil {
 		delete(m.rules, id)
+		_ = os.Remove(networkStatePath(id))
 		return
 	}
-	pool := state.poolCIDR
-	iface := state.interfaceName
-	m.removeFixedPorts(iptables, state.fixedInputPorts)
-	forwardOut := []string{"FORWARD", "-s", pool}
-	if iface != "" {
-		forwardOut = append(forwardOut, "-o", iface)
+	ports := state.fixedInputPorts
+	if len(ports) == 0 {
+		// UDP 500/4500/1701 are reserved by the global L2TP service. Remove
+		// exact managed rules even when this process has no durable state from
+		// an older release or an unclean panel restart.
+		ports = append([]int(nil), FixedPorts[:]...)
 	}
-	forwardOut = append(forwardOut, "-j", "ACCEPT")
-	m.removeRule(iptables, "", forwardOut)
+	m.removeFixedPorts(iptables, ports)
+	if ok && state.poolCIDR != "" {
+		pool := state.poolCIDR
+		iface := state.interfaceName
+		forwardOut := []string{"FORWARD", "-s", pool}
+		if iface != "" {
+			forwardOut = append(forwardOut, "-o", iface)
+		}
+		forwardOut = append(forwardOut, "-j", "ACCEPT")
+		m.removeRule(iptables, "", forwardOut)
 
-	forwardBack := []string{"FORWARD", "-d", pool}
-	if iface != "" {
-		forwardBack = append(forwardBack, "-i", iface)
-	}
-	forwardBack = append(forwardBack, "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT")
-	m.removeRule(iptables, "", forwardBack)
+		forwardBack := []string{"FORWARD", "-d", pool}
+		if iface != "" {
+			forwardBack = append(forwardBack, "-i", iface)
+		}
+		forwardBack = append(forwardBack, "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT")
+		m.removeRule(iptables, "", forwardBack)
 
-	masquerade := []string{"POSTROUTING", "-s", pool}
-	if iface != "" {
-		masquerade = append(masquerade, "-o", iface)
+		masquerade := []string{"POSTROUTING", "-s", pool}
+		if iface != "" {
+			masquerade = append(masquerade, "-o", iface)
+		}
+		masquerade = append(masquerade, "-j", "MASQUERADE")
+		m.removeRule(iptables, "nat", masquerade)
 	}
-	masquerade = append(masquerade, "-j", "MASQUERADE")
-	m.removeRule(iptables, "nat", masquerade)
 	delete(m.rules, id)
+	_ = os.Remove(networkStatePath(id))
 }
 
 func (m *NetworkManager) RemoveAll() {

@@ -1,11 +1,13 @@
 package l2tp
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -101,6 +103,55 @@ func xl2tpdPath() string {
 	return path
 }
 
+func stopPIDFile(path, expected string) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil || pid <= 1 {
+		return
+	}
+	cmdline, err := os.ReadFile(fmt.Sprintf("/proc/%d/cmdline", pid))
+	if err != nil || !strings.Contains(strings.ToLower(string(cmdline)), expected) {
+		return
+	}
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		return
+	}
+	_ = process.Signal(syscall.SIGTERM)
+	deadline := time.Now().Add(gracefulStopTimeout)
+	for time.Now().Before(deadline) {
+		if err := process.Signal(syscall.Signal(0)); err != nil {
+			return
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	_ = process.Kill()
+}
+
+// stopOrphan stops a daemon group left behind by a previous panel process.
+// The manager is in-memory, so PID/config discovery is required after a host
+// or panel restart; without it an old xl2tpd would keep UDP 1701 occupied and
+// the old strongSwan starter would own the IKE sockets.
+func stopOrphan(id int) {
+	if runtime.GOOS == "windows" {
+		return
+	}
+	stopPIDFile(xl2tpdPIDPath(id), "xl2tpd")
+	if ipsec := strongSwanPath(); ipsec != "" {
+		ctx, cancel := context.WithTimeout(context.Background(), gracefulStopTimeout)
+		cmd := exec.CommandContext(ctx, ipsec, "stop")
+		cmd.Env = append(os.Environ(),
+			"IPSEC_CONFDIR="+dataDirForID(id),
+			"IPSEC_PIDDIR="+dataDirForID(id),
+		)
+		_ = cmd.Run()
+		cancel()
+	}
+}
+
 // Available reports whether both daemon entry points are installed.
 func Available() bool {
 	return strongSwanPath() != "" && xl2tpdPath() != ""
@@ -134,8 +185,11 @@ func (p *Process) GetResult() string {
 	if line := p.ipsecLog.LastLine(); line != "" {
 		return line
 	}
-	if p.exitErr != nil {
-		return p.exitErr.Error()
+	p.mu.Lock()
+	err := p.exitErr
+	p.mu.Unlock()
+	if err != nil {
+		return err.Error()
 	}
 	return ""
 }
