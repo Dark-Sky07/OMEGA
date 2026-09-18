@@ -43,6 +43,7 @@ func GetNetworkManager() *NetworkManager {
 			runner: func(name string, args ...string) ([]byte, error) {
 			return exec.Command(name, args...).CombinedOutput()
 		},
+	}
 	})
 	return networkMgr
 }
