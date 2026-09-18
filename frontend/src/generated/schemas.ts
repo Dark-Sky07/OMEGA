@@ -1443,7 +1443,12 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "l2tp": {
-        "$ref": "#/components/schemas/L2TPInboundOption"
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/L2TPInboundOption"
+          }
+        ],
+        "nullable": true
       },
       "nodeId": {
         "description": "Hosting node; nil for this panel's own inbounds. Lets the clients\npage map a node filter onto inbound IDs (#4997).",
