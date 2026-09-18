@@ -3,6 +3,8 @@
 interface SubPageData {
   sId?: string;
   enabled?: boolean;
+  /** Server set: the subscription owner can fetch a per-client .ovpn profile at `${subUrl}/openvpn`. */
+  openvpn?: boolean;
   download?: string;
   upload?: string;
   total?: string;

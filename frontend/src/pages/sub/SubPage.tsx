@@ -23,6 +23,7 @@ import {
   AppleOutlined,
   CopyOutlined,
   DownOutlined,
+  DownloadOutlined,
   MoonFilled,
   MoonOutlined,
   QrcodeOutlined,
@@ -59,6 +60,10 @@ const subTitle = subData.subTitle || '';
 const links: string[] = Array.isArray(subData.links) ? subData.links : [];
 const linkEmails: string[] = Array.isArray(subData.emails) ? subData.emails : [];
 const datepicker = subData.datepicker || 'gregorian';
+// Per-client .ovpn download is offered when the owner is attached to an
+// enabled local openvpn inbound (daemon-served → no share link possible).
+const openvpnAvailable = !!subData.openvpn;
+const ovpnUrl = subUrl ? `${subUrl}/openvpn` : '';
 
 const isUnlimited = totalByte <= 0 && expireMs === 0;
 const isActive = (() => {
@@ -117,6 +122,23 @@ export default function SubPage() {
     const ok = await ClipboardManager.copyText(allLinks);
     if (ok) messageApi.success(t('subscription.copyAllConfigsCopied'));
   }, [t, messageApi]);
+
+  const [ovpnLoading, setOvpnLoading] = useState(false);
+  const copyOvpnProfile = useCallback(async () => {
+    if (!ovpnUrl || ovpnLoading) return;
+    setOvpnLoading(true);
+    try {
+      const resp = await fetch(ovpnUrl, { headers: { Accept: 'application/x-openvpn-profile, text/plain' } });
+      if (!resp.ok) throw new Error(String(resp.status));
+      const profile = await resp.text();
+      if (!profile.trim()) throw new Error('empty profile');
+      await copy(profile);
+    } catch {
+      messageApi.error(t('somethingWentWrong'));
+    } finally {
+      setOvpnLoading(false);
+    }
+  }, [ovpnLoading, copy, t, messageApi]);
 
   const open = useCallback((url: string) => {
     if (!url) return;
@@ -465,6 +487,37 @@ export default function SubPage() {
                           </div>
                         );
                       })}
+                    </div>
+                  </>
+                )}
+
+                {openvpnAvailable && (
+                  <>
+                    <Divider>{t('pages.clients.openvpnConfig')}</Divider>
+                    <div className="links-section">
+                      <div className="sub-link-row">
+                        <Tag color="red" className="sub-link-tag">OVPN</Tag>
+                        <span className="sub-link-title" title={t('pages.clients.openvpnConfigHint')}>
+                          {t('pages.clients.openvpnConfig')}
+                        </span>
+                        <div className="sub-link-actions">
+                          <Button
+                            size="small"
+                            icon={<CopyOutlined />}
+                            loading={ovpnLoading}
+                            onClick={copyOvpnProfile}
+                            aria-label={t('copy')}
+                            title={t('copy')}
+                          />
+                          <Button
+                            size="small"
+                            icon={<DownloadOutlined />}
+                            href={ovpnUrl}
+                            aria-label={t('pages.clients.openvpnDownload')}
+                            title={t('pages.clients.openvpnDownload')}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </>
                 )}

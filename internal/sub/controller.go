@@ -119,6 +119,7 @@ func NewSUBController(
 // on the provided router group.
 func (a *SUBController) initRouter(g *gin.RouterGroup) {
 	gLink := g.Group(a.subPath)
+	gLink.GET(":subid/openvpn", a.subOpenvpn)
 	gLink.GET(":subid", a.subs)
 	gLink.HEAD(":subid", a.subs)
 	if a.jsonEnabled {
@@ -131,6 +132,42 @@ func (a *SUBController) initRouter(g *gin.RouterGroup) {
 		gClash.GET(":subid", a.subClashs)
 		gClash.HEAD(":subid", a.subClashs)
 	}
+}
+
+// subOpenvpn serves the subscription owner's per-client OpenVPN profile
+// (.ovpn) as a file download. OpenVPN inbounds are daemon-served and emit no
+// share link, so the sub info page links here instead. Authenticated like the
+// rest of the sub surface — by possession of the subId.
+func (a *SUBController) subOpenvpn(c *gin.Context) {
+	subId := c.Param("subid")
+	_, host, _, _ := a.subService.ResolveRequest(c)
+	emails, err := a.subService.GetOpenvpnEmailsBySubId(subId)
+	if err != nil {
+		writeSubError(c, err)
+		return
+	}
+	for _, email := range emails {
+		profile, _, pErr := a.subService.GetOpenvpnProfile(host, email)
+		if pErr != nil || profile == "" {
+			continue
+		}
+		safe := strings.Map(func(r rune) rune {
+			switch {
+			case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9',
+				r == '.', r == '_', r == '-', r == '@':
+				return r
+			}
+			return '_'
+		}, email)
+		if safe == "" {
+			safe = "client"
+		}
+		setNoCacheHeaders(c)
+		c.Header("Content-Disposition", "attachment; filename=\""+safe+".ovpn\"")
+		c.Data(http.StatusOK, "application/x-openvpn-profile", []byte(profile))
+		return
+	}
+	writeSubError(c, nil)
 }
 
 // subs handles HTTP requests for subscription links, returning either HTML page or base64-encoded subscription data.
@@ -162,6 +199,9 @@ func (a *SUBController) subs(c *gin.Context) {
 			}
 			basePathStr := basePath.(string)
 			page := a.subService.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, emails, subURL, subJsonURL, subClashURL, basePathStr, a.subTitle, a.subSupportUrl)
+			if ovpnEmails, oErr := a.subService.GetOpenvpnEmailsBySubId(subId); oErr == nil {
+				page.Openvpn = len(ovpnEmails) > 0
+			}
 			a.serveSubPage(c, basePathStr, page)
 			return
 		}
@@ -221,6 +261,7 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 	subData := map[string]any{
 		"sId":           page.SId,
 		"enabled":       page.Enabled,
+		"openvpn":       page.Openvpn,
 		"download":      page.Download,
 		"upload":        page.Upload,
 		"total":         page.Total,
