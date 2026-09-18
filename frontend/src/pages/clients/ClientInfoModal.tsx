@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Divider, Modal, Popover, Tag, Tooltip, message } from 'antd';
+import { Button, Divider, Modal, Popover, Space, Tag, Tooltip, message } from 'antd';
 import { CopyOutlined, DownloadOutlined, EyeOutlined, QrcodeOutlined, ReloadOutlined } from '@ant-design/icons';
 
 import { ClipboardManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
@@ -24,6 +24,7 @@ const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
   mixed: 'lime',
   tunnel: 'orange',
   openvpn: 'red',
+  l2tp: 'cyan',
 };
 
 const INBOUND_CHIP_LIMIT = 1;
@@ -112,6 +113,14 @@ export default function ClientInfoModal({
     const ids = client?.inboundIds ?? [];
     return ids.filter((id) => inboundsById[id]?.protocol === 'openvpn').length;
   }, [client?.inboundIds, inboundsById]);
+
+  const l2tpInbounds = useMemo(
+    () => (client?.inboundIds ?? [])
+      .map((id) => inboundsById[id])
+      .filter((ib): ib is InboundOption & { l2tp: NonNullable<InboundOption['l2tp']> } =>
+        !!ib && ib.protocol === 'l2tp' && !!ib.l2tp),
+    [client?.inboundIds, inboundsById],
+  );
   const [ovpnProfile, setOvpnProfile] = useState('');
   const [ovpnLoading, setOvpnLoading] = useState(false);
 
@@ -174,12 +183,31 @@ export default function ClientInfoModal({
     return subSettings.subClashURI + client.subId;
   }, [client?.subId, subSettings?.subClashEnable, subSettings?.subClashURI]);
 
-  const showSubscription = !!(subSettings?.enable && client?.subId);
+  const hasXraySubscriptionInbound = useMemo(
+    () => (client?.inboundIds ?? []).some((id) => {
+      const protocol = (inboundsById[id]?.protocol || '').toLowerCase();
+      return protocol !== '' && protocol !== 'openvpn' && protocol !== 'l2tp';
+    }),
+    [client?.inboundIds, inboundsById],
+  );
+  const showSubscription = !!(subSettings?.enable && client?.subId && hasXraySubscriptionInbound);
 
   async function copyValue(text: string) {
     if (!text) return;
     const ok = await ClipboardManager.copyText(String(text));
     if (ok) messageApi.success(t('copied'));
+  }
+
+  function nativeValue(value?: string, allowCopy = true) {
+    const text = value || '-';
+    return (
+      <Space size={4} wrap>
+        <Tag className="info-large-tag">{text}</Tag>
+        {allowCopy && value && (
+          <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(value)} />
+        )}
+      </Space>
+    );
   }
 
   async function loadIps() {
@@ -394,7 +422,7 @@ export default function ClientInfoModal({
               </tbody>
             </table>
 
-            {links.length > 0 && (
+            {links.length > 0 && hasXraySubscriptionInbound && (
               <>
                 <Divider>{t('pages.inbounds.copyLink')}</Divider>
                 {links.map((link, idx) => {
@@ -465,6 +493,78 @@ export default function ClientInfoModal({
                     )}
                   </div>
                 </div>
+              </>
+            )}
+
+            {l2tpInbounds.length > 0 && (
+              <>
+                <Divider>L2TP/IPsec</Divider>
+                {l2tpInbounds.map((ib) => {
+                  const config = ib.l2tp;
+                  const serverAddress = config.serverAddress || window.location.hostname;
+                  const fixedPorts = config.fixedPorts?.length ? config.fixedPorts : [500, 4500, 1701];
+                  return (
+                    <div className="l2tp-client-panel" key={ib.id}>
+                      <div className="link-row l2tp-client-header">
+                        <Tag color="cyan" className="link-row-tag">L2TP</Tag>
+                        <span className="link-row-title">
+                          {formatInboundLabel(ib.tag, ib.remark)}
+                        </span>
+                      </div>
+                      <table className="info-table block l2tp-client-table">
+                        <tbody>
+                          <tr>
+                            <td>{t('pages.inbounds.form.l2tpServerAddress')}</td>
+                            <td>{nativeValue(serverAddress || undefined)}</td>
+                          </tr>
+                          <tr>
+                            <td>{t('pages.inbounds.form.l2tpFixedPorts')}</td>
+                            <td>{nativeValue(fixedPorts.join(', '))}</td>
+                          </tr>
+                          <tr>
+                            <td>{t('pages.clients.email')}</td>
+                            <td>{nativeValue(client.email)}</td>
+                          </tr>
+                          <tr>
+                            <td>{t('password')}</td>
+                            <td>{nativeValue(client.password)}</td>
+                          </tr>
+                          <tr>
+                            <td>{t('pages.inbounds.form.l2tpPsk')}</td>
+                            <td>{nativeValue(config.psk)}</td>
+                          </tr>
+                          <tr>
+                            <td>{t('pages.inbounds.form.l2tpPoolCIDR')}</td>
+                            <td>{nativeValue(config.poolCIDR)}</td>
+                          </tr>
+                          <tr>
+                            <td>{t('pages.inbounds.form.l2tpLocalIP')}</td>
+                            <td>{nativeValue(config.localIP)}</td>
+                          </tr>
+                          <tr>
+                            <td>{t('pages.inbounds.form.l2tpPoolRange')}</td>
+                            <td>{nativeValue([config.poolStart, config.poolEnd].filter(Boolean).join(' — '))}</td>
+                          </tr>
+                          <tr>
+                            <td>{t('pages.inbounds.form.l2tpDnsServers')}</td>
+                            <td>{nativeValue([config.dns1, config.dns2].filter(Boolean).join(' / '))}</td>
+                          </tr>
+                          <tr>
+                            <td>{t('pages.inbounds.form.l2tpFullTunnelHint')}</td>
+                            <td>
+                              <Tag color={config.redirectGateway ? 'green' : 'default'}>
+                                {config.redirectGateway ? t('enabled') : t('disabled')}
+                              </Tag>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                      <div className="l2tp-client-note">
+                        {t('pages.inbounds.form.l2tpManualParameters')}
+                      </div>
+                    </div>
+                  );
+                })}
               </>
             )}
 

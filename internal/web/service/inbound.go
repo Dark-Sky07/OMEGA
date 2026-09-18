@@ -14,8 +14,8 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
@@ -293,6 +293,52 @@ func (s *InboundService) annotateFallbackParents(db *gorm.DB, inbounds []*model.
 	}
 }
 
+// L2TPInboundOption is the non-client portion of the native connection
+// parameters needed by the admin Client Information dialog. Client username
+// and password stay in the selected client record and are never broadcast as
+// part of the inbound picker response.
+type L2TPInboundOption struct {
+	ServerAddress   string `json:"serverAddress,omitempty"`
+	FixedPorts      []int  `json:"fixedPorts"`
+	PSK             string `json:"psk"`
+	PoolCIDR        string `json:"poolCIDR"`
+	LocalIP         string `json:"localIP"`
+	PoolStart       string `json:"poolStart"`
+	PoolEnd         string `json:"poolEnd"`
+	DNS1            string `json:"dns1"`
+	DNS2            string `json:"dns2"`
+	RedirectGateway bool   `json:"redirectGateway"`
+}
+
+func l2tpInboundOption(settings string) *L2TPInboundOption {
+	inbound := &model.Inbound{Protocol: model.L2TP, Settings: settings}
+	instance, ok := l2tp.InstanceFromInbound(inbound, nil)
+	if !ok {
+		return nil
+	}
+	return &L2TPInboundOption{
+		// The picker endpoint has no request host context. The admin UI falls
+		// back to the current panel hostname (and node address when applicable).
+		ServerAddress:   "",
+		FixedPorts:      append([]int(nil), l2tp.FixedPorts[:]...),
+		PSK:             instance.PSK,
+		PoolCIDR:        firstNonEmpty(instance.PoolCIDR, l2tp.DefaultPoolCIDR),
+		LocalIP:         firstNonEmpty(instance.LocalIP, l2tp.DefaultLocalIP),
+		PoolStart:       firstNonEmpty(instance.PoolStart, l2tp.DefaultPoolStart),
+		PoolEnd:         firstNonEmpty(instance.PoolEnd, l2tp.DefaultPoolEnd),
+		DNS1:            firstNonEmpty(instance.DNS1, l2tp.DefaultDNS1),
+		DNS2:            firstNonEmpty(instance.DNS2, l2tp.DefaultDNS2),
+		RedirectGateway: instance.RedirectGateway,
+	}
+}
+
+func firstNonEmpty(value, fallback string) string {
+	if strings.TrimSpace(value) != "" {
+		return strings.TrimSpace(value)
+	}
+	return fallback
+}
+
 type InboundOption struct {
 	Id             int    `json:"id" example:"1"`
 	Remark         string `json:"remark" example:"VLESS-443"`
@@ -301,6 +347,7 @@ type InboundOption struct {
 	Port           int    `json:"port" example:"443"`
 	TlsFlowCapable bool   `json:"tlsFlowCapable" example:"true"`
 	SsMethod       string `json:"ssMethod"`
+	L2TP           *L2TPInboundOption `json:"l2tp,omitempty"`
 	// Hosting node; nil for this panel's own inbounds. Lets the clients
 	// page map a node filter onto inbound IDs (#4997).
 	NodeId *int `json:"nodeId,omitempty"`
@@ -328,7 +375,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 	}
 	out := make([]InboundOption, 0, len(rows))
 	for _, r := range rows {
-		out = append(out, InboundOption{
+		option := InboundOption{
 			Id:             r.Id,
 			Remark:         r.Remark,
 			Tag:            r.Tag,
@@ -337,7 +384,11 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 			TlsFlowCapable: inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings, r.Settings),
 			SsMethod:       inboundShadowsocksMethod(r.Protocol, r.Settings),
 			NodeId:         r.NodeId,
-		})
+		}
+		if r.Protocol == string(model.L2TP) {
+			option.L2TP = l2tpInboundOption(r.Settings)
+		}
+		out = append(out, option)
 	}
 	return out, nil
 }

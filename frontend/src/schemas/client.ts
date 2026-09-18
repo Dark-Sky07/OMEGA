@@ -36,6 +36,19 @@ export const ClientRecordSchema = z.object({
   updatedAt: z.number().optional(),
 }).loose();
 
+const L2TPInboundOptionSchema = z.object({
+  serverAddress: z.string().optional(),
+  fixedPorts: z.array(z.number()).optional(),
+  psk: z.string().optional(),
+  poolCIDR: z.string().optional(),
+  localIP: z.string().optional(),
+  poolStart: z.string().optional(),
+  poolEnd: z.string().optional(),
+  dns1: z.string().optional(),
+  dns2: z.string().optional(),
+  redirectGateway: z.boolean().optional(),
+}).loose();
+
 export const InboundOptionSchema = z.object({
   id: z.number(),
   remark: z.string().optional(),
@@ -44,6 +57,7 @@ export const InboundOptionSchema = z.object({
   port: z.number().optional(),
   tlsFlowCapable: z.boolean().optional(),
   ssMethod: z.string().optional(),
+  l2tp: L2TPInboundOptionSchema.optional(),
   // Hosting node id; absent/null for this panel's own inbounds (#4997).
   nodeId: z.number().nullable().optional(),
 }).loose();

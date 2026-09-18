@@ -175,50 +175,87 @@ func (a *SUBController) subs(c *gin.Context) {
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, hostHeader := a.subService.ResolveRequest(c)
 	subs, emails, lastOnline, traffic, err := a.subService.GetSubs(subId, host)
-	if err != nil || len(subs) == 0 {
+
+	// A subscription that only contains daemon-served L2TP clients has no
+	// Xray share link. The HTML info page is still valid and must not become a
+	// 404 merely because its native parameters are not link-shaped.
+	accept := c.GetHeader("Accept")
+	isHTML := strings.Contains(strings.ToLower(accept), "text/html") || c.Query("html") == "1" || strings.EqualFold(c.Query("view"), "html")
+	var l2tpConnections []L2TPConnection
+	var l2tpErr error
+	if isHTML && err == nil {
+		l2tpConnections, l2tpErr = a.subService.GetL2TPConnectionsBySubId(subId, host)
+		if l2tpErr != nil {
+			logger.Warning("sub: unable to load L2TP connection details:", l2tpErr)
+		}
+	}
+
+	if err != nil || (len(subs) == 0 && (!isHTML || l2tpErr != nil || len(l2tpConnections) == 0)) {
 		writeSubError(c, err)
+		return
+	}
+
+	if isHTML {
+		// L2TP-only subscriptions do not go through GetSubs' Xray traffic
+		// aggregation, so use the matching daemon clients for the info header.
+		if len(subs) == 0 {
+			emails = make([]string, 0, len(l2tpConnections))
+			for _, connection := range l2tpConnections {
+				emails = append(emails, connection.Username)
+			}
+			traffic, lastOnline = a.subService.AggregateTrafficByEmails(emails)
+			traffic.Enable = len(emails) > 0
+		}
+
+		subURL, subJsonURL, subClashURL := a.subService.BuildURLs(a.subPath, a.subJsonPath, a.subClashPath, subId)
+		if !a.jsonEnabled {
+			subJsonURL = ""
+		}
+		if !a.clashEnabled {
+			subClashURL = ""
+		}
+		if len(subs) == 0 {
+			// L2TP-only subscriptions have no Xray-compatible subscription
+			// URL. Keep the page native-parameters-only.
+			subURL, subJsonURL, subClashURL = "", "", ""
+		}
+		basePath, exists := c.Get("base_path")
+		if !exists {
+			basePath = "/"
+		}
+		basePathStr := basePath.(string)
+		page := a.subService.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, emails, subURL, subJsonURL, subClashURL, basePathStr, a.subTitle, a.subSupportUrl)
+		page.L2TP = l2tpConnections
+		if ovpnEmails, oErr := a.subService.GetOpenvpnEmailsBySubId(subId); oErr == nil {
+			page.Openvpn = len(ovpnEmails) > 0
+		}
+		a.serveSubPage(c, basePathStr, page)
+		return
+	}
+
+	// Non-HTML subscription clients only understand Xray share links. Do not
+	// manufacture one for a daemon-only L2TP subscription.
+	if len(subs) == 0 {
+		writeSubError(c, nil)
+		return
+	}
+	result := ""
+	for _, sub := range subs {
+		result += sub + "\n"
+	}
+
+	// Add headers
+	header := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
+	profileUrl := a.subProfileUrl
+	if profileUrl == "" {
+		profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
+	}
+	a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules)
+
+	if a.subEncrypt {
+		c.String(200, base64.StdEncoding.EncodeToString([]byte(result)))
 	} else {
-		result := ""
-		for _, sub := range subs {
-			result += sub + "\n"
-		}
-
-		// If the request expects HTML (e.g., browser) or explicitly asked (?html=1 or ?view=html), render the info page here
-		accept := c.GetHeader("Accept")
-		if strings.Contains(strings.ToLower(accept), "text/html") || c.Query("html") == "1" || strings.EqualFold(c.Query("view"), "html") {
-			subURL, subJsonURL, subClashURL := a.subService.BuildURLs(a.subPath, a.subJsonPath, a.subClashPath, subId)
-			if !a.jsonEnabled {
-				subJsonURL = ""
-			}
-			if !a.clashEnabled {
-				subClashURL = ""
-			}
-			basePath, exists := c.Get("base_path")
-			if !exists {
-				basePath = "/"
-			}
-			basePathStr := basePath.(string)
-			page := a.subService.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, emails, subURL, subJsonURL, subClashURL, basePathStr, a.subTitle, a.subSupportUrl)
-			if ovpnEmails, oErr := a.subService.GetOpenvpnEmailsBySubId(subId); oErr == nil {
-				page.Openvpn = len(ovpnEmails) > 0
-			}
-			a.serveSubPage(c, basePathStr, page)
-			return
-		}
-
-		// Add headers
-		header := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
-		profileUrl := a.subProfileUrl
-		if profileUrl == "" {
-			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
-		}
-		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules)
-
-		if a.subEncrypt {
-			c.String(200, base64.StdEncoding.EncodeToString([]byte(result)))
-		} else {
-			c.String(200, result)
-		}
+		c.String(200, result)
 	}
 }
 
@@ -262,6 +299,7 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 		"sId":           page.SId,
 		"enabled":       page.Enabled,
 		"openvpn":       page.Openvpn,
+		"l2tp":          page.L2TP,
 		"download":      page.Download,
 		"upload":        page.Upload,
 		"total":         page.Total,

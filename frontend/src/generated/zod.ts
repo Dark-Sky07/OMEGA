@@ -344,6 +344,7 @@ export type InboundFallback = z.infer<typeof InboundFallbackSchema>;
 
 export const InboundOptionSchema = z.object({
   id: z.number().int(),
+  l2tp: z.lazy(() => L2TPInboundOptionSchema).optional(),
   nodeId: z.number().int().nullable().optional(),
   port: z.number().int(),
   protocol: z.string(),
@@ -353,6 +354,20 @@ export const InboundOptionSchema = z.object({
   tlsFlowCapable: z.boolean(),
 });
 export type InboundOption = z.infer<typeof InboundOptionSchema>;
+
+export const L2TPInboundOptionSchema = z.object({
+  dns1: z.string(),
+  dns2: z.string(),
+  fixedPorts: z.array(z.number().int()),
+  localIP: z.string(),
+  poolCIDR: z.string(),
+  poolEnd: z.string(),
+  poolStart: z.string(),
+  psk: z.string(),
+  redirectGateway: z.boolean(),
+  serverAddress: z.string().optional(),
+});
+export type L2TPInboundOption = z.infer<typeof L2TPInboundOptionSchema>;
 
 export const MsgSchema = z.object({
   msg: z.string(),
