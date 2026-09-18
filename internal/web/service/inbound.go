@@ -9,11 +9,13 @@ import (
 	"net"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
@@ -22,6 +24,8 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
+
+var l2tpInboundMu sync.Mutex
 
 type InboundService struct {
 	xrayApi         xray.XrayAPI
@@ -452,6 +456,115 @@ func (s *InboundService) normalizeMtprotoSecret(inbound *model.Inbound) {
 	}
 }
 
+// normalizeL2TPSettings fills the daemon-owned defaults once at save time. The
+// PSK is persisted so a panel restart or a reconcile round never rotates the
+// connection secret unexpectedly. Client credentials remain in settings.clients
+// through the normal client attach/detach paths and are read from Client.Password
+// by the L2TP reconcile job.
+func (s *InboundService) normalizeL2TPSettings(inbound *model.Inbound) error {
+	if inbound == nil || inbound.Protocol != model.L2TP {
+		return nil
+	}
+	if inbound.NodeID != nil {
+		return common.NewError("l2tp/ipsec is supported only on the local Linux host")
+	}
+	if inbound.Port == 0 {
+		inbound.Port = l2tp.DefaultPort
+	}
+	if inbound.Port != l2tp.DefaultPort {
+		return common.NewError("l2tp inbound must use UDP port 1701; UDP 500 and 4500 are reserved for IPsec")
+	}
+	var settings map[string]any
+	if strings.TrimSpace(inbound.Settings) == "" {
+		settings = map[string]any{}
+	} else if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil || settings == nil {
+		return common.NewError("l2tp settings must be a JSON object")
+	}
+	if psk, _ := settings["psk"].(string); strings.TrimSpace(psk) == "" {
+		settings["psk"] = model.GenerateL2TPPSK()
+	}
+	defaults := map[string]any{
+		"poolCIDR":          l2tp.DefaultPoolCIDR,
+		"localIP":           l2tp.DefaultLocalIP,
+		"poolStart":         l2tp.DefaultPoolStart,
+		"poolEnd":           l2tp.DefaultPoolEnd,
+		"dns1":              l2tp.DefaultDNS1,
+		"dns2":              l2tp.DefaultDNS2,
+		"redirectGateway":   true,
+		"clients":           []any{},
+	}
+	for key, value := range defaults {
+		if _, exists := settings[key]; !exists {
+			settings[key] = value
+		}
+	}
+	var parsed struct {
+		PSK               string `json:"psk"`
+		PoolCIDR          string `json:"poolCIDR"`
+		LocalIP           string `json:"localIP"`
+		PoolStart         string `json:"poolStart"`
+		PoolEnd           string `json:"poolEnd"`
+		DNS1              string `json:"dns1"`
+		DNS2              string `json:"dns2"`
+		OutboundInterface string `json:"outboundInterface"`
+	}
+	encoded, err := json.Marshal(settings)
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(encoded, &parsed); err != nil {
+		return common.NewError("invalid l2tp settings:", err)
+	}
+	if err := l2tp.ValidateSettings(l2tp.Instance{
+		Port:              inbound.Port,
+		PSK:               parsed.PSK,
+		PoolCIDR:          parsed.PoolCIDR,
+		LocalIP:           parsed.LocalIP,
+		PoolStart:         parsed.PoolStart,
+		PoolEnd:           parsed.PoolEnd,
+		DNS1:              parsed.DNS1,
+		DNS2:              parsed.DNS2,
+		OutboundInterface: parsed.OutboundInterface,
+	}); err != nil {
+		return common.NewError(err.Error())
+	}
+	out, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return err
+	}
+	inbound.Settings = string(out)
+	// L2TP/IPsec is an external daemon and has no Xray stream/sniffing config.
+	inbound.StreamSettings = ""
+	inbound.Sniffing = ""
+	return nil
+}
+
+func validateL2TPClientCredentials(clients []model.Client) error {
+	for _, client := range clients {
+		if strings.TrimSpace(client.Email) == "" || client.Password == "" ||
+			strings.ContainsAny(client.Email, "\r\n*") || strings.ContainsAny(client.Password, "\r\n") {
+			return common.NewError("l2tp clients require a valid email and password")
+		}
+	}
+	return nil
+}
+
+func (s *InboundService) checkL2TPSingleton(ignoreID int) error {
+	db := database.GetDB()
+	query := db.Model(model.Inbound{}).Where("protocol = ?", model.L2TP)
+	if ignoreID > 0 {
+		query = query.Where("id != ?", ignoreID)
+	}
+	var count int64
+	if err := query.Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return common.NewError("only one global l2tp/ipsec inbound is allowed")
+	}
+	return nil
+}
+
 // mtprotoRoutesThroughXray reports whether an mtproto inbound is configured to
 // egress through the core's router (the loopback SOCKS bridge in §xray.go).
 func mtprotoRoutesThroughXray(inbound *model.Inbound) bool {
@@ -559,9 +672,21 @@ func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSet
 // then saves the inbound to the database and optionally adds it to the running Xray instance.
 // Returns the created inbound, whether Xray needs restart, and any error.
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
+	if inbound != nil && inbound.Protocol == model.L2TP {
+		l2tpInboundMu.Lock()
+		defer l2tpInboundMu.Unlock()
+	}
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	s.normalizeMtprotoSecret(inbound)
+	if err := s.normalizeL2TPSettings(inbound); err != nil {
+		return inbound, false, err
+	}
+	if inbound.Protocol == model.L2TP {
+		if err := s.checkL2TPSingleton(0); err != nil {
+			return inbound, false, err
+		}
+	}
 	if err := s.normalizeMtprotoXrayPort(inbound, ""); err != nil {
 		return inbound, false, err
 	}
@@ -586,6 +711,11 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	clients, err := s.GetClients(inbound)
 	if err != nil {
 		return inbound, false, err
+	}
+	if inbound.Protocol == model.L2TP {
+		if err := validateL2TPClientCredentials(clients); err != nil {
+			return inbound, false, err
+		}
 	}
 	existEmail, err := s.clientService.checkEmailsExistForClients(s, clients, nil)
 	if err != nil {
@@ -633,6 +763,10 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		case "hysteria":
 			if client.Auth == "" {
 				return inbound, false, common.NewError("empty client ID")
+			}
+		case model.L2TP:
+			if client.Email == "" || client.Password == "" {
+				return inbound, false, common.NewError("l2tp clients require email and password")
 			}
 		default:
 			if client.ID == "" {
@@ -745,8 +879,12 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 	markDirty := false
 	var ib model.Inbound
 	loadErr := db.Model(model.Inbound{}).Where("id = ?", id).First(&ib).Error
+	if loadErr == nil && ib.Protocol == model.L2TP {
+		l2tpInboundMu.Lock()
+		defer l2tpInboundMu.Unlock()
+	}
 	if loadErr == nil {
-		shouldPushToRuntime := ib.NodeID != nil || ib.Enable
+		shouldPushToRuntime := ib.NodeID != nil || ib.Enable || ib.Protocol == model.L2TP
 		if shouldPushToRuntime {
 			rt, push, dirty, perr := s.nodePushPlan(&ib)
 			if perr != nil {
@@ -926,9 +1064,21 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 }
 
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
+	if inbound != nil && inbound.Protocol == model.L2TP {
+		l2tpInboundMu.Lock()
+		defer l2tpInboundMu.Unlock()
+	}
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	s.normalizeMtprotoSecret(inbound)
+	if err := s.normalizeL2TPSettings(inbound); err != nil {
+		return inbound, false, err
+	}
+	if inbound.Protocol == model.L2TP {
+		if err := s.checkL2TPSingleton(inbound.Id); err != nil {
+			return inbound, false, err
+		}
+	}
 	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
 
 	conflict, err := s.checkPortConflict(inbound, inbound.Id)
@@ -943,7 +1093,20 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	if err != nil {
 		return inbound, false, err
 	}
+	oldRuntime := *oldInbound
 	inbound.NodeID = oldInbound.NodeID
+	if inbound.Protocol == model.L2TP && inbound.NodeID != nil {
+		return inbound, false, common.NewError("l2tp/ipsec is supported only on the local Linux host")
+	}
+	if inbound.Protocol == model.L2TP {
+		clients, clientErr := s.GetClients(inbound)
+		if clientErr != nil {
+			return inbound, false, clientErr
+		}
+		if clientErr = validateL2TPClientCredentials(clients); clientErr != nil {
+			return inbound, false, clientErr
+		}
+	}
 	// Capture the pre-edit routing state before oldInbound.Settings is replaced
 	// with the new settings further down, then ensure a routed inbound keeps a
 	// stable egress port (reusing the one already stored).
@@ -1082,7 +1245,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		if !push {
 			needRestart = true
 		} else {
-			oldSnapshot := *oldInbound
+			oldSnapshot := oldRuntime
 			oldSnapshot.Tag = tag
 			if err2 := rt.DelInbound(context.Background(), &oldSnapshot); err2 == nil {
 				logger.Debug("Old inbound deleted on", rt.Name(), ":", tag)
@@ -1101,7 +1264,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 			}
 		}
 	} else if push {
-		oldSnapshot := *oldInbound
+		oldSnapshot := oldRuntime
 		oldSnapshot.Tag = tag
 		if !inbound.Enable {
 			if err2 := rt.DelInbound(context.Background(), &oldSnapshot); err2 != nil {

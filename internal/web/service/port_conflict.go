@@ -7,6 +7,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 )
 
@@ -20,7 +21,7 @@ const (
 func inboundTransports(protocol model.Protocol, streamSettings, settings string) transportBits {
 	// protocols that ignore streamSettings entirely.
 	switch protocol {
-	case model.Hysteria, model.WireGuard:
+	case model.Hysteria, model.WireGuard, model.L2TP:
 		return transportUDP
 	case model.MTProto:
 		return transportTCP
@@ -139,8 +140,25 @@ func (d *portConflictDetail) String() string {
 func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int) (*portConflictDetail, error) {
 	db := database.GetDB()
 
+	// L2TP/IPsec claims UDP 500, 4500 and 1701 even though its model port is
+	// always 1701. Include all fixed ports in the conflict query so an Xray or
+	// OpenVPN inbound cannot accidentally bind one of the IPsec listeners.
+	fixed := false
+	for _, port := range l2tp.FixedPorts {
+		if inbound.Port == port {
+			fixed = true
+			break
+		}
+	}
 	var candidates []*model.Inbound
-	q := db.Model(model.Inbound{}).Where("port = ?", inbound.Port)
+	q := db.Model(model.Inbound{})
+	if inbound.Protocol == model.L2TP {
+		q = q.Where("port IN ? OR protocol = ?", l2tp.FixedPorts[:], model.L2TP)
+	} else if fixed {
+		q = q.Where("port = ? OR protocol = ?", inbound.Port, model.L2TP)
+	} else {
+		q = q.Where("port = ?", inbound.Port)
+	}
 	if ignoreId > 0 {
 		q = q.Where("id != ?", ignoreId)
 	}
@@ -153,11 +171,28 @@ func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int)
 		if !sameNode(c.NodeID, inbound.NodeID) {
 			continue
 		}
-		if !listenOverlaps(c.Listen, inbound.Listen) {
+		// strongSwan's IKE/NAT-T sockets are global. Unlike a normal Xray
+		// inbound, their effective listen address is all interfaces regardless
+		// of the stored L2TP listen hint.
+		if inbound.Protocol == model.L2TP || c.Protocol == model.L2TP {
+			if inbound.Protocol != model.L2TP && c.Protocol == model.L2TP && c.Port != inbound.Port && inbound.Port != 500 && inbound.Port != 4500 {
+				continue
+			}
+			if inbound.Protocol == model.L2TP && c.Protocol != model.L2TP && c.Port != 1701 && c.Port != 500 && c.Port != 4500 {
+				continue
+			}
+		}
+		if !listenOverlaps(c.Listen, inbound.Listen) && inbound.Protocol != model.L2TP && c.Protocol != model.L2TP {
 			continue
 		}
 		existingBits := inboundTransports(c.Protocol, c.StreamSettings, c.Settings)
 		shared := existingBits & newBits
+		if c.Protocol == model.L2TP && inbound.Protocol != model.L2TP {
+			shared = transportUDP & newBits
+		}
+		if inbound.Protocol == model.L2TP && c.Protocol != model.L2TP {
+			shared = transportUDP & existingBits
+		}
 		if shared == 0 {
 			continue
 		}

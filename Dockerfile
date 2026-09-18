@@ -42,6 +42,11 @@ RUN apk add --no-cache --update \
   tzdata \
   fail2ban \
   openvpn \
+  strongswan \
+  xl2tpd \
+  ppp \
+  iptables \
+  iproute2 \
   bash \
   curl \
   openssl

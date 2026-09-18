@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
+	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
@@ -290,6 +291,11 @@ func (s *Server) startTask(restartXray bool) {
 	s.cron.AddJob("@every 10s", ovpnJob)
 	go ovpnJob.Run()
 
+	// Reconcile the single global strongSwan/xl2tpd L2TP/IPsec daemon group
+	l2tpJob := job.NewL2TPJob()
+	s.cron.AddJob("@every 10s", l2tpJob)
+	go l2tpJob.Run()
+
 	// check client ips from log file every 10 sec
 	s.cron.AddJob("@every 10s", job.NewCheckClientIpJob())
 
@@ -476,6 +482,7 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 		s.xrayService.StopXray()
 		mtproto.GetManager().StopAll()
 		openvpn.GetManager().StopAll()
+		l2tp.GetManager().StopAll()
 	}
 	if s.cron != nil {
 		s.cron.Stop()

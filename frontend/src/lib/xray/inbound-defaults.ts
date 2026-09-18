@@ -5,6 +5,7 @@ import type { HysteriaClient, HysteriaInboundSettings } from '@/schemas/protocol
 import type { MixedInboundSettings } from '@/schemas/protocols/inbound/mixed';
 import type { MtprotoInboundSettings } from '@/schemas/protocols/inbound/mtproto';
 import type { OpenvpnInboundSettings } from '@/schemas/protocols/inbound/openvpn';
+import type { L2tpInboundSettings } from '@/schemas/protocols/inbound/l2tp';
 import type { ShadowsocksClient, ShadowsocksInboundSettings } from '@/schemas/protocols/inbound/shadowsocks';
 import type { TrojanClient, TrojanInboundSettings } from '@/schemas/protocols/inbound/trojan';
 import type { TunInboundSettings } from '@/schemas/protocols/inbound/tun';
@@ -253,6 +254,22 @@ export function createDefaultOpenvpnInboundSettings(): OpenvpnInboundSettings {
   };
 }
 
+// L2TP/IPsec defaults. The PSK is displayed as a connection parameter and
+// persisted by the backend; no client profile file is generated.
+export function createDefaultL2tpInboundSettings(): L2tpInboundSettings {
+  return {
+    psk: RandomUtil.randomSeq(64, { type: 'hex' }),
+    poolCIDR: '10.252.0.0/24',
+    localIP: '10.252.0.1',
+    poolStart: '10.252.0.10',
+    poolEnd: '10.252.0.250',
+    dns1: '1.1.1.1',
+    dns2: '8.8.8.8',
+    outboundInterface: '',
+    redirectGateway: true,
+  };
+}
+
 export function createDefaultTunnelInboundSettings(): TunnelInboundSettings {
   return {
     portMap: {},
@@ -316,7 +333,8 @@ export type AnyInboundSettings =
   | TunnelInboundSettings
   | WireguardInboundSettings
   | MtprotoInboundSettings
-  | OpenvpnInboundSettings;
+  | OpenvpnInboundSettings
+  | L2tpInboundSettings;
 
 export function createDefaultInboundSettings(protocol: string): AnyInboundSettings | null {
   switch (protocol) {
@@ -332,6 +350,7 @@ export function createDefaultInboundSettings(protocol: string): AnyInboundSettin
     case 'wireguard':   return createDefaultWireguardInboundSettings();
     case 'mtproto':     return createDefaultMtprotoInboundSettings();
     case 'openvpn':     return createDefaultOpenvpnInboundSettings();
+    case 'l2tp':        return createDefaultL2tpInboundSettings();
     default:            return null;
   }
 }

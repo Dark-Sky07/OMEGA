@@ -37,6 +37,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega
 | --- | --- |
 | ➕ **اضافه‌شده** | **نمایندگی‌ها** — زیرحساب‌هایی با ورود مستقل، مالکیت محدود روی ورودی/کلاینت، سهمیه‌ی ترافیک و تعداد، و گزارش فروش و حساب. |
 | ➕ **اضافه‌شده** | **اینباندهای OpenVPN** — برای هر اینباند یک daemon محلی OpenVPN روی پورت آن گوش می‌کند؛ گواهی هر کلاینت خودکار ساخته می‌شود (CN = ایمیل)، هر کلاینت پروفایل آماده‌ی `.ovpn` دارد (کپی/دانلود از صفحه‌ی اطلاعات کلاینت) و ترافیک و آنلاین بودن هر کلاینت وارد همان خط لوله‌ی آمار می‌شود. installer نسخه‌ی tag‌شده بسته‌ی سیستم‌عامل `openvpn` و `/dev/net/tun` را نصب و بررسی می‌کند؛ سپس پنل برای هر اینباند محلی فعال، کانفیگ و daemon مستقل می‌سازد. فایل tar پنل به‌تنهایی بسته‌ی OpenVPN سیستم‌عامل را شامل نمی‌شود؛ باید installer اجرا شود. |
+| ➕ **اضافه‌شده** | **اینباندهای L2TP/IPsec** — یک گروه daemon سراسری روی Linux با strongSwan و xl2tpd/PPP، با استفاده از email/password کلاینت‌های موجود، PSK پایدار، reconcile کانفیگ و `chap-secrets`، forwarding/NAT و آمار آنلاین/ترافیک. این پروتکل خارج از Xray است و profile فایل تولید نمی‌کند؛ پارامترهای native اتصال در UI نمایش داده می‌شوند. |
 | 🎨 **برندینگ** | نام پنل در سایدبار، صفحه‌ی ورود، عنوان صفحه‌ها، مستندات API و ترجمه‌ها **OMEGA** است. فقط ظاهر — بدون تغییر در مسیرها، نام سرویس و شماره‌ی نسخه. |
 | 🛠 **نصب** | [`install-omega.sh`](install-omega.sh) همین پنل را از همین ریپازیتوری نصب می‌کند و [`x-ui.sh`](x-ui.sh) هم از همین‌جا آپدیت می‌گیرد؛ بنابراین `x-ui update` هرگز پنل را با نسخه‌ی خام 3x-ui عوض نمی‌کند. |
 | ✅ **بدون تغییر** | بقیه‌ی همه‌چیز — تمام 3x-ui نسخه‌ی 3.3.1 (پروتکل‌ها، ترنسپورت‌ها، نودها، اشتراک‌ها، ربات تلگرام، روتینگ، API، تم‌ها و ۱۳ زبان). |
@@ -64,6 +65,14 @@ systemctl restart x-ui
 
 اسکریپت `x-ui update` که در این release قرار دارد، آخرین tag پایدار را پیدا و installer همان tag را اجرا می‌کند و دیگر installer قدیمی و بدون tag را از `main` نمی‌گیرد. برای اینباند OpenVPN، پورت تنظیم‌شده را با transport انتخابی (`udp` یا `tcp`) هم در فایروال سرور و هم در فایروال ارائه‌دهندهٔ VPS باز کنید. اگر گزینهٔ **Redirect gateway** روشن است، روی سرور باید IPv4 forwarding و NAT/masquerade برای subnet تونل `10.x.x.0/24` هم تنظیم شده باشد؛ پنل policy فایروال شما را خودکار بازنویسی نمی‌کند. اگر profile import می‌شود اما روی `Trying to connect` می‌ماند، این موارد را بررسی کنید: `command -v openvpn`، وجود `/dev/net/tun`، خروجی `ss -lunpt`، فایل `/var/log/x-ui/3xui.log` و فایل `bin/openvpn/<inbound-id>/openvpn.log`.
 
+### نصب و چک‌لیست L2TP/IPsec
+
+L2TP/IPsec daemon سیستم‌عامل است و بخشی از Xray نیست. installer بسته‌های `strongswan`، `xl2tpd`، `ppp`، `iptables` و `iproute2` را نصب و وجود `/dev/ppp` را بررسی می‌کند. فقط یک اینباند محلی فعال مجاز است، چون گروه daemon پورت‌های UDP 500، 4500 و 1701 را در اختیار می‌گیرد. PPTP در OMEGA پیاده‌سازی نشده است.
+
+فایل‌های runtime زیر `bin/l2tp/<inbound-id>/` ساخته می‌شوند؛ forwarding IPv4، ruleهای `FORWARD` و `MASQUERADE` و listenerهای ثابت هم توسط پنل مدیریت می‌شوند. کلاینت‌های موجود را از صفحهٔ Clients متصل کنید: email نام کاربری PPP و password رمز MS-CHAPv2 است. در صفحهٔ اطلاعات اینباند PSK، pool، DNS و پورت‌ها دیده می‌شود. کلاینت را با تنظیمات native L2TP/IPsec پیکربندی کنید؛ profile فایل تولید نمی‌شود.
+
+برای Docker باید `NET_ADMIN`، `NET_RAW`، دستگاه‌های `/dev/ppp` و `/dev/net/tun`، sysctl forwarding و publish کردن UDPهای 500، 4500 و 1701 فراهم باشد؛ تنظیمات آن در `docker-compose.yml` قرار دارد. kernel میزبان باید PPP و XFRM/IPsec را پشتیبانی کند.
+
 ---
 
 ## :rocket: نصب
@@ -84,8 +93,8 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega
 
 نصب‌کننده خودش این کارها را انجام می‌دهد:
 
-1. نصب پیش‌نیازها (`curl`، `tar`، `socat`، `openssl`، `tzdata`، کرون و …) به‌علاوه‌ی بسته‌ی سیستم‌عامل `openvpn`
-2. بررسی وجود `/dev/net/tun`؛ اگر پیش‌نیاز OpenVPN قابل استفاده نباشد نصب متوقف می‌شود
+1. نصب پیش‌نیازها (`curl`، `tar`، `socat`، `openssl`، `tzdata`، کرون و …) به‌علاوه‌ی بسته‌های `openvpn`، `strongswan`، `xl2tpd`، `ppp`، `iptables` و `iproute2`
+2. بررسی وجود `/dev/net/tun` و `/dev/ppp`؛ اگر پیش‌نیاز daemonهای VPN قابل استفاده نباشد نصب متوقف می‌شود
 3. دانلود پکیج آماده‌ی معماری سرور (پنل **+ Xray-core + geoip/geosite + mtg**)
 4. نصب در `/usr/local/x-ui` و ساخت سرویس systemd با همان نام `x-ui`
 5. در آپدیت، **دیتابیس و تنظیمات قبلی حفظ می‌شود**
