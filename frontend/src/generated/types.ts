@@ -318,6 +318,18 @@ export interface InboundFallback {
   xver: number;
 }
 
+export interface InboundOption {
+  id: number;
+  l2tp?: L2TPInboundOption | null;
+  nodeId?: number | null;
+  port: number;
+  protocol: string;
+  remark: string;
+  ssMethod: string;
+  tag: string;
+  tlsFlowCapable: boolean;
+}
+
 export interface L2TPInboundOption {
   dns1: string;
   dns2: string;
@@ -329,18 +341,6 @@ export interface L2TPInboundOption {
   psk: string;
   redirectGateway: boolean;
   serverAddress?: string;
-}
-
-export interface InboundOption {
-  id: number;
-  l2tp?: L2TPInboundOption;
-  nodeId?: number | null;
-  port: number;
-  protocol: string;
-  remark: string;
-  ssMethod: string;
-  tag: string;
-  tlsFlowCapable: boolean;
 }
 
 export interface Msg {

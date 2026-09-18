@@ -344,7 +344,7 @@ export type InboundFallback = z.infer<typeof InboundFallbackSchema>;
 
 export const InboundOptionSchema = z.object({
   id: z.number().int(),
-  l2tp: z.lazy(() => L2TPInboundOptionSchema).optional(),
+  l2tp: z.lazy(() => L2TPInboundOptionSchema).nullable().optional(),
   nodeId: z.number().int().nullable().optional(),
   port: z.number().int(),
   protocol: z.string(),

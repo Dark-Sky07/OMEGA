@@ -62,6 +62,48 @@ const DEFAULT_SUB: SubSettings = {
   subClashEnable: false,
 };
 
+type L2TPOption = NonNullable<InboundOption['l2tp']>;
+
+const DEFAULT_L2TP_CONFIG: L2TPOption = {
+  fixedPorts: [500, 4500, 1701],
+  poolCIDR: '10.252.0.0/24',
+  localIP: '10.252.0.1',
+  poolStart: '10.252.0.10',
+  poolEnd: '10.252.0.250',
+  dns1: '1.1.1.1',
+  dns2: '8.8.8.8',
+  redirectGateway: true,
+};
+
+function parseL2TPSettings(value: unknown): L2TPOption {
+  let raw: Record<string, unknown> = {};
+  if (typeof value === 'string') {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        raw = parsed as Record<string, unknown>;
+      }
+    } catch {
+      // Keep daemon defaults when a legacy inbound has malformed settings.
+    }
+  } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+    raw = value as Record<string, unknown>;
+  }
+
+  const text = (key: string) => typeof raw[key] === 'string' ? raw[key] as string : undefined;
+  return {
+    ...DEFAULT_L2TP_CONFIG,
+    psk: text('psk'),
+    poolCIDR: text('poolCIDR') || DEFAULT_L2TP_CONFIG.poolCIDR,
+    localIP: text('localIP') || DEFAULT_L2TP_CONFIG.localIP,
+    poolStart: text('poolStart') || DEFAULT_L2TP_CONFIG.poolStart,
+    poolEnd: text('poolEnd') || DEFAULT_L2TP_CONFIG.poolEnd,
+    dns1: text('dns1') || DEFAULT_L2TP_CONFIG.dns1,
+    dns2: text('dns2') || DEFAULT_L2TP_CONFIG.dns2,
+    redirectGateway: raw.redirectGateway === false ? false : true,
+  };
+}
+
 export default function ClientInfoModal({
   open,
   client,
@@ -111,15 +153,57 @@ export default function ClientInfoModal({
   // worth surfacing here is the per-client .ovpn profile.
   const openvpnInboundCount = useMemo(() => {
     const ids = client?.inboundIds ?? [];
-    return ids.filter((id) => inboundsById[id]?.protocol === 'openvpn').length;
+    return ids.filter((id) => (inboundsById[id]?.protocol || '').toLowerCase() === 'openvpn').length;
   }, [client?.inboundIds, inboundsById]);
+
+  const l2tpInboundIds = useMemo(
+    () => (client?.inboundIds ?? []).filter((id) =>
+      (inboundsById[id]?.protocol || '').toLowerCase() === 'l2tp',
+    ),
+    [client?.inboundIds, inboundsById],
+  );
+  const [legacyL2TPConfigs, setLegacyL2TPConfigs] = useState<Record<number, L2TPOption>>({});
+
+  // Older panel binaries expose L2TP in the picker but do not yet include
+  // the l2tp metadata projection. Hydrate those specific inbound settings so
+  // Client Information remains useful during a rolling upgrade.
+  useEffect(() => {
+    if (!open) {
+      setLegacyL2TPConfigs({});
+      return;
+    }
+    const pendingIds = l2tpInboundIds.filter((id) => !inboundsById[id]?.l2tp);
+    if (pendingIds.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const entries = await Promise.all(pendingIds.map(async (id) => {
+        const msg = await HttpUtil.get(`/panel/api/inbounds/get/${id}`, undefined, { silent: true }) as ApiMsg<{ settings?: unknown }>;
+        if (!msg?.success || !msg.obj) return null;
+        return [id, parseL2TPSettings(msg.obj.settings)] as const;
+      }));
+      if (cancelled) return;
+      setLegacyL2TPConfigs((previous) => {
+        const next = { ...previous };
+        for (const entry of entries) {
+          if (entry) next[entry[0]] = entry[1];
+        }
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [open, l2tpInboundIds, inboundsById]);
 
   const l2tpInbounds = useMemo(
     () => (client?.inboundIds ?? [])
       .map((id) => inboundsById[id])
-      .filter((ib): ib is InboundOption & { l2tp: NonNullable<InboundOption['l2tp']> } =>
-        !!ib && ib.protocol === 'l2tp' && !!ib.l2tp),
-    [client?.inboundIds, inboundsById],
+      .filter((ib): ib is InboundOption =>
+        !!ib && (ib.protocol || '').toLowerCase() === 'l2tp',
+      )
+      .map((ib) => ({
+        ...ib,
+        l2tp: ib.l2tp || legacyL2TPConfigs[ib.id] || DEFAULT_L2TP_CONFIG,
+      })),
+    [client?.inboundIds, inboundsById, legacyL2TPConfigs],
   );
   const [ovpnProfile, setOvpnProfile] = useState('');
   const [ovpnLoading, setOvpnLoading] = useState(false);

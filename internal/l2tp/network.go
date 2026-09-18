@@ -97,7 +97,10 @@ func (m *NetworkManager) run(name string, args ...string) error {
 }
 
 func iptablesArgs(operation, table string, rule []string) []string {
-	args := make([]string, 0, len(rule)+3)
+	// Keep the capacity based only on the caller-provided slice. Adding the
+	// fixed table/operation arguments to len(rule) can overflow an allocation
+	// size before append gets a chance to grow it safely.
+	args := make([]string, 0, len(rule))
 	if table != "" {
 		args = append(args, "-t", table)
 	}
