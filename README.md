@@ -4,7 +4,7 @@
 
 # OMEGA
 
-**A panel for managing Xray-core servers — built on [3x-ui](https://github.com/MHSanaei/3x-ui) `v3.3.1`, with one feature added on top: [Resellers (نمایندگی)](#-resellers-نمایندگی).**
+**A panel for managing Xray-core servers — built on [3x-ui](https://github.com/MHSanaei/3x-ui) `v3.3.1`, extended with [Resellers (نمایندگی)](#-resellers-نمایندگی), external OpenVPN, and external L2TP/IPsec daemons.**
 
 English · [فارسی](README.fa_IR.md)
 
@@ -18,15 +18,16 @@ English · [فارسی](README.fa_IR.md)
 **Install in one line** — on a fresh server, as `root`:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega/install-omega.sh) v3.3.14-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.15-omega/install-omega.sh) v3.3.15-omega
 ```
 
 </div>
 
 > [!NOTE]
-> OMEGA is a fork: the panel **is** 3x-ui v3.3.1. Only the reseller feature was added and the UI was branded
-> OMEGA. The service name (`x-ui`), install paths (`/usr/local/x-ui`, `/etc/x-ui`), environment variables,
-> config format and version string (`3.3.1`) are unchanged, so every 3x-ui guide, script or tool keeps working.
+> OMEGA is a fork based on 3x-ui v3.3.1. It adds reseller controls, an external OpenVPN daemon, and an external
+> L2TP/IPsec daemon while keeping the panel service name (`x-ui`), install paths (`/usr/local/x-ui`, `/etc/x-ui`),
+> environment variables, and Xray configuration conventions compatible with the upstream project. The OMEGA release
+> version is maintained separately from the upstream core version, so the current stable release is `v3.3.15-omega`.
 
 ---
 
@@ -36,8 +37,8 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega
 | --- | --- |
 | ➕ **Added** | **Resellers (نمایندگی)** — sub-accounts with their own login, scoped ownership, quotas and sales/billing reports. |
 | ➕ **Added** | **OpenVPN inbounds** — an OpenVPN daemon per inbound binds the port directly; per-client certificates are generated automatically (CN = email), each client gets a ready-to-import `.ovpn` (copy/download from the client info), and per-client traffic + online status flow into the normal stats pipeline. The tagged release installer installs and verifies the host `openvpn` package and `/dev/net/tun`; the panel then renders one daemon config per enabled local OpenVPN inbound. The release archive does not embed an OS package, so use the installer rather than copying only the panel tarball. |
-| ➕ **Added** | **L2TP/IPsec inbounds** — one global local Linux daemon group (strongSwan + xl2tpd/PPP) uses existing client email/password credentials, persists an IPsec PSK, reconciles daemon config and `chap-secrets`, enables IPv4 forwarding/NAT, and reports PPP online/traffic state. It is not an Xray inbound and does not generate a profile file; the UI shows native client parameters. |
-| 🎨 **Branding** | Panel name shown as **OMEGA** (sidebar, login page, page titles, API docs, translations). UI-only — no paths, service names or version numbers touched. |
+| ➕ **Added** | **L2TP/IPsec inbounds** — one global local-Linux daemon group (strongSwan + xl2tpd/PPP) uses existing client email/password credentials, persists the IPsec PSK, reconciles daemon config and `chap-secrets` synchronously for single and bulk client operations, recovers orphaned daemons after restart, manages UDP 500/4500/1701 plus IPv4 forwarding/FORWARD/MASQUERADE rules, and reports PPP online/traffic state. It is not an Xray inbound, does not generate a profile file, and does not include PPTP; the UI shows native client parameters. |
+| 🎨 **Branding** | Panel name shown as **OMEGA** (sidebar, login page, page titles, API docs, translations). UI branding only; service names and install paths remain unchanged. |
 | 🛠 **Install** | [`install-omega.sh`](install-omega.sh) installs *this* panel from *this* repository; [`x-ui.sh`](x-ui.sh) updates from here too, so `x-ui update` can never silently swap in vanilla 3x-ui. |
 | ✅ **Unchanged** | Everything else — all of 3x-ui v3.3.1 (protocols, transports, nodes, subscriptions, Telegram bot, routing, API, themes, 13 languages). |
 
@@ -48,9 +49,9 @@ OpenVPN is a host daemon, not an Xray component and not a file inside the `x-ui`
 To install or repair an existing host with the exact stable release, run as `root`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega/install-omega.sh \
+curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.15-omega/install-omega.sh \
   -o /tmp/install-omega.sh
-env OMEGA_REF=v3.3.14-omega bash /tmp/install-omega.sh v3.3.14-omega
+env OMEGA_REF=v3.3.15-omega bash /tmp/install-omega.sh v3.3.15-omega
 ```
 
 Verify the prerequisite before troubleshooting the network:
@@ -83,6 +84,14 @@ ss -lunp | grep -E ':(500|4500|1701)\\b'
 
 For Docker, the container needs `NET_ADMIN`, `NET_RAW`, `/dev/ppp`, `/dev/net/tun`, IPv4 forwarding, and published UDP 500, 4500, and 1701. The repository `docker-compose.yml` contains these settings. The host kernel must provide PPP and XFRM/IPsec; a Docker container cannot load a missing host kernel module.
 
+### L2TP/IPsec feature highlights
+
+- **One global listener:** the panel accepts only one L2TP/IPsec inbound per local host. UDP 500 and 4500 are used by IKE/NAT-T and UDP 1701 by L2TP.
+- **Existing clients:** attach clients from the normal Clients page; email becomes the PPP username and the existing password becomes the MS-CHAPv2 secret. Enable/disable, password edits, attach, detach, bulk delete, and quota enforcement are reconciled without putting L2TP into the Xray configuration.
+- **Managed networking:** OMEGA enables IPv4 forwarding and maintains exact `INPUT`, `FORWARD`, and `POSTROUTING MASQUERADE` rules for the configured pool. Firewall state is persisted so restart and cleanup can reclaim rules safely.
+- **Restart-safe lifecycle:** daemon files live under `bin/l2tp/<inbound-id>/`; strongSwan/xl2tpd are started, stopped, reconciled after settings changes, and orphaned processes are reclaimed after a panel restart.
+- **No profile files:** the panel displays PSK, pool, DNS, and port values as native connection parameters. PPTP is intentionally out of scope.
+
 ---
 
 ## :rocket: Installation
@@ -92,13 +101,13 @@ For Docker, the container needs `NET_ADMIN`, `NET_RAW`, `/dev/ppp`, `/dev/net/tu
 On a fresh server, as **root**:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega/install-omega.sh) v3.3.14-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.15-omega/install-omega.sh) v3.3.15-omega
 ```
 
 Pin a specific release instead (useful before a branch is merged):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega/install-omega.sh) v3.3.14-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.15-omega/install-omega.sh) v3.3.15-omega
 ```
 
 The installer takes care of everything:

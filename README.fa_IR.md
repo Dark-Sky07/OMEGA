@@ -6,7 +6,7 @@
 
 # OMEGA
 
-**پنل مدیریت سرورهای Xray-core، بر پایه‌ی [3x-ui](https://github.com/MHSanaei/3x-ui) نسخه‌ی `v3.3.1`، به‌اضافه‌ی یک قابلیت: [نمایندگی‌ها](#-نمایندگی-نمایندگی).**
+**پنل مدیریت سرورهای Xray-core، بر پایه‌ی [3x-ui](https://github.com/MHSanaei/3x-ui) نسخه‌ی `v3.3.1`، با قابلیت‌های [نمایندگی‌ها](#-نمایندگی-نمایندگی)، OpenVPN و L2TP/IPsec به‌صورت daemon خارجی.**
 
 [English](README.md) · فارسی
 
@@ -18,16 +18,16 @@
 **نصب با یک دستور** — روی سرور تازه، با کاربر `root`:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega/install-omega.sh) v3.3.14-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.15-omega/install-omega.sh) v3.3.15-omega
 ```
 
 </div>
 
 > [!NOTE]
-> این پروژه یک فورک است: هسته‌ی پنل دقیقاً **3x-ui نسخه‌ی 3.3.1** است. فقط قابلیت نمایندگی اضافه شده و نام
-> نمایشی پنل به OMEGA تغییر کرده. نام سرویس (`x-ui`)، مسیرهای نصب (`/usr/local/x-ui`، `/etc/x-ui`)،
-> متغیرهای محیطی، فرمت کانفیگ و شماره‌ی نسخه (`3.3.1`) دست‌نخورده‌اند؛ یعنی هر آموزش و ابزاری که برای 3x-ui
-> می‌شناسید اینجا هم کار می‌کند.
+> این پروژه فورکی بر پایه‌ی 3x-ui نسخه‌ی 3.3.1 است. قابلیت نمایندگی، daemon خارجی OpenVPN و daemon خارجی
+> L2TP/IPsec به آن اضافه شده‌اند، اما نام سرویس (`x-ui`)، مسیرهای نصب (`/usr/local/x-ui`، `/etc/x-ui`)،
+> متغیرهای محیطی و قراردادهای کانفیگ Xray با upstream سازگار باقی مانده‌اند. شماره‌ی release مربوط به OMEGA
+> جداگانه مدیریت می‌شود و نسخه‌ی stable فعلی `v3.3.15-omega` است.
 
 ---
 
@@ -37,8 +37,8 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega
 | --- | --- |
 | ➕ **اضافه‌شده** | **نمایندگی‌ها** — زیرحساب‌هایی با ورود مستقل، مالکیت محدود روی ورودی/کلاینت، سهمیه‌ی ترافیک و تعداد، و گزارش فروش و حساب. |
 | ➕ **اضافه‌شده** | **اینباندهای OpenVPN** — برای هر اینباند یک daemon محلی OpenVPN روی پورت آن گوش می‌کند؛ گواهی هر کلاینت خودکار ساخته می‌شود (CN = ایمیل)، هر کلاینت پروفایل آماده‌ی `.ovpn` دارد (کپی/دانلود از صفحه‌ی اطلاعات کلاینت) و ترافیک و آنلاین بودن هر کلاینت وارد همان خط لوله‌ی آمار می‌شود. installer نسخه‌ی tag‌شده بسته‌ی سیستم‌عامل `openvpn` و `/dev/net/tun` را نصب و بررسی می‌کند؛ سپس پنل برای هر اینباند محلی فعال، کانفیگ و daemon مستقل می‌سازد. فایل tar پنل به‌تنهایی بسته‌ی OpenVPN سیستم‌عامل را شامل نمی‌شود؛ باید installer اجرا شود. |
-| ➕ **اضافه‌شده** | **اینباندهای L2TP/IPsec** — یک گروه daemon سراسری روی Linux با strongSwan و xl2tpd/PPP، با استفاده از email/password کلاینت‌های موجود، PSK پایدار، reconcile کانفیگ و `chap-secrets`، forwarding/NAT و آمار آنلاین/ترافیک. این پروتکل خارج از Xray است و profile فایل تولید نمی‌کند؛ پارامترهای native اتصال در UI نمایش داده می‌شوند. |
-| 🎨 **برندینگ** | نام پنل در سایدبار، صفحه‌ی ورود، عنوان صفحه‌ها، مستندات API و ترجمه‌ها **OMEGA** است. فقط ظاهر — بدون تغییر در مسیرها، نام سرویس و شماره‌ی نسخه. |
+| ➕ **اضافه‌شده** | **اینباندهای L2TP/IPsec** — یک گروه daemon سراسری روی Linux با strongSwan و xl2tpd/PPP که از email/password کلاینت‌های موجود استفاده می‌کند، PSK را پایدار نگه می‌دارد، کانفیگ و `chap-secrets` را در مسیرهای single و bulk به‌صورت synchronous reconcile می‌کند، daemonهای orphan را بعد از restart جمع می‌کند، پورت‌های UDP 500/4500/1701 و ruleهای forwarding/FORWARD/MASQUERADE را مدیریت می‌کند و آمار آنلاین/ترافیک PPP را گزارش می‌دهد. این پروتکل خارج از Xray است، profile فایل و PPTP ندارد و پارامترهای native اتصال در UI نمایش داده می‌شوند. |
+| 🎨 **برندینگ** | نام پنل در سایدبار، صفحه‌ی ورود، عنوان صفحه‌ها، مستندات API و ترجمه‌ها **OMEGA** است. فقط برندینگ ظاهری؛ مسیرهای نصب و نام سرویس بدون تغییر باقی مانده‌اند. |
 | 🛠 **نصب** | [`install-omega.sh`](install-omega.sh) همین پنل را از همین ریپازیتوری نصب می‌کند و [`x-ui.sh`](x-ui.sh) هم از همین‌جا آپدیت می‌گیرد؛ بنابراین `x-ui update` هرگز پنل را با نسخه‌ی خام 3x-ui عوض نمی‌کند. |
 | ✅ **بدون تغییر** | بقیه‌ی همه‌چیز — تمام 3x-ui نسخه‌ی 3.3.1 (پروتکل‌ها، ترنسپورت‌ها، نودها، اشتراک‌ها، ربات تلگرام، روتینگ، API، تم‌ها و ۱۳ زبان). |
 
@@ -49,9 +49,9 @@ OpenVPN یک daemon سیستم‌عامل است، نه بخشی از Xray و ن
 برای نصب یا تعمیر سرور موجود با آخرین release پایدار، با کاربر `root` اجرا کنید:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega/install-omega.sh \
+curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.15-omega/install-omega.sh \
   -o /tmp/install-omega.sh
-env OMEGA_REF=v3.3.14-omega bash /tmp/install-omega.sh v3.3.14-omega
+env OMEGA_REF=v3.3.15-omega bash /tmp/install-omega.sh v3.3.15-omega
 ```
 
 پیش‌نیاز را قبل از بررسی شبکه verify کنید:
@@ -73,6 +73,14 @@ L2TP/IPsec daemon سیستم‌عامل است و بخشی از Xray نیست. i
 
 برای Docker باید `NET_ADMIN`، `NET_RAW`، دستگاه‌های `/dev/ppp` و `/dev/net/tun`، sysctl forwarding و publish کردن UDPهای 500، 4500 و 1701 فراهم باشد؛ تنظیمات آن در `docker-compose.yml` قرار دارد. kernel میزبان باید PPP و XFRM/IPsec را پشتیبانی کند.
 
+### خلاصه‌ی قابلیت‌های L2TP/IPsec
+
+- **یک listener سراسری:** در هر host محلی فقط یک inbound از نوع L2TP/IPsec مجاز است؛ UDPهای 500 و 4500 برای IKE/NAT-T و UDP 1701 برای L2TP هستند.
+- **کلاینت‌های موجود:** از صفحه‌ی عادی Clients کلاینت را متصل کنید؛ email نام کاربری PPP و password موجود رمز MS-CHAPv2 می‌شود. enable/disable، تغییر password، attach، detach، حذف گروهی و enforcement سهمیه‌ها بدون وارد کردن L2TP به کانفیگ Xray reconcile می‌شوند.
+- **مدیریت شبکه:** OMEGA IPv4 forwarding را فعال و ruleهای دقیق `INPUT`، `FORWARD` و `POSTROUTING MASQUERADE` را برای pool تنظیم‌شده مدیریت می‌کند. وضعیت firewall برای restart و cleanup پایدار می‌ماند.
+- **چرخه‌ی امن پس از restart:** فایل‌های daemon زیر `bin/l2tp/<inbound-id>/` قرار می‌گیرند؛ strongSwan و xl2tpd هنگام تغییر تنظیمات reconcile می‌شوند و processهای orphan بعد از restart جمع می‌شوند.
+- **بدون profile فایل:** PSK، pool، DNS و پورت‌ها به‌صورت پارامترهای native اتصال نمایش داده می‌شوند. PPTP عمداً خارج از scope است.
+
 ---
 
 ## :rocket: نصب
@@ -82,13 +90,13 @@ L2TP/IPsec daemon سیستم‌عامل است و بخشی از Xray نیست. i
 روی سرور تازه، با کاربر **root**:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega/install-omega.sh) v3.3.14-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.15-omega/install-omega.sh) v3.3.15-omega
 ```
 
 اگر می‌خواهید نسخه‌ی مشخصی نصب شود (مثلاً قبل از merge شدن شاخه‌ی اصلی):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.14-omega/install-omega.sh) v3.3.14-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.15-omega/install-omega.sh) v3.3.15-omega
 ```
 
 نصب‌کننده خودش این کارها را انجام می‌دهد:
