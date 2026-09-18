@@ -268,6 +268,9 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 			return false, common.NewError("client email is required")
 		}
 		switch oldInbound.Protocol {
+		case model.OpenVPN:
+			// OpenVPN client identity is the email (certificate CN); no
+			// UUID/password credential is required.
 		case "trojan":
 			if client.Password == "" {
 				return false, common.NewError("empty client ID")
@@ -432,6 +435,9 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 
 	newClientId := ""
 	switch oldInbound.Protocol {
+	case model.OpenVPN:
+		// Identity is the email (certificate CN) — no UUID to require.
+		newClientId = clients[0].Email
 	case "trojan":
 		newClientId = clients[0].Password
 	case "shadowsocks":
