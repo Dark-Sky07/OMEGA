@@ -157,6 +157,12 @@
       "xrayStatusRunning": "در حال اجرا",
       "xrayStatusStop": "متوقف",
       "xrayStatusError": "خطا",
+      "startDaemon": "شروع",
+      "stopDaemon": "توقف",
+      "restartDaemon": "راه‌اندازی مجدد",
+      "updateDaemon": "به‌روزرسانی",
+      "daemonInbounds": "اینباندها",
+      "daemonOnline": "آنلاین",
       "xrayErrorPopoverTitle": "خطا در هنگام اجرای Xray رخ داد",
       "operationHours": "مدت‌کارکرد",
       "systemHistoryTitle": "تاریخچه سیستم",
@@ -677,6 +683,8 @@
       }
     },
     "clients": {
+      "import": "درون‌ریزی",
+      "export": "برون‌بری",
       "tabBasics": "پایه",
       "tabCredentials": "اطلاعات اتصال",
       "add": "افزودن کلاینت",

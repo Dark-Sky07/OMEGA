@@ -157,6 +157,12 @@
       "xrayStatusRunning": "Running",
       "xrayStatusStop": "Stopped",
       "xrayStatusError": "Error",
+      "startDaemon": "Start",
+      "stopDaemon": "Stop",
+      "restartDaemon": "Restart",
+      "updateDaemon": "Update",
+      "daemonInbounds": "Inbounds",
+      "daemonOnline": "Online",
       "xrayErrorPopoverTitle": "An error occurred while running Xray",
       "operationHours": "Uptime",
       "systemHistoryTitle": "System History",
@@ -678,6 +684,8 @@
       }
     },
     "clients": {
+      "import": "Import",
+      "export": "Export",
       "tabBasics": "Basics",
       "tabCredentials": "Credentials",
       "add": "Add Client",

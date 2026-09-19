@@ -34,6 +34,7 @@ import {
   DatabaseOutlined,
   ForkOutlined,
   CopyOutlined,
+  GithubOutlined,
 } from '@ant-design/icons';
 
 import { HttpUtil, SizeFormatter, TimeFormatter, ClipboardManager, FileManager } from '@/utils';
@@ -45,6 +46,7 @@ import { LazyMount } from '@/components/utility';
 import { setMessageInstance } from '@/utils/messageBus';
 import StatusCard from './StatusCard';
 import XrayStatusCard from './XrayStatusCard';
+import DaemonStatusCard from './DaemonStatusCard';
 import type { PanelUpdateInfo } from './PanelUpdateModal';
 const JsonEditor = lazy(() => import('@/components/form/JsonEditor'));
 const PanelUpdateModal = lazy(() => import('./PanelUpdateModal'));
@@ -118,6 +120,46 @@ export default function IndexPage() {
     await refresh();
   }, [refresh]);
 
+  const stopOpenVPN = useCallback(async () => {
+    await HttpUtil.post('/panel/api/server/stopOpenVPNService');
+    await refresh();
+  }, [refresh]);
+
+  const startOpenVPN = useCallback(async () => {
+    await HttpUtil.post('/panel/api/server/startOpenVPNService');
+    await refresh();
+  }, [refresh]);
+
+  const restartOpenVPN = useCallback(async () => {
+    await HttpUtil.post('/panel/api/server/restartOpenVPNService');
+    await refresh();
+  }, [refresh]);
+
+  const updateOpenVPN = useCallback(async () => {
+    await HttpUtil.post('/panel/api/server/updateOpenVPNService');
+    await refresh();
+  }, [refresh]);
+
+  const stopL2TP = useCallback(async () => {
+    await HttpUtil.post('/panel/api/server/stopL2TPService');
+    await refresh();
+  }, [refresh]);
+
+  const startL2TP = useCallback(async () => {
+    await HttpUtil.post('/panel/api/server/startL2TPService');
+    await refresh();
+  }, [refresh]);
+
+  const restartL2TP = useCallback(async () => {
+    await HttpUtil.post('/panel/api/server/restartL2TPService');
+    await refresh();
+  }, [refresh]);
+
+  const updateL2TP = useCallback(async () => {
+    await HttpUtil.post('/panel/api/server/updateL2TPService');
+    await refresh();
+  }, [refresh]);
+
   function openPanelVersion() {
     if (panelUpdateInfo.updateAvailable) {
       setPanelUpdateOpen(true);
@@ -126,8 +168,8 @@ export default function IndexPage() {
     }
   }
 
-  function openTelegram() {
-    window.open('https://t.me/XrayUI', '_blank', 'noopener,noreferrer');
+  function openGithub() {
+    window.open('https://github.com/Dark-Sky07', '_blank', 'noopener,noreferrer');
   }
 
   async function openConfig() {
@@ -196,6 +238,32 @@ export default function IndexPage() {
                   </Col>
 
                   <Col xs={24} lg={12}>
+                    <DaemonStatusCard
+                      title="OpenVPN"
+                      status={status.openvpn}
+                      isMobile={isMobile}
+                      onStop={stopOpenVPN}
+                      onStart={startOpenVPN}
+                      onRestart={restartOpenVPN}
+                      onUpdate={updateOpenVPN}
+                      onOpenLogs={() => setLogsOpen(true)}
+                    />
+                  </Col>
+
+                  <Col xs={24} lg={12}>
+                    <DaemonStatusCard
+                      title="L2TP / IPsec"
+                      status={status.l2tp}
+                      isMobile={isMobile}
+                      onStop={stopL2TP}
+                      onStart={startL2TP}
+                      onRestart={restartL2TP}
+                      onUpdate={updateL2TP}
+                      onOpenLogs={() => setLogsOpen(true)}
+                    />
+                  </Col>
+
+                  <Col xs={24} lg={12}>
                     <Card
                       title={t('menu.link')}
                       hoverable
@@ -232,18 +300,9 @@ export default function IndexPage() {
                       }
                       hoverable
                       actions={[
-                        <Space className="action" key="tg" onClick={openTelegram}>
-                          <svg
-                            viewBox="0 0 24 24"
-                            width="14"
-                            height="14"
-                            fill="currentColor"
-                            className="tg-icon"
-                            aria-hidden="true"
-                          >
-                            <path d="M21.93 4.34a1.5 1.5 0 0 0-2.05-1.6L2.97 9.6c-.92.36-.91 1.66.02 1.99l4.32 1.53 1.7 5.23a1 1 0 0 0 1.68.36l2.43-2.43 4.36 3.21a1.5 1.5 0 0 0 2.36-.91l3.09-13.86a1.5 1.5 0 0 0 0-.38ZM9.97 14.66l-.55 3.36-1.36-4.2 9.8-7.05-7.89 7.89Z" />
-                          </svg>
-                          {!isMobile && <span>@XrayUI</span>}
+                        <Space className="action" key="github" onClick={openGithub}>
+                          <GithubOutlined />
+                          {!isMobile && <span>Dark-Sky07</span>}
                         </Space>,
                         <Space
                           key="panel-version"

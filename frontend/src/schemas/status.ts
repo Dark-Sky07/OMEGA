@@ -33,6 +33,14 @@ export const XrayInfoSchema = z.object({
   color: z.string(),
 }).partial();
 
+export const DaemonInfoSchema = z.object({
+  state: z.string(),
+  errorMsg: z.string(),
+  inboundCount: z.number(),
+  onlineClients: z.number(),
+  manualStop: z.boolean(),
+}).partial();
+
 export const StatusSchema = z.object({
   cpu: z.number().optional(),
   cpuCores: z.number().optional(),
@@ -51,6 +59,8 @@ export const StatusSchema = z.object({
   appUptime: z.number().optional(),
   appStats: AppStatsSchema.optional(),
   xray: XrayInfoSchema.optional(),
+  openvpn: DaemonInfoSchema.optional(),
+  l2tp: DaemonInfoSchema.optional(),
 });
 
 export type StatusInput = z.infer<typeof StatusSchema>;

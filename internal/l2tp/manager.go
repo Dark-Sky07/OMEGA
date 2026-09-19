@@ -28,6 +28,21 @@ type Manager struct {
 	proc  *managed
 	id    int
 	ready bool
+
+	// manualStop prevents the periodic reconcile job from immediately starting
+	// the daemon after an explicit dashboard stop. It is intentionally reset by
+	// a full panel process restart.
+	manualStop bool
+	lastError  string
+}
+
+// RuntimeStatus is the secret-free L2TP/IPsec snapshot exposed by the panel.
+type RuntimeStatus struct {
+	Running       bool
+	InboundCount  int
+	OnlineClients int
+	ManualStop    bool
+	Error         string
 }
 
 var (
@@ -133,7 +148,22 @@ func (m *Manager) ensureLocked(inst Instance) error {
 func (m *Manager) Reconcile(desired []Instance) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.manualStop {
+		if m.proc != nil {
+			_ = m.proc.proc.Stop()
+			GetNetworkManager().Remove(m.id)
+			removeStrongSwanRuntime(m.id)
+			_ = os.RemoveAll(dataDirForID(m.id))
+			m.proc = nil
+			m.id = 0
+			m.ready = false
+		}
+		cleanupOrphanData(0)
+		GetNetworkManager().RemoveAll()
+		return
+	}
 	if len(desired) == 0 {
+		m.lastError = ""
 		if m.proc != nil {
 			_ = m.proc.proc.Stop()
 			GetNetworkManager().Remove(m.id)
@@ -156,6 +186,7 @@ func (m *Manager) Reconcile(desired []Instance) {
 	err := m.ensureLocked(inst)
 	cleanupOrphanData(inst.Id)
 	if err != nil {
+		m.lastError = err.Error()
 		if m.proc != nil && time.Since(m.proc.lastErrAt) < time.Minute {
 			return
 		}
@@ -163,7 +194,74 @@ func (m *Manager) Reconcile(desired []Instance) {
 			m.proc.lastErrAt = time.Now()
 		}
 		logger.Warningf("l2tp: reconcile failed for inbound %d: %v", inst.Id, err)
+	} else {
+		m.lastError = ""
 	}
+}
+
+// StopManually stops the L2TP/IPsec daemon group and holds reconciliation
+// until Resume is called by the dashboard.
+func (m *Manager) StopManually() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.manualStop = true
+	m.lastError = ""
+	if m.proc != nil {
+		_ = m.proc.proc.Stop()
+		GetNetworkManager().Remove(m.id)
+		removeStrongSwanRuntime(m.id)
+		_ = os.RemoveAll(dataDirForID(m.id))
+		m.proc = nil
+		m.id = 0
+		m.ready = false
+	}
+	cleanupOrphanData(0)
+	GetNetworkManager().RemoveAll()
+	_ = clearSystemChapSecrets()
+}
+
+// Resume clears an explicit dashboard stop request. The next reconcile tick
+// starts the enabled L2TP inbound again.
+func (m *Manager) Resume() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.manualStop = false
+	m.lastError = ""
+}
+
+// Restart stops the current daemon group while leaving reconciliation enabled.
+func (m *Manager) Restart() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.manualStop = false
+	m.lastError = ""
+	if m.proc != nil {
+		_ = m.proc.proc.Stop()
+		GetNetworkManager().Remove(m.id)
+		removeStrongSwanRuntime(m.id)
+		_ = os.RemoveAll(dataDirForID(m.id))
+		m.proc = nil
+		m.id = 0
+		m.ready = false
+	}
+	cleanupOrphanData(0)
+	GetNetworkManager().RemoveAll()
+	_ = clearSystemChapSecrets()
+}
+
+// Status returns the secret-free state used by the dashboard.
+func (m *Manager) Status() RuntimeStatus {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	status := RuntimeStatus{ManualStop: m.manualStop, Error: m.lastError}
+	if m.proc != nil && m.proc.proc != nil {
+		status.Running = m.proc.proc.IsRunning()
+		if status.Running {
+			status.InboundCount = 1
+			status.OnlineClients = len(m.proc.online)
+		}
+	}
+	return status
 }
 
 func (m *Manager) Remove(id int) {
@@ -199,6 +297,10 @@ func (m *Manager) Remove(id int) {
 }
 
 func (m *Manager) StopAll() {
+	m.mu.Lock()
+	m.manualStop = false
+	m.lastError = ""
+	m.mu.Unlock()
 	m.Remove(0)
 	GetNetworkManager().RemoveAll()
 }

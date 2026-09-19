@@ -10,7 +10,10 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
+	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/job"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -67,6 +70,14 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 
 	g.POST("/stopXrayService", a.stopXrayService)
 	g.POST("/restartXrayService", a.restartXrayService)
+	g.POST("/stopOpenVPNService", a.stopOpenVPNService)
+	g.POST("/startOpenVPNService", a.startOpenVPNService)
+	g.POST("/restartOpenVPNService", a.restartOpenVPNService)
+	g.POST("/updateOpenVPNService", a.updateOpenVPNService)
+	g.POST("/stopL2TPService", a.stopL2TPService)
+	g.POST("/startL2TPService", a.startL2TPService)
+	g.POST("/restartL2TPService", a.restartL2TPService)
+	g.POST("/updateL2TPService", a.updateL2TPService)
 	g.POST("/installXray/:version", a.installXray)
 	g.POST("/updatePanel", a.updatePanel)
 	g.POST("/updateGeofile", a.updateGeofile)
@@ -251,6 +262,55 @@ func (a *ServerController) restartXrayService(c *gin.Context) {
 		"Xray service has been restarted successfully",
 		"success",
 	)
+}
+
+// stopOpenVPNService and restartOpenVPNService mirror the Xray dashboard
+// controls. The reconcile job is explicitly paused on stop; otherwise its
+// normal ten-second loop would start OpenVPN again immediately.
+func (a *ServerController) stopOpenVPNService(c *gin.Context) {
+	openvpn.GetManager().StopManually()
+	jsonMsg(c, "OpenVPN service stopped", nil)
+}
+
+func (a *ServerController) startOpenVPNService(c *gin.Context) {
+	openvpn.GetManager().Resume()
+	job.NewOpenvpnJob().Run()
+	jsonMsg(c, "OpenVPN service started", nil)
+}
+
+func (a *ServerController) restartOpenVPNService(c *gin.Context) {
+	openvpn.GetManager().Restart()
+	job.NewOpenvpnJob().Run()
+	jsonMsg(c, "OpenVPN service restarted", nil)
+}
+
+func (a *ServerController) updateOpenVPNService(c *gin.Context) {
+	openvpn.GetManager().Resume()
+	job.NewOpenvpnJob().Run()
+	jsonMsg(c, "OpenVPN service updated", nil)
+}
+
+func (a *ServerController) stopL2TPService(c *gin.Context) {
+	l2tp.GetManager().StopManually()
+	jsonMsg(c, "L2TP service stopped", nil)
+}
+
+func (a *ServerController) startL2TPService(c *gin.Context) {
+	l2tp.GetManager().Resume()
+	job.NewL2TPJob().Run()
+	jsonMsg(c, "L2TP service started", nil)
+}
+
+func (a *ServerController) restartL2TPService(c *gin.Context) {
+	l2tp.GetManager().Restart()
+	job.NewL2TPJob().Run()
+	jsonMsg(c, "L2TP service restarted", nil)
+}
+
+func (a *ServerController) updateL2TPService(c *gin.Context) {
+	l2tp.GetManager().Resume()
+	job.NewL2TPJob().Run()
+	jsonMsg(c, "L2TP service updated", nil)
 }
 
 // getLogs retrieves the application logs based on count, level, and syslog filters.
