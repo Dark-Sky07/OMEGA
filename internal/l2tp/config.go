@@ -56,7 +56,6 @@ func renderIPsecConf(inst Instance) string {
 	b.WriteString("    type=transport\n")
 	b.WriteString("    keyexchange=ikev1\n")
 	b.WriteString("    authby=secret\n")
-	b.WriteString("    pfs=no\n")
 	b.WriteString("    rekey=no\n")
 	b.WriteString("    forceencaps=yes\n")
 	b.WriteString("    dpdaction=clear\n")
@@ -85,11 +84,16 @@ func renderStrongSwanConf(inst Instance) string {
 	// The distro ipsec wrapper compiles /etc as its IPSEC_CONFDIR and resets
 	// that environment variable before launching starter. Keep the connection
 	// file explicit via starter --conf and redirect the stroke secrets loader
-	// here, without copying the PSK into a global system file.
-	b.WriteString("include /etc/strongswan.conf\n\n")
+	// here, without copying the PSK into a global system file. Recreate the
+	// modular default instead of including an arbitrary host strongswan.conf:
+	// a damaged optional host snippet must not prevent this inbound from booting.
+	b.WriteString("include /etc/strongswan.d/*.conf\n\n")
 	b.WriteString("charon {\n")
+	b.WriteString("    load_modular = yes\n")
 	b.WriteString("    plugins {\n")
+	b.WriteString("        include /etc/strongswan.d/charon/*.conf\n")
 	b.WriteString("        stroke {\n")
+	b.WriteString("            load = yes\n")
 	fmt.Fprintf(&b, "            secrets_file = %s\n", ipsecSecretsPath(inst.Id))
 	b.WriteString("        }\n")
 	b.WriteString("    }\n")

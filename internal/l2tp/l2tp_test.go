@@ -93,8 +93,8 @@ func TestRenderConfigQuotesCredentials(t *testing.T) {
 		t.Fatal("PPP options do not install accounting hooks")
 	}
 	strongSwan := renderStrongSwanConf(inst)
-	if !strings.Contains(strongSwan, "include /etc/strongswan.conf") || !strings.Contains(strongSwan, "secrets_file = "+ipsecSecretsPath(inst.Id)) {
-		t.Fatalf("strongSwan runtime config does not redirect the managed secrets file: %s", strongSwan)
+	if !strings.Contains(strongSwan, "include /etc/strongswan.d/charon/*.conf") || !strings.Contains(strongSwan, "secrets_file = "+ipsecSecretsPath(inst.Id)) {
+		t.Fatalf("strongSwan runtime config does not load modular plugins and redirect secrets: %s", strongSwan)
 	}
 	if !strings.Contains(renderIPUpScript(inst), "PEERNAME") || !strings.Contains(renderIPDownScript(inst), "PPP_IFACE") {
 		t.Fatal("PPP accounting hooks do not reference session environment")
@@ -113,6 +113,9 @@ func TestRenderIPsecConfigSupportsWindowsL2TP(t *testing.T) {
 		if !strings.Contains(conf, expected) {
 			t.Fatalf("Windows-compatible IPsec setting %q is missing from config: %s", expected, conf)
 		}
+	}
+	if strings.Contains(conf, "pfs=") {
+		t.Fatal("strongSwan 5.9.x must not emit deprecated pfs keyword")
 	}
 	xl2tpd := renderXL2TPDConf(validInstance())
 	if !strings.Contains(xl2tpd, "ipsec saref = no") {
