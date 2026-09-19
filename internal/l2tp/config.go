@@ -18,10 +18,11 @@ func dataDirForID(id int) string {
 	return filepath.Join(l2tpRoot(), fmt.Sprintf("%d", id))
 }
 
-func ipsecConfigPath(id int) string    { return filepath.Join(dataDirForID(id), "ipsec.conf") }
-func ipsecSecretsPath(id int) string   { return filepath.Join(dataDirForID(id), "ipsec.secrets") }
-func xl2tpdConfigPath(id int) string   { return filepath.Join(dataDirForID(id), "xl2tpd.conf") }
-func pppOptionsPath(id int) string     { return filepath.Join(dataDirForID(id), "options.xl2tpd") }
+func ipsecConfigPath(id int) string      { return filepath.Join(dataDirForID(id), "ipsec.conf") }
+func ipsecSecretsPath(id int) string     { return filepath.Join(dataDirForID(id), "ipsec.secrets") }
+func strongSwanConfigPath(id int) string { return filepath.Join(dataDirForID(id), "strongswan.conf") }
+func xl2tpdConfigPath(id int) string     { return filepath.Join(dataDirForID(id), "xl2tpd.conf") }
+func pppOptionsPath(id int) string    { return filepath.Join(dataDirForID(id), "options.xl2tpd") }
 func chapSecretsPath(id int) string   { return filepath.Join(dataDirForID(id), "chap-secrets") }
 func xl2tpdPIDPath(id int) string     { return filepath.Join(dataDirForID(id), "xl2tpd.pid") }
 func sessionDirPath(id int) string    { return filepath.Join(dataDirForID(id), "sessions") }
@@ -78,9 +79,29 @@ func renderIPsecSecrets(inst Instance) string {
 	return "# Managed by OMEGA. File mode must remain 0600.\n%any %any : PSK " + quoteIPsec(inst.PSK) + "\n"
 }
 
-func renderXL2TPDConf(inst Instance) string {
+func renderStrongSwanConf(inst Instance) string {
 	var b strings.Builder
 	b.WriteString("# Managed by OMEGA. Do not edit; changes are reconciled from the panel.\n")
+	// The distro ipsec wrapper compiles /etc as its IPSEC_CONFDIR and resets
+	// that environment variable before launching starter. Keep the connection
+	// file explicit via starter --conf and redirect the stroke secrets loader
+	// here, without copying the PSK into a global system file.
+	b.WriteString("include /etc/strongswan.conf\n\n")
+	b.WriteString("charon {\n")
+	b.WriteString("    plugins {\n")
+	b.WriteString("        stroke {\n")
+	fmt.Fprintf(&b, "            secrets_file = %s\n", ipsecSecretsPath(inst.Id))
+	b.WriteString("        }\n")
+	b.WriteString("    }\n")
+	b.WriteString("}\n")
+	return b.String()
+}
+
+func renderXL2TPDConf(inst Instance) string {
+	var b strings.Builder
+	// xl2tpd uses semicolons for comments; a leading '#' is parsed as data
+	// before the first section by xl2tpd 1.3.x.
+	b.WriteString("; Managed by OMEGA. Do not edit; changes are reconciled from the panel.\n")
 	b.WriteString("[global]\n")
 	// SAref is for the old MAST/SAref IPsec stack. Modern Linux XFRM with
 	// strongSwan uses the normal kernel transport path, and explicitly
@@ -179,6 +200,7 @@ func writeConfig(inst Instance) error {
 	}{
 		{ipsecConfigPath(inst.Id), renderIPsecConf(inst), 0o640},
 		{ipsecSecretsPath(inst.Id), renderIPsecSecrets(inst), 0o600},
+		{strongSwanConfigPath(inst.Id), renderStrongSwanConf(inst), 0o640},
 		{xl2tpdConfigPath(inst.Id), renderXL2TPDConf(inst), 0o640},
 		{pppOptionsPath(inst.Id), renderPPPOptions(inst), 0o600},
 		{chapSecretsPath(inst.Id), renderChapSecrets(inst), 0o600},

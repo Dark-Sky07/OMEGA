@@ -271,7 +271,7 @@ uninstall() {
     echo ""
     echo -e "Uninstalled Successfully.\n"
     echo "If you need to install this panel again, you can use below command:"
-    echo -e "${green}bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.17-omega/install-omega.sh) v3.3.17-omega${plain}"
+    echo -e "${green}bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.18-omega/install-omega.sh) v3.3.18-omega${plain}"
     echo ""
     # Trap the SIGTERM signal
     trap delete_script SIGTERM
