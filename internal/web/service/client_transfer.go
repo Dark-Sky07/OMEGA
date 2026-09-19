@@ -1,6 +1,6 @@
 package service
 
-// CI diagnostics are temporary and will be removed after the failing test is identified.
+// CI diagnostics remain temporary until the failing test is identified.
 
 import (
 	"encoding/json"
