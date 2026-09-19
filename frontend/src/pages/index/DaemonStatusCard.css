@@ -1,0 +1,23 @@
+.daemon-status-card .action,
+.daemon-status-card .daemon-stats {
+  cursor: pointer;
+  justify-content: center;
+}
+
+.daemon-status-card .daemon-stats {
+  cursor: default;
+  gap: 8px;
+  font-size: 12px;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+.daemon-error-line {
+  display: block;
+  max-width: 420px;
+  white-space: pre-wrap;
+}
+
+.daemon-status-card .ant-card-actions > li:last-child {
+  flex: 1.5;
+}

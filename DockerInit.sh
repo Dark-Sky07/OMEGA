@@ -34,7 +34,12 @@ esac
 MTG_VER="2.2.8"
 mkdir -p build/bin
 cd build/bin
-curl -sfLRO "https://github.com/XTLS/Xray-core/releases/download/v26.6.1/Xray-linux-${ARCH}.zip"
+XRAY_VERSION="$(../../scripts/resolve-xray-version.sh)" || {
+    echo "Unable to resolve a stable Xray-core release; refusing to build a stale image." >&2
+    exit 1
+}
+echo "Using stable Xray-core ${XRAY_VERSION}"
+curl -sfLRO "https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/Xray-linux-${ARCH}.zip"
 unzip "Xray-linux-${ARCH}.zip"
 rm -f "Xray-linux-${ARCH}.zip" geoip.dat geosite.dat
 mv xray "xray-linux-${FNAME}"
