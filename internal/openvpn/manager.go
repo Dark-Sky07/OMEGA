@@ -81,6 +81,9 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	fp := inst.fingerprint()
 	dir := dataDirForID(inst.Id)
 	if cur, ok := m.procs[inst.Id]; ok && cur.fingerprint == fp && cur.proc.IsRunning() {
+		if err := GetNetworkManager().Apply(inst); err != nil {
+			return err
+		}
 		cur.tag = inst.Tag
 		cur.clients = inst.Clients
 		// Certs may have been lost on a flaky disk; top them up cheaply.
@@ -96,6 +99,7 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	}
 	if cur, ok := m.procs[inst.Id]; ok {
 		_ = cur.proc.Stop()
+		GetNetworkManager().Remove(inst.Id)
 		delete(m.procs, inst.Id)
 	}
 
@@ -122,8 +126,12 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	if err := writeConfig(inst, mgmtPort); err != nil {
 		return err
 	}
+	if err := GetNetworkManager().Apply(inst); err != nil {
+		return err
+	}
 	proc := newProcess(cfgPath, "inbound "+strconv.Itoa(inst.Id))
 	if err := proc.Start(); err != nil {
+		GetNetworkManager().Remove(inst.Id)
 		m.procs[inst.Id] = &managed{
 			proc:        proc,
 			tag:         inst.Tag,
@@ -163,11 +171,13 @@ func (m *Manager) Reconcile(desired []Instance) {
 	for id, cur := range m.procs {
 		if _, ok := want[id]; !ok {
 			_ = cur.proc.Stop()
+			GetNetworkManager().Remove(id)
 			_ = removeDataDir(id)
 			delete(m.procs, id)
 			logger.Infof("openvpn: stopped daemon for inbound %d (no longer desired)", id)
 		}
 	}
+	GetNetworkManager().RemoveExcept(want)
 	for _, inst := range desired {
 		if err := m.ensureLocked(inst); err != nil {
 			// Throttled: a persistent failure (no binary, busy port) logs
@@ -192,6 +202,7 @@ func (m *Manager) Remove(id int) {
 		_ = cur.proc.Stop()
 		delete(m.procs, id)
 	}
+	GetNetworkManager().Remove(id)
 	_ = removeDataDir(id)
 }
 
@@ -201,8 +212,10 @@ func (m *Manager) StopAll() {
 	defer m.mu.Unlock()
 	for id, cur := range m.procs {
 		_ = cur.proc.Stop()
+		GetNetworkManager().Remove(id)
 		delete(m.procs, id)
 	}
+	GetNetworkManager().RemoveAll()
 }
 
 func removeDataDir(id int) error {

@@ -18,7 +18,7 @@
 **نصب با یک دستور** — روی سرور تازه، با کاربر `root`:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.23-omega/install-omega.sh) v3.3.23-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.24-omega/install-omega.sh) v3.3.24-omega
 ```
 
 </div>
@@ -27,7 +27,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.23-omega
 > این پروژه فورکی بر پایه‌ی 3x-ui نسخه‌ی 3.3.1 است. قابلیت نمایندگی، daemon خارجی OpenVPN و daemon خارجی
 > L2TP/IPsec به آن اضافه شده‌اند، اما نام سرویس (`x-ui`)، مسیرهای نصب (`/usr/local/x-ui`، `/etc/x-ui`)،
 > متغیرهای محیطی و قراردادهای کانفیگ Xray با upstream سازگار باقی مانده‌اند. شماره‌ی release مربوط به OMEGA
-> جداگانه مدیریت می‌شود و نسخه‌ی stable فعلی `v3.3.23-omega` است.
+> جداگانه مدیریت می‌شود و نسخه‌ی stable فعلی `v3.3.24-omega` است.
 
 ---
 
@@ -49,9 +49,9 @@ OpenVPN یک daemon سیستم‌عامل است، نه بخشی از Xray و ن
 برای نصب یا تعمیر سرور موجود با آخرین release پایدار، با کاربر `root` اجرا کنید:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.23-omega/install-omega.sh \
+curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.24-omega/install-omega.sh \
   -o /tmp/install-omega.sh
-env OMEGA_REF=v3.3.23-omega bash /tmp/install-omega.sh v3.3.23-omega
+env OMEGA_REF=v3.3.24-omega bash /tmp/install-omega.sh v3.3.24-omega
 ```
 
 پیش‌نیاز را قبل از بررسی شبکه verify کنید:
@@ -63,7 +63,7 @@ test -c /dev/net/tun && echo "TUN آماده است"
 systemctl restart x-ui
 ```
 
-اسکریپت `x-ui update` که در این release قرار دارد، آخرین tag پایدار را پیدا و installer همان tag را اجرا می‌کند و دیگر installer قدیمی و بدون tag را از `main` نمی‌گیرد. برای اینباند OpenVPN، پورت تنظیم‌شده را با transport انتخابی (`udp` یا `tcp`) هم در فایروال سرور و هم در فایروال ارائه‌دهندهٔ VPS باز کنید. اگر گزینهٔ **Redirect gateway** روشن است، روی سرور باید IPv4 forwarding و NAT/masquerade برای subnet تونل `10.x.x.0/24` هم تنظیم شده باشد؛ پنل policy فایروال شما را خودکار بازنویسی نمی‌کند. اگر profile import می‌شود اما روی `Trying to connect` می‌ماند، این موارد را بررسی کنید: `command -v openvpn`، وجود `/dev/net/tun`، خروجی `ss -lunpt`، فایل `/var/log/x-ui/3xui.log` و فایل `bin/openvpn/<inbound-id>/openvpn.log`.
+اسکریپت `x-ui update` که در این release قرار دارد، آخرین tag پایدار را پیدا و installer همان tag را اجرا می‌کند و دیگر installer قدیمی و بدون tag را از `main` نمی‌گیرد. برای اینباند OpenVPN، پورت تنظیم‌شده را با transport انتخابی (`udp` یا `tcp`) در فایروال ارائه‌دهندهٔ VPS باز کنید. OMEGA forwarding IPv4 را فعال می‌کند و ruleهای دقیق `INPUT`، `FORWARD` و `POSTROUTING MASQUERADE` را برای subnet تونل `10.x.x.0/24` مدیریت می‌کند و ruleهای نامرتبط فایروال را دست نمی‌زند. اگر profile import می‌شود اما روی `Trying to connect` می‌ماند، این موارد را بررسی کنید: `command -v openvpn`، `command -v iptables`، وجود `/dev/net/tun`، خروجی `ss -lunpt`، فایل `/var/log/x-ui/3xui.log` و فایل `bin/openvpn/<inbound-id>/openvpn.log`.
 
 ### نصب و چک‌لیست L2TP/IPsec
 
@@ -90,13 +90,13 @@ L2TP/IPsec daemon سیستم‌عامل است و بخشی از Xray نیست. i
 روی سرور تازه، با کاربر **root**:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.23-omega/install-omega.sh) v3.3.23-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.24-omega/install-omega.sh) v3.3.24-omega
 ```
 
 اگر می‌خواهید نسخه‌ی مشخصی نصب شود (مثلاً قبل از merge شدن شاخه‌ی اصلی):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.23-omega/install-omega.sh) v3.3.23-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.24-omega/install-omega.sh) v3.3.24-omega
 ```
 
 نصب‌کننده خودش این کارها را انجام می‌دهد:

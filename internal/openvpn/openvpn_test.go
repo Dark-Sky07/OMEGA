@@ -291,6 +291,39 @@ func TestRenderServerConf(t *testing.T) {
 	}
 }
 
+func TestOpenVPNNetworkRules(t *testing.T) {
+	inst := Instance{Id: 7, Port: 1194, Proto: "tcp"}
+	state := stateForInstance(inst)
+	if state.PoolCIDR != "10.7.0.0/24" || state.InterfaceName != "tun7" || state.Protocol != "tcp" {
+		t.Fatalf("unexpected network state: %+v", state)
+	}
+	rules := rulesForState(state)
+	if len(rules) != 5 {
+		t.Fatalf("expected five OpenVPN firewall rules, got %d", len(rules))
+	}
+	checks := []string{
+		"INPUT -p tcp --dport 1194 -j ACCEPT",
+		"INPUT -i tun7 -s 10.7.0.0/24 -j ACCEPT",
+		"FORWARD -i tun7 -s 10.7.0.0/24 -j ACCEPT",
+		"FORWARD -o tun7 -d 10.7.0.0/24 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT",
+		"POSTROUTING -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j MASQUERADE",
+	}
+	for i, want := range checks {
+		got := strings.Join(rules[i].rule, " ")
+		if got != want {
+			t.Errorf("rule %d = %q, want %q", i, got, want)
+		}
+	}
+	if rules[4].table != "nat" {
+		t.Fatalf("MASQUERADE rule must use the nat table, got %q", rules[4].table)
+	}
+
+	udp := stateForInstance(Instance{Id: 7, Port: 1194, Proto: "udp"})
+	if udp.Protocol != "udp" || !strings.Contains(strings.Join(rulesForState(udp)[0].rule, " "), "-p udp") {
+		t.Fatalf("UDP listener rule was not generated: %+v", udp)
+	}
+}
+
 func TestWriteConfigCreatesFiles(t *testing.T) {
 	tempBinFolder(t)
 	inst := Instance{Id: 9, Tag: "t", Port: 1194, Proto: "udp", RedirectGw: true, PushDNS: true}

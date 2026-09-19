@@ -18,7 +18,7 @@ English · [فارسی](README.fa_IR.md)
 **Install in one line** — on a fresh server, as `root`:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.23-omega/install-omega.sh) v3.3.23-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.24-omega/install-omega.sh) v3.3.24-omega
 ```
 
 </div>
@@ -27,7 +27,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.23-omega
 > OMEGA is a fork based on 3x-ui v3.3.1. It adds reseller controls, an external OpenVPN daemon, and an external
 > L2TP/IPsec daemon while keeping the panel service name (`x-ui`), install paths (`/usr/local/x-ui`, `/etc/x-ui`),
 > environment variables, and Xray configuration conventions compatible with the upstream project. The OMEGA release
-> version is maintained separately from the upstream core version, so the current stable release is `v3.3.23-omega`.
+> version is maintained separately from the upstream core version, so the current stable release is `v3.3.24-omega`.
 
 ---
 
@@ -49,9 +49,9 @@ OpenVPN is a host daemon, not an Xray component and not a file inside the `x-ui`
 To install or repair an existing host with the exact stable release, run as `root`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.23-omega/install-omega.sh \
+curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.24-omega/install-omega.sh \
   -o /tmp/install-omega.sh
-env OMEGA_REF=v3.3.23-omega bash /tmp/install-omega.sh v3.3.23-omega
+env OMEGA_REF=v3.3.24-omega bash /tmp/install-omega.sh v3.3.24-omega
 ```
 
 Verify the prerequisite before troubleshooting the network:
@@ -63,7 +63,7 @@ test -c /dev/net/tun && echo "TUN is ready"
 systemctl restart x-ui
 ```
 
-The `x-ui update` script shipped in this release resolves the latest stable release tag and runs its matching installer; it no longer downloads an unpinned, possibly stale `main` installer. For an OpenVPN inbound, allow the configured port on both the host firewall and the VPS/provider firewall using the selected transport (`udp` or `tcp`). When **Redirect gateway** is enabled, the host must also have IPv4 forwarding and NAT/masquerading configured for the generated `10.x.x.0/24` tunnel subnet; the panel does not overwrite an operator's firewall policy. If a profile imports but remains on `Trying to connect`, check `command -v openvpn`, `/dev/net/tun`, the listener with `ss -lunpt`, and `/var/log/x-ui/3xui.log` plus `bin/openvpn/<inbound-id>/openvpn.log`.
+The `x-ui update` script shipped in this release resolves the latest stable release tag and runs its matching installer; it no longer downloads an unpinned, possibly stale `main` installer. For an OpenVPN inbound, allow the configured port on the VPS/provider firewall using the selected transport (`udp` or `tcp`). OMEGA enables IPv4 forwarding and maintains exact `INPUT`, `FORWARD`, and `POSTROUTING MASQUERADE` rules for the generated `10.x.x.0/24` tunnel subnet, while preserving unrelated firewall rules. If a profile imports but remains on `Trying to connect`, check `command -v openvpn`, `command -v iptables`, `/dev/net/tun`, the listener with `ss -lunpt`, and `/var/log/x-ui/3xui.log` plus `bin/openvpn/<inbound-id>/openvpn.log`.
 
 ### L2TP/IPsec installation and host checklist
 
@@ -101,13 +101,13 @@ For Docker, the container needs `NET_ADMIN`, `NET_RAW`, `/dev/ppp`, `/dev/net/tu
 On a fresh server, as **root**:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.23-omega/install-omega.sh) v3.3.23-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.24-omega/install-omega.sh) v3.3.24-omega
 ```
 
 Pin a specific release instead (useful before a branch is merged):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.23-omega/install-omega.sh) v3.3.23-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.24-omega/install-omega.sh) v3.3.24-omega
 ```
 
 The installer takes care of everything:
