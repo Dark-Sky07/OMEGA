@@ -164,6 +164,16 @@ install_l2tp_ipsec() {
         fi
     done
 
+    # OMEGA starts isolated foreground daemon instances with per-inbound
+    # configuration. Package post-install scripts may have enabled their
+    # system-wide services, which would otherwise keep UDP 1701 or IKE ports
+    # occupied and make the managed instance fail with address-in-use.
+    if command -v systemctl > /dev/null 2>&1; then
+        for service_name in xl2tpd strongswan-starter strongswan; do
+            systemctl disable --now "$service_name" > /dev/null 2>&1 || true
+        done
+    fi
+
     if [[ ! -e /dev/ppp ]]; then
         if command -v modprobe > /dev/null 2>&1; then
             modprobe ppp_generic > /dev/null 2>&1 || true

@@ -1,11 +1,11 @@
 package l2tp
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -89,6 +89,30 @@ func newProcess(id int) *Process {
 	}
 }
 
+// processEnvironment replaces inherited values instead of appending duplicate
+// entries. getenv(3) uses the first matching entry, so appending a per-inbound
+// runtime override after an inherited value can silently select the wrong
+// configuration.
+func processEnvironment(overrides ...string) []string {
+	overrideKeys := make(map[string]struct{}, len(overrides))
+	for _, entry := range overrides {
+		if key, _, ok := strings.Cut(entry, "="); ok {
+			overrideKeys[key] = struct{}{}
+		}
+	}
+	env := make([]string, 0, len(os.Environ())+len(overrides))
+	for _, entry := range os.Environ() {
+		key, _, ok := strings.Cut(entry, "=")
+		if ok {
+			if _, overridden := overrideKeys[key]; overridden {
+				continue
+			}
+		}
+		env = append(env, entry)
+	}
+	return append(env, overrides...)
+}
+
 func strongSwanPath() string {
 	for _, name := range []string{"ipsec", "strongswan"} {
 		if path, err := exec.LookPath(name); err == nil {
@@ -101,6 +125,18 @@ func strongSwanPath() string {
 func xl2tpdPath() string {
 	path, _ := exec.LookPath("xl2tpd")
 	return path
+}
+
+func compiledStrongSwanPIDDir() string {
+	ipsec := strongSwanPath()
+	if ipsec == "" {
+		return ""
+	}
+	output, err := exec.Command(ipsec, "--piddir").Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(output))
 }
 
 func stopPIDFile(path, expected string) {
@@ -140,15 +176,14 @@ func stopOrphan(id int) {
 		return
 	}
 	stopPIDFile(xl2tpdPIDPath(id), "xl2tpd")
-	if ipsec := strongSwanPath(); ipsec != "" {
-		ctx, cancel := context.WithTimeout(context.Background(), gracefulStopTimeout)
-		cmd := exec.CommandContext(ctx, ipsec, "stop")
-		cmd.Env = append(os.Environ(),
-			"IPSEC_CONFDIR="+dataDirForID(id),
-			"IPSEC_PIDDIR="+dataDirForID(id),
-		)
-		_ = cmd.Run()
-		cancel()
+	// The distro ipsec wrapper overwrites IPSEC_PIDDIR, so its stop command
+	// cannot address the per-inbound path used by the old implementation. Ask
+	// the wrapper for its compiled PID directory and stop only processes whose
+	// command lines are actually starter/charon; this also reclaims a daemon
+	// left behind after the panel itself was restarted.
+	if pidDir := compiledStrongSwanPIDDir(); pidDir != "" {
+		stopPIDFile(filepath.Join(pidDir, "starter.charon.pid"), "starter")
+		stopPIDFile(filepath.Join(pidDir, "charon.pid"), "charon")
 	}
 }
 
@@ -213,13 +248,12 @@ func (p *Process) Start() error {
 		return errors.New("xl2tpd command not found")
 	}
 
-	// IPSEC_CONFDIR is honored by the upstream ipsec wrapper and keeps this
-	// singleton's legacy stroke configuration out of /etc/ipsec.conf. PID files
-	// are also redirected so a panel restart can identify its own processes.
-	ipsecCmd := exec.Command(ipsec, "start", "--nofork")
-	ipsecCmd.Env = append(os.Environ(),
-		"IPSEC_CONFDIR="+p.configDir,
-		"IPSEC_PIDDIR="+p.configDir,
+	// The distro ipsec wrapper resets IPSEC_CONFDIR to its compiled /etc path,
+	// so pass the managed connection explicitly to starter. STRONGSWAN_CONF
+	// redirects the legacy stroke secrets loader to the per-inbound PSK file.
+	ipsecCmd := exec.Command(ipsec, "start", "--nofork", "--conf", ipsecConfigPath(p.id))
+	ipsecCmd.Env = processEnvironment(
+		"STRONGSWAN_CONF="+strongSwanConfigPath(p.id),
 	)
 	ipsecCmd.Stdout = p.ipsecLog
 	ipsecCmd.Stderr = p.ipsecLog

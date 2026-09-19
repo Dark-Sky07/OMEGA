@@ -92,6 +92,10 @@ func TestRenderConfigQuotesCredentials(t *testing.T) {
 	if !strings.Contains(renderPPPOptions(inst), "ip-up-script") {
 		t.Fatal("PPP options do not install accounting hooks")
 	}
+	strongSwan := renderStrongSwanConf(inst)
+	if !strings.Contains(strongSwan, "include /etc/strongswan.conf") || !strings.Contains(strongSwan, "secrets_file = "+ipsecSecretsPath(inst.Id)) {
+		t.Fatalf("strongSwan runtime config does not redirect the managed secrets file: %s", strongSwan)
+	}
 	if !strings.Contains(renderIPUpScript(inst), "PEERNAME") || !strings.Contains(renderIPDownScript(inst), "PPP_IFACE") {
 		t.Fatal("PPP accounting hooks do not reference session environment")
 	}
@@ -110,8 +114,29 @@ func TestRenderIPsecConfigSupportsWindowsL2TP(t *testing.T) {
 			t.Fatalf("Windows-compatible IPsec setting %q is missing from config: %s", expected, conf)
 		}
 	}
-	if !strings.Contains(renderXL2TPDConf(validInstance()), "ipsec saref = no") {
+	xl2tpd := renderXL2TPDConf(validInstance())
+	if !strings.Contains(xl2tpd, "ipsec saref = no") {
 		t.Fatal("xl2tpd must disable legacy SAref probing on kernel XFRM")
+	}
+	if strings.HasPrefix(xl2tpd, "#") {
+		t.Fatal("xl2tpd config must use semicolon comments before its first section")
+	}
+}
+
+func TestProcessEnvironmentReplacesInheritedValues(t *testing.T) {
+	t.Setenv("OMEGA_L2TP_TEST_ENV", "old")
+	env := processEnvironment("OMEGA_L2TP_TEST_ENV=new")
+	matches := 0
+	for _, entry := range env {
+		if strings.HasPrefix(entry, "OMEGA_L2TP_TEST_ENV=") {
+			matches++
+			if entry != "OMEGA_L2TP_TEST_ENV=new" {
+				t.Fatalf("unexpected override value: %q", entry)
+			}
+		}
+	}
+	if matches != 1 {
+		t.Fatalf("expected one overridden environment entry, got %d", matches)
 	}
 }
 
