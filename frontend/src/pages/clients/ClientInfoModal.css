@@ -145,3 +145,25 @@
 .link-row-title-anchor:hover {
   text-decoration-color: var(--ant-color-primary);
 }
+
+.l2tp-client-panel {
+  border: 1px solid var(--ant-color-border);
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 10px;
+}
+
+.l2tp-client-header {
+  margin-bottom: 6px;
+}
+
+.l2tp-client-table {
+  margin-bottom: 0;
+}
+
+.l2tp-client-note {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.62;
+  text-align: center;
+}

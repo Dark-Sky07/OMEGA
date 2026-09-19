@@ -71,7 +71,7 @@ func (s *InboundService) GetInboundOptionsForReseller(resellerId int) ([]Inbound
 	}
 	out := make([]InboundOption, 0, len(rows))
 	for _, r := range rows {
-		out = append(out, InboundOption{
+		option := InboundOption{
 			Id:             r.Id,
 			Remark:         r.Remark,
 			Tag:            r.Tag,
@@ -80,7 +80,11 @@ func (s *InboundService) GetInboundOptionsForReseller(resellerId int) ([]Inbound
 			TlsFlowCapable: inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings, r.Settings),
 			SsMethod:       inboundShadowsocksMethod(r.Protocol, r.Settings),
 			NodeId:         r.NodeId,
-		})
+		}
+		if r.Protocol == string(model.L2TP) {
+			option.L2TP = l2tpInboundOption(r.Settings)
+		}
+		out = append(out, option)
 	}
 	return out, nil
 }

@@ -108,6 +108,21 @@
   gap: 6px;
 }
 
+.l2tp-connection {
+  margin-top: 4px;
+}
+
+.l2tp-connection-note {
+  margin-top: 8px;
+  color: rgba(0, 0, 0, 0.58);
+  font-size: 12px;
+  text-align: center;
+}
+
+.is-dark .l2tp-connection-note {
+  color: rgba(255, 255, 255, 0.62);
+}
+
 .apps-row {
   margin-top: 24px;
 }
