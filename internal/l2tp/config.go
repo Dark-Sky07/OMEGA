@@ -84,10 +84,9 @@ func renderStrongSwanConf(inst Instance) string {
 	// The distro ipsec wrapper compiles /etc as its IPSEC_CONFDIR and resets
 	// that environment variable before launching starter. Keep the connection
 	// file explicit via starter --conf and redirect the stroke secrets loader
-	// here, without copying the PSK into a global system file. Recreate the
-	// modular default instead of including an arbitrary host strongswan.conf:
-	// a damaged optional host snippet must not prevent this inbound from booting.
-	b.WriteString("include /etc/strongswan.d/*.conf\n\n")
+	// here, without copying the PSK into a global system file. Do not import an
+	// arbitrary host strongswan.conf or top-level snippet: a damaged optional
+	// host setting must not prevent this inbound from booting.
 	b.WriteString("charon {\n")
 	b.WriteString("    load_modular = yes\n")
 	b.WriteString("    plugins {\n")
