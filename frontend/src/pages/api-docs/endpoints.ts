@@ -528,7 +528,7 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/clients/export',
         summary: 'Export a versioned client transfer envelope containing client credentials, multi-protocol fields, inbound attachments, and flow overrides. Resellers receive only their assigned clients and inbounds; traffic counters and database IDs are excluded.',
-        response: '{\n  \"format\": \"omega-client-transfer\",\n  \"version\": 1,\n  \"exportedAt\": \"2026-01-01T00:00:00Z\",\n  \"clients\": []\n}',
+        response: '{\n  "format": "omega-client-transfer",\n  "version": 1,\n  "exportedAt": "2026-01-01T00:00:00Z",\n  "clients": []\n}',
       },
       {
         method: 'GET',
@@ -571,8 +571,8 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/import',
         summary: 'Preflight and import a versioned client transfer envelope. The operation rejects duplicate or colliding credentials, invalid attachments, and out-of-scope reseller data before mutating clients; the response reports created, updated, failed, and restart counts.',
-        body: '{\n  \"format\": \"omega-client-transfer\",\n  \"version\": 1,\n  \"clients\": []\n}',
-        errorResponse: '{\n  \"success\": false,\n  \"msg\": \"Client transfer validation failed\"\n}',
+        body: '{\n  "format": "omega-client-transfer",\n  "version": 1,\n  "clients": []\n}',
+        errorResponse: '{\n  "success": false,\n  "msg": "Client transfer validation failed"\n}',
       },
       {
         method: 'POST',
