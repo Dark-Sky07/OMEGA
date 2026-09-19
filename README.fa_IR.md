@@ -18,7 +18,7 @@
 **نصب با یک دستور** — روی سرور تازه، با کاربر `root`:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.15-omega/install-omega.sh) v3.3.15-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.17-omega/install-omega.sh) v3.3.17-omega
 ```
 
 </div>
@@ -27,7 +27,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.15-omega
 > این پروژه فورکی بر پایه‌ی 3x-ui نسخه‌ی 3.3.1 است. قابلیت نمایندگی، daemon خارجی OpenVPN و daemon خارجی
 > L2TP/IPsec به آن اضافه شده‌اند، اما نام سرویس (`x-ui`)، مسیرهای نصب (`/usr/local/x-ui`، `/etc/x-ui`)،
 > متغیرهای محیطی و قراردادهای کانفیگ Xray با upstream سازگار باقی مانده‌اند. شماره‌ی release مربوط به OMEGA
-> جداگانه مدیریت می‌شود و نسخه‌ی stable فعلی `v3.3.15-omega` است.
+> جداگانه مدیریت می‌شود و نسخه‌ی stable فعلی `v3.3.17-omega` است.
 
 ---
 
@@ -49,9 +49,9 @@ OpenVPN یک daemon سیستم‌عامل است، نه بخشی از Xray و ن
 برای نصب یا تعمیر سرور موجود با آخرین release پایدار، با کاربر `root` اجرا کنید:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.15-omega/install-omega.sh \
+curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.17-omega/install-omega.sh \
   -o /tmp/install-omega.sh
-env OMEGA_REF=v3.3.15-omega bash /tmp/install-omega.sh v3.3.15-omega
+env OMEGA_REF=v3.3.17-omega bash /tmp/install-omega.sh v3.3.17-omega
 ```
 
 پیش‌نیاز را قبل از بررسی شبکه verify کنید:
@@ -67,7 +67,7 @@ systemctl restart x-ui
 
 ### نصب و چک‌لیست L2TP/IPsec
 
-L2TP/IPsec daemon سیستم‌عامل است و بخشی از Xray نیست. installer بسته‌های `strongswan`، `xl2tpd`، `ppp`، `iptables` و `iproute2` را نصب و وجود `/dev/ppp` را بررسی می‌کند. فقط یک اینباند محلی فعال مجاز است، چون گروه daemon پورت‌های UDP 500، 4500 و 1701 را در اختیار می‌گیرد. PPTP در OMEGA پیاده‌سازی نشده است.
+L2TP/IPsec daemon سیستم‌عامل است و بخشی از Xray نیست. installer بسته‌های `strongswan`، `xl2tpd`، `ppp`، `iptables` و `iproute2` را نصب و وجود `/dev/ppp` را بررسی می‌کند. فقط یک اینباند محلی فعال مجاز است، چون گروه daemon پورت‌های UDP 500، 4500 و 1701 و همچنین پروتکل ESP با شمارهٔ 50 را در اختیار می‌گیرد. PPTP در OMEGA پیاده‌سازی نشده است.
 
 فایل‌های runtime زیر `bin/l2tp/<inbound-id>/` ساخته می‌شوند؛ forwarding IPv4، ruleهای `FORWARD` و `MASQUERADE` و listenerهای ثابت هم توسط پنل مدیریت می‌شوند. کلاینت‌های موجود را از صفحهٔ Clients متصل کنید: email نام کاربری PPP و password رمز MS-CHAPv2 است. در صفحهٔ اطلاعات اینباند PSK، pool، DNS و پورت‌ها دیده می‌شود. صفحهٔ Subscription info برای هر کلاینت متصل با همان subscription ID یک مجموعه پارامتر native نشان می‌دهد و پنجرهٔ Client Information مدیر نیز همین مقادیر را با دکمهٔ کپی نمایش می‌دهد. کلاینت را با تنظیمات native L2TP/IPsec پیکربندی کنید؛ profile فایل یا لینک جعلی Xray تولید نمی‌شود.
 
@@ -90,13 +90,13 @@ L2TP/IPsec daemon سیستم‌عامل است و بخشی از Xray نیست. i
 روی سرور تازه، با کاربر **root**:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.15-omega/install-omega.sh) v3.3.15-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.17-omega/install-omega.sh) v3.3.17-omega
 ```
 
 اگر می‌خواهید نسخه‌ی مشخصی نصب شود (مثلاً قبل از merge شدن شاخه‌ی اصلی):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.15-omega/install-omega.sh) v3.3.15-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.17-omega/install-omega.sh) v3.3.17-omega
 ```
 
 نصب‌کننده خودش این کارها را انجام می‌دهد:

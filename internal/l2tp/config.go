@@ -61,8 +61,12 @@ func renderIPsecConf(inst Instance) string {
 	b.WriteString("    dpdaction=clear\n")
 	b.WriteString("    dpddelay=30s\n")
 	b.WriteString("    dpdtimeout=120s\n")
-	b.WriteString("    ike=aes256-sha1-modp2048,aes128-sha1-modp1024\n")
-	b.WriteString("    esp=aes256-sha1\n")
+	// Windows' built-in L2TP client defaults to IKEv1 with MODP1024 and
+	// advertises AES256/AES128/3DES. Keep MODP2048 first for clients that
+	// support it, but include the Windows-compatible fallbacks so the initial
+	// IKE negotiation does not fail with error 789.
+	b.WriteString("    ike=aes256-sha1-modp2048,aes256-sha1-modp1024,aes128-sha1-modp1024,3des-sha1-modp1024\n")
+	b.WriteString("    esp=aes256-sha1,aes128-sha1,3des-sha1\n")
 	b.WriteString("    left=%defaultroute\n")
 	b.WriteString("    leftprotoport=17/1701\n")
 	b.WriteString("    right=%any\n")
@@ -78,6 +82,10 @@ func renderXL2TPDConf(inst Instance) string {
 	var b strings.Builder
 	b.WriteString("# Managed by OMEGA. Do not edit; changes are reconciled from the panel.\n")
 	b.WriteString("[global]\n")
+	// SAref is for the old MAST/SAref IPsec stack. Modern Linux XFRM with
+	// strongSwan uses the normal kernel transport path, and explicitly
+	// disabling SAref avoids xl2tpd probing an unavailable socket option.
+	b.WriteString("ipsec saref = no\n")
 	b.WriteString("port = 1701\n")
 	b.WriteString("listen-addr = ")
 	b.WriteString(inst.listenFor())

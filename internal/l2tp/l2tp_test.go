@@ -96,3 +96,28 @@ func TestRenderConfigQuotesCredentials(t *testing.T) {
 		t.Fatal("PPP accounting hooks do not reference session environment")
 	}
 }
+
+func TestRenderIPsecConfigSupportsWindowsL2TP(t *testing.T) {
+	conf := renderIPsecConf(validInstance())
+	for _, expected := range []string{
+		"keyexchange=ikev1",
+		"ike=aes256-sha1-modp2048,aes256-sha1-modp1024,aes128-sha1-modp1024,3des-sha1-modp1024",
+		"esp=aes256-sha1,aes128-sha1,3des-sha1",
+		"leftprotoport=17/1701",
+		"rightprotoport=17/%any",
+	} {
+		if !strings.Contains(conf, expected) {
+			t.Fatalf("Windows-compatible IPsec setting %q is missing from config: %s", expected, conf)
+		}
+	}
+	if !strings.Contains(renderXL2TPDConf(validInstance()), "ipsec saref = no") {
+		t.Fatal("xl2tpd must disable legacy SAref probing on kernel XFRM")
+	}
+}
+
+func TestESPInputRule(t *testing.T) {
+	got := strings.Join(espInputRule(), " ")
+	if got != "-p esp -j ACCEPT" {
+		t.Fatalf("unexpected ESP firewall rule: %q", got)
+	}
+}
