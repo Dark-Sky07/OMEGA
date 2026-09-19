@@ -55,6 +55,7 @@ func cleanupOrphanData(exceptID int) {
 		}
 		stopOrphan(id)
 		GetNetworkManager().Remove(id)
+		removeStrongSwanRuntime(id)
 		_ = os.RemoveAll(dataDirForID(id))
 	}
 }
@@ -87,6 +88,7 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	if m.proc != nil {
 		_ = m.proc.proc.Stop()
 		GetNetworkManager().Remove(m.id)
+		removeStrongSwanRuntime(m.id)
 		m.proc = nil
 		m.id = 0
 	}
@@ -124,6 +126,7 @@ func (m *Manager) Reconcile(desired []Instance) {
 		if m.proc != nil {
 			_ = m.proc.proc.Stop()
 			GetNetworkManager().Remove(m.id)
+			removeStrongSwanRuntime(m.id)
 			_ = os.RemoveAll(dataDirForID(m.id))
 			m.proc = nil
 			m.id = 0
@@ -155,6 +158,7 @@ func (m *Manager) Remove(id int) {
 	if m.proc != nil && (id == 0 || m.id == id) {
 		_ = m.proc.proc.Stop()
 		GetNetworkManager().Remove(m.id)
+		removeStrongSwanRuntime(m.id)
 		_ = os.RemoveAll(dataDirForID(m.id))
 		m.proc = nil
 		m.id = 0
@@ -167,6 +171,7 @@ func (m *Manager) Remove(id int) {
 	if m.proc == nil || m.id == id {
 		stopOrphan(id)
 		GetNetworkManager().Remove(id)
+		removeStrongSwanRuntime(id)
 		_ = os.RemoveAll(dataDirForID(id))
 	}
 }

@@ -250,7 +250,8 @@ func (p *Process) Start() error {
 
 	// The distro ipsec wrapper resets IPSEC_CONFDIR to its compiled /etc path,
 	// so pass the managed connection explicitly to starter. STRONGSWAN_CONF
-	// redirects the legacy stroke secrets loader to the per-inbound PSK file.
+	// points charon at the AppArmor-readable per-inbound config under /etc and
+	// that config redirects the legacy stroke secrets loader to the PSK file.
 	ipsecCmd := exec.Command(ipsec, "start", "--nofork", "--conf", ipsecConfigPath(p.id))
 	ipsecCmd.Env = processEnvironment(
 		"STRONGSWAN_CONF="+strongSwanConfigPath(p.id),
@@ -277,19 +278,55 @@ func (p *Process) Start() error {
 	p.xl2tpdCmd = xl2tpdCmd
 	p.xl2tpdDone = make(chan struct{})
 	go p.wait(xl2tpdCmd, p.xl2tpdDone, p.xl2tpdLog, "xl2tpd")
+
+	// Start() must not report success merely because both child processes were
+	// forked. In particular, charon can reject its configuration immediately
+	// while xl2tpd continues listening on UDP 1701. Treat an early exit as a
+	// failed start so the manager never advertises a half-alive daemon group.
+	if err := p.waitForStartup(2 * time.Second); err != nil {
+		p.intentional.Store(true)
+		_ = xl2tpdCmd.Process.Signal(syscall.SIGTERM)
+		_ = ipsecCmd.Process.Signal(syscall.SIGTERM)
+		return err
+	}
 	return nil
+}
+
+func (p *Process) waitForStartup(timeout time.Duration) error {
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+	for {
+		select {
+		case <-p.ipsecDone:
+			line := p.ipsecLog.LastLine()
+			if line == "" {
+				line = "process exited during startup"
+			}
+			return fmt.Errorf("strongSwan failed during startup: %s", line)
+		case <-p.xl2tpdDone:
+			line := p.xl2tpdLog.LastLine()
+			if line == "" {
+				line = "process exited during startup"
+			}
+			return fmt.Errorf("xl2tpd failed during startup: %s", line)
+		case <-timer.C:
+			return nil
+		}
+	}
 }
 
 func (p *Process) wait(cmd *exec.Cmd, done chan struct{}, writer *procLogWriter, name string) {
 	err := cmd.Wait()
 	writer.Flush()
+	// Publish process termination before taking p.mu. Start may be waiting for
+	// this channel while it still owns the mutex during its startup handshake.
+	close(done)
 	if err != nil && !p.intentional.Load() {
 		p.mu.Lock()
 		p.exitErr = fmt.Errorf("%s exited: %w", name, err)
 		p.mu.Unlock()
 		logger.Errorf("l2tp: %s exited: %v", name, err)
 	}
-	close(done)
 }
 
 func (p *Process) Stop() error {
