@@ -383,6 +383,46 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/server/stopOpenVPNService',
+        summary: 'Stop all managed OpenVPN daemons and hold reconciliation until the service is started again. Returns after the manager has stopped the processes.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/startOpenVPNService',
+        summary: 'Resume the managed OpenVPN service and reconcile enabled OpenVPN inbounds immediately.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/restartOpenVPNService',
+        summary: 'Stop and start the managed OpenVPN daemons using the current inbound configuration.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/updateOpenVPNService',
+        summary: 'Resume OpenVPN reconciliation and apply the current OpenVPN inbound configuration.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/stopL2TPService',
+        summary: 'Stop the managed L2TP/IPsec daemon group and hold reconciliation until the service is started again.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/startL2TPService',
+        summary: 'Resume the managed L2TP/IPsec service and reconcile the enabled L2TP inbound immediately.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/restartL2TPService',
+        summary: 'Stop and start the managed L2TP/IPsec daemon group using the current inbound configuration.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/updateL2TPService',
+        summary: 'Resume L2TP/IPsec reconciliation and apply the current inbound configuration.',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/server/installXray/:version',
         summary: 'Download and install the specified Xray version. Pass "latest" for the newest release.',
         params: [
@@ -486,6 +526,12 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
+        path: '/panel/api/clients/export',
+        summary: 'Export a versioned client transfer envelope containing client credentials, multi-protocol fields, inbound attachments, and flow overrides. Resellers receive only their assigned clients and inbounds; traffic counters and database IDs are excluded.',
+        response: '{\n  \"format\": \"omega-client-transfer\",\n  \"version\": 1,\n  \"exportedAt\": \"2026-01-01T00:00:00Z\",\n  \"clients\": []\n}',
+      },
+      {
+        method: 'GET',
         path: '/panel/api/clients/list/paged',
         summary: 'Filter, sort, and paginate clients on the server. Each item is a slim row (no uuid/password/auth/flow/security/reverse/tgId) so the clients page can ship 25-ish rows in a few KB instead of the full table. The response also includes a summary computed across the full DB row set so dashboard counters stay stable as the user paginates or filters. Page size capped at 200; fetch /get/:email to obtain the full per-client payload for an edit/info modal.',
         params: [
@@ -520,6 +566,13 @@ export const sections: readonly Section[] = [
         ],
         body: '{\n  "client": {\n    "email": "alice@example.com",\n    "totalGB": 53687091200,\n    "expiryTime": 1735689600000,\n    "tgId": 0,\n    "limitIp": 0,\n    "enable": true\n  },\n  "inboundIds": [3, 5]\n}',
         response: '{\n  "success": true,\n  "msg": "Client added"\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/import',
+        summary: 'Preflight and import a versioned client transfer envelope. The operation rejects duplicate or colliding credentials, invalid attachments, and out-of-scope reseller data before mutating clients; the response reports created, updated, failed, and restart counts.',
+        body: '{\n  \"format\": \"omega-client-transfer\",\n  \"version\": 1,\n  \"clients\": []\n}',
+        errorResponse: '{\n  \"success\": false,\n  \"msg\": \"Client transfer validation failed\"\n}',
       },
       {
         method: 'POST',
