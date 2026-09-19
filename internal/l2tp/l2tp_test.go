@@ -104,6 +104,7 @@ func TestRenderConfigQuotesCredentials(t *testing.T) {
 func TestRenderIPsecConfigSupportsWindowsL2TP(t *testing.T) {
 	conf := renderIPsecConf(validInstance())
 	for _, expected := range []string{
+		"charondebug=\"ike 1, knl 1, cfg 1, lib 1\"",
 		"keyexchange=ikev1",
 		"ike=aes256-sha1-modp2048,aes256-sha1-modp1024,aes128-sha1-modp1024,3des-sha1-modp1024",
 		"esp=aes256-sha1,aes128-sha1,3des-sha1",
