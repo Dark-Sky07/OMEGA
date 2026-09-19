@@ -128,24 +128,40 @@ func fixedInputRule(port int) []string {
 	return []string{"-p", "udp", "--dport", fmt.Sprint(port), "-j", "ACCEPT"}
 }
 
-func (m *NetworkManager) enableFixedPorts(iptables string) ([]int, error) {
+// ESP (IP protocol 50) is used when the Windows client is not behind NAT.
+// NAT-T moves the same traffic to UDP 4500, but allowing only UDP would make
+// direct public-to-public L2TP/IPsec negotiation fail after IKE succeeds.
+func espInputRule() []string {
+	return []string{"-p", "esp", "-j", "ACCEPT"}
+}
+
+func (m *NetworkManager) enableFixedPorts(iptables string) ([]int, bool, error) {
 	inserted := make([]int, 0, len(FixedPorts))
 	for _, port := range FixedPorts {
 		wasInserted, err := m.ensureRule(iptables, "", append([]string{"INPUT"}, fixedInputRule(port)...))
 		if err != nil {
-			return inserted, fmt.Errorf("open UDP %d: %w", port, err)
+			return inserted, false, fmt.Errorf("open UDP %d: %w", port, err)
 		}
 		if wasInserted {
 			inserted = append(inserted, port)
 		}
 	}
-	return inserted, nil
+	espInserted, err := m.ensureRule(iptables, "", append([]string{"INPUT"}, espInputRule()...))
+	if err != nil {
+		m.removeFixedPorts(iptables, inserted)
+		return inserted, false, fmt.Errorf("open ESP protocol 50: %w", err)
+	}
+	return inserted, espInserted, nil
 }
 
 func (m *NetworkManager) removeFixedPorts(iptables string, ports []int) {
 	for _, port := range ports {
 		m.removeRule(iptables, "", append([]string{"INPUT"}, fixedInputRule(port)...))
 	}
+}
+
+func (m *NetworkManager) removeESP(iptables string) {
+	m.removeRule(iptables, "", append([]string{"INPUT"}, espInputRule()...))
 }
 
 func mergePorts(existing, inserted []int) []int {
@@ -192,10 +208,9 @@ func (m *NetworkManager) Apply(inst Instance) error {
 	} else if previous, ok := loadNetworkState(inst.Id); ok {
 		previousFixedPorts = append(previousFixedPorts, previous.fixedInputPorts...)
 	}
-	newFixedPorts, err := m.enableFixedPorts(iptables)
+	newFixedPorts, espInserted, err := m.enableFixedPorts(iptables)
 	if err != nil {
-		m.removeFixedPorts(iptables, newFixedPorts)
-		return fmt.Errorf("l2tp: open fixed UDP ports: %w", err)
+		return fmt.Errorf("l2tp: open fixed L2TP/IPsec listeners: %w", err)
 	}
 	fixedPorts := mergePorts(previousFixedPorts, newFixedPorts)
 	pool := inst.poolCIDRFor()
@@ -208,6 +223,9 @@ func (m *NetworkManager) Apply(inst Instance) error {
 	outInserted, err := m.ensureRule(iptables, "", forwardOut)
 	if err != nil {
 		m.removeFixedPorts(iptables, newFixedPorts)
+		if espInserted {
+			m.removeESP(iptables)
+		}
 		return fmt.Errorf("l2tp: install outbound FORWARD rule: %w", err)
 	}
 
@@ -222,6 +240,9 @@ func (m *NetworkManager) Apply(inst Instance) error {
 			m.removeRule(iptables, "", forwardOut)
 		}
 		m.removeFixedPorts(iptables, newFixedPorts)
+		if espInserted {
+			m.removeESP(iptables)
+		}
 		return fmt.Errorf("l2tp: install return FORWARD rule: %w", err)
 	}
 
@@ -239,6 +260,9 @@ func (m *NetworkManager) Apply(inst Instance) error {
 			m.removeRule(iptables, "", forwardOut)
 		}
 		m.removeFixedPorts(iptables, newFixedPorts)
+		if espInserted {
+			m.removeESP(iptables)
+		}
 		return fmt.Errorf("l2tp: install MASQUERADE rule: %w", err)
 	}
 	state := networkState{poolCIDR: pool, interfaceName: iface, fixedInputPorts: fixedPorts}
@@ -255,6 +279,9 @@ func (m *NetworkManager) Apply(inst Instance) error {
 			m.removeRule(iptables, "", forwardOut)
 		}
 		m.removeFixedPorts(iptables, newFixedPorts)
+		if espInserted {
+			m.removeESP(iptables)
+		}
 		return fmt.Errorf("l2tp: persist firewall state: %w", err)
 	}
 	m.rules[inst.Id] = state
@@ -285,6 +312,7 @@ func (m *NetworkManager) Remove(id int) {
 		ports = append([]int(nil), FixedPorts[:]...)
 	}
 	m.removeFixedPorts(iptables, ports)
+	m.removeESP(iptables)
 	if ok && state.poolCIDR != "" {
 		pool := state.poolCIDR
 		iface := state.interfaceName
