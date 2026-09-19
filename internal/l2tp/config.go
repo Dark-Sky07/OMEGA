@@ -9,6 +9,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 )
 
+const strongSwanRuntimeRoot = "/etc/strongswan.d/omega-l2tp"
+
 func l2tpRoot() string {
 	dir := config.GetBinFolderPath()
 	return filepath.Join(dir, "l2tp")
@@ -18,9 +20,13 @@ func dataDirForID(id int) string {
 	return filepath.Join(l2tpRoot(), fmt.Sprintf("%d", id))
 }
 
+func strongSwanDirForID(id int) string {
+	return filepath.Join(strongSwanRuntimeRoot, fmt.Sprintf("%d", id))
+}
+
 func ipsecConfigPath(id int) string      { return filepath.Join(dataDirForID(id), "ipsec.conf") }
-func ipsecSecretsPath(id int) string     { return filepath.Join(dataDirForID(id), "ipsec.secrets") }
-func strongSwanConfigPath(id int) string { return filepath.Join(dataDirForID(id), "strongswan.conf") }
+func ipsecSecretsPath(id int) string     { return filepath.Join(strongSwanDirForID(id), "ipsec.secrets") }
+func strongSwanConfigPath(id int) string { return filepath.Join(strongSwanDirForID(id), "strongswan.conf") }
 func xl2tpdConfigPath(id int) string     { return filepath.Join(dataDirForID(id), "xl2tpd.conf") }
 func pppOptionsPath(id int) string    { return filepath.Join(dataDirForID(id), "options.xl2tpd") }
 func chapSecretsPath(id int) string   { return filepath.Join(dataDirForID(id), "chap-secrets") }
@@ -29,6 +35,10 @@ func sessionDirPath(id int) string    { return filepath.Join(dataDirForID(id), "
 func ipUpScriptPath(id int) string    { return filepath.Join(dataDirForID(id), "ip-up") }
 func ipDownScriptPath(id int) string  { return filepath.Join(dataDirForID(id), "ip-down") }
 func strongSwanPIDDir(id int) string  { return dataDirForID(id) }
+
+func removeStrongSwanRuntime(id int) {
+	_ = os.RemoveAll(strongSwanDirForID(id))
+}
 
 func quoteIPsec(value string) string {
 	value = strings.ReplaceAll(value, `\`, `\\`)
@@ -87,9 +97,10 @@ func renderStrongSwanConf(inst Instance) string {
 	// The distro ipsec wrapper compiles /etc as its IPSEC_CONFDIR and resets
 	// that environment variable before launching starter. Keep the connection
 	// file explicit via starter --conf and redirect the stroke secrets loader
-	// here, without copying the PSK into a global system file. Do not import an
-	// arbitrary host strongswan.conf or top-level snippet: a damaged optional
-	// host setting must not prevent this inbound from booting.
+	// here, without copying the PSK into the global /etc/ipsec.secrets file.
+	// These two strongSwan files intentionally live below /etc/strongswan.d:
+	// Debian/Ubuntu's AppArmor profile permits charon to read that tree but
+	// rejects the panel's /usr/local/x-ui/bin/l2tp path.
 	b.WriteString("charon {\n")
 	b.WriteString("    load_modular = yes\n")
 	b.WriteString("    plugins {\n")
@@ -194,6 +205,9 @@ func writeConfig(inst Instance) error {
 	}
 	dir := dataDirForID(inst.Id)
 	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(strongSwanDirForID(inst.Id), 0o750); err != nil {
 		return err
 	}
 	if err := os.MkdirAll(sessionDirPath(inst.Id), 0o750); err != nil {

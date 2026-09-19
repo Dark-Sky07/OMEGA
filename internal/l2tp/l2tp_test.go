@@ -82,6 +82,18 @@ func TestInstanceFromInboundUsesStoredClients(t *testing.T) {
 	}
 }
 
+func TestStrongSwanRuntimeFilesUseAppArmorReadableDirectory(t *testing.T) {
+	inst := validInstance()
+	for _, path := range []string{strongSwanConfigPath(inst.Id), ipsecSecretsPath(inst.Id)} {
+		if !strings.HasPrefix(path, strongSwanRuntimeRoot+"/") {
+			t.Fatalf("strongSwan runtime file is outside the AppArmor-readable directory: %q", path)
+		}
+		if strings.Contains(path, "/usr/local/x-ui/") {
+			t.Fatalf("strongSwan runtime file must not be confined by the charon AppArmor profile: %q", path)
+		}
+	}
+}
+
 func TestRenderConfigQuotesCredentials(t *testing.T) {
 	inst := validInstance()
 	inst.Credentials[0].Password = `pa ss "word"`
