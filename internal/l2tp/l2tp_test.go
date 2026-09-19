@@ -101,8 +101,14 @@ func TestRenderConfigQuotesCredentials(t *testing.T) {
 	if !strings.Contains(chap, `\"word\"`) || !strings.Contains(chap, `"pa ss`) {
 		t.Fatalf("password was not quoted in chap-secrets: %q", chap)
 	}
-	if !strings.Contains(renderPPPOptions(inst), "ip-up-script") {
+	pppOptions := renderPPPOptions(inst)
+	if !strings.Contains(pppOptions, "ip-up-script") {
 		t.Fatal("PPP options do not install accounting hooks")
+	}
+	for _, line := range strings.Split(pppOptions, "\n") {
+		if strings.HasPrefix(strings.TrimSpace(line), "chap-secrets ") {
+			t.Fatalf("PPP options contain the unsupported chap-secrets option: %q", line)
+		}
 	}
 	strongSwan := renderStrongSwanConf(inst)
 	if !strings.Contains(strongSwan, "include /etc/strongswan.d/charon/*.conf") || !strings.Contains(strongSwan, "secrets_file = "+ipsecSecretsPath(inst.Id)) {
@@ -110,6 +116,29 @@ func TestRenderConfigQuotesCredentials(t *testing.T) {
 	}
 	if !strings.Contains(renderIPUpScript(inst), "PEERNAME") || !strings.Contains(renderIPDownScript(inst), "PPP_IFACE") {
 		t.Fatal("PPP accounting hooks do not reference session environment")
+	}
+}
+
+func TestSystemChapSecretsPreserveUnmanagedEntries(t *testing.T) {
+	inst := validInstance()
+	inst.Credentials[0].Email = "new@example.com"
+	inst.Credentials[0].Password = "new password"
+	existing := "# administrator entry\nadmin * admin-password *\n\n" +
+		omegaChapSecretsBegin + "\nold@example.com * old-password *\n" +
+		omegaChapSecretsEnd + "\n"
+	contents := renderSystemChapSecrets(existing, inst)
+	if !strings.Contains(contents, "admin * admin-password *") {
+		t.Fatal("system chap-secrets reconciliation removed an unrelated PPP entry")
+	}
+	if strings.Contains(contents, "old@example.com") || strings.Count(contents, omegaChapSecretsBegin) != 1 || strings.Count(contents, omegaChapSecretsEnd) != 1 {
+		t.Fatalf("stale OMEGA credentials or duplicate managed blocks remain: %q", contents)
+	}
+	if !strings.Contains(contents, `"new@example.com" * "new password" *`) {
+		t.Fatalf("current OMEGA credential was not installed in the managed block: %q", contents)
+	}
+	cleaned := stripManagedChapSecrets(contents)
+	if strings.Contains(cleaned, omegaChapSecretsBegin) || strings.Contains(cleaned, omegaChapSecretsEnd) || !strings.Contains(cleaned, "admin * admin-password *") {
+		t.Fatalf("removing the managed block did not preserve unrelated entries: %q", cleaned)
 	}
 }
 

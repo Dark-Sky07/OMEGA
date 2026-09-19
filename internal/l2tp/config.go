@@ -9,7 +9,16 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 )
 
-const strongSwanRuntimeRoot = "/etc/strongswan.d/omega-l2tp"
+const (
+	strongSwanRuntimeRoot = "/etc/strongswan.d/omega-l2tp"
+
+	// pppd does not accept a per-options-file chap-secrets path. It always
+	// reads /etc/ppp/chap-secrets, so OMEGA owns only a marked block there and
+	// preserves entries managed by other PPP services.
+	systemChapSecretsPath = "/etc/ppp/chap-secrets"
+	omegaChapSecretsBegin = "# BEGIN OMEGA L2TP MANAGED CREDENTIALS"
+	omegaChapSecretsEnd   = "# END OMEGA L2TP MANAGED CREDENTIALS"
+)
 
 func l2tpRoot() string {
 	dir := config.GetBinFolderPath()
@@ -142,7 +151,7 @@ func renderXL2TPDConf(inst Instance) string {
 
 func renderPPPOptions(inst Instance) string {
 	var b strings.Builder
-	b.WriteString("# Managed by OMEGA. PPP credentials are in the adjacent chap-secrets file.\n")
+	b.WriteString("# pppd reads the OMEGA-managed block in /etc/ppp/chap-secrets.\n")
 	b.WriteString("require-mschap-v2\n")
 	b.WriteString("refuse-pap\n")
 	b.WriteString("refuse-eap\n")
@@ -156,7 +165,6 @@ func renderPPPOptions(inst Instance) string {
 	b.WriteString("lcp-echo-failure 4\n")
 	fmt.Fprintf(&b, "ms-dns %s\n", inst.dns1For())
 	fmt.Fprintf(&b, "ms-dns %s\n", inst.dns2For())
-	fmt.Fprintf(&b, "chap-secrets %s\n", chapSecretsPath(inst.Id))
 	fmt.Fprintf(&b, "ip-up-script %s\n", ipUpScriptPath(inst.Id))
 	fmt.Fprintf(&b, "ip-down-script %s\n", ipDownScriptPath(inst.Id))
 	return b.String()
@@ -199,6 +207,105 @@ func renderChapSecrets(inst Instance) string {
 	return b.String()
 }
 
+// stripManagedChapSecrets removes every block previously written by OMEGA and
+// leaves unrelated PPP credentials untouched. A trailing newline is returned
+// for non-empty content so the next managed block cannot join another entry.
+func stripManagedChapSecrets(contents string) string {
+	lines := strings.Split(contents, "\n")
+	kept := make([]string, 0, len(lines))
+	inManaged := false
+	for _, line := range lines {
+		switch strings.TrimSpace(line) {
+		case omegaChapSecretsBegin:
+			inManaged = true
+			continue
+		case omegaChapSecretsEnd:
+			inManaged = false
+			continue
+		}
+		if !inManaged {
+			kept = append(kept, line)
+		}
+	}
+	cleaned := strings.TrimRight(strings.Join(kept, "\n"), "\n")
+	if cleaned == "" {
+		return ""
+	}
+	return cleaned + "\n"
+}
+
+func renderManagedChapSecrets(inst Instance) string {
+	return omegaChapSecretsBegin + "\n" +
+		strings.TrimRight(renderChapSecrets(inst), "\n") + "\n" +
+		omegaChapSecretsEnd + "\n"
+}
+
+func renderSystemChapSecrets(existing string, inst Instance) string {
+	base := strings.TrimRight(stripManagedChapSecrets(existing), "\n")
+	managed := strings.TrimRight(renderManagedChapSecrets(inst), "\n")
+	if base == "" {
+		return managed + "\n"
+	}
+	return base + "\n\n" + managed + "\n"
+}
+
+func writeSystemChapSecrets(contents string) error {
+	dir := filepath.Dir(systemChapSecretsPath)
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(dir, ".omega-chap-secrets-*")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName)
+	if err := tmp.Chmod(0o600); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if _, err := tmp.WriteString(contents); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(tmpName, systemChapSecretsPath); err != nil {
+		return err
+	}
+	return nil
+}
+
+func reconcileSystemChapSecrets(inst Instance) error {
+	existing, err := os.ReadFile(systemChapSecretsPath)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	contents := renderSystemChapSecrets(string(existing), inst)
+	if contents == string(existing) {
+		return nil
+	}
+	return writeSystemChapSecrets(contents)
+}
+
+func clearSystemChapSecrets() error {
+	existing, err := os.ReadFile(systemChapSecretsPath)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	cleaned := stripManagedChapSecrets(string(existing))
+	if cleaned == string(existing) {
+		return nil
+	}
+	// Keep the system file in place even when no unrelated entries remain. It
+	// may have been installed by the PPP package or an administrator.
+	return writeSystemChapSecrets(cleaned)
+}
+
 func writeConfig(inst Instance) error {
 	if err := ValidateSettings(inst); err != nil {
 		return err
@@ -234,6 +341,9 @@ func writeConfig(inst Instance) error {
 		if err := os.Chmod(file.path, file.mode); err != nil {
 			return err
 		}
+	}
+	if err := reconcileSystemChapSecrets(inst); err != nil {
+		return fmt.Errorf("reconcile system PPP chap-secrets: %w", err)
 	}
 	return nil
 }

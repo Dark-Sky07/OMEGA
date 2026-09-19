@@ -73,6 +73,9 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	}
 	fp := inst.fingerprint()
 	if m.proc != nil && m.id == inst.Id && m.proc.fingerprint == fp && m.proc.proc.IsRunning() {
+		if err := reconcileSystemChapSecrets(inst); err != nil {
+			return err
+		}
 		m.proc.tag = inst.Tag
 		if m.proc.last == nil {
 			m.proc.last = make(map[string]interfaceCounter)
@@ -89,22 +92,30 @@ func (m *Manager) ensureLocked(inst Instance) error {
 		_ = m.proc.proc.Stop()
 		GetNetworkManager().Remove(m.id)
 		removeStrongSwanRuntime(m.id)
+		_ = clearSystemChapSecrets()
 		m.proc = nil
 		m.id = 0
 	}
 	// The process group and firewall manager are in-memory. Reclaim any
 	// previous group for this id before writing a fresh config after restart.
 	stopOrphan(inst.Id)
+	if m.proc == nil {
+		if err := clearSystemChapSecrets(); err != nil {
+			return err
+		}
+	}
 	GetNetworkManager().Remove(inst.Id)
 	if err := writeConfig(inst); err != nil {
 		return err
 	}
 	if err := GetNetworkManager().Apply(inst); err != nil {
+		_ = clearSystemChapSecrets()
 		return err
 	}
 	proc := newProcess(inst.Id)
 	if err := proc.Start(); err != nil {
 		GetNetworkManager().Remove(inst.Id)
+		_ = clearSystemChapSecrets()
 		m.proc = &managed{proc: proc, tag: inst.Tag, fingerprint: fp, lastErrAt: time.Now(), last: map[string]interfaceCounter{}, online: map[string]bool{}}
 		m.id = inst.Id
 		return err
@@ -133,6 +144,9 @@ func (m *Manager) Reconcile(desired []Instance) {
 			m.ready = false
 		}
 		cleanupOrphanData(0)
+		if err := clearSystemChapSecrets(); err != nil {
+			logger.Warningf("l2tp: failed to clear system PPP chap-secrets: %v", err)
+		}
 		return
 	}
 	if len(desired) > 1 {
@@ -166,6 +180,9 @@ func (m *Manager) Remove(id int) {
 	}
 	if id == 0 {
 		cleanupOrphanData(0)
+		if err := clearSystemChapSecrets(); err != nil {
+			logger.Warningf("l2tp: failed to clear system PPP chap-secrets: %v", err)
+		}
 		return
 	}
 	if m.proc == nil || m.id == id {
@@ -173,6 +190,11 @@ func (m *Manager) Remove(id int) {
 		GetNetworkManager().Remove(id)
 		removeStrongSwanRuntime(id)
 		_ = os.RemoveAll(dataDirForID(id))
+	}
+	if m.proc == nil {
+		if err := clearSystemChapSecrets(); err != nil {
+			logger.Warningf("l2tp: failed to clear system PPP chap-secrets: %v", err)
+		}
 	}
 }
 
