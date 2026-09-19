@@ -50,7 +50,10 @@ func renderIPsecConf(inst Instance) string {
 	b.WriteString("# Managed by OMEGA. Do not edit; changes are reconciled from the panel.\n")
 	b.WriteString("config setup\n")
 	b.WriteString("    uniqueids=no\n")
-	b.WriteString("    charondebug=\"ike 1, knl 1, cfg 0\"\n\n")
+	// Keep library/config diagnostics enabled until the distro-specific
+	// strongswan.d layout has been validated; otherwise charon only reports the
+	// generic "invalid configuration" exit and hides the offending file/line.
+	b.WriteString("    charondebug=\"ike 1, knl 1, cfg 1, lib 1\"\n\n")
 	b.WriteString("conn omega-l2tp\n")
 	b.WriteString("    auto=add\n")
 	b.WriteString("    type=transport\n")
