@@ -46,8 +46,7 @@ jobs:
           python3 - <<'PYLOG'
           from pathlib import Path
           output = Path('/tmp/go-test.log').read_text(errors='replace')[-60000:]
-          output = output.replace('%', '%25').replace('', '%0D').replace('
-', '%0A')
+          output = output.replace('%', '%25').replace(chr(13), '%0D').replace(chr(10), '%0A')
           print(f'::error title=go-test-output::{output}')
           PYLOG
           exit 1
