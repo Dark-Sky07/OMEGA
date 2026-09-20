@@ -9,7 +9,7 @@ on:
     inputs:
       image_tag:
         description: "Optional image tag for a manual publish"
-        required: false
+        required: true
         type: string
   push:
     tags:
