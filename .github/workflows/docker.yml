@@ -6,6 +6,11 @@ permissions:
 
 on:
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Optional image tag for a manual publish"
+        required: false
+        type: string
   push:
     tags:
       - "v*.*.*"
@@ -33,6 +38,7 @@ jobs:
             type=ref,event=branch
             type=ref,event=tag
             type=semver,pattern={{version}}
+            type=raw,value=${{ inputs.image_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.image_tag != '' }}
 
       - name: Docker meta (Docker Hub)
         id: meta_dockerhub
@@ -44,6 +50,7 @@ jobs:
             type=ref,event=branch
             type=ref,event=tag
             type=semver,pattern={{version}}
+            type=raw,value=${{ inputs.image_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.image_tag != '' }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
