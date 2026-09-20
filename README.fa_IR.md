@@ -18,7 +18,7 @@
 **نصب با یک دستور** — روی سرور تازه، با کاربر `root`:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega/install-omega.sh) v3.3.25-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.26-omega/install-omega.sh) v3.3.26-omega
 ```
 
 </div>
@@ -27,7 +27,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega
 > این پروژه فورکی بر پایه‌ی 3x-ui نسخه‌ی 3.3.1 است. قابلیت نمایندگی، daemon خارجی OpenVPN و daemon خارجی
 > L2TP/IPsec به آن اضافه شده‌اند، اما نام سرویس (`x-ui`)، مسیرهای نصب (`/usr/local/x-ui`، `/etc/x-ui`)،
 > متغیرهای محیطی و قراردادهای کانفیگ Xray با upstream سازگار باقی مانده‌اند. شماره‌ی release مربوط به OMEGA
-> جداگانه مدیریت می‌شود و نسخه‌ی stable فعلی `v3.3.25-omega` است.
+> جداگانه مدیریت می‌شود و نسخه‌ی stable فعلی `v3.3.26-omega` است.
 
 ---
 
@@ -49,9 +49,9 @@ OpenVPN یک daemon سیستم‌عامل است، نه بخشی از Xray و ن
 برای نصب یا تعمیر سرور موجود با آخرین release پایدار، با کاربر `root` اجرا کنید:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega/install-omega.sh \
+curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.26-omega/install-omega.sh \
   -o /tmp/install-omega.sh
-env OMEGA_REF=v3.3.25-omega bash /tmp/install-omega.sh v3.3.25-omega
+env OMEGA_REF=v3.3.26-omega bash /tmp/install-omega.sh v3.3.26-omega
 ```
 
 پیش‌نیاز را قبل از بررسی شبکه verify کنید:
@@ -90,13 +90,13 @@ L2TP/IPsec daemon سیستم‌عامل است و بخشی از Xray نیست. i
 روی سرور تازه، با کاربر **root**:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega/install-omega.sh) v3.3.25-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.26-omega/install-omega.sh) v3.3.26-omega
 ```
 
 اگر می‌خواهید نسخه‌ی مشخصی نصب شود (مثلاً قبل از merge شدن شاخه‌ی اصلی):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega/install-omega.sh) v3.3.25-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.26-omega/install-omega.sh) v3.3.26-omega
 ```
 
 نصب‌کننده خودش این کارها را انجام می‌دهد:
