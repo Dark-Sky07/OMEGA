@@ -33,6 +33,7 @@ const (
 	Hysteria    Protocol = "hysteria"
 	MTProto     Protocol = "mtproto"
 	OpenVPN     Protocol = "openvpn"
+	L2TP        Protocol = "l2tp"
 )
 
 // User represents a user account in the 3x-ui panel.
@@ -61,7 +62,7 @@ type Inbound struct {
 	// Xray configuration fields
 	Listen            string   `json:"listen" form:"listen"`
 	Port              int      `json:"port" form:"port" validate:"gte=0,lte=65535" example:"443"`
-	Protocol          Protocol `json:"protocol" form:"protocol" validate:"required,oneof=vmess vless trojan shadowsocks wireguard hysteria http mixed tunnel tun mtproto openvpn" example:"vless"`
+	Protocol          Protocol `json:"protocol" form:"protocol" validate:"required,oneof=vmess vless trojan shadowsocks wireguard hysteria http mixed tunnel tun mtproto openvpn l2tp" example:"vless"`
 	Settings          string   `json:"settings" form:"settings"`
 	StreamSettings    string   `json:"streamSettings" form:"streamSettings"`
 	Tag               string   `json:"tag" form:"tag" gorm:"unique" example:"in-443-tcp"`
@@ -384,6 +385,17 @@ func mtprotoRandomMiddle() string {
 	buf := make([]byte, 16)
 	if _, err := rand.Read(buf); err != nil {
 		panic(fmt.Errorf("mtproto: crypto/rand read failed: %w", err))
+	}
+	return hex.EncodeToString(buf)
+}
+
+// GenerateL2TPPSK returns a printable pre-shared key for the global L2TP/IPsec
+// inbound. It is generated once when an inbound is created and persisted in
+// settings; daemon reconcile never rotates it implicitly.
+func GenerateL2TPPSK() string {
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		panic(fmt.Errorf("l2tp: crypto/rand read failed: %w", err))
 	}
 	return hex.EncodeToString(buf)
 }

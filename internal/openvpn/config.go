@@ -44,11 +44,23 @@ func renderServerConf(inst Instance, mgmtPort int) string {
 	fmt.Fprintf(&b, "cert %s\n", filepath.Join(dir, "server.crt"))
 	fmt.Fprintf(&b, "key %s\n", filepath.Join(dir, "server.key"))
 	b.WriteString("tls-server\ntls-version-min 1.2\n")
+	// The generated server certificate is ECDSA P-256. OpenVPN 2.5 still
+	// requires an explicit DH setting; `dh none` selects the ECDHE path instead
+	// of looking for a legacy finite-field DH parameter file.
+	b.WriteString("dh none\necdh-curve prime256v1\n")
 	b.WriteString("auth sha256\ncipher AES-256-GCM\n")
 	fmt.Fprintf(&b, "server %s %s\n", network, mask)
+	// Use subnet topology explicitly so modern OpenVPN Connect clients get
+	// one predictable tunnel address rather than the legacy net30 pairing.
+	b.WriteString("topology subnet\n")
 	b.WriteString("client-to-client\n")
-	b.WriteString("keepalive 10 120\nping-restart 0\n")
-	b.WriteString("mute-replay-warning\nstatus-version 2\nverb 0\n")
+	b.WriteString("verify-client-cert require\nremote-cert-tls client\n")
+	b.WriteString("keepalive 10 120\n")
+	if inst.protoFor() == "udp" {
+		b.WriteString("explicit-exit-notify 1\n")
+	}
+	b.WriteString("persist-key\npersist-tun\n")
+	b.WriteString("mute-replay-warnings\nstatus-version 2\nverb 3\n")
 	fmt.Fprintf(&b, "writepid %s\n", pidPathForID(inst.Id))
 	fmt.Fprintf(&b, "log %s\n", logPathForID(inst.Id))
 	fmt.Fprintf(&b, "management 127.0.0.1 %d\n", mgmtPort)

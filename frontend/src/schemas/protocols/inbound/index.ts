@@ -5,6 +5,7 @@ import { HysteriaInboundSettingsSchema } from './hysteria';
 import { MixedInboundSettingsSchema } from './mixed';
 import { MtprotoInboundSettingsSchema } from './mtproto';
 import { OpenvpnInboundSettingsSchema } from './openvpn';
+import { L2tpInboundSettingsSchema } from './l2tp';
 import { ShadowsocksInboundSettingsSchema } from './shadowsocks';
 import { TrojanInboundSettingsSchema } from './trojan';
 import { TunInboundSettingsSchema } from './tun';
@@ -18,6 +19,7 @@ export * from './hysteria';
 export * from './mixed';
 export * from './mtproto';
 export * from './openvpn';
+export * from './l2tp';
 export * from './shadowsocks';
 export * from './trojan';
 export * from './tun';
@@ -44,5 +46,6 @@ export const InboundSettingsSchema = z.discriminatedUnion('protocol', [
   z.object({ protocol: z.literal('tun'),         settings: TunInboundSettingsSchema }),
   z.object({ protocol: z.literal('mtproto'),     settings: MtprotoInboundSettingsSchema }),
   z.object({ protocol: z.literal('openvpn'),     settings: OpenvpnInboundSettingsSchema }),
+  z.object({ protocol: z.literal('l2tp'),        settings: L2tpInboundSettingsSchema }),
 ]);
 export type InboundSettings = z.infer<typeof InboundSettingsSchema>;

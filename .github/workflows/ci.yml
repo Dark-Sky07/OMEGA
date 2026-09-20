@@ -36,9 +36,20 @@ jobs:
       - name: Stub internal/web/dist for go:embed
         run: mkdir -p internal/web/dist && touch internal/web/dist/.gitkeep
       - name: Test
+        shell: bash
         run: |
+          set -o pipefail
           go list ./... | grep -v '/frontend/node_modules/' > /tmp/go-packages.txt
-          go test $(cat /tmp/go-packages.txt)
+          if go test $(cat /tmp/go-packages.txt) 2>&1 | tee /tmp/go-test.log; then
+            exit 0
+          fi
+          python3 - <<'PYLOG'
+          from pathlib import Path
+          output = Path('/tmp/go-test.log').read_text(errors='replace')[-60000:]
+          output = output.replace('%', '%25').replace(chr(13), '%0D').replace(chr(10), '%0A')
+          print(f'::error title=go-test-output::{output}')
+          PYLOG
+          exit 1
 
   codegen:
     runs-on: ubuntu-latest

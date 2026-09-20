@@ -17,6 +17,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
@@ -289,6 +290,115 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 		return nil, err
 	}
 	return inbounds, nil
+}
+
+// GetOpenvpnEmailsBySubId returns the emails of the clients carrying subId
+// that are attached to an enabled, local openvpn inbound. OpenVPN inbounds
+// are daemon-served and produce no share link, so getInboundsBySubId can
+// never include them — the subscription page offers the per-client .ovpn
+// profile download separately for these emails.
+func (s *SubService) GetOpenvpnEmailsBySubId(subId string) ([]string, error) {
+	db := database.GetDB()
+	var emails []string
+	err := db.Raw(`SELECT DISTINCT clients.email
+			FROM clients
+			JOIN client_inbounds ON client_inbounds.client_id = clients.id
+			JOIN inbounds ON inbounds.id = client_inbounds.inbound_id
+			WHERE inbounds.protocol = 'openvpn'
+				AND inbounds.enable = ?
+				AND inbounds.node_id IS NULL
+				AND clients.sub_id = ?
+			ORDER BY clients.email ASC`, true, subId).Scan(&emails).Error
+	if err != nil {
+		return nil, err
+	}
+	return emails, nil
+}
+
+func l2tpConnectionValue(value, fallback string) string {
+	if strings.TrimSpace(value) != "" {
+		return strings.TrimSpace(value)
+	}
+	return fallback
+}
+
+// GetL2TPConnectionsBySubId returns native connection parameters for every
+// enabled client carrying subId. The query is deliberately scoped by both the
+// subscription id and the local, enabled L2TP inbound; no other subscription
+// can cause its credentials to appear in this response.
+func (s *SubService) GetL2TPConnectionsBySubId(subId, host string) ([]L2TPConnection, error) {
+	s.PrepareForRequest(host)
+	db := database.GetDB()
+	var inbounds []*model.Inbound
+	err := db.Model(&model.Inbound{}).Where(`id IN (
+			SELECT DISTINCT inbounds.id
+			FROM inbounds
+			JOIN client_inbounds ON client_inbounds.inbound_id = inbounds.id
+			JOIN clients ON clients.id = client_inbounds.client_id
+			WHERE inbounds.protocol = ?
+				AND inbounds.enable = ?
+				AND inbounds.node_id IS NULL
+				AND clients.sub_id = ?
+		)`, model.L2TP, true, subId).
+		Order("inbounds.id ASC").Find(&inbounds).Error
+	if err != nil {
+		return nil, err
+	}
+
+	connections := make([]L2TPConnection, 0)
+	seenEmails := make(map[string]struct{})
+	for _, inbound := range inbounds {
+		clients := s.matchingClients(inbound, subId)
+		if len(clients) == 0 {
+			continue
+		}
+		instance, ok := l2tp.InstanceFromInbound(inbound, clients)
+		if !ok {
+			continue
+		}
+		for _, client := range clients {
+			if !client.Enable || client.Email == "" || client.Password == "" {
+				continue
+			}
+			key := strings.ToLower(client.Email)
+			if _, alreadyAdded := seenEmails[key]; alreadyAdded {
+				continue
+			}
+			for _, credential := range instance.Credentials {
+				if credential.Email != client.Email || credential.Password != client.Password {
+					continue
+				}
+				serverAddress := strings.TrimSpace(s.address)
+				if serverAddress == "" {
+					serverAddress = strings.TrimSpace(host)
+				}
+				connections = append(connections, L2TPConnection{
+					ServerAddress:   serverAddress,
+					FixedPorts:      append([]int(nil), l2tp.FixedPorts[:]...),
+					PSK:             instance.PSK,
+					Username:        client.Email,
+					Password:        client.Password,
+					PoolCIDR:        l2tpConnectionValue(instance.PoolCIDR, l2tp.DefaultPoolCIDR),
+					LocalIP:         l2tpConnectionValue(instance.LocalIP, l2tp.DefaultLocalIP),
+					PoolStart:       l2tpConnectionValue(instance.PoolStart, l2tp.DefaultPoolStart),
+					PoolEnd:         l2tpConnectionValue(instance.PoolEnd, l2tp.DefaultPoolEnd),
+					DNS1:            l2tpConnectionValue(instance.DNS1, l2tp.DefaultDNS1),
+					DNS2:            l2tpConnectionValue(instance.DNS2, l2tp.DefaultDNS2),
+					RedirectGateway: instance.RedirectGateway,
+				})
+				seenEmails[key] = struct{}{}
+				break
+			}
+		}
+	}
+	return connections, nil
+}
+
+// GetOpenvpnProfile renders the .ovpn profile for an email toward this
+// request's host; it wraps the web InboundService so the subscription
+// controller does not duplicate inbound/certificate knowledge.
+func (s *SubService) GetOpenvpnProfile(host, email string) (string, *model.Inbound, error) {
+	return s.inboundService.GetOpenvpnProfile(host, email)
 }
 
 // projectThroughFallbackMaster mutates the inbound in place so its
@@ -2101,6 +2211,24 @@ func searchHost(headers any) string {
 	return ""
 }
 
+// L2TPConnection contains native L2TP/IPsec connection parameters for one
+// subscription client. It intentionally contains no profile or Xray link:
+// L2TP is served by the host's strongSwan/xl2tpd daemons.
+type L2TPConnection struct {
+	ServerAddress   string `json:"serverAddress"`
+	FixedPorts      []int  `json:"fixedPorts"`
+	PSK             string `json:"psk"`
+	Username        string `json:"username"`
+	Password        string `json:"password"`
+	PoolCIDR        string `json:"poolCIDR"`
+	LocalIP         string `json:"localIP"`
+	PoolStart       string `json:"poolStart"`
+	PoolEnd         string `json:"poolEnd"`
+	DNS1            string `json:"dns1"`
+	DNS2            string `json:"dns2"`
+	RedirectGateway bool   `json:"redirectGateway"`
+}
+
 // PageData is a view model for subpage.html
 // PageData contains data for rendering the subscription information page.
 type PageData struct {
@@ -2108,6 +2236,13 @@ type PageData struct {
 	BasePath      string
 	SId           string
 	Enabled       bool
+	// Openvpn reports whether the subscription owner can download a per-client
+	// .ovpn profile (attached to an enabled local openvpn inbound). The SPA
+	// uses it to show the OpenVPN config row next to the share links.
+	Openvpn       bool
+	// L2TP contains native connection data for every matching client. It is
+	// empty when no enabled local L2TP inbound is attached.
+	L2TP          []L2TPConnection
 	Download      string
 	Upload        string
 	Total         string

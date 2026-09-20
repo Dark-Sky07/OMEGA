@@ -14,6 +14,9 @@ export default function WireguardFields({ form }: { form: FormInstance<OutboundF
       <Form.Item label={t('pages.inbounds.address')} name={['settings', 'address']}>
         <Input placeholder="comma-separated, e.g. 10.0.0.1,fd00::1" />
       </Form.Item>
+      <Form.Item label={t('pages.inbounds.dns', 'DNS')} name={['settings', 'dns']}>
+        <Input placeholder="comma-separated IPv4/IPv6 resolvers" />
+      </Form.Item>
       <Form.Item label={t('pages.inbounds.privatekey')}>
         <Space.Compact block>
           <Form.Item name={['settings', 'secretKey']} noStyle>

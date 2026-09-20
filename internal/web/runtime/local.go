@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
@@ -52,6 +53,13 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 		}
 		return mtproto.GetManager().Ensure(inst)
 	}
+	if ib.Protocol == model.L2TP {
+		inst, ok := l2tp.InstanceFromInbound(ib, nil)
+		if !ok {
+			return errors.New("invalid l2tp inbound settings")
+		}
+		return l2tp.GetManager().Ensure(inst)
+	}
 	body, err := json.MarshalIndent(ib.GenXrayInboundConfig(), "", "  ")
 	if err != nil {
 		return err
@@ -64,6 +72,10 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 	if ib.Protocol == model.MTProto {
 		mtproto.GetManager().Remove(ib.Id)
+		return nil
+	}
+	if ib.Protocol == model.L2TP {
+		l2tp.GetManager().Remove(ib.Id)
 		return nil
 	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
@@ -80,7 +92,7 @@ func (l *Local) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound) 
 }
 
 func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string]any) error {
-	if ib.Protocol == model.MTProto {
+	if ib.Protocol == model.MTProto || ib.Protocol == model.L2TP {
 		return nil
 	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
@@ -89,7 +101,7 @@ func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string
 }
 
 func (l *Local) RemoveUser(_ context.Context, ib *model.Inbound, email string) error {
-	if ib.Protocol == model.MTProto {
+	if ib.Protocol == model.MTProto || ib.Protocol == model.L2TP {
 		return nil
 	}
 	return l.withAPI(func(api *xray.XrayAPI) error {

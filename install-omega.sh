@@ -127,6 +127,165 @@ gen_random_string() {
         | head -c "$length"
 }
 
+ensure_openvpn_tun() {
+    # OMEGA launches one openvpn process per enabled inbound. There is no
+    # useful global openvpn.service to enable; the kernel TUN device is the
+    # runtime prerequisite that must exist before x-ui can start a daemon.
+    if [[ ! -e /dev/net/tun ]]; then
+        mkdir -p /dev/net
+        if command -v modprobe > /dev/null 2>&1; then
+            modprobe tun > /dev/null 2>&1 || true
+        fi
+    fi
+
+    if [[ ! -c /dev/net/tun ]]; then
+        echo -e "${red}OpenVPN is installed, but /dev/net/tun is unavailable. Load the tun kernel module or expose the TUN device (and NET_ADMIN in Docker) before using OpenVPN inbounds.${plain}"
+        return 1
+    fi
+    echo -e "${green}OpenVPN TUN device is ready: /dev/net/tun${plain}"
+}
+
+install_openvpn() {
+    if command -v openvpn > /dev/null 2>&1; then
+        echo -e "${green}OpenVPN is already installed: $(command -v openvpn)${plain}"
+    else
+        echo -e "${green}Installing OpenVPN for OpenVPN inbounds...${plain}"
+        case "${release}" in
+            ubuntu | debian | armbian | linuxmint)
+                if ! apt-get update || ! apt-get install -y -q openvpn; then
+                    echo -e "${red}Failed to install the 'openvpn' package with apt.${plain}"
+                    return 1
+                fi
+                ;;
+            fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
+                if ! dnf install -y -q openvpn; then
+                    echo -e "${red}Failed to install the 'openvpn' package with dnf.${plain}"
+                    return 1
+                fi
+                ;;
+            centos)
+                if [[ "${VERSION_ID}" =~ ^7 ]]; then
+                    if ! yum install -y openvpn; then
+                        echo -e "${red}Failed to install the 'openvpn' package with yum.${plain}"
+                        return 1
+                    fi
+                else
+                    if ! dnf install -y -q openvpn; then
+                        echo -e "${red}Failed to install the 'openvpn' package with dnf.${plain}"
+                        return 1
+                    fi
+                fi
+                ;;
+            arch | manjaro | parch)
+                if ! pacman -S --noconfirm openvpn; then
+                    echo -e "${red}Failed to install the 'openvpn' package with pacman.${plain}"
+                    return 1
+                fi
+                ;;
+            opensuse-tumbleweed | opensuse-leap)
+                if ! zypper --non-interactive install openvpn; then
+                    echo -e "${red}Failed to install the 'openvpn' package with zypper.${plain}"
+                    return 1
+                fi
+                ;;
+            alpine)
+                if ! apk add --no-cache openvpn; then
+                    echo -e "${red}Failed to install the 'openvpn' package with apk.${plain}"
+                    return 1
+                fi
+                ;;
+            *)
+                echo -e "${red}Could not identify a supported package manager for OpenVPN. Install the 'openvpn' package manually, then rerun the installer.${plain}"
+                return 1
+                ;;
+        esac
+    fi
+
+    if ! command -v openvpn > /dev/null 2>&1; then
+        echo -e "${red}OpenVPN installation did not complete. The panel cannot serve OpenVPN inbounds without the 'openvpn' binary.${plain}"
+        return 1
+    fi
+    if ! openvpn --version > /dev/null 2>&1; then
+        echo -e "${red}The 'openvpn' command was found but could not execute. Repair the package before continuing.${plain}"
+        return 1
+    fi
+    if ! ensure_openvpn_tun; then
+        return 1
+    fi
+    echo -e "${green}OpenVPN prerequisite is ready: $(openvpn --version 2>/dev/null | head -1)${plain}"
+}
+
+install_l2tp_ipsec() {
+    # L2TP/IPsec is deliberately managed as two foreground daemons by x-ui.
+    # Install the binaries plus PPP and iptables, then fail early when the
+    # kernel PPP device cannot be prepared instead of exposing a dead inbound.
+    local packages="strongswan xl2tpd ppp iptables iproute2"
+    echo -e "${green}Installing strongSwan/xl2tpd/PPP for L2TP/IPsec inbounds...${plain}"
+    case "${release}" in
+        ubuntu | debian | armbian | linuxmint)
+            apt-get update && apt-get install -y -q $packages || return 1
+            ;;
+        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
+            dnf install -y -q $packages || return 1
+            ;;
+        centos)
+            if [[ "${VERSION_ID}" =~ ^7 ]]; then
+                yum install -y $packages || return 1
+            else
+                dnf install -y -q $packages || return 1
+            fi
+            ;;
+        arch | manjaro | parch)
+            pacman -S --noconfirm $packages || return 1
+            ;;
+        opensuse-tumbleweed | opensuse-leap)
+            zypper --non-interactive install $packages || return 1
+            ;;
+        alpine)
+            apk add --no-cache $packages || return 1
+            ;;
+        *)
+            echo -e "${red}Could not identify a supported package manager for L2TP/IPsec. Install strongswan, xl2tpd, ppp, iptables, and iproute2 manually.${plain}"
+            return 1
+            ;;
+    esac
+
+    for command_name in ipsec xl2tpd pppd iptables sysctl; do
+        if ! command -v "$command_name" > /dev/null 2>&1; then
+            echo -e "${red}L2TP/IPsec prerequisite is missing: $command_name${plain}"
+            return 1
+        fi
+    done
+
+    # OMEGA starts isolated foreground daemon instances with per-inbound
+    # configuration. Package post-install scripts may have enabled their
+    # system-wide services, which would otherwise keep UDP 1701 or IKE ports
+    # occupied and make the managed instance fail with address-in-use.
+    if command -v systemctl > /dev/null 2>&1; then
+        for service_name in xl2tpd strongswan-starter strongswan; do
+            systemctl disable --now "$service_name" > /dev/null 2>&1 || true
+        done
+    fi
+
+    if [[ ! -e /dev/ppp ]]; then
+        if command -v modprobe > /dev/null 2>&1; then
+            modprobe ppp_generic > /dev/null 2>&1 || true
+        fi
+    fi
+    if [[ ! -c /dev/ppp ]]; then
+        mkdir -p /dev
+        # Linux PPP uses char device major 108, minor 0. mknod may be denied
+        # by a restricted container; in that case the explicit diagnostic is
+        # more useful than a later xl2tpd startup failure.
+        mknod /dev/ppp c 108 0 > /dev/null 2>&1 || true
+    fi
+    if [[ ! -c /dev/ppp ]]; then
+        echo -e "${red}L2TP/IPsec needs /dev/ppp. Load ppp_generic or expose /dev/ppp (and NET_ADMIN in Docker).${plain}"
+        return 1
+    fi
+    echo -e "${green}L2TP/IPsec prerequisites are ready: $(ipsec --version 2>/dev/null | head -1)${plain}"
+}
+
 install_postgres_local() {
     local pg_user pg_pass
     pg_pass=$(gen_random_string 24)
@@ -1148,7 +1307,7 @@ EOF
 # version always installs the matching management script and units. Set
 # OMEGA_REF to force a specific ref instead (e.g. OMEGA_REF=main to track the
 # branch); "main" is used as the fallback when a tag lacks a file.
-omega_ref="${OMEGA_REF:-${tag_version:-main}}"
+omega_ref="${OMEGA_REF:-${1:-${tag_version:-main}}}"
 omega_ref_fallback="main"
 [[ -n "${OMEGA_REF:-}" ]] && omega_ref_fallback="${OMEGA_REF}"
 omega_raw_fetch() {
@@ -1375,4 +1534,15 @@ install_x-ui() {
 
 echo -e "${green}Running...${plain}"
 install_base
+# OpenVPN inbounds are served by a host-side OpenVPN daemon. Install and
+# validate the dependency during both fresh installs and updates so a valid
+# .ovpn profile never points at a panel whose VPN listener is silently absent.
+if ! install_openvpn; then
+    echo -e "${red}OpenVPN setup failed; installation aborted. Fix the prerequisite above and rerun this installer.${plain}"
+    exit 1
+fi
+if ! install_l2tp_ipsec; then
+    echo -e "${red}L2TP/IPsec setup failed; installation aborted. Fix the prerequisite above and rerun this installer.${plain}"
+    exit 1
+fi
 install_x-ui $1

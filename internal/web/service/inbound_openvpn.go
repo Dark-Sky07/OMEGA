@@ -77,6 +77,9 @@ func (s *InboundService) GetOpenvpnProfile(fallbackHost, email string) (string, 
 	if !ok {
 		return "", nil, common.NewError("openvpn: inbound settings are invalid")
 	}
+	if !openvpn.Available() {
+		return "", nil, common.NewError("openvpn: daemon binary not found; install the openvpn package and restart x-ui")
+	}
 	profile, err := openvpn.BuildProfile(inst, email, openvpnProfileHost(chosen, fallbackHost))
 	if err != nil {
 		return "", nil, err

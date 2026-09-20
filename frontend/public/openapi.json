@@ -1322,7 +1322,8 @@
               "tunnel",
               "tun",
               "mtproto",
-              "openvpn"
+              "openvpn",
+              "l2tp"
             ],
             "example": "vless",
             "type": "string"
@@ -1467,6 +1468,14 @@
             "example": 1,
             "type": "integer"
           },
+          "l2tp": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/L2TPInboundOption"
+              }
+            ],
+            "nullable": true
+          },
           "nodeId": {
             "description": "Hosting node; nil for this panel's own inbounds. Lets the clients\npage map a node filter onto inbound IDs (#4997).",
             "nullable": true,
@@ -1504,6 +1513,56 @@
           "ssMethod",
           "tag",
           "tlsFlowCapable"
+        ],
+        "type": "object"
+      },
+      "L2TPInboundOption": {
+        "description": "L2TPInboundOption is the non-client portion of the native connection\nparameters needed by the admin Client Information dialog. Client username\nand password stay in the selected client record and are never broadcast as\npart of the inbound picker response.",
+        "properties": {
+          "dns1": {
+            "type": "string"
+          },
+          "dns2": {
+            "type": "string"
+          },
+          "fixedPorts": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "localIP": {
+            "type": "string"
+          },
+          "poolCIDR": {
+            "type": "string"
+          },
+          "poolEnd": {
+            "type": "string"
+          },
+          "poolStart": {
+            "type": "string"
+          },
+          "psk": {
+            "type": "string"
+          },
+          "redirectGateway": {
+            "type": "boolean"
+          },
+          "serverAddress": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "dns1",
+          "dns2",
+          "fixedPorts",
+          "localIP",
+          "poolCIDR",
+          "poolEnd",
+          "poolStart",
+          "psk",
+          "redirectGateway"
         ],
         "type": "object"
       },
@@ -2262,6 +2321,7 @@
                   "obj": [
                     {
                       "id": 1,
+                      "l2tp": null,
                       "nodeId": null,
                       "port": 443,
                       "protocol": "vless",
@@ -3791,6 +3851,246 @@
         }
       }
     },
+    "/panel/api/server/stopOpenVPNService": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Stop all managed OpenVPN daemons and hold reconciliation until the service is started again. Returns after the manager has stopped the processes.",
+        "operationId": "post_panel_api_server_stopOpenVPNService",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/startOpenVPNService": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Resume the managed OpenVPN service and reconcile enabled OpenVPN inbounds immediately.",
+        "operationId": "post_panel_api_server_startOpenVPNService",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/restartOpenVPNService": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Stop and start the managed OpenVPN daemons using the current inbound configuration.",
+        "operationId": "post_panel_api_server_restartOpenVPNService",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/updateOpenVPNService": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Resume OpenVPN reconciliation and apply the current OpenVPN inbound configuration.",
+        "operationId": "post_panel_api_server_updateOpenVPNService",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/stopL2TPService": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Stop the managed L2TP/IPsec daemon group and hold reconciliation until the service is started again.",
+        "operationId": "post_panel_api_server_stopL2TPService",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/startL2TPService": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Resume the managed L2TP/IPsec service and reconcile the enabled L2TP inbound immediately.",
+        "operationId": "post_panel_api_server_startL2TPService",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/restartL2TPService": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Stop and start the managed L2TP/IPsec daemon group using the current inbound configuration.",
+        "operationId": "post_panel_api_server_restartL2TPService",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/updateL2TPService": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Resume L2TP/IPsec reconciliation and apply the current inbound configuration.",
+        "operationId": "post_panel_api_server_updateL2TPService",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/server/installXray/{version}": {
       "post": {
         "tags": [
@@ -4254,6 +4554,42 @@
         }
       }
     },
+    "/panel/api/clients/export": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Export a versioned client transfer envelope containing client credentials, multi-protocol fields, inbound attachments, and flow overrides. Resellers receive only their assigned clients and inbounds; traffic counters and database IDs are excluded.",
+        "operationId": "get_panel_api_clients_export",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "format": "omega-client-transfer",
+                  "version": 1,
+                  "exportedAt": "2026-01-01T00:00:00Z",
+                  "clients": []
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/clients/list/paged": {
       "get": {
         "tags": [
@@ -4482,6 +4818,73 @@
                 "example": {
                   "success": true,
                   "msg": "Client added"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/import": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Preflight and import a versioned client transfer envelope. The operation rejects duplicate or colliding credentials, invalid attachments, and out-of-scope reseller data before mutating clients; the response reports created, updated, failed, and restart counts.",
+        "operationId": "post_panel_api_clients_import",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "format": "omega-client-transfer",
+                "version": 1,
+                "clients": []
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "msg": "Client transfer validation failed"
                 }
               }
             }

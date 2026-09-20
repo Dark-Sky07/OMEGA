@@ -332,7 +332,7 @@ export function formValuesToWirePayload(values: InboundFormValues): WireInboundP
     protocol: values.protocol,
     settings: JSON.stringify(settingsPruned),
     streamSettings: streamPruned ? JSON.stringify(streamPruned) : '',
-    // mtproto is mtg-served, not Xray, so sniffing never applies — emit empty
+    // External daemon inbounds do not use Xray sniffing — emit empty
     // rather than the default { enabled: false } so the row carries no sniffing.
     sniffing: canEnableSniffing({ protocol: values.protocol }) ? JSON.stringify(normalizeSniffing(values.sniffing)) : '',
     tag: values.tag,

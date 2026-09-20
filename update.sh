@@ -67,6 +67,66 @@ arch() {
 
 echo "Arch: $(arch)"
 
+# Resolve and stage the newest stable Xray-core before stopping the panel.
+# This keeps failures observable and prevents a broken download from replacing
+# the currently installed core with a guessed or hard-coded version.
+xray_update_archive=""
+xray_update_version=""
+resolve_latest_xray_version() {
+    local payload tag
+    payload=$(${curl_bin} -fsSL --retry 3 --connect-timeout 10 \
+        "https://api.github.com/repos/XTLS/Xray-core/releases/latest" 2> /dev/null) || return 1
+    tag=$(printf '%s' "$payload" | grep -m1 '"tag_name"' | sed -E 's/.*"tag_name"[[:space:]]*:[[:space:]]*"(v[0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
+    if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        return 1
+    fi
+    printf '%s\n' "$tag"
+}
+
+stage_latest_xray() {
+    local xray_arch archive_url
+    xray_update_version=$(resolve_latest_xray_version) || _fail "ERROR: Failed to resolve the latest stable Xray-core release."
+    case "$(arch)" in
+        amd64) xray_arch="64" ;;
+        386) xray_arch="32" ;;
+        arm64) xray_arch="arm64-v8a" ;;
+        armv7) xray_arch="arm32-v7a" ;;
+        armv6) xray_arch="arm32-v6" ;;
+        armv5) xray_arch="arm32-v5" ;;
+        s390x) xray_arch="s390x" ;;
+        *) _fail "ERROR: Unsupported architecture for Xray-core: $(arch)" ;;
+    esac
+    archive_url="https://github.com/XTLS/Xray-core/releases/download/${xray_update_version}/Xray-linux-${xray_arch}.zip"
+    xray_update_archive=$(mktemp "/tmp/xray-${xray_update_version#v}.XXXXXX.zip")
+    if ! ${curl_bin} -fsSL --retry 3 -o "$xray_update_archive" "$archive_url"; then
+        rm -f "$xray_update_archive"
+        xray_update_archive=""
+        _fail "ERROR: Failed to download Xray-core ${xray_update_version}; panel update aborted safely."
+    fi
+    if ! unzip -tq "$xray_update_archive" >/dev/null 2>&1; then
+        rm -f "$xray_update_archive"
+        xray_update_archive=""
+        _fail "ERROR: Downloaded Xray-core archive is invalid; panel update aborted safely."
+    fi
+    echo -e "${green}Staged stable Xray-core ${xray_update_version}${plain}"
+}
+
+install_staged_xray() {
+    local extract_dir target
+    [ -n "$xray_update_archive" ] || _fail "ERROR: No staged Xray-core archive is available."
+    extract_dir=$(mktemp -d "/tmp/xray-extract.XXXXXX")
+    if ! unzip -q "$xray_update_archive" -d "$extract_dir" || [ ! -f "$extract_dir/xray" ]; then
+        rm -rf "$extract_dir" "$xray_update_archive"
+        xray_update_archive=""
+        _fail "ERROR: Failed to extract staged Xray-core ${xray_update_version}."
+    fi
+    target="${xui_folder}/bin/xray-linux-$(arch)"
+    install -m 0755 "$extract_dir/xray" "$target" || _fail "ERROR: Failed to install Xray-core ${xray_update_version}."
+    rm -rf "$extract_dir" "$xray_update_archive"
+    xray_update_archive=""
+    echo -e "${green}Installed Xray-core ${xray_update_version}${plain}"
+}
+
 # Simple helpers
 is_ipv4() {
     [[ "$1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] && return 0 || return 1
@@ -146,29 +206,29 @@ install_base() {
     echo -e "${green}Updating and install dependency packages...${plain}"
     case "${release}" in
         ubuntu | debian | armbian)
-            apt-get update > /dev/null 2>&1 && apt-get install -y -q cron curl tar tzdata socat openssl > /dev/null 2>&1
+            apt-get update > /dev/null 2>&1 && apt-get install -y -q cron curl tar unzip tzdata socat openssl > /dev/null 2>&1
             ;;
         fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf -y update > /dev/null 2>&1 && dnf install -y -q cronie curl tar tzdata socat openssl > /dev/null 2>&1
+            dnf -y update > /dev/null 2>&1 && dnf install -y -q cronie curl tar unzip tzdata socat openssl > /dev/null 2>&1
             ;;
         centos)
             if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum -y update > /dev/null 2>&1 && yum install -y -q cronie curl tar tzdata socat openssl > /dev/null 2>&1
+                yum -y update > /dev/null 2>&1 && yum install -y -q cronie curl tar unzip tzdata socat openssl > /dev/null 2>&1
             else
-                dnf -y update > /dev/null 2>&1 && dnf install -y -q cronie curl tar tzdata socat openssl > /dev/null 2>&1
+                dnf -y update > /dev/null 2>&1 && dnf install -y -q cronie curl tar unzip tzdata socat openssl > /dev/null 2>&1
             fi
             ;;
         arch | manjaro | parch)
-            pacman -Syu > /dev/null 2>&1 && pacman -Syu --noconfirm cronie curl tar tzdata socat openssl > /dev/null 2>&1
+            pacman -Syu > /dev/null 2>&1 && pacman -Syu --noconfirm cronie curl tar unzip tzdata socat openssl > /dev/null 2>&1
             ;;
         opensuse-tumbleweed | opensuse-leap)
-            zypper refresh > /dev/null 2>&1 && zypper -q install -y cron curl tar timezone socat openssl > /dev/null 2>&1
+            zypper refresh > /dev/null 2>&1 && zypper -q install -y cron curl tar unzip timezone socat openssl > /dev/null 2>&1
             ;;
         alpine)
-            apk update > /dev/null 2>&1 && apk add dcron curl tar tzdata socat openssl > /dev/null 2>&1
+            apk update > /dev/null 2>&1 && apk add dcron curl tar unzip tzdata socat openssl > /dev/null 2>&1
             ;;
         *)
-            apt-get update > /dev/null 2>&1 && apt install -y -q cron curl tar tzdata socat openssl > /dev/null 2>&1
+            apt-get update > /dev/null 2>&1 && apt install -y -q cron curl tar unzip tzdata socat openssl > /dev/null 2>&1
             ;;
     esac
 }
@@ -886,6 +946,11 @@ update_x-ui() {
         fi
     fi
 
+    # Resolve and stage the core before stopping/removing the current panel.
+    # The extracted release is only used as the panel bundle; this staged
+    # archive is the authoritative newest stable core for this update.
+    stage_latest_xray
+
     if [[ -e ${xui_folder}/ ]]; then
         echo -e "${green}Stopping x-ui...${plain}"
         if [[ $release == "alpine" ]]; then
@@ -923,8 +988,7 @@ update_x-ui() {
         rm ${xui_folder}/x-ui.service.rhel -f > /dev/null 2>&1
         rm ${xui_folder}/x-ui -f > /dev/null 2>&1
         rm ${xui_folder}/x-ui.sh -f > /dev/null 2>&1
-        echo -e "${green}Removing old xray version...${plain}"
-        rm ${xui_folder}/bin/xray-linux-amd64 -f > /dev/null 2>&1
+        echo -e "${green}The newest stable Xray-core will be installed after extracting the panel bundle.${plain}"
         echo -e "${green}Removing old README and LICENSE file...${plain}"
         rm ${xui_folder}/bin/README.md -f > /dev/null 2>&1
         rm ${xui_folder}/bin/LICENSE -f > /dev/null 2>&1
@@ -937,6 +1001,9 @@ update_x-ui() {
     tar zxvf x-ui-linux-$(arch).tar.gz > /dev/null 2>&1
     rm x-ui-linux-$(arch).tar.gz -f > /dev/null 2>&1
     cd x-ui > /dev/null 2>&1
+    # Replace any stale Xray bundled in the panel archive with the release
+    # resolved and validated before the old installation was stopped.
+    install_staged_xray
     chmod +x x-ui > /dev/null 2>&1
 
     # Check the system's architecture and rename the file accordingly

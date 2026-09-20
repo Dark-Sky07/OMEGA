@@ -19,9 +19,27 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
 
+// openvpnBinDir resolves the panel's binary directory to an absolute path.
+// The default XUI_BIN_FOLDER is "bin", but systemd's working directory and
+// manual invocations are not guaranteed to be the same. OpenVPN config paths
+// must not silently become relative to /root (or another caller directory).
+func openvpnBinDir() string {
+	dir := config.GetBinFolderPath()
+	if filepath.IsAbs(dir) {
+		return filepath.Clean(dir)
+	}
+	if exe, err := os.Executable(); err == nil {
+		return filepath.Join(filepath.Dir(exe), dir)
+	}
+	if abs, err := filepath.Abs(dir); err == nil {
+		return abs
+	}
+	return dir
+}
+
 // openvpnDir is the shared root for all openvpn inbound data directories.
 func openvpnDir() string {
-	return config.GetBinFolderPath() + "/openvpn"
+	return filepath.Join(openvpnBinDir(), "openvpn")
 }
 
 // GetBinaryPath locates the openvpn binary: a binary dropped next to the
@@ -33,7 +51,7 @@ func GetBinaryPath() string {
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
-	local := config.GetBinFolderPath() + "/" + name
+	local := filepath.Join(openvpnBinDir(), name)
 	if st, err := os.Stat(local); err == nil && !st.IsDir() {
 		return local
 	}

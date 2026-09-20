@@ -135,6 +135,12 @@ export default function InboundInfoModal({
         }).split('\r\n'),
       );
       setLinks([]);
+    } else if (info.protocol === Protocols.L2TP) {
+      // L2TP/IPsec uses native OS settings; do not generate an Xray/share
+      // profile or present a misleading subscription link.
+      setLinks([]);
+      setWireguardConfigs([]);
+      setWireguardLinks([]);
     } else {
       setLinks(
         genAllLinks({
@@ -227,7 +233,7 @@ export default function InboundInfoModal({
   const encryptionLabel = (inbound?.settings?.encryption as string) || '';
   const serverNameLabel = inbound?.serverName || '';
   const showClientTab = !!clientSettings;
-  const showSubscriptionTab = !!(subSettings?.enable && clientSettings?.subId);
+  const showSubscriptionTab = !!(subSettings?.enable && clientSettings?.subId && inbound?.protocol !== Protocols.L2TP);
 
   if (!dbInbound || !inbound) {
     return (
@@ -718,6 +724,59 @@ export default function InboundInfoModal({
               </dd>
             </div>
           )}
+        </dl>
+      )}
+
+      {inbound.protocol === Protocols.L2TP && inbound.settings && (
+        <dl className="info-list info-list-block">
+          <div className="info-row">
+            <dt>{t('pages.inbounds.form.l2tpFixedPorts')}</dt>
+            <dd><Tag color="blue" className="value-tag">UDP 500, 4500, 1701</Tag></dd>
+          </div>
+          <div className="info-row">
+            <dt>{t('pages.inbounds.form.l2tpServerAddress')}</dt>
+            <dd><Tag color="green">{dbInbound.address || window.location.hostname}</Tag></dd>
+          </div>
+          <div className="info-row">
+            <dt>{t('pages.inbounds.form.l2tpPsk')}</dt>
+            <dd className="value-block">
+              <code className="value-code">{inbound.settings.psk as string}</code>
+              <Tooltip title={t('copy')}>
+                <Button size="small" className="value-copy" icon={<CopyOutlined />} onClick={() => copyText(inbound.settings.psk as string, t)} />
+              </Tooltip>
+            </dd>
+          </div>
+          <div className="info-row">
+            <dt>{t('pages.inbounds.form.l2tpPoolCIDR')}</dt>
+            <dd><Tag color="green">{inbound.settings.poolCIDR as string}</Tag></dd>
+          </div>
+          <div className="info-row">
+            <dt>{t('pages.inbounds.form.l2tpPoolRange')}</dt>
+            <dd>
+              <Tag color="green">{inbound.settings.poolStart as string}</Tag>
+              <span className="account-sep">–</span>
+              <Tag color="green">{inbound.settings.poolEnd as string}</Tag>
+            </dd>
+          </div>
+          <div className="info-row">
+            <dt>{t('pages.inbounds.form.l2tpLocalIP')}</dt>
+            <dd><Tag color="green">{inbound.settings.localIP as string}</Tag></dd>
+          </div>
+          <div className="info-row">
+            <dt>{t('pages.inbounds.form.l2tpDnsServers')}</dt>
+            <dd>
+              <Tag color="green">{inbound.settings.dns1 as string}</Tag>
+              <Tag color="green">{inbound.settings.dns2 as string}</Tag>
+            </dd>
+          </div>
+          <div className="info-row">
+            <dt>{t('pages.inbounds.form.l2tpFullTunnelHint')}</dt>
+            <dd><Tag color={inbound.settings.redirectGateway === false ? 'orange' : 'green'}>{inbound.settings.redirectGateway === false ? t('disabled') : t('enabled')}</Tag></dd>
+          </div>
+          <div className="info-row">
+            <dt>{t('pages.inbounds.form.l2tpProfileNote')}</dt>
+            <dd><Tag color="orange">{t('pages.inbounds.form.l2tpManualParameters')}</Tag></dd>
+          </div>
         </dl>
       )}
 

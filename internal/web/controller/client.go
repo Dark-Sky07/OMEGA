@@ -56,8 +56,10 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.GET("/subLinks/:subId", a.getSubLinks)
 	g.GET("/links/:email", a.getClientLinks)
 	g.GET("/openvpn/:email", a.getOpenvpnProfile)
+	g.GET("/export", a.exportClients)
 
 	g.POST("/add", a.create)
+	g.POST("/import", a.importClients)
 	g.POST("/update/:email", a.update)
 	g.POST("/del/:email", a.delete)
 	g.POST("/:email/attach", a.attach)
@@ -124,6 +126,85 @@ func (a *ClientController) listPaged(c *gin.Context) {
 		return
 	}
 	jsonObj(c, resp, nil)
+}
+
+func (a *ClientController) clientTransferScope(c *gin.Context) (*service.ClientTransferScope, *model.Reseller, error) {
+	reseller := resellerSession(c)
+	if reseller == nil {
+		return nil, nil, nil
+	}
+	if err := a.resellerService.EnsureActive(reseller); err != nil {
+		return nil, reseller, err
+	}
+	inbounds, err := a.resellerService.OwnedInboundIdSet(reseller.Id)
+	if err != nil {
+		return nil, reseller, err
+	}
+	emails, err := a.resellerService.OwnedEmailSet(reseller.Id)
+	if err != nil {
+		return nil, reseller, err
+	}
+	normalizedEmails := make(map[string]struct{}, len(emails))
+	for email := range emails {
+		normalizedEmails[strings.ToLower(strings.TrimSpace(email))] = struct{}{}
+	}
+	return &service.ClientTransferScope{
+		InboundIDs: inbounds,
+		Emails:     normalizedEmails,
+		Reseller:   true,
+	}, reseller, nil
+}
+
+func (a *ClientController) exportClients(c *gin.Context) {
+	scope, _, err := a.clientTransferScope(c)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	envelope, err := a.clientService.ExportClients(scope)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, envelope, nil)
+}
+
+func (a *ClientController) importClients(c *gin.Context) {
+	var envelope service.ClientTransferEnvelope
+	if err := c.ShouldBindJSON(&envelope); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	scope, reseller, err := a.clientTransferScope(c)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	preflight, err := a.clientService.ValidateClientTransfer(&a.inboundService, envelope, scope)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	if len(preflight.Errors) > 0 {
+		jsonMsgObj(c, "Client transfer validation failed", preflight, errors.New("preflight validation failed"))
+		return
+	}
+	if reseller != nil {
+		if err := a.resellerService.CheckClientQuota(reseller, preflight.NewClients, preflight.AdditionalQuota); err != nil {
+			jsonMsgObj(c, "Client transfer quota validation failed", preflight, err)
+			return
+		}
+	}
+	report, err := a.clientService.ImportClients(&a.inboundService, envelope, scope)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	if report.NeedRestart {
+		a.xrayService.SetToNeedRestart()
+	}
+	notifyClientsChanged()
+	jsonObj(c, report, nil)
 }
 
 func (a *ClientController) get(c *gin.Context) {
