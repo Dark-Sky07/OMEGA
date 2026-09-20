@@ -78,6 +78,7 @@ interface OutboundsTabProps {
   onTestAll: (mode: string) => void;
   onShowWarp: () => void;
   onShowNord: () => void;
+  onShowWindscribe: () => void;
   onRefreshXrayData?: () => void;
 }
 
@@ -97,6 +98,7 @@ export default function OutboundsTab({
   onTestAll,
   onShowWarp,
   onShowNord,
+  onShowWindscribe,
   onRefreshXrayData,
 }: OutboundsTabProps) {
   const { t } = useTranslation();
@@ -419,6 +421,7 @@ export default function OutboundsTab({
                   items: [
                     { key: 'warp', icon: <CloudOutlined />, label: 'WARP', onClick: onShowWarp },
                     { key: 'nord', icon: <ApiOutlined />, label: 'NordVPN', onClick: onShowNord },
+                    { key: 'windscribe', icon: <CloudOutlined />, label: 'Windscribe WireGuard', onClick: onShowWindscribe },
                   ],
                 }}
               >

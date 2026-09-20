@@ -44,6 +44,8 @@ import {
   TeamOutlined,
   UsergroupAddOutlined,
   UsergroupDeleteOutlined,
+  DownloadOutlined,
+  UploadOutlined,
 } from '@ant-design/icons';
 
 import { useTheme } from '@/hooks/useTheme';
@@ -57,7 +59,7 @@ import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import ClientTrafficCell from '@/components/clients/ClientTrafficCell';
 import AppSidebar from '@/layouts/AppSidebar';
 import { useSession } from '@/api/queries/useSession';
-import { IntlUtil, SizeFormatter } from '@/utils';
+import { FileManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
 import { LazyMount } from '@/components/utility';
 const ClientFormModal = lazy(() => import('./ClientFormModal'));
@@ -70,6 +72,7 @@ const SubLinksModal = lazy(() => import('./SubLinksModal'));
 const BulkAddToGroupModal = lazy(() => import('./BulkAddToGroupModal'));
 const BulkAttachInboundsModal = lazy(() => import('./BulkAttachInboundsModal'));
 const BulkDetachInboundsModal = lazy(() => import('./BulkDetachInboundsModal'));
+const ClientTransferModal = lazy(() => import('./ClientTransferModal'));
 import { emptyFilters, activeFilterCount } from './filters';
 import type { ClientFilters } from './filters';
 import './ClientsPage.css';
@@ -234,6 +237,7 @@ export default function ClientsPage() {
   const [bulkGroupOpen, setBulkGroupOpen] = useState(false);
   const [bulkAttachOpen, setBulkAttachOpen] = useState(false);
   const [bulkDetachOpen, setBulkDetachOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
 
   const initial = readFilterState();
@@ -427,6 +431,13 @@ export default function ClientsPage() {
     } finally {
       setTogglingEmail(null);
     }
+  }
+
+  async function onExport() {
+    const msg = await HttpUtil.get('/panel/api/clients/export');
+    if (!msg.success || !msg.obj) return;
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    FileManager.downloadTextFile(JSON.stringify(msg.obj, null, 2), `omega-clients-${stamp}.json`, { type: 'application/json' });
   }
 
   function onAdd() {
@@ -940,6 +951,12 @@ export default function ClientsPage() {
                               )}
                             </>
                           )}
+                          <Button icon={<UploadOutlined />} onClick={() => setTransferOpen(true)}>
+                            {!isMobile && t('pages.clients.import', 'Import')}
+                          </Button>
+                          <Button icon={<DownloadOutlined />} onClick={onExport}>
+                            {!isMobile && t('pages.clients.export', 'Export')}
+                          </Button>
                           <Dropdown
                             trigger={['click']}
                             placement="bottomRight"
@@ -1368,6 +1385,16 @@ export default function ClientsPage() {
                 return msg.obj ?? { detached: [], skipped: [], errors: [] };
               }
               return null;
+            }}
+          />
+        </LazyMount>
+        <LazyMount when={transferOpen}>
+          <ClientTransferModal
+            open={transferOpen}
+            onOpenChange={setTransferOpen}
+            onImported={() => {
+              setSelectedRowKeys([]);
+              refresh();
             }}
           />
         </LazyMount>

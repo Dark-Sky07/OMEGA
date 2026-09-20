@@ -135,9 +135,11 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		if inbound.Protocol == model.MTProto {
 			continue
 		}
-		// OpenVPN inbounds are served by a local openvpn daemon that binds the
-		// inbound port directly; they must never appear in the Xray config.
-		if inbound.Protocol == model.OpenVPN {
+		// OpenVPN and L2TP/IPsec inbounds are served by host daemons that bind
+		// their own sockets; they must never appear in the Xray config.
+		if inbound.Protocol == model.OpenVPN || inbound.Protocol == model.L2TP {
+			// These are host daemons, not Xray protocols. Their listeners and
+			// credentials are reconciled by their respective jobs.
 			continue
 		}
 		settings := map[string]any{}

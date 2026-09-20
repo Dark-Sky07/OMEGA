@@ -23,6 +23,8 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
+	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
@@ -47,8 +49,20 @@ const (
 	Error   ProcessState = "error"   // Process is in error state
 )
 
+// DaemonStatus represents a host-managed VPN daemon group. Unlike Xray,
+// OpenVPN and L2TP are reconciled by their own jobs, so the dashboard needs
+// the number of managed inbounds and online clients in addition to process
+// state.
+type DaemonStatus struct {
+	State         ProcessState `json:"state"`
+	ErrorMsg      string       `json:"errorMsg"`
+	InboundCount  int          `json:"inboundCount"`
+	OnlineClients int          `json:"onlineClients"`
+	ManualStop    bool         `json:"manualStop"`
+}
+
 // Status represents comprehensive system and application status information.
-// It includes CPU, memory, disk, network statistics, and Xray process status.
+// It includes CPU, memory, disk, network statistics, and managed process status.
 type Status struct {
 	T           time.Time `json:"-"`
 	Cpu         float64   `json:"cpu"`
@@ -80,6 +94,8 @@ type Status struct {
 		ErrorMsg string       `json:"errorMsg"`
 		Version  string       `json:"version"`
 	} `json:"xray"`
+	OpenVPN DaemonStatus `json:"openvpn"`
+	L2TP    DaemonStatus `json:"l2tp"`
 	PanelVersion string    `json:"panelVersion"`
 	PanelGuid    string    `json:"panelGuid"`
 	Uptime       uint64    `json:"uptime"`
@@ -111,7 +127,9 @@ type Status struct {
 
 // Release represents information about a software release from GitHub.
 type Release struct {
-	TagName string `json:"tag_name"` // The tag name of the release
+	TagName    string `json:"tag_name"` // The tag name of the release
+	Draft      bool   `json:"draft"`
+	Prerelease bool   `json:"prerelease"`
 }
 
 // ServerService provides business logic for server monitoring and management.
@@ -313,6 +331,22 @@ func getPublicIP(url string) string {
 	}
 
 	return ipString
+}
+
+func daemonStatus(running bool, errMsg string, inboundCount, onlineClients int, manualStop bool) DaemonStatus {
+	state := Stop
+	if running {
+		state = Running
+	} else if strings.TrimSpace(errMsg) != "" && !manualStop {
+		state = Error
+	}
+	return DaemonStatus{
+		State:         state,
+		ErrorMsg:      errMsg,
+		InboundCount:  inboundCount,
+		OnlineClients: onlineClients,
+		ManualStop:    manualStop,
+	}
 }
 
 func (s *ServerService) GetStatus(lastStatus *Status) *Status {
@@ -532,6 +566,23 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		status.Xray.ErrorMsg = s.xrayService.GetXrayResult()
 	}
 	status.Xray.Version = s.xrayService.GetXrayVersion()
+
+	openvpnStatus := openvpn.GetManager().Status()
+	status.OpenVPN = daemonStatus(
+		openvpnStatus.Running,
+		openvpnStatus.Error,
+		openvpnStatus.InboundCount,
+		openvpnStatus.OnlineClients,
+		openvpnStatus.ManualStop,
+	)
+	l2tpStatus := l2tp.GetManager().Status()
+	status.L2TP = daemonStatus(
+		l2tpStatus.Running,
+		l2tpStatus.Error,
+		l2tpStatus.InboundCount,
+		l2tpStatus.OnlineClients,
+		l2tpStatus.ManualStop,
+	)
 	status.PanelVersion = config.GetVersion()
 	if guid, err := s.settingService.GetPanelGuid(); err == nil {
 		status.PanelGuid = guid
@@ -724,22 +775,29 @@ func (s *ServerService) GetXrayVersions() ([]string, error) {
 
 	var versions []string
 	for _, release := range releases {
+		if release.Draft || release.Prerelease {
+			continue
+		}
 		tagVersion := strings.TrimPrefix(release.TagName, "v")
 		tagParts := strings.Split(tagVersion, ".")
 		if len(tagParts) != 3 {
 			continue
 		}
 
-		major, err1 := strconv.Atoi(tagParts[0])
-		minor, err2 := strconv.Atoi(tagParts[1])
-		patch, err3 := strconv.Atoi(tagParts[2])
-		if err1 != nil || err2 != nil || err3 != nil {
+		if _, err := strconv.Atoi(tagParts[0]); err != nil {
+			continue
+		}
+		if _, err := strconv.Atoi(tagParts[1]); err != nil {
+			continue
+		}
+		if _, err := strconv.Atoi(tagParts[2]); err != nil {
 			continue
 		}
 
-		if major > 26 || (major == 26 && minor > 4) || (major == 26 && minor == 4 && patch >= 25) {
-			versions = append(versions, release.TagName)
-		}
+		// GitHub returns releases newest-first. Do not impose a minimum
+		// Xray version here: stable 26.3.x (and future major lines) are valid
+		// releases and must remain selectable when the API is current.
+		versions = append(versions, release.TagName)
 	}
 	return versions, nil
 }

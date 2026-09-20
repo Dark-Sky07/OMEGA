@@ -4,7 +4,7 @@
 
 # OMEGA
 
-**A panel for managing Xray-core servers — built on [3x-ui](https://github.com/MHSanaei/3x-ui) `v3.3.1`, with one feature added on top: [Resellers (نمایندگی)](#-resellers-نمایندگی).**
+**A panel for managing Xray-core servers — built on [3x-ui](https://github.com/MHSanaei/3x-ui) `v3.3.1`, extended with [Resellers (نمایندگی)](#-resellers-نمایندگی), external OpenVPN, and external L2TP/IPsec daemons.**
 
 English · [فارسی](README.fa_IR.md)
 
@@ -18,15 +18,16 @@ English · [فارسی](README.fa_IR.md)
 **Install in one line** — on a fresh server, as `root`:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega/install-omega.sh) v3.3.25-omega
 ```
 
 </div>
 
 > [!NOTE]
-> OMEGA is a fork: the panel **is** 3x-ui v3.3.1. Only the reseller feature was added and the UI was branded
-> OMEGA. The service name (`x-ui`), install paths (`/usr/local/x-ui`, `/etc/x-ui`), environment variables,
-> config format and version string (`3.3.1`) are unchanged, so every 3x-ui guide, script or tool keeps working.
+> OMEGA is a fork based on 3x-ui v3.3.1. It adds reseller controls, an external OpenVPN daemon, and an external
+> L2TP/IPsec daemon while keeping the panel service name (`x-ui`), install paths (`/usr/local/x-ui`, `/etc/x-ui`),
+> environment variables, and Xray configuration conventions compatible with the upstream project. The OMEGA release
+> version is maintained separately from the upstream core version, so the current stable release is `v3.3.25-omega`.
 
 ---
 
@@ -35,10 +36,61 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-
 | | Change |
 | --- | --- |
 | ➕ **Added** | **Resellers (نمایندگی)** — sub-accounts with their own login, scoped ownership, quotas and sales/billing reports. |
-| ➕ **Added** | **OpenVPN inbounds** — an openvpn daemon per inbound binds the port directly; per-client certificates are generated automatically (CN = email), each client gets a ready-to-import `.ovpn` (copy/download from the client info), and per-client traffic + online status flow into the normal stats pipeline. Install the `openvpn` package on the host (or drop an `openvpn` binary next to the x-ui binary) — without it the panel still runs, it just can't start the daemons. |
-| 🎨 **Branding** | Panel name shown as **OMEGA** (sidebar, login page, page titles, API docs, translations). UI-only — no paths, service names or version numbers touched. |
+| ➕ **Added** | **OpenVPN inbounds** — an OpenVPN daemon per inbound binds the port directly; per-client certificates are generated automatically (CN = email), each client gets a ready-to-import `.ovpn` (copy/download from the client info), and per-client traffic + online status flow into the normal stats pipeline. The tagged release installer installs and verifies the host `openvpn` package and `/dev/net/tun`; the panel then renders one daemon config per enabled local OpenVPN inbound. The release archive does not embed an OS package, so use the installer rather than copying only the panel tarball. |
+| ➕ **Added** | **L2TP/IPsec inbounds** — one global local-Linux daemon group (strongSwan + xl2tpd/PPP) uses existing client email/password credentials, persists the IPsec PSK, reconciles daemon config and `chap-secrets` synchronously for single and bulk client operations, recovers orphaned daemons after restart, manages UDP 500/4500/1701 plus IPv4 forwarding/FORWARD/MASQUERADE rules, and reports PPP online/traffic state. It is not an Xray inbound, does not generate a profile file, and does not include PPTP; the UI shows native client parameters. |
+| 🎨 **Branding** | Panel name shown as **OMEGA** (sidebar, login page, page titles, API docs, translations). UI branding only; service names and install paths remain unchanged. |
 | 🛠 **Install** | [`install-omega.sh`](install-omega.sh) installs *this* panel from *this* repository; [`x-ui.sh`](x-ui.sh) updates from here too, so `x-ui update` can never silently swap in vanilla 3x-ui. |
 | ✅ **Unchanged** | Everything else — all of 3x-ui v3.3.1 (protocols, transports, nodes, subscriptions, Telegram bot, routing, API, themes, 13 languages). |
+
+### OpenVPN installation and host checklist
+
+OpenVPN is a host daemon, not an Xray component and not a file inside the `x-ui` release archive. The release installer installs the `openvpn` package, validates `/dev/net/tun`, and aborts instead of silently installing a panel that cannot serve an OpenVPN inbound. It intentionally does not enable a generic `openvpn.service`: OMEGA creates `bin/openvpn/<inbound-id>/openvpn.conf` and starts one daemon per enabled local OpenVPN inbound.
+
+To install or repair an existing host with the exact stable release, run as `root`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega/install-omega.sh \
+  -o /tmp/install-omega.sh
+env OMEGA_REF=v3.3.25-omega bash /tmp/install-omega.sh v3.3.25-omega
+```
+
+Verify the prerequisite before troubleshooting the network:
+
+```bash
+command -v openvpn
+openvpn --version | head -3
+test -c /dev/net/tun && echo "TUN is ready"
+systemctl restart x-ui
+```
+
+The `x-ui update` script shipped in this release resolves the latest stable release tag and runs its matching installer; it no longer downloads an unpinned, possibly stale `main` installer. For an OpenVPN inbound, allow the configured port on the VPS/provider firewall using the selected transport (`udp` or `tcp`). OMEGA enables IPv4 forwarding and maintains exact `INPUT`, `FORWARD`, and `POSTROUTING MASQUERADE` rules for the generated `10.x.x.0/24` tunnel subnet, while preserving unrelated firewall rules. If a profile imports but remains on `Trying to connect`, check `command -v openvpn`, `command -v iptables`, `/dev/net/tun`, the listener with `ss -lunpt`, and `/var/log/x-ui/3xui.log` plus `bin/openvpn/<inbound-id>/openvpn.log`.
+
+### L2TP/IPsec installation and host checklist
+
+L2TP/IPsec is a host daemon, not an Xray protocol. The installer installs and verifies `strongswan`, `xl2tpd`, `ppp`, `iptables`, and `iproute2`, and checks `/dev/ppp`. Only one enabled local L2TP/IPsec inbound is allowed because the daemon group owns UDP 500 (IKE), UDP 4500 (NAT-T), UDP 1701 (L2TP), and ESP protocol 50 for clients without NAT. PPTP is not part of OMEGA.
+
+The panel writes managed runtime files under `bin/l2tp/<inbound-id>/`, enables IPv4 forwarding, opens the three UDP listeners in iptables, and installs `FORWARD` plus `MASQUERADE` rules for the configured pool. Attach existing clients from the normal Clients page; their email is the PPP username and their password is the MS-CHAPv2 credential. The inbound info view shows the PSK, pool, DNS, and fixed ports. Subscription info shows one native parameter set for every attached client with that subscription ID, and the admin Client Information dialog shows the same values with copy buttons. Configure clients with their native L2TP/IPsec settings; no profile file or synthetic Xray link is generated.
+
+Verify a host or manual installation with:
+
+```bash
+command -v ipsec xl2tpd pppd iptables sysctl
+ipsec --version | head -2
+command -v xl2tpd && command -v pppd
+# On a host installation:
+test -c /dev/ppp && echo "PPP is ready"
+ss -lunp | grep -E ':(500|4500|1701)\\b'
+```
+
+For Docker, the container needs `NET_ADMIN`, `NET_RAW`, `/dev/ppp`, `/dev/net/tun`, IPv4 forwarding, and published UDP 500, 4500, and 1701. The repository `docker-compose.yml` contains these settings. The host kernel must provide PPP and XFRM/IPsec; a Docker container cannot load a missing host kernel module.
+
+### L2TP/IPsec feature highlights
+
+- **One global listener:** the panel accepts only one L2TP/IPsec inbound per local host. UDP 500 and 4500 are used by IKE/NAT-T and UDP 1701 by L2TP.
+- **Existing clients:** attach clients from the normal Clients page; email becomes the PPP username and the existing password becomes the MS-CHAPv2 secret. Enable/disable, password edits, attach, detach, bulk delete, and quota enforcement are reconciled without putting L2TP into the Xray configuration.
+- **Managed networking:** OMEGA enables IPv4 forwarding and maintains exact `INPUT`, `FORWARD`, and `POSTROUTING MASQUERADE` rules for the configured pool. Firewall state is persisted so restart and cleanup can reclaim rules safely.
+- **Restart-safe lifecycle:** daemon files live under `bin/l2tp/<inbound-id>/`; strongSwan/xl2tpd are started, stopped, reconciled after settings changes, and orphaned processes are reclaimed after a panel restart.
+- **No profile files:** the panel displays PSK, pool, DNS, and port values as native connection parameters. PPTP is intentionally out of scope.
 
 ---
 
@@ -49,22 +101,23 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-
 On a fresh server, as **root**:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega/install-omega.sh) v3.3.25-omega
 ```
 
 Pin a specific release instead (useful before a branch is merged):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.1-omega/install-omega.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega/install-omega.sh) v3.3.25-omega
 ```
 
 The installer takes care of everything:
 
-1. installs the required packages (`curl`, `tar`, `socat`, `openssl`, `tzdata`, cron …),
-2. downloads the packaged release for your architecture (panel **+ Xray-core + geoip/geosite + mtg**),
-3. installs it to `/usr/local/x-ui` and registers the unchanged `x-ui` systemd service,
-4. keeps an existing database/settings when upgrading, and
-5. restarts the panel and prints the access URL.
+1. installs the required packages (`curl`, `tar`, `socat`, `openssl`, `tzdata`, cron …) plus the host `openvpn`, strongSwan, xl2tpd, PPP, iptables, and iproute2 packages,
+2. verifies that `/dev/net/tun` and `/dev/ppp` are available; installation stops if the VPN prerequisite is not usable,
+3. downloads the packaged release for your architecture (panel **+ Xray-core + geoip/geosite + mtg**),
+4. installs it to `/usr/local/x-ui` and registers the unchanged `x-ui` systemd service,
+5. keeps an existing database/settings when upgrading, and
+6. restarts the panel and prints the access URL.
 
 Defaults: port **2053**, login **admin / admin** — change both right after your first login.
 
@@ -82,7 +135,14 @@ x-ui uninstall    # full removal (the database in /etc/x-ui is kept; back it up 
 ### Manual install
 
 Grab `x-ui-linux-<arch>.tar.gz` from the [releases page](https://github.com/Dark-Sky07/OMEGA/releases)
-(`amd64`, `arm64`, `armv7`, `armv6`, `386`, `armv5`, `s390x`), then on the server:
+(`amd64`, `arm64`, `armv7`, `armv6`, `386`, `armv5`, `s390x`), then on the server. Manual extraction of the tarball does **not** install host VPN packages; run the following first if you use this path:
+
+```bash
+apt-get update && apt-get install -y openvpn strongswan xl2tpd ppp iptables iproute2
+modprobe tun 2>/dev/null || true
+modprobe ppp_generic 2>/dev/null || true
+test -c /dev/net/tun && test -c /dev/ppp
+```
 
 ```bash
 tar zxvf x-ui-linux-amd64.tar.gz
@@ -262,7 +322,11 @@ docker build -t omega-panel .
 
 docker run -d --name omega --restart unless-stopped \
   --cap-add=NET_ADMIN --cap-add=NET_RAW \
-  -p 2053:2053 -v /etc/x-ui:/etc/x-ui omega-panel
+  --device /dev/net/tun:/dev/net/tun --device /dev/ppp:/dev/ppp \
+  --sysctl net.ipv4.ip_forward=1 \
+  -p 2053:2053 -p 1194:1194/udp -p 1194:1194/tcp \
+  -p 500:500/udp -p 4500:4500/udp -p 1701:1701/udp \
+  -v /etc/x-ui:/etc/x-ui omega-panel
 ```
 
 `docker-compose.yml` in this repository builds the same image and keeps SQLite by default. To run with the bundled PostgreSQL service, uncomment the two `XUI_DB_*` env lines and start with the profile:

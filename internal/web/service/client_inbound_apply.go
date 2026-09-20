@@ -9,11 +9,41 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
+
+// clientsFromSettings returns the raw clients array of an inbound settings
+// map. Daemon-served inbounds (openvpn) carry no Xray-style clients array
+// until the first client attaches, so a missing or mistyped "clients" key
+// normalizes to an empty slice instead of panicking the type assertion.
+func clientsFromSettings(settings map[string]any) []any {
+	if clients, ok := settings["clients"].([]any); ok {
+		return clients
+	}
+	return []any{}
+}
+
+// reconcileL2TPRuntime makes client attach/update/delete operations visible to
+// the host daemon before the periodic job runs. It is intentionally a no-op
+// for every other protocol so the existing Xray runtime path is unchanged.
+func reconcileL2TPRuntime(inbound *model.Inbound) error {
+	if inbound == nil || inbound.Protocol != model.L2TP || inbound.NodeID != nil {
+		return nil
+	}
+	if !inbound.Enable {
+		l2tp.GetManager().Remove(inbound.Id)
+		return nil
+	}
+	instance, ok := l2tp.InstanceFromInbound(inbound, nil)
+	if !ok {
+		return common.NewError("invalid l2tp settings or credentials")
+	}
+	return l2tp.GetManager().Ensure(instance)
+}
 
 // delInboundClients removes several clients from a single inbound in one pass:
 // one settings rewrite, one runtime sweep, one Save and one SyncInbound for the
@@ -46,10 +76,9 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 		}
 	}
 
-	interfaceClients, ok := settings["clients"].([]any)
-	if !ok {
-		return false, common.NewError("invalid clients format in inbound settings")
-	}
+	// Daemon-served settings (openvpn) may lack the clients array entirely —
+	// that just means there is nothing to remove here.
+	interfaceClients := clientsFromSettings(settings)
 
 	type removedClient struct {
 		email      string
@@ -158,6 +187,10 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 	if err := db.Save(oldInbound).Error; err != nil {
 		return needRestart, err
 	}
+	if err := reconcileL2TPRuntime(oldInbound); err != nil {
+		logger.Warning("l2tp: synchronous client removal reconcile failed:", err)
+		needRestart = true
+	}
 	finalClients, gcErr := inboundSvc.GetClients(oldInbound)
 	if gcErr != nil {
 		return needRestart, gcErr
@@ -225,7 +258,7 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 		return false, err
 	}
 
-	interfaceClients := settings["clients"].([]any)
+	interfaceClients := clientsFromSettings(settings)
 	nowTs := time.Now().Unix() * 1000
 	for i := range interfaceClients {
 		if cm, ok := interfaceClients[i].(map[string]any); ok {
@@ -252,12 +285,23 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 	if err != nil {
 		return false, err
 	}
+	if oldInbound.Protocol == model.L2TP {
+		if err := validateL2TPClientCredentials(clients); err != nil {
+			return false, err
+		}
+	}
 
 	for _, client := range clients {
 		if strings.TrimSpace(client.Email) == "" {
 			return false, common.NewError("client email is required")
 		}
 		switch oldInbound.Protocol {
+		case model.OpenVPN, model.L2TP:
+			// Daemon identity is the email. L2TP additionally consumes
+			// Client.Password as the PPP/MS-CHAPv2 password.
+			if oldInbound.Protocol == model.L2TP && client.Password == "" {
+				return false, common.NewError("l2tp client password is required")
+			}
 		case "trojan":
 			if client.Password == "" {
 				return false, common.NewError("empty client ID")
@@ -287,7 +331,9 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 		applyShadowsocksClientMethod(interfaceClients, oldSettings)
 	}
 
-	oldClients := oldSettings["clients"].([]any)
+	// The target settings may have no clients array yet (openvpn attach) —
+	// normalize to empty so the append seeds it.
+	oldClients := clientsFromSettings(oldSettings)
 	oldClients = compactOrphans(database.GetDB(), oldClients)
 	oldClients = append(oldClients, interfaceClients...)
 
@@ -378,6 +424,10 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 	if err = tx.Save(oldInbound).Error; err != nil {
 		return false, err
 	}
+	if err := reconcileL2TPRuntime(oldInbound); err != nil {
+		logger.Warning("l2tp: synchronous client reconcile failed:", err)
+		needRestart = true
+	}
 	finalClients, gcErr := inboundSvc.GetClients(oldInbound)
 	if gcErr != nil {
 		err = gcErr
@@ -396,6 +446,9 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	if err != nil {
 		return false, err
 	}
+	if len(clients) == 0 {
+		return false, common.NewError("client email is required")
+	}
 
 	var settings map[string]any
 	err = json.Unmarshal([]byte(data.Settings), &settings)
@@ -403,11 +456,16 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		return false, err
 	}
 
-	interfaceClients := settings["clients"].([]any)
+	interfaceClients := clientsFromSettings(settings)
 
 	oldInbound, err := inboundSvc.GetInbound(data.Id)
 	if err != nil {
 		return false, err
+	}
+	if oldInbound.Protocol == model.L2TP {
+		if err := validateL2TPClientCredentials(clients); err != nil {
+			return false, err
+		}
 	}
 
 	oldClients, err := inboundSvc.GetClients(oldInbound)
@@ -417,6 +475,12 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 
 	newClientId := ""
 	switch oldInbound.Protocol {
+	case model.OpenVPN, model.L2TP:
+		// Identity is the email. L2TP uses Password for PPP authentication.
+		if oldInbound.Protocol == model.L2TP && clients[0].Password == "" {
+			return false, common.NewError("l2tp client password is required")
+		}
+		newClientId = clients[0].Email
 	case "trojan":
 		newClientId = clients[0].Password
 	case "shadowsocks":
@@ -461,7 +525,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	if err != nil {
 		return false, err
 	}
-	settingsClients := oldSettings["clients"].([]any)
+	settingsClients := clientsFromSettings(oldSettings)
 	var preservedCreated any
 	var preservedSubID string
 	if clientIndex >= 0 && clientIndex < len(settingsClients) {
@@ -650,6 +714,10 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	if err = tx.Save(oldInbound).Error; err != nil {
 		return false, err
 	}
+	if err := reconcileL2TPRuntime(oldInbound); err != nil {
+		logger.Warning("l2tp: synchronous client reconcile failed:", err)
+		needRestart = true
+	}
 	finalClients, gcErr := inboundSvc.GetClients(oldInbound)
 	if gcErr != nil {
 		err = gcErr
@@ -675,10 +743,9 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 		return false, err
 	}
 
-	interfaceClients, ok := settings["clients"].([]any)
-	if !ok {
-		return false, common.NewError("invalid clients format in inbound settings")
-	}
+	// Openvpn settings may carry no clients array at all — the client then
+	// simply is not on this inbound (callers tolerate ErrClientNotInInbound).
+	interfaceClients := clientsFromSettings(settings)
 
 	var newClients []any
 	needApiDel := false
@@ -773,6 +840,10 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 
 	if err := db.Save(oldInbound).Error; err != nil {
 		return false, err
+	}
+	if err := reconcileL2TPRuntime(oldInbound); err != nil {
+		logger.Warning("l2tp: synchronous client deletion reconcile failed:", err)
+		needRestart = true
 	}
 	finalClients, gcErr := inboundSvc.GetClients(oldInbound)
 	if gcErr != nil {
