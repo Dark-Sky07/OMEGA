@@ -301,7 +301,7 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, envelope Clien
 		if errors.Is(findErr, gorm.ErrRecordNotFound) {
 			nr, createErr := s.Create(inboundSvc, &ClientCreatePayload{
 				Client:     entry.Client,
-				InboundIds: uniqueInts(entry.InboundIds),
+				InboundIds: transferUniqueInts(entry.InboundIds),
 			})
 			if createErr != nil {
 				report.Failed++
@@ -320,7 +320,7 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, envelope Clien
 				continue
 			}
 			if findErr == nil {
-				if nr2, updateErr := s.Update(inboundSvc, rec.Id, entry.Client, uniqueInts(entry.InboundIds)...); updateErr != nil {
+				if nr2, updateErr := s.Update(inboundSvc, rec.Id, entry.Client, transferUniqueInts(entry.InboundIds)...); updateErr != nil {
 					report.Failed++
 					report.Errors = append(report.Errors, newTransferError(index, email, updateErr.Error()))
 					continue
@@ -349,9 +349,9 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, envelope Clien
 			continue
 		}
 		ownedCurrent := filterTransferInboundIDs(currentIDs, scope)
-		desired := uniqueInts(entry.InboundIds)
-		desiredSet := intSet(desired)
-		toAttach := differenceInts(desired, currentIDs)
+		desired := transferUniqueInts(entry.InboundIds)
+		desiredSet := transferIntSet(desired)
+		toAttach := transferDifferenceInts(desired, currentIDs)
 		toDetach := make([]int, 0)
 		for _, id := range ownedCurrent {
 			if _, keep := desiredSet[id]; !keep {
@@ -403,7 +403,7 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, envelope Clien
 	return report, nil
 }
 
-func uniqueInts(values []int) []int {
+func transferUniqueInts(values []int) []int {
 	out := make([]int, 0, len(values))
 	seen := make(map[int]struct{}, len(values))
 	for _, value := range values {
@@ -416,7 +416,7 @@ func uniqueInts(values []int) []int {
 	return out
 }
 
-func intSet(values []int) map[int]struct{} {
+func transferIntSet(values []int) map[int]struct{} {
 	out := make(map[int]struct{}, len(values))
 	for _, value := range values {
 		out[value] = struct{}{}
@@ -424,8 +424,8 @@ func intSet(values []int) map[int]struct{} {
 	return out
 }
 
-func differenceInts(want, have []int) []int {
-	haveSet := intSet(have)
+func transferDifferenceInts(want, have []int) []int {
+	haveSet := transferIntSet(have)
 	out := make([]int, 0, len(want))
 	for _, id := range want {
 		if _, ok := haveSet[id]; !ok {
@@ -457,7 +457,7 @@ func (s *ClientService) applyTransferFlowOverrides(inboundSvc *InboundService, e
 		return err
 	}
 	db := database.GetDB()
-	for _, inboundID := range uniqueInts(entry.InboundIds) {
+	for _, inboundID := range transferUniqueInts(entry.InboundIds) {
 		if !scopeAllowsInbound(scope, inboundID) {
 			continue
 		}
