@@ -114,8 +114,16 @@ func TestRenderConfigQuotesCredentials(t *testing.T) {
 	if !strings.Contains(strongSwan, "include /etc/strongswan.d/charon/*.conf") || !strings.Contains(strongSwan, "secrets_file = "+ipsecSecretsPath(inst.Id)) {
 		t.Fatalf("strongSwan runtime config does not load modular plugins and redirect secrets: %s", strongSwan)
 	}
-	if !strings.Contains(renderIPUpScript(inst), "PEERNAME") || !strings.Contains(renderIPDownScript(inst), "PPP_IFACE") {
-		t.Fatal("PPP accounting hooks do not reference session environment")
+	upScript := renderIPUpScript(inst)
+	downScript := renderIPDownScript(inst)
+	if !strings.Contains(upScript, "PEERNAME") || !strings.Contains(upScript, "IFNAME") || !strings.Contains(upScript, "${1:-}") {
+		t.Fatal("PPP ip-up hook does not support pppd's documented session environment/arguments")
+	}
+	if !strings.Contains(downScript, "PPP_IFACE") || !strings.Contains(downScript, "IFNAME") || !strings.Contains(downScript, "${1:-}") {
+		t.Fatal("PPP ip-down hook does not support pppd's documented interface environment/arguments")
+	}
+	if !strings.HasPrefix(sessionDirPath(inst.Id), "/") {
+		t.Fatalf("session marker path must be absolute for pppd: %q", sessionDirPath(inst.Id))
 	}
 }
 

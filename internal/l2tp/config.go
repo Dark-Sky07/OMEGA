@@ -20,9 +20,28 @@ const (
 	omegaChapSecretsEnd   = "# END OMEGA L2TP MANAGED CREDENTIALS"
 )
 
-func l2tpRoot() string {
+// l2tpBinDir resolves the panel's binary directory to an absolute path. The
+// default XUI_BIN_FOLDER is relative ("bin"), but pppd runs ip-up/ip-down
+// scripts from its own working directory rather than the panel's
+// WorkingDirectory. Embedding a relative path in those scripts silently
+// loses the session marker, so traffic collection must use the same absolute
+// root as the panel process.
+func l2tpBinDir() string {
 	dir := config.GetBinFolderPath()
-	return filepath.Join(dir, "l2tp")
+	if filepath.IsAbs(dir) {
+		return filepath.Clean(dir)
+	}
+	if exe, err := os.Executable(); err == nil {
+		return filepath.Join(filepath.Dir(exe), dir)
+	}
+	if abs, err := filepath.Abs(dir); err == nil {
+		return abs
+	}
+	return dir
+}
+
+func l2tpRoot() string {
+	return filepath.Join(l2tpBinDir(), "l2tp")
 }
 
 func dataDirForID(id int) string {
@@ -176,9 +195,15 @@ func renderIPUpScript(inst Instance) string {
 	// are validated in traffic.go before they are used as path components.
 	dir := strings.ReplaceAll(sessionDirPath(inst.Id), "'", "'\\''")
 	return "#!/bin/sh\nset -eu\n" +
+		"PATH=/usr/sbin:/usr/bin:/sbin:/bin\nexport PATH\n" +
 		"dir='" + dir + "'\n" +
-		"iface=\"${PPP_IFACE:-}\"\n" +
-		"peer=\"${PEERNAME:-}\"\n" +
+		// pppd's documented interface name is $1/$IFNAME. PPP_IFACE is
+		// exported by some distro wrapper scripts, but is not guaranteed when
+		// pppd invokes an explicit ip-up-script directly.
+		"iface=\"${PPP_IFACE:-${IFNAME:-${1:-}}}\"\n" +
+		// PEERNAME is the authenticated PPP username and is the stable identity
+		// that maps a session back to the panel client email.
+		"peer=\"${PEERNAME:-${PPP_PEERNAME:-}}\"\n" +
 		"case \"$iface\" in\n" +
 		"  ''|*[!A-Za-z0-9_.-]*) exit 0 ;;\n" +
 		"esac\n" +
@@ -190,8 +215,9 @@ func renderIPUpScript(inst Instance) string {
 func renderIPDownScript(inst Instance) string {
 	dir := strings.ReplaceAll(sessionDirPath(inst.Id), "'", "'\\''")
 	return "#!/bin/sh\nset -eu\n" +
+		"PATH=/usr/sbin:/usr/bin:/sbin:/bin\nexport PATH\n" +
 		"dir='" + dir + "'\n" +
-		"iface=\"${PPP_IFACE:-}\"\n" +
+		"iface=\"${PPP_IFACE:-${IFNAME:-${1:-}}}\"\n" +
 		"case \"$iface\" in\n" +
 		"  ''|*[!A-Za-z0-9_.-]*) exit 0 ;;\n" +
 		"esac\n" +

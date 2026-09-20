@@ -306,9 +306,10 @@ func (m *Manager) StopAll() {
 }
 
 // CollectTraffic reads pppd session markers and Linux interface counters. pppd
-// invokes the managed ip-up/ip-down hooks with PEERNAME and PPP_IFACE, which
-// gives us a stable email-to-interface mapping without inventing a profile or
-// requiring a RADIUS accounting server.
+// invokes the managed ip-up/ip-down hooks with PEERNAME and the interface name
+// in $1/$IFNAME (some distro wrappers also export PPP_IFACE), which gives us a
+// stable email-to-interface mapping without inventing a profile or requiring a
+// RADIUS accounting server.
 func (m *Manager) CollectTraffic() (inbounds []InboundTraffic, clients []ClientTrafficDelta) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

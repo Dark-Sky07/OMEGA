@@ -446,6 +446,35 @@ func TestClientListEmpty(t *testing.T) {
 	}
 }
 
+func TestClientListCSVStatusParsing(t *testing.T) {
+	response := `OK
+HEADER,CLIENT_LIST,Common Name,Real Address,Virtual Address,Virtual IPv6 Address,Bytes Received,Bytes Sent,Connected Since,Connected Since (time_t),Username,Client ID,Peer ID,Data Channel Cipher
+CLIENT_LIST,a@x.com,203.0.113.7:40000,10.8.0.2,,1234,5678,Sun Sep 20 08:00:00 2026,179,UNDEF,1,1,AES-256-GCM
+END
+`
+	got, err := parseClientListResponse(strings.NewReader(response))
+	if err != nil {
+		t.Fatalf("parseClientListResponse: %v", err)
+	}
+	if got["a@x.com"].Rx != 1234 || got["a@x.com"].Tx != 5678 {
+		t.Fatalf("CSV counters parsed incorrectly: %+v", got["a@x.com"])
+	}
+}
+
+func TestClientListStatusSpaceParsing(t *testing.T) {
+	response := `>INFO:OpenVPN Management Interface Version 5
+CLIENT_LIST a@x.com 203.0.113.7:40000 10.8.0.2 222 333 Sun Sep 20 08:00:00 2026 179 UNDEF 1 1
+END
+`
+	got, err := parseClientListResponse(strings.NewReader(response))
+	if err != nil {
+		t.Fatalf("parseClientListResponse: %v", err)
+	}
+	if got["a@x.com"].Rx != 222 || got["a@x.com"].Tx != 333 {
+		t.Fatalf("space-separated counters parsed incorrectly: %+v", got["a@x.com"])
+	}
+}
+
 func TestClientListErrorWhenClosed(t *testing.T) {
 	srv := &fakeMgmtServer{}
 	srv.start(t)
