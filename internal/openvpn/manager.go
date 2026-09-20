@@ -52,6 +52,22 @@ type Manager struct {
 	mu sync.Mutex
 	// procs maps inbound id -> running (or last-started) daemon state.
 	procs map[int]*managed
+
+	// manualStop is controlled by the dashboard. A normal Stop() only stops
+	// the current processes; the reconcile job would otherwise start them
+	// again on its next ten-second tick. The flag is intentionally in-memory:
+	// a full panel restart should return to the database's desired state.
+	manualStop bool
+	lastError  string
+}
+
+// RuntimeStatus is the small, secret-free snapshot exposed by the dashboard.
+type RuntimeStatus struct {
+	Running       bool
+	InboundCount  int
+	OnlineClients int
+	ManualStop    bool
+	Error         string
 }
 
 var (
@@ -81,6 +97,9 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	fp := inst.fingerprint()
 	dir := dataDirForID(inst.Id)
 	if cur, ok := m.procs[inst.Id]; ok && cur.fingerprint == fp && cur.proc.IsRunning() {
+		if err := GetNetworkManager().Apply(inst); err != nil {
+			return err
+		}
 		cur.tag = inst.Tag
 		cur.clients = inst.Clients
 		// Certs may have been lost on a flaky disk; top them up cheaply.
@@ -96,6 +115,7 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	}
 	if cur, ok := m.procs[inst.Id]; ok {
 		_ = cur.proc.Stop()
+		GetNetworkManager().Remove(inst.Id)
 		delete(m.procs, inst.Id)
 	}
 
@@ -122,8 +142,12 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	if err := writeConfig(inst, mgmtPort); err != nil {
 		return err
 	}
+	if err := GetNetworkManager().Apply(inst); err != nil {
+		return err
+	}
 	proc := newProcess(cfgPath, "inbound "+strconv.Itoa(inst.Id))
 	if err := proc.Start(); err != nil {
+		GetNetworkManager().Remove(inst.Id)
 		m.procs[inst.Id] = &managed{
 			proc:        proc,
 			tag:         inst.Tag,
@@ -156,6 +180,16 @@ func (m *Manager) ensureLocked(inst Instance) error {
 func (m *Manager) Reconcile(desired []Instance) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.manualStop {
+		for id, cur := range m.procs {
+			_ = cur.proc.Stop()
+			GetNetworkManager().Remove(id)
+			_ = removeDataDir(id)
+			delete(m.procs, id)
+		}
+		GetNetworkManager().RemoveAll()
+		return
+	}
 	want := make(map[int]struct{}, len(desired))
 	for _, inst := range desired {
 		want[inst.Id] = struct{}{}
@@ -163,13 +197,16 @@ func (m *Manager) Reconcile(desired []Instance) {
 	for id, cur := range m.procs {
 		if _, ok := want[id]; !ok {
 			_ = cur.proc.Stop()
+			GetNetworkManager().Remove(id)
 			_ = removeDataDir(id)
 			delete(m.procs, id)
 			logger.Infof("openvpn: stopped daemon for inbound %d (no longer desired)", id)
 		}
 	}
+	GetNetworkManager().RemoveExcept(want)
 	for _, inst := range desired {
 		if err := m.ensureLocked(inst); err != nil {
+			m.lastError = err.Error()
 			// Throttled: a persistent failure (no binary, busy port) logs
 			// at most once a minute instead of every 10 s tick.
 			if cur, ok := m.procs[inst.Id]; ok && time.Since(cur.lastErrAt) < time.Minute {
@@ -179,8 +216,70 @@ func (m *Manager) Reconcile(desired []Instance) {
 				cur.lastErrAt = time.Now()
 			}
 			logger.Warningf("openvpn: reconcile failed for inbound %d: %v", inst.Id, err)
+		} else {
+			m.lastError = ""
 		}
 	}
+}
+
+// StopManually stops every OpenVPN daemon and holds reconciliation until the
+// dashboard explicitly resumes it.
+func (m *Manager) StopManually() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.manualStop = true
+	m.lastError = ""
+	for id, cur := range m.procs {
+		_ = cur.proc.Stop()
+		GetNetworkManager().Remove(id)
+		_ = removeDataDir(id)
+		delete(m.procs, id)
+	}
+	GetNetworkManager().RemoveAll()
+}
+
+// Resume clears a dashboard stop request. The next reconcile tick starts the
+// enabled inbounds again from the database's desired state.
+func (m *Manager) Resume() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.manualStop = false
+	m.lastError = ""
+}
+
+// Restart stops the current daemons without setting manualStop, allowing the
+// following reconcile pass to create fresh processes from current settings.
+func (m *Manager) Restart() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.manualStop = false
+	m.lastError = ""
+	for id, cur := range m.procs {
+		_ = cur.proc.Stop()
+		GetNetworkManager().Remove(id)
+		_ = removeDataDir(id)
+		delete(m.procs, id)
+	}
+	GetNetworkManager().RemoveAll()
+}
+
+// Status returns a secret-free snapshot for the dashboard.
+func (m *Manager) Status() RuntimeStatus {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	status := RuntimeStatus{ManualStop: m.manualStop, Error: m.lastError}
+	seen := make(map[string]struct{})
+	for _, cur := range m.procs {
+		if cur.proc != nil && cur.proc.IsRunning() {
+			status.Running = true
+			status.InboundCount++
+			for email := range cur.online {
+				seen[email] = struct{}{}
+			}
+		}
+	}
+	status.OnlineClients = len(seen)
+	return status
 }
 
 // Remove stops and forgets the daemon for an inbound id, deleting its data
@@ -192,6 +291,7 @@ func (m *Manager) Remove(id int) {
 		_ = cur.proc.Stop()
 		delete(m.procs, id)
 	}
+	GetNetworkManager().Remove(id)
 	_ = removeDataDir(id)
 }
 
@@ -199,10 +299,14 @@ func (m *Manager) Remove(id int) {
 func (m *Manager) StopAll() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.manualStop = false
+	m.lastError = ""
 	for id, cur := range m.procs {
 		_ = cur.proc.Stop()
+		GetNetworkManager().Remove(id)
 		delete(m.procs, id)
 	}
+	GetNetworkManager().RemoveAll()
 }
 
 func removeDataDir(id int) error {

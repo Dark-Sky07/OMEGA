@@ -7,4 +7,5 @@ export { default as HttpFields } from './http';
 export { default as MixedFields } from './mixed';
 export { default as MtprotoFields } from './mtproto';
 export { default as OpenvpnFields } from './openvpn';
+export { default as L2tpFields } from './l2tp';
 export { default as VlessFields } from './vless';

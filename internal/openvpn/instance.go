@@ -103,6 +103,11 @@ func (inst Instance) serverSubnet() (network string, mask string) {
 	return "10." + strconv.Itoa(n) + "." + strconv.Itoa(o) + ".0", "255.255.255.0"
 }
 
+func (inst Instance) serverSubnetCIDR() string {
+	network, _ := inst.serverSubnet()
+	return network + "/24"
+}
+
 // InstanceFromInbound derives a desired Instance from an openvpn inbound.
 // Returns false when the inbound is not a usable openvpn inbound.
 func InstanceFromInbound(ib *model.Inbound, clients []string) (Instance, bool) {

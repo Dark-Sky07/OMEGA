@@ -56,6 +56,15 @@ export interface XrayInfo {
   color: string;
 }
 
+export interface DaemonInfo {
+  state: 'running' | 'stop' | 'error' | string;
+  errorMsg: string;
+  inboundCount: number;
+  onlineClients: number;
+  manualStop: boolean;
+  color: string;
+}
+
 interface StatusInput {
   cpu?: number;
   cpuCores?: number;
@@ -74,6 +83,8 @@ interface StatusInput {
   appUptime?: number;
   appStats?: AppStats;
   xray?: Partial<XrayInfo>;
+  openvpn?: Partial<DaemonInfo>;
+  l2tp?: Partial<DaemonInfo>;
 }
 
 export class Status {
@@ -94,6 +105,8 @@ export class Status {
   appUptime = 0;
   appStats: AppStats = { threads: 0, mem: 0, uptime: 0 };
   xray: XrayInfo = { state: 'stop', errorMsg: '', version: '', color: '' };
+  openvpn: DaemonInfo = { state: 'stop', errorMsg: '', inboundCount: 0, onlineClients: 0, manualStop: false, color: '' };
+  l2tp: DaemonInfo = { state: 'stop', errorMsg: '', inboundCount: 0, onlineClients: 0, manualStop: false, color: '' };
 
   constructor(data?: StatusInput | null) {
     if (data == null) return;
@@ -116,5 +129,9 @@ export class Status {
     this.appStats = data.appStats ?? this.appStats;
     this.xray = { ...this.xray, ...(data.xray || {}) };
     this.xray.color = XRAY_STATE_COLORS[this.xray.state] ?? 'gray';
+    this.openvpn = { ...this.openvpn, ...(data.openvpn || {}) };
+    this.openvpn.color = XRAY_STATE_COLORS[this.openvpn.state] ?? 'gray';
+    this.l2tp = { ...this.l2tp, ...(data.l2tp || {}) };
+    this.l2tp.color = XRAY_STATE_COLORS[this.l2tp.state] ?? 'gray';
   }
 }
