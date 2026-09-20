@@ -58,6 +58,7 @@ import {
   MixedFields,
   MtprotoFields,
   OpenvpnFields,
+  L2tpFields,
   ShadowsocksFields,
   TunFields,
   TunnelFields,
@@ -427,7 +428,7 @@ export default function InboundFormModal({
             }],
           },
         });
-      } else if (next === Protocols.WIREGUARD || next === Protocols.TUNNEL || next === Protocols.OPENVPN) {
+      } else if (next === Protocols.WIREGUARD || next === Protocols.TUNNEL || next === Protocols.OPENVPN || next === Protocols.L2TP) {
         // Wireguard and Tunnel (dokodemo-door) have no user-selectable
         // transport: wireguard is always a UDP listener, and tunnel only needs
         // `sockopt.tproxy` for its TProxy/redirect mode. OpenVPN is the same
@@ -440,6 +441,9 @@ export default function InboundFormModal({
         if (next === Protocols.OPENVPN) {
           // Well-known default for OpenVPN; the port field stays editable.
           form.setFieldValue('port', 1194);
+        } else if (next === Protocols.L2TP) {
+          // L2TP/IPsec uses fixed UDP listeners: 500, 4500 and 1701.
+          form.setFieldValue('port', 1701);
         }
       } else {
         const current = form.getFieldValue('streamSettings') as { network?: string } | undefined;
@@ -693,6 +697,8 @@ export default function InboundFormModal({
       {protocol === Protocols.MTPROTO && <MtprotoFields />}
 
       {protocol === Protocols.OPENVPN && <OpenvpnFields />}
+
+      {protocol === Protocols.L2TP && <L2tpFields />}
 
       {protocol === Protocols.SHADOWSOCKS && <ShadowsocksFields form={form} isSSWith2022={isSSWith2022} />}
 
@@ -1032,6 +1038,7 @@ export default function InboundFormModal({
               Protocols.WIREGUARD,
               Protocols.MTPROTO,
               Protocols.OPENVPN,
+              Protocols.L2TP,
             ] as string[]).includes(protocol) || isFallbackHost
               ? [{ key: 'protocol', label: t('pages.inbounds.protocol'), children: protocolTab, forceRender: true }]
               : []),

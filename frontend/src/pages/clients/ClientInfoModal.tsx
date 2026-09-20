@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Divider, Modal, Popover, Tag, Tooltip, message } from 'antd';
+import { Button, Divider, Modal, Popover, Space, Tag, Tooltip, message } from 'antd';
 import { CopyOutlined, DownloadOutlined, EyeOutlined, QrcodeOutlined, ReloadOutlined } from '@ant-design/icons';
 
 import { ClipboardManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
@@ -24,6 +24,7 @@ const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
   mixed: 'lime',
   tunnel: 'orange',
   openvpn: 'red',
+  l2tp: 'cyan',
 };
 
 const INBOUND_CHIP_LIMIT = 1;
@@ -60,6 +61,48 @@ const DEFAULT_SUB: SubSettings = {
   subClashURI: '',
   subClashEnable: false,
 };
+
+type L2TPOption = NonNullable<InboundOption['l2tp']>;
+
+const DEFAULT_L2TP_CONFIG: L2TPOption = {
+  fixedPorts: [500, 4500, 1701],
+  poolCIDR: '10.252.0.0/24',
+  localIP: '10.252.0.1',
+  poolStart: '10.252.0.10',
+  poolEnd: '10.252.0.250',
+  dns1: '1.1.1.1',
+  dns2: '8.8.8.8',
+  redirectGateway: true,
+};
+
+function parseL2TPSettings(value: unknown): L2TPOption {
+  let raw: Record<string, unknown> = {};
+  if (typeof value === 'string') {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        raw = parsed as Record<string, unknown>;
+      }
+    } catch {
+      // Keep daemon defaults when a legacy inbound has malformed settings.
+    }
+  } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+    raw = value as Record<string, unknown>;
+  }
+
+  const text = (key: string) => typeof raw[key] === 'string' ? raw[key] as string : undefined;
+  return {
+    ...DEFAULT_L2TP_CONFIG,
+    psk: text('psk'),
+    poolCIDR: text('poolCIDR') || DEFAULT_L2TP_CONFIG.poolCIDR,
+    localIP: text('localIP') || DEFAULT_L2TP_CONFIG.localIP,
+    poolStart: text('poolStart') || DEFAULT_L2TP_CONFIG.poolStart,
+    poolEnd: text('poolEnd') || DEFAULT_L2TP_CONFIG.poolEnd,
+    dns1: text('dns1') || DEFAULT_L2TP_CONFIG.dns1,
+    dns2: text('dns2') || DEFAULT_L2TP_CONFIG.dns2,
+    redirectGateway: raw.redirectGateway === false ? false : true,
+  };
+}
 
 export default function ClientInfoModal({
   open,
@@ -110,8 +153,58 @@ export default function ClientInfoModal({
   // worth surfacing here is the per-client .ovpn profile.
   const openvpnInboundCount = useMemo(() => {
     const ids = client?.inboundIds ?? [];
-    return ids.filter((id) => inboundsById[id]?.protocol === 'openvpn').length;
+    return ids.filter((id) => (inboundsById[id]?.protocol || '').toLowerCase() === 'openvpn').length;
   }, [client?.inboundIds, inboundsById]);
+
+  const l2tpInboundIds = useMemo(
+    () => (client?.inboundIds ?? []).filter((id) =>
+      (inboundsById[id]?.protocol || '').toLowerCase() === 'l2tp',
+    ),
+    [client?.inboundIds, inboundsById],
+  );
+  const [legacyL2TPConfigs, setLegacyL2TPConfigs] = useState<Record<number, L2TPOption>>({});
+
+  // Older panel binaries expose L2TP in the picker but do not yet include
+  // the l2tp metadata projection. Hydrate those specific inbound settings so
+  // Client Information remains useful during a rolling upgrade.
+  useEffect(() => {
+    if (!open) {
+      setLegacyL2TPConfigs({});
+      return;
+    }
+    const pendingIds = l2tpInboundIds.filter((id) => !inboundsById[id]?.l2tp);
+    if (pendingIds.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const entries = await Promise.all(pendingIds.map(async (id) => {
+        const msg = await HttpUtil.get(`/panel/api/inbounds/get/${id}`, undefined, { silent: true }) as ApiMsg<{ settings?: unknown }>;
+        if (!msg?.success || !msg.obj) return null;
+        return [id, parseL2TPSettings(msg.obj.settings)] as const;
+      }));
+      if (cancelled) return;
+      setLegacyL2TPConfigs((previous) => {
+        const next = { ...previous };
+        for (const entry of entries) {
+          if (entry) next[entry[0]] = entry[1];
+        }
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [open, l2tpInboundIds, inboundsById]);
+
+  const l2tpInbounds = useMemo(
+    () => (client?.inboundIds ?? [])
+      .map((id) => inboundsById[id])
+      .filter((ib): ib is InboundOption =>
+        !!ib && (ib.protocol || '').toLowerCase() === 'l2tp',
+      )
+      .map((ib) => ({
+        ...ib,
+        l2tp: ib.l2tp || legacyL2TPConfigs[ib.id] || DEFAULT_L2TP_CONFIG,
+      })),
+    [client?.inboundIds, inboundsById, legacyL2TPConfigs],
+  );
   const [ovpnProfile, setOvpnProfile] = useState('');
   const [ovpnLoading, setOvpnLoading] = useState(false);
 
@@ -174,12 +267,31 @@ export default function ClientInfoModal({
     return subSettings.subClashURI + client.subId;
   }, [client?.subId, subSettings?.subClashEnable, subSettings?.subClashURI]);
 
-  const showSubscription = !!(subSettings?.enable && client?.subId);
+  const hasXraySubscriptionInbound = useMemo(
+    () => (client?.inboundIds ?? []).some((id) => {
+      const protocol = (inboundsById[id]?.protocol || '').toLowerCase();
+      return protocol !== '' && protocol !== 'openvpn' && protocol !== 'l2tp';
+    }),
+    [client?.inboundIds, inboundsById],
+  );
+  const showSubscription = !!(subSettings?.enable && client?.subId && hasXraySubscriptionInbound);
 
   async function copyValue(text: string) {
     if (!text) return;
     const ok = await ClipboardManager.copyText(String(text));
     if (ok) messageApi.success(t('copied'));
+  }
+
+  function nativeValue(value?: string, allowCopy = true) {
+    const text = value || '-';
+    return (
+      <Space size={4} wrap>
+        <Tag className="info-large-tag">{text}</Tag>
+        {allowCopy && value && (
+          <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(value)} />
+        )}
+      </Space>
+    );
   }
 
   async function loadIps() {
@@ -394,7 +506,7 @@ export default function ClientInfoModal({
               </tbody>
             </table>
 
-            {links.length > 0 && (
+            {links.length > 0 && hasXraySubscriptionInbound && (
               <>
                 <Divider>{t('pages.inbounds.copyLink')}</Divider>
                 {links.map((link, idx) => {
@@ -465,6 +577,78 @@ export default function ClientInfoModal({
                     )}
                   </div>
                 </div>
+              </>
+            )}
+
+            {l2tpInbounds.length > 0 && (
+              <>
+                <Divider>L2TP/IPsec</Divider>
+                {l2tpInbounds.map((ib) => {
+                  const config = ib.l2tp;
+                  const serverAddress = config.serverAddress || window.location.hostname;
+                  const fixedPorts = config.fixedPorts?.length ? config.fixedPorts : [500, 4500, 1701];
+                  return (
+                    <div className="l2tp-client-panel" key={ib.id}>
+                      <div className="link-row l2tp-client-header">
+                        <Tag color="cyan" className="link-row-tag">L2TP</Tag>
+                        <span className="link-row-title">
+                          {formatInboundLabel(ib.tag, ib.remark)}
+                        </span>
+                      </div>
+                      <table className="info-table block l2tp-client-table">
+                        <tbody>
+                          <tr>
+                            <td>{t('pages.inbounds.form.l2tpServerAddress')}</td>
+                            <td>{nativeValue(serverAddress || undefined)}</td>
+                          </tr>
+                          <tr>
+                            <td>{t('pages.inbounds.form.l2tpFixedPorts')}</td>
+                            <td>{nativeValue(fixedPorts.join(', '))}</td>
+                          </tr>
+                          <tr>
+                            <td>{t('pages.clients.email')}</td>
+                            <td>{nativeValue(client.email)}</td>
+                          </tr>
+                          <tr>
+                            <td>{t('password')}</td>
+                            <td>{nativeValue(client.password)}</td>
+                          </tr>
+                          <tr>
+                            <td>{t('pages.inbounds.form.l2tpPsk')}</td>
+                            <td>{nativeValue(config.psk)}</td>
+                          </tr>
+                          <tr>
+                            <td>{t('pages.inbounds.form.l2tpPoolCIDR')}</td>
+                            <td>{nativeValue(config.poolCIDR)}</td>
+                          </tr>
+                          <tr>
+                            <td>{t('pages.inbounds.form.l2tpLocalIP')}</td>
+                            <td>{nativeValue(config.localIP)}</td>
+                          </tr>
+                          <tr>
+                            <td>{t('pages.inbounds.form.l2tpPoolRange')}</td>
+                            <td>{nativeValue([config.poolStart, config.poolEnd].filter(Boolean).join(' — '))}</td>
+                          </tr>
+                          <tr>
+                            <td>{t('pages.inbounds.form.l2tpDnsServers')}</td>
+                            <td>{nativeValue([config.dns1, config.dns2].filter(Boolean).join(' / '))}</td>
+                          </tr>
+                          <tr>
+                            <td>{t('pages.inbounds.form.l2tpFullTunnelHint')}</td>
+                            <td>
+                              <Tag color={config.redirectGateway ? 'green' : 'default'}>
+                                {config.redirectGateway ? t('enabled') : t('disabled')}
+                              </Tag>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                      <div className="l2tp-client-note">
+                        {t('pages.inbounds.form.l2tpManualParameters')}
+                      </div>
+                    </div>
+                  );
+                })}
               </>
             )}
 

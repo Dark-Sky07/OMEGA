@@ -27,6 +27,8 @@ export const WireguardOutboundSettingsSchema = z.object({
   mtu: z.number().int().min(1).optional(),
   secretKey: z.string().min(1),
   address: z.array(z.string()).default([]),
+  // Windscribe profiles map resolver addresses to Xray's remoteDNS field.
+  remoteDNS: z.array(z.string()).optional(),
   workers: z.number().int().min(1).optional(),
   domainStrategy: WireguardDomainStrategySchema.optional(),
   reserved: z.array(z.number().int()).optional(),

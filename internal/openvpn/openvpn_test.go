@@ -235,10 +235,18 @@ func TestRenderServerConf(t *testing.T) {
 		"dev tun5",
 		"tls-server",
 		"tls-version-min 1.2",
+		"dh none",
+		"ecdh-curve prime256v1",
 		"auth sha256",
 		"cipher AES-256-GCM",
 		"server 10.5.0.0 255.255.255.0",
+		"topology subnet",
 		"keepalive 10 120",
+		"verify-client-cert require",
+		"remote-cert-tls client",
+		"persist-key",
+		"persist-tun",
+		"verb 3",
 		"management 127.0.0.1 43210",
 		`push "redirect-gateway def1 bypass-dns"`,
 		`push "dhcp-option DNS 1.1.1.1"`,
@@ -252,6 +260,12 @@ func TestRenderServerConf(t *testing.T) {
 	if !strings.Contains(conf, filepath.Join(dataDirForID(5), "ca.crt")) {
 		t.Errorf("config missing ca path:\n%s", conf)
 	}
+	if strings.Contains(conf, "explicit-exit-notify") {
+		t.Error("TCP server must not emit explicit-exit-notify")
+	}
+	if strings.Contains(conf, "ping-restart 0") {
+		t.Error("server must not override keepalive with ping-restart 0")
+	}
 
 	// Toggles off -> no push directives, udp transport.
 	inst.Proto = "udp"
@@ -260,6 +274,9 @@ func TestRenderServerConf(t *testing.T) {
 	conf2 := renderServerConf(inst, 1)
 	if !strings.Contains(conf2, "proto udp") {
 		t.Errorf("expected proto udp:\n%s", conf2)
+	}
+	if !strings.Contains(conf2, "explicit-exit-notify 1") {
+		t.Errorf("UDP server must emit explicit-exit-notify:\n%s", conf2)
 	}
 	if strings.Contains(conf2, "redirect-gateway") || strings.Contains(conf2, "dhcp-option") {
 		t.Errorf("disabled pushes must be omitted:\n%s", conf2)
@@ -271,6 +288,39 @@ func TestRenderServerConf(t *testing.T) {
 	inst.Listen = "192.0.2.1"
 	if !strings.Contains(renderServerConf(inst, 1), "local 192.0.2.1") {
 		t.Error("explicit listen must emit local directive")
+	}
+}
+
+func TestOpenVPNNetworkRules(t *testing.T) {
+	inst := Instance{Id: 7, Port: 1194, Proto: "tcp"}
+	state := stateForInstance(inst)
+	if state.PoolCIDR != "10.7.0.0/24" || state.InterfaceName != "tun7" || state.Protocol != "tcp" {
+		t.Fatalf("unexpected network state: %+v", state)
+	}
+	rules := rulesForState(state)
+	if len(rules) != 5 {
+		t.Fatalf("expected five OpenVPN firewall rules, got %d", len(rules))
+	}
+	checks := []string{
+		"INPUT -p tcp --dport 1194 -j ACCEPT",
+		"INPUT -i tun7 -s 10.7.0.0/24 -j ACCEPT",
+		"FORWARD -i tun7 -s 10.7.0.0/24 -j ACCEPT",
+		"FORWARD -o tun7 -d 10.7.0.0/24 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT",
+		"POSTROUTING -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j MASQUERADE",
+	}
+	for i, want := range checks {
+		got := strings.Join(rules[i].rule, " ")
+		if got != want {
+			t.Errorf("rule %d = %q, want %q", i, got, want)
+		}
+	}
+	if rules[4].table != "nat" {
+		t.Fatalf("MASQUERADE rule must use the nat table, got %q", rules[4].table)
+	}
+
+	udp := stateForInstance(Instance{Id: 7, Port: 1194, Proto: "udp"})
+	if udp.Protocol != "udp" || !strings.Contains(strings.Join(rulesForState(udp)[0].rule, " "), "-p udp") {
+		t.Fatalf("UDP listener rule was not generated: %+v", udp)
 	}
 }
 
@@ -538,14 +588,46 @@ func TestBuildProfile(t *testing.T) {
 			t.Fatalf("profile <%s> block is not valid PEM", block)
 		}
 	}
+	// Strict clients (OpenVPN Connect, iOS/Android) require every inline tag
+	// on its own line, otherwise the import fails with
+	// `option <ca> was not properly closed out`.
+	for _, block := range []string{"ca", "cert", "key"} {
+		if !strings.Contains(profile, "\n<"+block+">\n") {
+			t.Errorf("profile <%s> opening tag must occupy its own line", block)
+		}
+		if !strings.Contains(profile, "\n</"+block+">\n") {
+			t.Errorf("profile </%s> closing tag must occupy its own line", block)
+		}
+	}
+	if strings.Contains(profile, "-----</") {
+		t.Errorf("closing tag must not share a line with the PEM footer:\n%s", profile)
+	}
+	// Only the standard inline options may be emitted; unknown blocks such
+	// as <ca-peer> are rejected by strict clients.
+	if strings.Contains(profile, "ca-peer") {
+		t.Errorf("profile must not contain the non-standard <ca-peer> block:\n%s", profile)
+	}
+	if !strings.HasSuffix(profile, "\n") {
+		t.Error("profile must end with a newline")
+	}
 }
 
-func TestBuildProfileMissingCert(t *testing.T) {
+func TestBuildProfileProvisionsMissingMaterial(t *testing.T) {
 	tempBinFolder(t)
 	id := 12
+	email := "ghost@example.com"
 	inst := Instance{Id: id, Port: 1194, Proto: "udp"}
-	if _, err := BuildProfile(inst, "ghost@example.com", "h"); err == nil {
-		t.Fatal("expected an error when the client cert does not exist yet")
+	profile, err := BuildProfile(inst, email, "h")
+	if err != nil {
+		t.Fatalf("BuildProfile should provision missing material: %v", err)
+	}
+	if !strings.Contains(profile, "remote h 1194") {
+		t.Fatalf("profile rendered with wrong endpoint: %s", profile)
+	}
+	for _, name := range []string{"ca.crt", "server.crt", "server.key", "clients/ghost_example.com.crt", "clients/ghost_example.com.key"} {
+		if _, err := os.Stat(filepath.Join(dataDirForID(id), name)); err != nil {
+			t.Errorf("expected provisioned file %s: %v", name, err)
+		}
 	}
 }
 

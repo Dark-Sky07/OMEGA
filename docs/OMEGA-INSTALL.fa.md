@@ -24,8 +24,9 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-
 1. نصب پیش‌نیازها (curl/tar/socat/openssl و …)
 2. دانلود پکیج آماده‌ی معماری سرور از ریلیز OMEGA (شامل Xray-core، geoip/geosite، mtg)
 3. نصب در `/usr/local/x-ui` و ساخت سرویس systemd با نام `x-ui`
-4. اگر نصب قبلی وجود داشته باشد، **تنظیمات و دیتابیس حفظ می‌شود**
-5. راه‌اندازی مجدد پنل + نمایش آدرس ورود
+4. پیش‌نیازهای OpenVPN و L2TP/IPsec شامل `openvpn`، `strongswan`، `xl2tpd`، `ppp`، `iptables` و `iproute2` را نصب و دستگاه‌های TUN/PPP را بررسی می‌کند
+5. اگر نصب قبلی وجود داشته باشد، **تنظیمات و دیتابیس حفظ می‌شود**
+6. راه‌اندازی مجدد پنل + نمایش آدرس ورود
 
 در پایان: پورت پیش‌فرض `2053`، یوزر/پس `admin/admin` (از داخل پنل حتماً عوض کنید) و مسیر مخفی ورود هم قابل تنظیم است.
 

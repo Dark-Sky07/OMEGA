@@ -1,8 +1,27 @@
 /// <reference types="vite/client" />
 
+interface SubPageL2TPConnection {
+  serverAddress?: string;
+  fixedPorts?: number[];
+  psk?: string;
+  username?: string;
+  password?: string;
+  poolCIDR?: string;
+  localIP?: string;
+  poolStart?: string;
+  poolEnd?: string;
+  dns1?: string;
+  dns2?: string;
+  redirectGateway?: boolean;
+}
+
 interface SubPageData {
   sId?: string;
   enabled?: boolean;
+  /** Server set: the subscription owner can fetch a per-client .ovpn profile at `${subUrl}/openvpn`. */
+  openvpn?: boolean;
+  /** Native connection parameters for every matching local L2TP/IPsec client. */
+  l2tp?: SubPageL2TPConnection[];
   download?: string;
   upload?: string;
   total?: string;
