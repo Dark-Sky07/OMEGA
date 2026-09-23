@@ -24,7 +24,7 @@ on:
       - ".github/workflows/ci.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   go-test:
@@ -40,6 +40,18 @@ jobs:
       - name: Format Go sources for validation
         shell: bash
         run: gofmt -w $(git ls-files '*.go')
+      - name: Commit gofmt fixes on this Arena branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/arena/01a0bd19-omega'
+        shell: bash
+        run: |
+          if git diff --quiet -- '*.go'; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- '*.go'
+          git commit -m 'gofmt Go sources'
+          git push origin HEAD:${GITHUB_REF_NAME}
       - name: Capture gofmt patch
         shell: bash
         run: git diff --binary -- '*.go' > /tmp/gofmt.patch
