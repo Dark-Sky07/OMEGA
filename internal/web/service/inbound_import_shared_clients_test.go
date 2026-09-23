@@ -210,6 +210,12 @@ func TestPrepareInboundImportPreservesExistingCanonicalClient(t *testing.T) {
 	if err := database.GetDB().Create(existing).Error; err != nil {
 		t.Fatalf("seed canonical client: %v", err)
 	}
+	// GORM applies the ClientRecord default:true tag to a zero-value bool on
+	// insert. Set the intentional disabled destination state explicitly so this
+	// test verifies import preservation rather than the ORM default.
+	if err := database.GetDB().Model(&model.ClientRecord{}).Where("id = ?", existing.Id).Update("enable", false).Error; err != nil {
+		t.Fatalf("set canonical client disabled: %v", err)
+	}
 
 	inbound := &model.Inbound{Settings: `{"clients":[{"email":"shared@example.com","subId":"destination-sub","id":"source-uuid","password":"source-password","totalGB":9999,"enable":true},{"email":"new@example.com","id":"new-uuid"}],"decryption":"none"}`}
 	if err := (&InboundService{}).PrepareInboundImport(inbound); err != nil {

@@ -24,7 +24,7 @@ on:
       - ".github/workflows/ci.yml"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   go-test:
@@ -37,34 +37,9 @@ jobs:
           cache: true
       - name: Stub internal/web/dist for go:embed
         run: mkdir -p internal/web/dist && touch internal/web/dist/.gitkeep
-      - name: Format Go sources for validation
-        shell: bash
-        run: gofmt -w $(git ls-files '*.go')
-      - name: Commit gofmt fixes on this Arena branch
-        if: github.event_name == 'push' && github.ref == 'refs/heads/arena/01a0bd19-omega'
-        shell: bash
-        run: |
-          if git diff --quiet -- '*.go'; then
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- '*.go'
-          git commit -m 'gofmt Go sources'
-          git push origin HEAD:${GITHUB_REF_NAME}
-      - name: Capture gofmt patch
-        shell: bash
-        run: git diff --binary -- '*.go' > /tmp/gofmt.patch
-      - name: Upload gofmt patch when sources need formatting
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: gofmt-patch
-          path: /tmp/gofmt.patch
-          if-no-files-found: ignore
       - name: Verify Go formatting
         shell: bash
-        run: test ! -s /tmp/gofmt.patch
+        run: test -z "$(gofmt -l $(git ls-files '*.go'))"
       - name: Test
         shell: bash
         run: |
