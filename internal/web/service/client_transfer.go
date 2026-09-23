@@ -25,11 +25,11 @@ const (
 // database primary key is deliberately absent: email is the client identity
 // when an envelope is imported into another panel.
 type ClientTransferEnvelope struct {
-	Format              string                 `json:"format"`
-	Version             int                    `json:"version"`
-	ExportedAt          string                 `json:"exportedAt"`
-	ReplaceAttachments  bool                   `json:"replaceAttachments,omitempty"`
-	Clients             []ClientTransferEntry `json:"clients"`
+	Format             string                `json:"format"`
+	Version            int                   `json:"version"`
+	ExportedAt         string                `json:"exportedAt"`
+	ReplaceAttachments bool                  `json:"replaceAttachments,omitempty"`
+	Clients            []ClientTransferEntry `json:"clients"`
 }
 
 // ClientTransferInboundRef is the portable identity for one client
@@ -38,35 +38,35 @@ type ClientTransferEnvelope struct {
 // panel's primary keys. FlowOverride is a pointer so an explicit empty flow is
 // distinguishable from an omitted override.
 type ClientTransferInboundRef struct {
-	ID              int                         `json:"id,omitempty"`
-	Tag             string                      `json:"tag,omitempty"`
-	Remark          string                      `json:"remark,omitempty"`
-	Protocol        model.Protocol              `json:"protocol,omitempty"`
-	Port            int                         `json:"port,omitempty"`
-	Listen          string                      `json:"listen,omitempty"`
-	OriginNodeGuid  string                      `json:"originNodeGuid,omitempty"`
-	FlowOverride    *string                     `json:"flowOverride,omitempty"`
-	FallbackParent  *ClientTransferFallbackRef  `json:"fallbackParent,omitempty"`
+	ID             int                        `json:"id,omitempty"`
+	Tag            string                     `json:"tag,omitempty"`
+	Remark         string                     `json:"remark,omitempty"`
+	Protocol       model.Protocol             `json:"protocol,omitempty"`
+	Port           int                        `json:"port,omitempty"`
+	Listen         string                     `json:"listen,omitempty"`
+	OriginNodeGuid string                     `json:"originNodeGuid,omitempty"`
+	FlowOverride   *string                    `json:"flowOverride,omitempty"`
+	FallbackParent *ClientTransferFallbackRef `json:"fallbackParent,omitempty"`
 }
 
 type ClientTransferFallbackRef struct {
-	MasterID        int            `json:"masterId,omitempty"`
-	MasterTag       string         `json:"masterTag,omitempty"`
-	MasterRemark    string         `json:"masterRemark,omitempty"`
-	MasterProtocol  model.Protocol `json:"masterProtocol,omitempty"`
-	MasterPort      int            `json:"masterPort,omitempty"`
-	MasterListen    string         `json:"masterListen,omitempty"`
-	Path            string         `json:"path,omitempty"`
+	MasterID       int            `json:"masterId,omitempty"`
+	MasterTag      string         `json:"masterTag,omitempty"`
+	MasterRemark   string         `json:"masterRemark,omitempty"`
+	MasterProtocol model.Protocol `json:"masterProtocol,omitempty"`
+	MasterPort     int            `json:"masterPort,omitempty"`
+	MasterListen   string         `json:"masterListen,omitempty"`
+	Path           string         `json:"path,omitempty"`
 }
 
 type ClientTransferEntry struct {
-	Client               model.Client                  `json:"client"`
+	Client model.Client `json:"client"`
 	// InboundIds remains populated in exports for older panels. New imports
 	// prefer InboundRefs and resolve these IDs against the destination.
-	InboundIds           []int                         `json:"inboundIds"`
-	InboundRefs          []ClientTransferInboundRef    `json:"inboundRefs,omitempty"`
-	FlowOverrides        map[string]string             `json:"flowOverrides,omitempty"`
-	FlowOverridesByRef   map[string]string             `json:"flowOverridesByRef,omitempty"`
+	InboundIds         []int                      `json:"inboundIds"`
+	InboundRefs        []ClientTransferInboundRef `json:"inboundRefs,omitempty"`
+	FlowOverrides      map[string]string          `json:"flowOverrides,omitempty"`
+	FlowOverridesByRef map[string]string          `json:"flowOverridesByRef,omitempty"`
 }
 
 // ClientTransferScope is nil for an administrator. For a reseller, both sets
@@ -89,20 +89,20 @@ type ClientTransferEntryError struct {
 }
 
 type ClientTransferReport struct {
-	Total         int                       `json:"total"`
-	Created       int                       `json:"created"`
-	Updated       int                       `json:"updated"`
-	Skipped       int                       `json:"skipped"`
-	Failed        int                       `json:"failed"`
-	Preflight     bool                      `json:"preflight"`
-	NeedRestart   bool                      `json:"needRestart"`
-	Errors        []ClientTransferEntryError `json:"errors,omitempty"`
+	Total       int                        `json:"total"`
+	Created     int                        `json:"created"`
+	Updated     int                        `json:"updated"`
+	Skipped     int                        `json:"skipped"`
+	Failed      int                        `json:"failed"`
+	Preflight   bool                       `json:"preflight"`
+	NeedRestart bool                       `json:"needRestart"`
+	Errors      []ClientTransferEntryError `json:"errors,omitempty"`
 }
 
 type ClientTransferPreflight struct {
-	NewClients       int                       `json:"newClients"`
-	AdditionalQuota  int64                     `json:"additionalQuota"`
-	Errors           []ClientTransferEntryError `json:"errors,omitempty"`
+	NewClients      int                        `json:"newClients"`
+	AdditionalQuota int64                      `json:"additionalQuota"`
+	Errors          []ClientTransferEntryError `json:"errors,omitempty"`
 }
 
 func transferEmailKey(email string) string {
@@ -345,14 +345,14 @@ func resolveTransferEntry(entry ClientTransferEntry) ([]int, map[string]string, 
 				return nil, nil, err
 			}
 		}
-			if id == 0 && ref.ID > 0 && !transferInboundIdentityProvided(ref) {
-				for _, inbound := range inbounds {
-					if inbound.Id == ref.ID {
-						id = inbound.Id
-						break
-					}
+		if id == 0 && ref.ID > 0 && !transferInboundIdentityProvided(ref) {
+			for _, inbound := range inbounds {
+				if inbound.Id == ref.ID {
+					id = inbound.Id
+					break
 				}
 			}
+		}
 		if id == 0 {
 			return nil, nil, fmt.Errorf("inbound %q was not found on destination", ref.Tag)
 		}
@@ -522,16 +522,16 @@ func (s *ClientService) ValidateClientTransfer(inboundSvc *InboundService, envel
 			}
 		}
 
-			rec, exists := existingByEmail[key]
-			if !exists {
-				preflight.NewClients++
-				preflight.AdditionalQuota += entry.Client.TotalGB
-			} else if scope != nil && scope.Reseller && !scopeAllowsEmail(scope, rec.Email) {
-				// Existing destination data is authoritative and will not be
-				// replaced, so an imported quota difference is intentionally not
-				// charged. The explicit mapping check still applies.
-				preflight.Errors = append(preflight.Errors, newTransferError(index, email, "existing client is outside reseller scope"))
-			}
+		rec, exists := existingByEmail[key]
+		if !exists {
+			preflight.NewClients++
+			preflight.AdditionalQuota += entry.Client.TotalGB
+		} else if scope != nil && scope.Reseller && !scopeAllowsEmail(scope, rec.Email) {
+			// Existing destination data is authoritative and will not be
+			// replaced, so an imported quota difference is intentionally not
+			// charged. The explicit mapping check still applies.
+			preflight.Errors = append(preflight.Errors, newTransferError(index, email, "existing client is outside reseller scope"))
+		}
 		if entry.Client.SubID != "" {
 			if owner, taken := existingBySubID[entry.Client.SubID]; taken && transferEmailKey(owner) != key {
 				preflight.Errors = append(preflight.Errors, newTransferError(index, email, "subId is already used by another client"))

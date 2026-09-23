@@ -68,10 +68,10 @@ func TestGetInboundsForResellerDoesNotInheritInboundClients(t *testing.T) {
 		t.Fatalf("create reseller: %v", err)
 	}
 	inbound := &model.Inbound{
-		UserId: 1,
-		Tag:    "owned-with-shared-clients",
-		Enable: true,
-		Port:   19443,
+		UserId:   1,
+		Tag:      "owned-with-shared-clients",
+		Enable:   true,
+		Port:     19443,
 		Protocol: model.VLESS,
 		Settings: `{"clients":[{"email":"visible@example.com","id":"visible-id","totalGB":10},{"email":"hidden@example.com","id":"hidden-id","totalGB":20}],"decryption":"none","fallbacks":[{"dest":"127.0.0.1:8080"}]}`,
 	}

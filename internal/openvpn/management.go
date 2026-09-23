@@ -45,9 +45,13 @@ func csvFields(line string) ([]string, error) {
 }
 
 // clientListLayoutFromHeader recognises both
-//   CLIENT_LIST,Common Name,...,Bytes Received,Bytes Sent,...
+//
+//	CLIENT_LIST,Common Name,...,Bytes Received,Bytes Sent,...
+//
 // and
-//   HEADER,CLIENT_LIST,Common Name,...,Bytes Received,Bytes Sent,...
+//
+//	HEADER,CLIENT_LIST,Common Name,...,Bytes Received,Bytes Sent,...
+//
 // forms used by OpenVPN status/management replies.
 func clientListLayoutFromHeader(fields []string) (clientListLayout, bool) {
 	base := 0

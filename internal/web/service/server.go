@@ -23,8 +23,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
-	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -93,14 +93,14 @@ type Status struct {
 		ErrorMsg string       `json:"errorMsg"`
 		Version  string       `json:"version"`
 	} `json:"xray"`
-	OpenVPN DaemonStatus `json:"openvpn"`
-	L2TP    DaemonStatus `json:"l2tp"`
-	PanelVersion string    `json:"panelVersion"`
-	PanelGuid    string    `json:"panelGuid"`
-	Uptime       uint64    `json:"uptime"`
-	Loads        []float64 `json:"loads"`
-	TcpCount     int       `json:"tcpCount"`
-	UdpCount     int       `json:"udpCount"`
+	OpenVPN      DaemonStatus `json:"openvpn"`
+	L2TP         DaemonStatus `json:"l2tp"`
+	PanelVersion string       `json:"panelVersion"`
+	PanelGuid    string       `json:"panelGuid"`
+	Uptime       uint64       `json:"uptime"`
+	Loads        []float64    `json:"loads"`
+	TcpCount     int          `json:"tcpCount"`
+	UdpCount     int          `json:"udpCount"`
 	NetIO        struct {
 		Up      uint64 `json:"up"`
 		Down    uint64 `json:"down"`

@@ -67,17 +67,17 @@ func (w *procLogWriter) LastLine() string {
 
 // Process supervises the strongSwan starter and xl2tpd foreground processes.
 type Process struct {
-	id         int
-	configDir  string
-	ipsecCmd   *exec.Cmd
-	xl2tpdCmd  *exec.Cmd
-	ipsecDone  chan struct{}
-	xl2tpdDone chan struct{}
-	ipsecLog   *procLogWriter
-	xl2tpdLog  *procLogWriter
-	exitErr    error
+	id          int
+	configDir   string
+	ipsecCmd    *exec.Cmd
+	xl2tpdCmd   *exec.Cmd
+	ipsecDone   chan struct{}
+	xl2tpdDone  chan struct{}
+	ipsecLog    *procLogWriter
+	xl2tpdLog   *procLogWriter
+	exitErr     error
 	intentional atomic.Bool
-	mu         sync.Mutex
+	mu          sync.Mutex
 }
 
 func newProcess(id int) *Process {
@@ -254,7 +254,7 @@ func (p *Process) Start() error {
 	// that config redirects the legacy stroke secrets loader to the PSK file.
 	ipsecCmd := exec.Command(ipsec, "start", "--nofork", "--conf", ipsecConfigPath(p.id))
 	ipsecCmd.Env = processEnvironment(
-		"STRONGSWAN_CONF="+strongSwanConfigPath(p.id),
+		"STRONGSWAN_CONF=" + strongSwanConfigPath(p.id),
 	)
 	ipsecCmd.Stdout = p.ipsecLog
 	ipsecCmd.Stderr = p.ipsecLog

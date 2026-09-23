@@ -10,12 +10,12 @@ import (
 
 func validInstance() Instance {
 	return Instance{
-		Id:       7,
-		Tag:      "in-1701",
-		Port:     DefaultPort,
-		PSK:      "0123456789abcdef0123456789abcdef",
-		PoolCIDR: DefaultPoolCIDR,
-		LocalIP:  DefaultLocalIP,
+		Id:        7,
+		Tag:       "in-1701",
+		Port:      DefaultPort,
+		PSK:       "0123456789abcdef0123456789abcdef",
+		PoolCIDR:  DefaultPoolCIDR,
+		LocalIP:   DefaultLocalIP,
 		PoolStart: DefaultPoolStart,
 		PoolEnd:   DefaultPoolEnd,
 		DNS1:      DefaultDNS1,

@@ -1147,13 +1147,13 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 
 	for idx := range prep {
 		if failed[idx] {
-				skip(prep[idx].client.Email, reason[idx])
-			} else {
-				result.Created++
-				result.CreatedEmails = append(result.CreatedEmails, prep[idx].client.Email)
-			}
+			skip(prep[idx].client.Email, reason[idx])
+		} else {
+			result.Created++
+			result.CreatedEmails = append(result.CreatedEmails, prep[idx].client.Email)
 		}
-		return result, needRestart, nil
+	}
+	return result, needRestart, nil
 }
 
 func (s *ClientService) DelDepleted(inboundSvc *InboundService) (int, bool, error) {

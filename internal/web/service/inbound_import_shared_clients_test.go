@@ -193,19 +193,19 @@ func TestPrepareInboundImportPreservesExistingCanonicalClient(t *testing.T) {
 	setupConflictDB(t)
 
 	existing := &model.ClientRecord{
-		Email: "shared@example.com",
-		SubID: "destination-sub",
-		UUID: "destination-uuid",
-		Password: "destination-password",
-		Auth: "destination-auth",
-		Flow: "destination-flow",
-		LimitIP: 7,
-		TotalGB: 321,
+		Email:      "shared@example.com",
+		SubID:      "destination-sub",
+		UUID:       "destination-uuid",
+		Password:   "destination-password",
+		Auth:       "destination-auth",
+		Flow:       "destination-flow",
+		LimitIP:    7,
+		TotalGB:    321,
 		ExpiryTime: 123456,
-		Enable: false,
-		Comment: "destination-comment",
-		CreatedAt: 111,
-		UpdatedAt: 222,
+		Enable:     false,
+		Comment:    "destination-comment",
+		CreatedAt:  111,
+		UpdatedAt:  222,
 	}
 	if err := database.GetDB().Create(existing).Error; err != nil {
 		t.Fatalf("seed canonical client: %v", err)

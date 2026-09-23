@@ -42,28 +42,28 @@ func (s *InboundService) PrepareInboundImport(inbound *model.Inbound) error {
 		if imported.Email == "" {
 			continue
 		}
-			existing, err := s.clientService.GetRecordByEmail(nil, imported.Email)
-			if err != nil && (database.IsNotFound(err) || err == gorm.ErrRecordNotFound) {
-				// Email identity is case-insensitive for import matching, while the
-				// canonical spelling remains whatever the destination already stores.
-				candidate := &model.ClientRecord{}
-				lookupErr := database.GetDB().Where("LOWER(email) = LOWER(?)", strings.TrimSpace(imported.Email)).First(candidate).Error
-				if lookupErr == nil {
-					existing = candidate
-					err = nil
-				} else if database.IsNotFound(lookupErr) || lookupErr == gorm.ErrRecordNotFound {
-					continue
-				} else {
-					return lookupErr
-				}
+		existing, err := s.clientService.GetRecordByEmail(nil, imported.Email)
+		if err != nil && (database.IsNotFound(err) || err == gorm.ErrRecordNotFound) {
+			// Email identity is case-insensitive for import matching, while the
+			// canonical spelling remains whatever the destination already stores.
+			candidate := &model.ClientRecord{}
+			lookupErr := database.GetDB().Where("LOWER(email) = LOWER(?)", strings.TrimSpace(imported.Email)).First(candidate).Error
+			if lookupErr == nil {
+				existing = candidate
+				err = nil
+			} else if database.IsNotFound(lookupErr) || lookupErr == gorm.ErrRecordNotFound {
+				continue
+			} else {
+				return lookupErr
 			}
-			if err != nil {
-				return err
-			}
-			// The destination record remains authoritative even when the import
-			// carries a different subId: importing an association must not rotate
-			// a live identity or overwrite its credentials.
-			canonical := existing.ToClient()
+		}
+		if err != nil {
+			return err
+		}
+		// The destination record remains authoritative even when the import
+		// carries a different subId: importing an association must not rotate
+		// a live identity or overwrite its credentials.
+		canonical := existing.ToClient()
 		// The inbound JSON carries the association's flow value. Preserve that
 		// per-inbound override while taking every canonical client field from
 		// the destination record; SyncInboundPreservingExisting will link the

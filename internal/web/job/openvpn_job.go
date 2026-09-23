@@ -106,4 +106,3 @@ func (j *OpenvpnJob) Run() {
 		logger.Warning("openvpn job: add traffic failed:", err)
 	}
 }
-

@@ -340,13 +340,13 @@ func firstNonEmpty(value, fallback string) string {
 }
 
 type InboundOption struct {
-	Id             int    `json:"id" example:"1"`
-	Remark         string `json:"remark" example:"VLESS-443"`
-	Tag            string `json:"tag" example:"in-443-tcp"`
-	Protocol       string `json:"protocol" example:"vless"`
-	Port           int    `json:"port" example:"443"`
-	TlsFlowCapable bool   `json:"tlsFlowCapable" example:"true"`
-	SsMethod       string `json:"ssMethod"`
+	Id             int                `json:"id" example:"1"`
+	Remark         string             `json:"remark" example:"VLESS-443"`
+	Tag            string             `json:"tag" example:"in-443-tcp"`
+	Protocol       string             `json:"protocol" example:"vless"`
+	Port           int                `json:"port" example:"443"`
+	TlsFlowCapable bool               `json:"tlsFlowCapable" example:"true"`
+	SsMethod       string             `json:"ssMethod"`
 	L2TP           *L2TPInboundOption `json:"l2tp,omitempty"`
 	// Hosting node; nil for this panel's own inbounds. Lets the clients
 	// page map a node filter onto inbound IDs (#4997).
@@ -535,14 +535,14 @@ func (s *InboundService) normalizeL2TPSettings(inbound *model.Inbound) error {
 		settings["psk"] = model.GenerateL2TPPSK()
 	}
 	defaults := map[string]any{
-		"poolCIDR":          l2tp.DefaultPoolCIDR,
-		"localIP":           l2tp.DefaultLocalIP,
-		"poolStart":         l2tp.DefaultPoolStart,
-		"poolEnd":           l2tp.DefaultPoolEnd,
-		"dns1":              l2tp.DefaultDNS1,
-		"dns2":              l2tp.DefaultDNS2,
-		"redirectGateway":   true,
-		"clients":           []any{},
+		"poolCIDR":        l2tp.DefaultPoolCIDR,
+		"localIP":         l2tp.DefaultLocalIP,
+		"poolStart":       l2tp.DefaultPoolStart,
+		"poolEnd":         l2tp.DefaultPoolEnd,
+		"dns1":            l2tp.DefaultDNS1,
+		"dns2":            l2tp.DefaultDNS2,
+		"redirectGateway": true,
+		"clients":         []any{},
 	}
 	for key, value := range defaults {
 		if _, exists := settings[key]; !exists {

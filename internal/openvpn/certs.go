@@ -61,12 +61,12 @@ func certTemplate(cn string, isCA bool) (*x509.Certificate, error) {
 		return nil, err
 	}
 	return &x509.Certificate{
-		SerialNumber: serial,
-		Subject:      pkix.Name{CommonName: cn, Organization: []string{"Omega OpenVPN"}},
-		NotBefore:    time.Now().Add(-time.Hour),
-		NotAfter:     time.Now().Add(certValidity),
-		KeyUsage:     x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
-		IsCA:         isCA,
+		SerialNumber:          serial,
+		Subject:               pkix.Name{CommonName: cn, Organization: []string{"Omega OpenVPN"}},
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(certValidity),
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		IsCA:                  isCA,
 		BasicConstraintsValid: true,
 	}, nil
 }

@@ -662,7 +662,7 @@ func TestBuildProfileProvisionsMissingMaterial(t *testing.T) {
 
 func TestSanitizeCertName(t *testing.T) {
 	cases := map[string]string{
-		"plain@example.com": "plain_example.com",
+		"plain@example.com":   "plain_example.com",
 		"first.last+x@ex.com": "first.last+x_ex.com",
 		"ünïcödé@ex.com":      "_n_c_d__ex.com",
 		"":                    "client",

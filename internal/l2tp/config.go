@@ -52,17 +52,19 @@ func strongSwanDirForID(id int) string {
 	return filepath.Join(strongSwanRuntimeRoot, fmt.Sprintf("%d", id))
 }
 
-func ipsecConfigPath(id int) string      { return filepath.Join(dataDirForID(id), "ipsec.conf") }
-func ipsecSecretsPath(id int) string     { return filepath.Join(strongSwanDirForID(id), "ipsec.secrets") }
-func strongSwanConfigPath(id int) string { return filepath.Join(strongSwanDirForID(id), "strongswan.conf") }
-func xl2tpdConfigPath(id int) string     { return filepath.Join(dataDirForID(id), "xl2tpd.conf") }
-func pppOptionsPath(id int) string    { return filepath.Join(dataDirForID(id), "options.xl2tpd") }
-func chapSecretsPath(id int) string   { return filepath.Join(dataDirForID(id), "chap-secrets") }
-func xl2tpdPIDPath(id int) string     { return filepath.Join(dataDirForID(id), "xl2tpd.pid") }
-func sessionDirPath(id int) string    { return filepath.Join(dataDirForID(id), "sessions") }
-func ipUpScriptPath(id int) string    { return filepath.Join(dataDirForID(id), "ip-up") }
-func ipDownScriptPath(id int) string  { return filepath.Join(dataDirForID(id), "ip-down") }
-func strongSwanPIDDir(id int) string  { return dataDirForID(id) }
+func ipsecConfigPath(id int) string  { return filepath.Join(dataDirForID(id), "ipsec.conf") }
+func ipsecSecretsPath(id int) string { return filepath.Join(strongSwanDirForID(id), "ipsec.secrets") }
+func strongSwanConfigPath(id int) string {
+	return filepath.Join(strongSwanDirForID(id), "strongswan.conf")
+}
+func xl2tpdConfigPath(id int) string { return filepath.Join(dataDirForID(id), "xl2tpd.conf") }
+func pppOptionsPath(id int) string   { return filepath.Join(dataDirForID(id), "options.xl2tpd") }
+func chapSecretsPath(id int) string  { return filepath.Join(dataDirForID(id), "chap-secrets") }
+func xl2tpdPIDPath(id int) string    { return filepath.Join(dataDirForID(id), "xl2tpd.pid") }
+func sessionDirPath(id int) string   { return filepath.Join(dataDirForID(id), "sessions") }
+func ipUpScriptPath(id int) string   { return filepath.Join(dataDirForID(id), "ip-up") }
+func ipDownScriptPath(id int) string { return filepath.Join(dataDirForID(id), "ip-down") }
+func strongSwanPIDDir(id int) string { return dataDirForID(id) }
 
 func removeStrongSwanRuntime(id int) {
 	_ = os.RemoveAll(strongSwanDirForID(id))

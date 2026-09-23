@@ -117,13 +117,13 @@ func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *Settin
 			allowed[email] = struct{}{}
 		}
 		scoped := make([]ClientWithAttachments, 0, len(allowed))
-			for _, row := range all {
-				if _, ok := allowed[row.Email]; ok {
-					scoped = append(scoped, row)
-				}
+		for _, row := range all {
+			if _, ok := allowed[row.Email]; ok {
+				scoped = append(scoped, row)
 			}
-			all = scoped
 		}
+		all = scoped
+	}
 	if params.ScopeInboundIDs != nil {
 		for i := range all {
 			ids := all[i].InboundIds[:0]
