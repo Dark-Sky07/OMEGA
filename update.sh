@@ -67,25 +67,25 @@ arch() {
 
 echo "Arch: $(arch)"
 
-# Resolve and stage the newest stable Xray-core before stopping the panel.
+# Resolve and stage the pinned, tested Xray-core before stopping the panel.
 # This keeps failures observable and prevents a broken download from replacing
-# the currently installed core with a guessed or hard-coded version.
+# the currently installed core.
 xray_update_archive=""
 xray_update_version=""
-resolve_latest_xray_version() {
-    local payload tag
-    payload=$(${curl_bin} -fsSL --retry 3 --connect-timeout 10 \
-        "https://api.github.com/repos/XTLS/Xray-core/releases/latest" 2> /dev/null) || return 1
-    tag=$(printf '%s' "$payload" | grep -m1 '"tag_name"' | sed -E 's/.*"tag_name"[[:space:]]*:[[:space:]]*"(v[0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
+resolve_pinned_xray_version() {
+    # Keep the installer on the exact core validated for this OMEGA release.
+    # This must not follow /latest: a future core can change config semantics
+    # and an older bundled binary must never be silently retained.
+    local tag="v26.9.9"
     if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
         return 1
     fi
     printf '%s\n' "$tag"
 }
 
-stage_latest_xray() {
+stage_pinned_xray() {
     local xray_arch archive_url
-    xray_update_version=$(resolve_latest_xray_version) || _fail "ERROR: Failed to resolve the latest stable Xray-core release."
+    xray_update_version=$(resolve_pinned_xray_version) || _fail "ERROR: Failed to resolve pinned Xray-core v26.9.9."
     case "$(arch)" in
         amd64) xray_arch="64" ;;
         386) xray_arch="32" ;;
@@ -108,7 +108,7 @@ stage_latest_xray() {
         xray_update_archive=""
         _fail "ERROR: Downloaded Xray-core archive is invalid; panel update aborted safely."
     fi
-    echo -e "${green}Staged stable Xray-core ${xray_update_version}${plain}"
+    echo -e "${green}Staged pinned Xray-core ${xray_update_version}${plain}"
 }
 
 install_staged_xray() {
@@ -948,8 +948,8 @@ update_x-ui() {
 
     # Resolve and stage the core before stopping/removing the current panel.
     # The extracted release is only used as the panel bundle; this staged
-    # archive is the authoritative newest stable core for this update.
-    stage_latest_xray
+    # archive is the authoritative pinned core for this update.
+    stage_pinned_xray
 
     if [[ -e ${xui_folder}/ ]]; then
         echo -e "${green}Stopping x-ui...${plain}"
@@ -988,7 +988,7 @@ update_x-ui() {
         rm ${xui_folder}/x-ui.service.rhel -f > /dev/null 2>&1
         rm ${xui_folder}/x-ui -f > /dev/null 2>&1
         rm ${xui_folder}/x-ui.sh -f > /dev/null 2>&1
-        echo -e "${green}The newest stable Xray-core will be installed after extracting the panel bundle.${plain}"
+        echo -e "${green}Pinned Xray-core v26.9.9 will be installed after extracting the panel bundle.${plain}"
         echo -e "${green}Removing old README and LICENSE file...${plain}"
         rm ${xui_folder}/bin/README.md -f > /dev/null 2>&1
         rm ${xui_folder}/bin/LICENSE -f > /dev/null 2>&1
@@ -1001,8 +1001,8 @@ update_x-ui() {
     tar zxvf x-ui-linux-$(arch).tar.gz > /dev/null 2>&1
     rm x-ui-linux-$(arch).tar.gz -f > /dev/null 2>&1
     cd x-ui > /dev/null 2>&1
-    # Replace any stale Xray bundled in the panel archive with the release
-    # resolved and validated before the old installation was stopped.
+    # Replace any stale Xray bundled in the panel archive with the pinned
+    # release resolved and validated before the old installation was stopped.
     install_staged_xray
     chmod +x x-ui > /dev/null 2>&1
 

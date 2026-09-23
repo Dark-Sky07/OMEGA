@@ -2,9 +2,8 @@ package model
 
 // Reseller is a panel sub-account (نمایندگی / نماینده) that manages a subset of
 // the panel's inbounds and clients. A reseller signs in on the same panel with
-// its own username/password, only ever sees the inbounds and clients that were
-// assigned to it (directly or by inbound ownership), and is bounded by two
-// quotas: clients and total traffic. Inbounds are assigned by the admin and
+// its own username/password, only ever sees assigned inbounds and explicitly
+// mapped clients, and is bounded by two quotas: clients and total traffic. Inbounds are assigned by the admin and
 // read-only for the reseller (an inbound_limit column lingering in upgraded
 // databases is ignored).
 //
@@ -36,9 +35,9 @@ type Reseller struct {
 
 func (Reseller) TableName() string { return "resellers" }
 
-// ResellerInbound links an inbound to the reseller that owns it. Every client
-// living on a reseller-owned inbound belongs to that reseller unless the client
-// is explicitly assigned to a different reseller through ResellerClient.
+// ResellerInbound links an inbound to the reseller that owns it. This mapping
+// grants access to the inbound only; it never grants access to clients living
+// on it. Client visibility is represented separately by ResellerClient.
 type ResellerInbound struct {
 	ResellerId int   `json:"resellerId" gorm:"primaryKey;column:reseller_id;index"`
 	InboundId  int   `json:"inboundId" gorm:"primaryKey;column:inbound_id;index"`

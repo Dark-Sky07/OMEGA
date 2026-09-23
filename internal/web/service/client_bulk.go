@@ -947,8 +947,9 @@ func (s *ClientService) bulkDelInboundClients(
 
 // BulkCreateResult mirrors BulkAdjustResult for the create flow.
 type BulkCreateResult struct {
-	Created int                `json:"created"`
-	Skipped []BulkCreateReport `json:"skipped,omitempty"`
+	Created       int                `json:"created"`
+	CreatedEmails []string           `json:"createdEmails,omitempty"`
+	Skipped       []BulkCreateReport `json:"skipped,omitempty"`
 }
 
 type BulkCreateReport struct {
@@ -1146,12 +1147,13 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 
 	for idx := range prep {
 		if failed[idx] {
-			skip(prep[idx].client.Email, reason[idx])
-		} else {
-			result.Created++
+				skip(prep[idx].client.Email, reason[idx])
+			} else {
+				result.Created++
+				result.CreatedEmails = append(result.CreatedEmails, prep[idx].client.Email)
+			}
 		}
-	}
-	return result, needRestart, nil
+		return result, needRestart, nil
 }
 
 func (s *ClientService) DelDepleted(inboundSvc *InboundService) (int, bool, error) {

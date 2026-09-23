@@ -31,16 +31,35 @@ func (s *ClientService) GetRecordByEmail(tx *gorm.DB, email string) (*model.Clie
 // inbound stored a real flow. The per-inbound flow_override is always correct,
 // so derive the display flow from it (order-independent). See issue #4792.
 func (s *ClientService) EffectiveFlow(tx *gorm.DB, recordId int) (string, error) {
+	return s.effectiveFlow(tx, recordId, nil)
+}
+
+// EffectiveFlowForInbounds limits the derived flow to associations visible to
+// the caller. Reseller client records are explicit, but a client can also be
+// attached to an admin-owned inbound whose flow must not influence a scoped
+// response.
+func (s *ClientService) EffectiveFlowForInbounds(tx *gorm.DB, recordId int, allowedInboundIDs map[int]struct{}) (string, error) {
+	return s.effectiveFlow(tx, recordId, allowedInboundIDs)
+}
+
+func (s *ClientService) effectiveFlow(tx *gorm.DB, recordId int, allowedInboundIDs map[int]struct{}) (string, error) {
 	if tx == nil {
 		tx = database.GetDB()
 	}
+	query := tx.Model(&model.ClientInbound{}).
+		Where("client_id = ? AND flow_override <> ?", recordId, "")
+	if allowedInboundIDs != nil {
+		ids := make([]int, 0, len(allowedInboundIDs))
+		for id := range allowedInboundIDs {
+			ids = append(ids, id)
+		}
+		if len(ids) == 0 {
+			return "", nil
+		}
+		query = query.Where("inbound_id IN ?", ids)
+	}
 	var flows []string
-	err := tx.Model(&model.ClientInbound{}).
-		Where("client_id = ? AND flow_override <> ?", recordId, "").
-		Order("inbound_id ASC").
-		Limit(1).
-		Pluck("flow_override", &flows).Error
-	if err != nil {
+	if err := query.Order("inbound_id ASC").Limit(1).Pluck("flow_override", &flows).Error; err != nil {
 		return "", err
 	}
 	if len(flows) == 0 {

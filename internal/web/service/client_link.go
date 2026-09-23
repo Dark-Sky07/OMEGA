@@ -10,6 +10,17 @@ import (
 )
 
 func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.Client) error {
+	return s.syncInbound(tx, inboundId, clients, false)
+}
+
+// SyncInboundPreservingExisting rebuilds only the association rows for an
+// imported inbound. Existing ClientRecord rows remain authoritative; clients
+// absent from the canonical table are created from the imported payload.
+func (s *ClientService) SyncInboundPreservingExisting(tx *gorm.DB, inboundId int, clients []model.Client) error {
+	return s.syncInbound(tx, inboundId, clients, true)
+}
+
+func (s *ClientService) syncInbound(tx *gorm.DB, inboundId int, clients []model.Client, preserveExisting bool) error {
 	if tx == nil {
 		tx = database.GetDB()
 	}
@@ -65,6 +76,11 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 			continue
 		}
 
+		idByEmail[email] = row.Id
+		if preserveExisting {
+			continue
+		}
+
 		before := *row
 		if incoming.UUID != "" {
 			row.UUID = incoming.UUID
@@ -98,8 +114,6 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 		}
 		preservedUpdatedAt := max(incoming.UpdatedAt, row.UpdatedAt)
 		row.UpdatedAt = preservedUpdatedAt
-
-		idByEmail[email] = row.Id
 
 		if *row == before {
 			continue

@@ -60,6 +60,10 @@ type ClientPageParams struct {
 	// client emails. It is set by the reseller-scoped controller path and is
 	// deliberately not bindable from the query string.
 	ScopeEmails *[]string `form:"-"`
+	// ScopeInboundIDs redacts association IDs that are outside the reseller's
+	// inbound scope. Client visibility and inbound visibility are separate, but
+	// a reseller must not receive unrelated attachment metadata either.
+	ScopeInboundIDs *map[int]struct{} `form:"-"`
 }
 
 // ClientPageResponse is the shape returned by ListPaged. `Total` is the
@@ -113,12 +117,23 @@ func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *Settin
 			allowed[email] = struct{}{}
 		}
 		scoped := make([]ClientWithAttachments, 0, len(allowed))
-		for _, row := range all {
-			if _, ok := allowed[row.Email]; ok {
-				scoped = append(scoped, row)
+			for _, row := range all {
+				if _, ok := allowed[row.Email]; ok {
+					scoped = append(scoped, row)
+				}
 			}
+			all = scoped
 		}
-		all = scoped
+	if params.ScopeInboundIDs != nil {
+		for i := range all {
+			ids := all[i].InboundIds[:0]
+			for _, id := range all[i].InboundIds {
+				if _, ok := (*params.ScopeInboundIDs)[id]; ok {
+					ids = append(ids, id)
+				}
+			}
+			all[i].InboundIds = ids
+		}
 	}
 	total := len(all)
 

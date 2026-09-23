@@ -44,6 +44,17 @@ func openvpnProfileHost(inbound *model.Inbound, fallbackHost string) string {
 // GetOpenvpnProfile renders the .ovpn profile for a client's openvpn inbound.
 // It returns the profile text plus the inbound it was generated from.
 func (s *InboundService) GetOpenvpnProfile(fallbackHost, email string) (string, *model.Inbound, error) {
+	return s.getOpenvpnProfile(fallbackHost, email, nil)
+}
+
+// GetOpenvpnProfileForInbounds restricts profile selection to the supplied
+// inbound allow-list, which prevents a reseller from downloading a profile
+// belonging to an admin-owned inbound shared with the same client.
+func (s *InboundService) GetOpenvpnProfileForInbounds(fallbackHost, email string, allowedInboundIDs map[int]struct{}) (string, *model.Inbound, error) {
+	return s.getOpenvpnProfile(fallbackHost, email, allowedInboundIDs)
+}
+
+func (s *InboundService) getOpenvpnProfile(fallbackHost, email string, allowedInboundIDs map[int]struct{}) (string, *model.Inbound, error) {
 	if email == "" {
 		return "", nil, common.NewError("openvpn: client email is required")
 	}
@@ -57,6 +68,11 @@ func (s *InboundService) GetOpenvpnProfile(fallbackHost, email string) (string, 
 	}
 	var chosen *model.Inbound
 	for _, id := range inboundIds {
+		if allowedInboundIDs != nil {
+			if _, allowed := allowedInboundIDs[id]; !allowed {
+				continue
+			}
+		}
 		inbound, getErr := s.GetInbound(id)
 		if getErr != nil {
 			continue
@@ -91,6 +107,14 @@ func (s *InboundService) GetOpenvpnProfile(fallbackHost, email string) (string, 
 // attached to a client — used by the panel UI to decide whether to offer a
 // config download for a client.
 func (s *InboundService) GetOpenvpnInboundTagsForClient(email string) []string {
+	return s.getOpenvpnInboundTagsForClient(email, nil)
+}
+
+func (s *InboundService) GetOpenvpnInboundTagsForClientForInbounds(email string, allowedInboundIDs map[int]struct{}) []string {
+	return s.getOpenvpnInboundTagsForClient(email, allowedInboundIDs)
+}
+
+func (s *InboundService) getOpenvpnInboundTagsForClient(email string, allowedInboundIDs map[int]struct{}) []string {
 	rec, err := s.clientService.GetRecordByEmail(nil, email)
 	if err != nil {
 		return nil
@@ -101,6 +125,11 @@ func (s *InboundService) GetOpenvpnInboundTagsForClient(email string) []string {
 	}
 	tags := make([]string, 0, len(inboundIds))
 	for _, id := range inboundIds {
+		if allowedInboundIDs != nil {
+			if _, allowed := allowedInboundIDs[id]; !allowed {
+				continue
+			}
+		}
 		inbound, getErr := s.GetInbound(id)
 		if getErr != nil || inbound.Protocol != model.OpenVPN || !inbound.Enable || inbound.NodeID != nil {
 			continue

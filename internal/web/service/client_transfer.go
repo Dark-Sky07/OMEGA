@@ -25,16 +25,48 @@ const (
 // database primary key is deliberately absent: email is the client identity
 // when an envelope is imported into another panel.
 type ClientTransferEnvelope struct {
-	Format     string                 `json:"format"`
-	Version    int                    `json:"version"`
-	ExportedAt string                 `json:"exportedAt"`
-	Clients    []ClientTransferEntry `json:"clients"`
+	Format              string                 `json:"format"`
+	Version             int                    `json:"version"`
+	ExportedAt          string                 `json:"exportedAt"`
+	ReplaceAttachments  bool                   `json:"replaceAttachments,omitempty"`
+	Clients             []ClientTransferEntry `json:"clients"`
+}
+
+// ClientTransferInboundRef is the portable identity for one client
+// attachment. IDs are retained for same-panel/backward compatibility, while
+// tag/protocol/remark/node identity allow imports to resolve a different
+// panel's primary keys. FlowOverride is a pointer so an explicit empty flow is
+// distinguishable from an omitted override.
+type ClientTransferInboundRef struct {
+	ID              int                         `json:"id,omitempty"`
+	Tag             string                      `json:"tag,omitempty"`
+	Remark          string                      `json:"remark,omitempty"`
+	Protocol        model.Protocol              `json:"protocol,omitempty"`
+	Port            int                         `json:"port,omitempty"`
+	Listen          string                      `json:"listen,omitempty"`
+	OriginNodeGuid  string                      `json:"originNodeGuid,omitempty"`
+	FlowOverride    *string                     `json:"flowOverride,omitempty"`
+	FallbackParent  *ClientTransferFallbackRef  `json:"fallbackParent,omitempty"`
+}
+
+type ClientTransferFallbackRef struct {
+	MasterID        int            `json:"masterId,omitempty"`
+	MasterTag       string         `json:"masterTag,omitempty"`
+	MasterRemark    string         `json:"masterRemark,omitempty"`
+	MasterProtocol  model.Protocol `json:"masterProtocol,omitempty"`
+	MasterPort      int            `json:"masterPort,omitempty"`
+	MasterListen    string         `json:"masterListen,omitempty"`
+	Path            string         `json:"path,omitempty"`
 }
 
 type ClientTransferEntry struct {
-	Client        model.Client       `json:"client"`
-	InboundIds    []int              `json:"inboundIds"`
-	FlowOverrides map[string]string  `json:"flowOverrides,omitempty"`
+	Client               model.Client                  `json:"client"`
+	// InboundIds remains populated in exports for older panels. New imports
+	// prefer InboundRefs and resolve these IDs against the destination.
+	InboundIds           []int                         `json:"inboundIds"`
+	InboundRefs          []ClientTransferInboundRef    `json:"inboundRefs,omitempty"`
+	FlowOverrides        map[string]string             `json:"flowOverrides,omitempty"`
+	FlowOverridesByRef   map[string]string             `json:"flowOverridesByRef,omitempty"`
 }
 
 // ClientTransferScope is nil for an administrator. For a reseller, both sets
@@ -44,6 +76,10 @@ type ClientTransferScope struct {
 	InboundIDs map[int]struct{}
 	Emails     map[string]struct{}
 	Reseller   bool
+	// ResellerID is set for HTTP imports performed by a reseller. It lets the
+	// successful create path persist the explicit ResellerClient mapping before
+	// the new client can disappear from the next scoped read.
+	ResellerID int
 }
 
 type ClientTransferEntryError struct {
@@ -91,9 +127,55 @@ func newTransferError(index int, email, message string) ClientTransferEntryError
 	return ClientTransferEntryError{Index: index, Email: strings.TrimSpace(email), Error: message}
 }
 
+func transferInboundRefKey(ref ClientTransferInboundRef) string {
+	if strings.TrimSpace(ref.Tag) != "" {
+		return "tag:" + strings.TrimSpace(ref.Tag)
+	}
+	return fmt.Sprintf("%s|%s|%d|%s|%s",
+		ref.Protocol, strings.TrimSpace(ref.Remark), ref.Port,
+		strings.TrimSpace(ref.Listen), strings.TrimSpace(ref.OriginNodeGuid))
+}
+
+func buildTransferInboundRef(db *gorm.DB, inboundID int, flowOverride string) (ClientTransferInboundRef, error) {
+	var inbound model.Inbound
+	if err := db.Model(model.Inbound{}).First(&inbound, inboundID).Error; err != nil {
+		return ClientTransferInboundRef{}, err
+	}
+	ref := ClientTransferInboundRef{
+		ID:             inbound.Id,
+		Tag:            inbound.Tag,
+		Remark:         inbound.Remark,
+		Protocol:       inbound.Protocol,
+		Port:           inbound.Port,
+		Listen:         inbound.Listen,
+		OriginNodeGuid: inbound.OriginNodeGuid,
+	}
+	ref.FlowOverride = &flowOverride
+
+	var fallback model.InboundFallback
+	if err := db.Where("child_id = ?", inbound.Id).
+		Order("sort_order ASC, id ASC").First(&fallback).Error; err == nil {
+		var master model.Inbound
+		if masterErr := db.Model(model.Inbound{}).First(&master, fallback.MasterId).Error; masterErr == nil {
+			ref.FallbackParent = &ClientTransferFallbackRef{
+				MasterID:       master.Id,
+				MasterTag:      master.Tag,
+				MasterRemark:   master.Remark,
+				MasterProtocol: master.Protocol,
+				MasterPort:     master.Port,
+				MasterListen:   master.Listen,
+				Path:           fallback.Path,
+			}
+		}
+	}
+	return ref, nil
+}
+
 // ExportClients returns only configuration and attachment metadata. Current
 // traffic counters, IP history, and database IDs are intentionally excluded:
 // importing a backup must not overwrite usage accumulated on the destination.
+// Each attachment also carries a portable inbound identity and fallback-parent
+// hint so imports do not silently attach to an unrelated destination ID.
 func (s *ClientService) ExportClients(scope *ClientTransferScope) (*ClientTransferEnvelope, error) {
 	db := database.GetDB()
 	var rows []model.ClientRecord
@@ -116,9 +198,11 @@ func (s *ClientService) ExportClients(scope *ClientTransferScope) (*ClientTransf
 			return nil, err
 		}
 		entry := ClientTransferEntry{
-			Client:        *row.ToClient(),
-			InboundIds:    make([]int, 0, len(links)),
-			FlowOverrides: make(map[string]string, len(links)),
+			Client:             *row.ToClient(),
+			InboundIds:         make([]int, 0, len(links)),
+			InboundRefs:        make([]ClientTransferInboundRef, 0, len(links)),
+			FlowOverrides:      make(map[string]string, len(links)),
+			FlowOverridesByRef: make(map[string]string, len(links)),
 		}
 		for _, link := range links {
 			// Resellers may export a client they explicitly own, but never leak
@@ -126,15 +210,184 @@ func (s *ClientService) ExportClients(scope *ClientTransferScope) (*ClientTransf
 			if !scopeAllowsInbound(scope, link.InboundId) {
 				continue
 			}
+			ref, refErr := buildTransferInboundRef(db, link.InboundId, link.FlowOverride)
+			if refErr != nil {
+				return nil, refErr
+			}
 			entry.InboundIds = append(entry.InboundIds, link.InboundId)
+			entry.InboundRefs = append(entry.InboundRefs, ref)
 			entry.FlowOverrides[strconv.Itoa(link.InboundId)] = link.FlowOverride
+			entry.FlowOverridesByRef[transferInboundRefKey(ref)] = link.FlowOverride
 		}
 		if len(entry.FlowOverrides) == 0 {
 			entry.FlowOverrides = nil
 		}
+		if len(entry.FlowOverridesByRef) == 0 {
+			entry.FlowOverridesByRef = nil
+		}
 		out.Clients = append(out.Clients, entry)
 	}
 	return out, nil
+}
+
+func transferInboundIdentityProvided(ref ClientTransferInboundRef) bool {
+	return ref.Tag != "" || ref.Remark != "" || ref.Protocol != "" || ref.Port > 0 || ref.Listen != "" || ref.OriginNodeGuid != ""
+}
+
+func transferInboundIdentityMatches(ref ClientTransferInboundRef, inbound model.Inbound) bool {
+	if ref.Tag != "" && inbound.Tag != ref.Tag {
+		return false
+	}
+	if ref.Remark != "" && inbound.Remark != ref.Remark {
+		return false
+	}
+	if ref.Protocol != "" && inbound.Protocol != ref.Protocol {
+		return false
+	}
+	if ref.Port > 0 && inbound.Port != ref.Port {
+		return false
+	}
+	if ref.Listen != "" && inbound.Listen != ref.Listen {
+		return false
+	}
+	if ref.OriginNodeGuid != "" && inbound.OriginNodeGuid != ref.OriginNodeGuid {
+		return false
+	}
+	return transferInboundIdentityProvided(ref)
+}
+
+func resolveTransferIdentity(ref ClientTransferInboundRef, inbounds []model.Inbound) (int, error) {
+	matches := make([]int, 0, 2)
+	for _, inbound := range inbounds {
+		if transferInboundIdentityMatches(ref, inbound) {
+			matches = append(matches, inbound.Id)
+		}
+	}
+	if len(matches) == 1 {
+		return matches[0], nil
+	}
+	if len(matches) > 1 {
+		return 0, fmt.Errorf("inbound identity is ambiguous (%d matches)", len(matches))
+	}
+	return 0, nil
+}
+
+func resolveTransferFallbackParent(ref ClientTransferInboundRef, inbounds []model.Inbound, fallbacks []model.InboundFallback) (int, error) {
+	if ref.FallbackParent == nil {
+		return 0, nil
+	}
+	parent := ref.FallbackParent
+	masterRef := ClientTransferInboundRef{
+		ID:       parent.MasterID,
+		Tag:      parent.MasterTag,
+		Remark:   parent.MasterRemark,
+		Protocol: parent.MasterProtocol,
+		Port:     parent.MasterPort,
+		Listen:   parent.MasterListen,
+	}
+	masterID, err := resolveTransferIdentity(masterRef, inbounds)
+	if err != nil {
+		return 0, err
+	}
+	if masterID == 0 && parent.MasterID > 0 && !transferInboundIdentityProvided(masterRef) {
+		for _, inbound := range inbounds {
+			if inbound.Id == parent.MasterID {
+				masterID = inbound.Id
+				break
+			}
+		}
+	}
+	if masterID == 0 {
+		return 0, fmt.Errorf("fallback master %q was not found", parent.MasterTag)
+	}
+	matches := make([]int, 0, 2)
+	for _, fallback := range fallbacks {
+		if fallback.MasterId == masterID && fallback.Path == parent.Path {
+			matches = append(matches, fallback.ChildId)
+		}
+	}
+	if len(matches) == 1 {
+		return matches[0], nil
+	}
+	if len(matches) > 1 {
+		return 0, fmt.Errorf("fallback path %q is ambiguous", parent.Path)
+	}
+	return 0, fmt.Errorf("fallback path %q was not found on destination master", parent.Path)
+}
+
+// resolveTransferEntry maps source-panel attachment identities to destination
+// inbound IDs and rewrites flow-override keys at the same time. Legacy files
+// without InboundRefs retain their original ID behavior.
+func resolveTransferEntry(entry ClientTransferEntry) ([]int, map[string]string, error) {
+	db := database.GetDB()
+	if len(entry.InboundRefs) == 0 {
+		return transferUniqueInts(entry.InboundIds), cloneTransferFlowOverrides(entry.FlowOverrides), nil
+	}
+	var inbounds []model.Inbound
+	if err := db.Model(model.Inbound{}).Find(&inbounds).Error; err != nil {
+		return nil, nil, err
+	}
+	var fallbacks []model.InboundFallback
+	if err := db.Model(model.InboundFallback{}).Find(&fallbacks).Error; err != nil {
+		return nil, nil, err
+	}
+	ids := make([]int, 0, len(entry.InboundRefs))
+	flows := make(map[string]string, len(entry.InboundRefs))
+	seen := make(map[int]struct{}, len(entry.InboundRefs))
+	for _, ref := range entry.InboundRefs {
+		id, err := resolveTransferIdentity(ref, inbounds)
+		if err != nil {
+			return nil, nil, err
+		}
+		if id == 0 {
+			id, err = resolveTransferFallbackParent(ref, inbounds, fallbacks)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+			if id == 0 && ref.ID > 0 && !transferInboundIdentityProvided(ref) {
+				for _, inbound := range inbounds {
+					if inbound.Id == ref.ID {
+						id = inbound.Id
+						break
+					}
+				}
+			}
+		if id == 0 {
+			return nil, nil, fmt.Errorf("inbound %q was not found on destination", ref.Tag)
+		}
+		if _, duplicate := seen[id]; duplicate {
+			return nil, nil, fmt.Errorf("duplicate destination inbound %d", id)
+		}
+		seen[id] = struct{}{}
+		ids = append(ids, id)
+
+		flow, hasFlow := "", false
+		if ref.FlowOverride != nil {
+			flow, hasFlow = *ref.FlowOverride, true
+		} else if value, ok := entry.FlowOverridesByRef[transferInboundRefKey(ref)]; ok {
+			flow, hasFlow = value, true
+		} else if value, ok := entry.FlowOverrides[strconv.Itoa(ref.ID)]; ok {
+			flow, hasFlow = value, true
+		} else if value, ok := entry.FlowOverrides[strconv.Itoa(id)]; ok {
+			flow, hasFlow = value, true
+		}
+		if hasFlow {
+			flows[strconv.Itoa(id)] = flow
+		}
+	}
+	return ids, flows, nil
+}
+
+func cloneTransferFlowOverrides(values map[string]string) map[string]string {
+	if len(values) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(values))
+	for key, value := range values {
+		out[key] = value
+	}
+	return out
 }
 
 // ValidateClientTransfer performs every deterministic check before any DB or
@@ -202,12 +455,23 @@ func (s *ClientService) ValidateClientTransfer(inboundSvc *InboundService, envel
 		if entry.Client.TotalGB < 0 || entry.Client.LimitIP < 0 || entry.Client.Reset < 0 {
 			preflight.Errors = append(preflight.Errors, newTransferError(index, email, "client quota, IP limit, and reset fields cannot be negative"))
 		}
-		if !scopeAllowsEmail(scope, email) {
+		// A reseller may import a genuinely new client, provided every target
+		// inbound is in its scope. Existing clients still require an explicit
+		// ResellerClient mapping; this is what makes reseller-originated imports
+		// possible without reopening implicit inbound ownership.
+		_, existingEmail := existingByEmail[key]
+		if !scopeAllowsEmail(scope, email) && existingEmail {
 			preflight.Errors = append(preflight.Errors, newTransferError(index, email, "client is outside reseller scope"))
 		}
 
-		desired := make(map[int]struct{}, len(entry.InboundIds))
-		for _, inboundID := range entry.InboundIds {
+		resolvedIDs, resolvedFlows, resolveErr := resolveTransferEntry(entry)
+		if resolveErr != nil {
+			preflight.Errors = append(preflight.Errors, newTransferError(index, email, resolveErr.Error()))
+			resolvedIDs = nil
+			resolvedFlows = nil
+		}
+		desired := make(map[int]struct{}, len(resolvedIDs))
+		for _, inboundID := range resolvedIDs {
 			if inboundID <= 0 {
 				preflight.Errors = append(preflight.Errors, newTransferError(index, email, "inbound id must be positive"))
 				continue
@@ -227,39 +491,47 @@ func (s *ClientService) ValidateClientTransfer(inboundSvc *InboundService, envel
 					fmt.Sprintf("inbound %d does not exist", inboundID)))
 			}
 		}
-		if len(entry.InboundIds) == 0 {
+		if len(resolvedIDs) == 0 {
 			preflight.Errors = append(preflight.Errors, newTransferError(index, email, "at least one inbound is required"))
 		}
-		for rawID := range entry.FlowOverrides {
-			inboundID, err := strconv.Atoi(strings.TrimSpace(rawID))
-			if err != nil || inboundID <= 0 {
-				preflight.Errors = append(preflight.Errors, newTransferError(index, email, "flow override contains an invalid inbound id"))
-				continue
+		if len(entry.InboundRefs) == 0 {
+			for rawID, flow := range entry.FlowOverrides {
+				inboundID, err := strconv.Atoi(strings.TrimSpace(rawID))
+				if err != nil || inboundID <= 0 {
+					preflight.Errors = append(preflight.Errors, newTransferError(index, email, "flow override contains an invalid inbound id"))
+					continue
+				}
+				if _, ok := desired[inboundID]; !ok {
+					preflight.Errors = append(preflight.Errors, newTransferError(index, email,
+						fmt.Sprintf("flow override %d is not one of the attached inbounds", inboundID)))
+				}
+				if len(flow) > 512 {
+					preflight.Errors = append(preflight.Errors, newTransferError(index, email, "flow override is too long"))
+				}
 			}
-			if _, ok := desired[inboundID]; !ok {
-				preflight.Errors = append(preflight.Errors, newTransferError(index, email,
-					fmt.Sprintf("flow override %d is not one of the attached inbounds", inboundID)))
-			}
-			if len(entry.FlowOverrides[rawID]) > 512 {
-				preflight.Errors = append(preflight.Errors, newTransferError(index, email, "flow override is too long"))
+		} else {
+			for rawID, flow := range resolvedFlows {
+				inboundID, _ := strconv.Atoi(rawID)
+				if _, ok := desired[inboundID]; !ok {
+					preflight.Errors = append(preflight.Errors, newTransferError(index, email,
+						fmt.Sprintf("flow override %d is not one of the attached inbounds", inboundID)))
+				}
+				if len(flow) > 512 {
+					preflight.Errors = append(preflight.Errors, newTransferError(index, email, "flow override is too long"))
+				}
 			}
 		}
 
-		rec, exists := existingByEmail[key]
-		if !exists {
-			preflight.NewClients++
-			preflight.AdditionalQuota += entry.Client.TotalGB
-		} else {
-			if rec.Email != email {
-				preflight.Errors = append(preflight.Errors, newTransferError(index, email, "email differs only by case from an existing client"))
-			}
-			if scope != nil && scope.Reseller && !scopeAllowsEmail(scope, rec.Email) {
+			rec, exists := existingByEmail[key]
+			if !exists {
+				preflight.NewClients++
+				preflight.AdditionalQuota += entry.Client.TotalGB
+			} else if scope != nil && scope.Reseller && !scopeAllowsEmail(scope, rec.Email) {
+				// Existing destination data is authoritative and will not be
+				// replaced, so an imported quota difference is intentionally not
+				// charged. The explicit mapping check still applies.
 				preflight.Errors = append(preflight.Errors, newTransferError(index, email, "existing client is outside reseller scope"))
 			}
-			if entry.Client.TotalGB > rec.TotalGB {
-				preflight.AdditionalQuota += entry.Client.TotalGB - rec.TotalGB
-			}
-		}
 		if entry.Client.SubID != "" {
 			if owner, taken := existingBySubID[entry.Client.SubID]; taken && transferEmailKey(owner) != key {
 				preflight.Errors = append(preflight.Errors, newTransferError(index, email, "subId is already used by another client"))
@@ -280,9 +552,19 @@ func (s *ClientService) ValidateClientTransfer(inboundSvc *InboundService, envel
 	return preflight, nil
 }
 
-// ImportClients applies a validated envelope as an email-keyed upsert. Existing
-// reseller-owned attachments outside the file's owned target set are retained;
-// administrator imports reconcile attachments exactly.
+func ensureTransferResellerClient(scope *ClientTransferScope, email string) error {
+	if scope == nil || !scope.Reseller || scope.ResellerID <= 0 {
+		return nil
+	}
+	return (&ResellerService{}).AssignClient(scope.ResellerID, email)
+}
+
+// ImportClients applies a validated envelope by email. New clients receive
+// the exported configuration; existing destination client records remain
+// authoritative while missing attachments are added by default. An explicit
+// replaceAttachments flag is required before any destination attachment is
+// detached. Successful new reseller imports also receive an explicit
+// ResellerClient mapping.
 func (s *ClientService) ImportClients(inboundSvc *InboundService, envelope ClientTransferEnvelope, scope *ClientTransferScope) (*ClientTransferReport, error) {
 	preflight, err := s.ValidateClientTransfer(inboundSvc, envelope, scope)
 	if err != nil {
@@ -297,8 +579,28 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, envelope Clien
 
 	for index, entry := range envelope.Clients {
 		email := strings.TrimSpace(entry.Client.Email)
+		resolvedIDs, resolvedFlows, resolveErr := resolveTransferEntry(entry)
+		if resolveErr != nil {
+			report.Failed++
+			report.Errors = append(report.Errors, newTransferError(index, email, resolveErr.Error()))
+			continue
+		}
+		entry.InboundIds = resolvedIDs
+		entry.FlowOverrides = resolvedFlows
 		rec, findErr := s.GetRecordByEmail(nil, email)
-		if errors.Is(findErr, gorm.ErrRecordNotFound) {
+		if database.IsNotFound(findErr) || errors.Is(findErr, gorm.ErrRecordNotFound) {
+			candidate := &model.ClientRecord{}
+			lookupErr := database.GetDB().Where("LOWER(email) = LOWER(?)", email).First(candidate).Error
+			if lookupErr == nil {
+				rec = candidate
+				findErr = nil
+			} else if !database.IsNotFound(lookupErr) && !errors.Is(lookupErr, gorm.ErrRecordNotFound) {
+				report.Failed++
+				report.Errors = append(report.Errors, newTransferError(index, email, lookupErr.Error()))
+				continue
+			}
+		}
+		if database.IsNotFound(findErr) || errors.Is(findErr, gorm.ErrRecordNotFound) {
 			nr, createErr := s.Create(inboundSvc, &ClientCreatePayload{
 				Client:     entry.Client,
 				InboundIds: transferUniqueInts(entry.InboundIds),
@@ -333,6 +635,11 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, envelope Clien
 				report.Errors = append(report.Errors, newTransferError(index, email, flowErr.Error()))
 				continue
 			}
+			if mappingErr := ensureTransferResellerClient(scope, email); mappingErr != nil {
+				report.Failed++
+				report.Errors = append(report.Errors, newTransferError(index, email, mappingErr.Error()))
+				continue
+			}
 			report.Created++
 			continue
 		}
@@ -341,6 +648,9 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, envelope Clien
 			report.Errors = append(report.Errors, newTransferError(index, email, findErr.Error()))
 			continue
 		}
+		// Use the destination's canonical spelling for all subsequent service
+		// calls, including flow-setting and reseller mapping.
+		email = rec.Email
 
 		currentIDs, idsErr := s.GetInboundIdsForRecord(rec.Id)
 		if idsErr != nil {
@@ -353,9 +663,14 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, envelope Clien
 		desiredSet := transferIntSet(desired)
 		toAttach := transferDifferenceInts(desired, currentIDs)
 		toDetach := make([]int, 0)
-		for _, id := range ownedCurrent {
-			if _, keep := desiredSet[id]; !keep {
-				toDetach = append(toDetach, id)
+		// Imports are additive by default. Detaching an existing attachment is
+		// only allowed when the caller explicitly sets replaceAttachments, and
+		// reseller imports can still affect only their owned inbound subset.
+		if envelope.ReplaceAttachments {
+			for _, id := range ownedCurrent {
+				if _, keep := desiredSet[id]; !keep {
+					toDetach = append(toDetach, id)
+				}
 			}
 		}
 
@@ -368,19 +683,10 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, envelope Clien
 				report.NeedRestart = true
 			}
 		}
-		updateIDs := desired
-		if scope != nil && scope.Reseller {
-			updateIDs = filterTransferInboundIDs(desired, scope)
-		}
-		if len(updateIDs) > 0 {
-			if nr, updateErr := s.Update(inboundSvc, rec.Id, entry.Client, updateIDs...); updateErr != nil {
-				report.Failed++
-				report.Errors = append(report.Errors, newTransferError(index, email, updateErr.Error()))
-				continue
-			} else if nr {
-				report.NeedRestart = true
-			}
-		}
+		// Existing destination client records are authoritative. Attach uses
+		// the canonical credentials/limits already stored on the destination;
+		// an import must not silently rotate them or overwrite quota, enable,
+		// protocol fields, traffic-related timestamps, or comments.
 		if len(toDetach) > 0 {
 			if nr, detachErr := s.Detach(inboundSvc, rec.Id, toDetach); detachErr != nil {
 				report.Failed++
@@ -393,6 +699,11 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, envelope Clien
 		if flowErr := s.applyTransferFlowOverrides(inboundSvc, email, entry, scope); flowErr != nil {
 			report.Failed++
 			report.Errors = append(report.Errors, newTransferError(index, email, flowErr.Error()))
+			continue
+		}
+		if mappingErr := ensureTransferResellerClient(scope, email); mappingErr != nil {
+			report.Failed++
+			report.Errors = append(report.Errors, newTransferError(index, email, mappingErr.Error()))
 			continue
 		}
 		report.Updated++
@@ -458,14 +769,18 @@ func (s *ClientService) applyTransferFlowOverrides(inboundSvc *InboundService, e
 	}
 	db := database.GetDB()
 	for _, inboundID := range transferUniqueInts(entry.InboundIds) {
-		if !scopeAllowsInbound(scope, inboundID) {
-			continue
-		}
-		flow := entry.Client.Flow
-		if override, ok := entry.FlowOverrides[strconv.Itoa(inboundID)]; ok {
-			flow = override
-		}
-		if err := db.Model(&model.ClientInbound{}).
+			if !scopeAllowsInbound(scope, inboundID) {
+				continue
+			}
+			// Only an explicit per-inbound value may change an existing
+			// destination association. The client-level Flow field is a
+			// legacy/default value and is already handled when creating a new
+			// client; applying it here would overwrite destination data.
+			flow, ok := entry.FlowOverrides[strconv.Itoa(inboundID)]
+			if !ok {
+				continue
+			}
+			if err := db.Model(&model.ClientInbound{}).
 			Where("client_id = ? AND inbound_id = ?", rec.Id, inboundID).
 			Update("flow_override", flow).Error; err != nil {
 			return err
@@ -504,5 +819,5 @@ func (s *ClientService) applyTransferFlowOverrides(inboundSvc *InboundService, e
 			}
 		}
 	}
-	return db.Model(&model.ClientRecord{}).Where("id = ?", rec.Id).Update("flow", entry.Client.Flow).Error
+	return nil
 }

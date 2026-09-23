@@ -424,9 +424,9 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/server/installXray/:version',
-        summary: 'Download and install the specified Xray version. Pass "latest" for the newest release.',
+        summary: 'Download and install the pinned Xray-core release v26.9.9.',
         params: [
-          { name: 'version', in: 'path', type: 'string', desc: 'Xray tag (e.g. v25.10.31) or "latest".' },
+          { name: 'version', in: 'path', type: 'string', desc: 'Pinned Xray tag: v26.9.9.' },
         ],
       },
       {

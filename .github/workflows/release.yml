@@ -111,11 +111,10 @@ jobs:
           mkdir x-ui/bin
           cd x-ui/bin
 
-          # Download dependencies. Resolve the newest stable Xray release at
-          # build time so a panel release can never silently reset to an old
-          # pinned core version.
+          # Download dependencies using the repository's pinned, tested Xray
+          # release so a panel bundle is identical across architectures.
           XRAY_VERSION="$(../../scripts/resolve-xray-version.sh)"
-          echo "Using stable Xray-core ${XRAY_VERSION}"
+          echo "Using pinned Xray-core ${XRAY_VERSION}"
           Xray_URL="https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/"
           if [ "${{ matrix.platform }}" == "amd64" ]; then
             wget -q ${Xray_URL}Xray-linux-64.zip
@@ -259,15 +258,14 @@ jobs:
           mkdir x-ui\bin
           cd x-ui\bin
 
-          # Download the newest stable Xray for Windows. The latest endpoint
-          # excludes drafts/prereleases; reject malformed responses instead of
-          # constructing a surprising download URL.
-          $xrayRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/XTLS/Xray-core/releases/latest"
-          if ($xrayRelease.draft -or $xrayRelease.prerelease -or $xrayRelease.tag_name -notmatch '^v\d+\.\d+\.\d+$') {
-            throw "Xray-core latest release is missing or is not a stable semver tag"
+          # Keep Windows bundles on the same tested core as every Linux and
+          # Docker path. Do not silently resolve a newer /latest binary.
+          $xrayVersion = "v26.9.9"
+          if ($xrayVersion -notmatch '^v\d+\.\d+\.\d+$') {
+            throw "Pinned Xray-core version is invalid"
           }
-          $Xray_URL = "https://github.com/XTLS/Xray-core/releases/download/$($xrayRelease.tag_name)/"
-          Write-Host "Using stable Xray-core $($xrayRelease.tag_name)"
+          $Xray_URL = "https://github.com/XTLS/Xray-core/releases/download/$xrayVersion/"
+          Write-Host "Using pinned Xray-core $xrayVersion"
           Invoke-WebRequest -Uri "${Xray_URL}Xray-windows-64.zip" -OutFile "Xray-windows-64.zip"
           Expand-Archive -Path "Xray-windows-64.zip" -DestinationPath .
           Remove-Item "Xray-windows-64.zip"

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
@@ -94,11 +95,18 @@ func (a *ClientController) list(c *gin.Context) {
 			jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 			return
 		}
+		ownedInbounds, err := newResellerService().OwnedInboundIdSet(reseller.Id)
+		if err != nil {
+			jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+			return
+		}
 		filtered := make([]service.ClientWithAttachments, 0, len(rows))
 		for _, row := range rows {
-			if _, ok := owned[row.Email]; ok {
-				filtered = append(filtered, row)
+			if _, ok := owned[strings.ToLower(strings.TrimSpace(row.Email))]; !ok {
+				continue
 			}
+			row.InboundIds = filterInboundIDs(row.InboundIds, ownedInbounds)
+			filtered = append(filtered, row)
 		}
 		jsonObj(c, filtered, nil)
 		return
@@ -118,7 +126,13 @@ func (a *ClientController) listPaged(c *gin.Context) {
 			jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 			return
 		}
+		ownedInbounds, err := newResellerService().OwnedInboundIdSet(reseller.Id)
+		if err != nil {
+			jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+			return
+		}
 		params.ScopeEmails = scope
+		params.ScopeInboundIDs = &ownedInbounds
 	}
 	resp, err := a.clientService.ListPaged(&a.inboundService, &a.settingService, params)
 	if err != nil {
@@ -152,6 +166,7 @@ func (a *ClientController) clientTransferScope(c *gin.Context) (*service.ClientT
 		InboundIDs: inbounds,
 		Emails:     normalizedEmails,
 		Reseller:   true,
+		ResellerID: reseller.Id,
 	}, reseller, nil
 }
 
@@ -224,7 +239,22 @@ func (a *ClientController) get(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "get"), err)
 		return
 	}
-	flow, err := a.clientService.EffectiveFlow(nil, rec.Id)
+	var scopedInbounds map[int]struct{}
+	if reseller := resellerSession(c); reseller != nil {
+		ownedInbounds, ownedErr := newResellerService().OwnedInboundIdSet(reseller.Id)
+		if ownedErr != nil {
+			jsonMsg(c, I18nWeb(c, "get"), ownedErr)
+			return
+		}
+		scopedInbounds = ownedInbounds
+		inboundIds = filterInboundIDs(inboundIds, ownedInbounds)
+	}
+	var flow string
+	if scopedInbounds != nil {
+		flow, err = a.clientService.EffectiveFlowForInbounds(nil, rec.Id, scopedInbounds)
+	} else {
+		flow, err = a.clientService.EffectiveFlow(nil, rec.Id)
+	}
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "get"), err)
 		return
@@ -256,6 +286,14 @@ func (a *ClientController) create(c *gin.Context) {
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
+	}
+	if reseller := resellerSession(c); reseller != nil {
+		// Reseller-created clients must remain visible under explicit-only
+		// ownership, even when the target inbound is also reseller-owned.
+		if err := a.resellerService.AssignClient(reseller.Id, payload.Client.Email); err != nil {
+			jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+			return
+		}
 	}
 	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundClientAddSuccess"), pendingNodeObj(a.inboundService.AnyNodePending(payload.InboundIds)), nil)
 	if needRestart {
@@ -518,6 +556,14 @@ func (a *ClientController) bulkCreate(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
+	if reseller := resellerSession(c); reseller != nil {
+		for _, email := range result.CreatedEmails {
+			if err := a.resellerService.AssignClient(reseller.Id, email); err != nil {
+				jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+				return
+			}
+		}
+	}
 	jsonObj(c, result, nil)
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
@@ -727,7 +773,7 @@ func (a *ClientController) lastOnline(c *gin.Context) {
 		}
 		scoped := make(map[string]int64, len(data))
 		for email, ts := range data {
-			if _, ok := owned[email]; ok {
+			if _, ok := owned[strings.ToLower(strings.TrimSpace(email))]; ok {
 				scoped[email] = ts
 			}
 		}
@@ -759,6 +805,18 @@ func (a *ClientController) getSubLinks(c *gin.Context) {
 		if err != nil || email == "" || !ensureClientOwned(c, reseller, email) {
 			return
 		}
+		ownedInbounds, ownedErr := a.resellerService.OwnedInboundIdSet(reseller.Id)
+		if ownedErr != nil {
+			jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), ownedErr)
+			return
+		}
+		links, linkErr := a.inboundService.GetAllClientLinksForInbounds(resolveHost(c), email, ownedInbounds)
+		if linkErr != nil {
+			jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), linkErr)
+			return
+		}
+		jsonObj(c, links, nil)
+		return
 	}
 	links, err := a.inboundService.GetSubLinks(resolveHost(c), subId)
 	if err != nil {
@@ -774,6 +832,18 @@ func (a *ClientController) getClientLinks(c *gin.Context) {
 		if !ensureClientOwned(c, reseller, email) {
 			return
 		}
+		ownedInbounds, err := a.resellerService.OwnedInboundIdSet(reseller.Id)
+		if err != nil {
+			jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+			return
+		}
+		links, err := a.inboundService.GetAllClientLinksForInbounds(resolveHost(c), email, ownedInbounds)
+		if err != nil {
+			jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+			return
+		}
+		jsonObj(c, links, nil)
+		return
 	}
 	links, err := a.inboundService.GetAllClientLinks(resolveHost(c), email)
 	if err != nil {
@@ -793,7 +863,19 @@ func (a *ClientController) getOpenvpnProfile(c *gin.Context) {
 			return
 		}
 	}
-	profile, inbound, err := a.inboundService.GetOpenvpnProfile(resolveHost(c), email)
+	var profile string
+	var inbound *model.Inbound
+	var err error
+	if reseller := resellerSession(c); reseller != nil {
+		ownedInbounds, ownedErr := a.resellerService.OwnedInboundIdSet(reseller.Id)
+		if ownedErr != nil {
+			jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), ownedErr)
+			return
+		}
+		profile, inbound, err = a.inboundService.GetOpenvpnProfileForInbounds(resolveHost(c), email, ownedInbounds)
+	} else {
+		profile, inbound, err = a.inboundService.GetOpenvpnProfile(resolveHost(c), email)
+	}
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
@@ -859,6 +941,19 @@ func (a *ClientController) scopeResellerClientWrite(reseller *model.Reseller, pa
 	}
 	var addBytes int64
 	for _, payload := range payloads {
+		if email := strings.TrimSpace(payload.Client.Email); email != "" {
+			if _, err := a.clientService.GetRecordByEmail(nil, email); err == nil {
+				owned, ownerErr := a.resellerService.OwnsClient(reseller.Id, email)
+				if ownerErr != nil {
+					return ownerErr
+				}
+				if !owned {
+					return errors.New("client not found")
+				}
+			} else if !database.IsNotFound(err) {
+				return err
+			}
+		}
 		for _, inboundId := range payload.InboundIds {
 			owned, err := a.resellerService.OwnsInbound(reseller.Id, inboundId)
 			if err != nil {
@@ -898,7 +993,7 @@ func (a *ClientController) delDepletedForReseller(reseller *model.Reseller) (int
 	}
 	depleted := make([]string, 0)
 	for _, row := range rows {
-		if _, ok := owned[row.Email]; !ok {
+		if _, ok := owned[strings.ToLower(strings.TrimSpace(row.Email))]; !ok {
 			continue
 		}
 		if row.TotalGB <= 0 || row.Traffic == nil {

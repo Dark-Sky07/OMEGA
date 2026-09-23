@@ -15,7 +15,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -161,9 +160,14 @@ type cachedXrayVersions struct {
 	fetchedAt time.Time
 }
 
-// xrayVersionsCacheTTL bounds how often /getXrayVersion hits GitHub. The list
-// is purely informational (rendered in the "switch Xray version" picker) so a
-// quarter-hour staleness window is fine and saves the API budget.
+// PinnedXrayVersion is the only Xray-core release accepted by runtime/UI
+// installation paths and by release artifacts. Keeping the value in the
+// service makes the API and the frontend picker agree with Docker/installers.
+const PinnedXrayVersion = "v26.9.9"
+
+// xrayVersionsCacheTTL is retained for the API shape and future metadata, but
+// the version list itself is local and deterministic; it never follows a
+// moving GitHub /latest endpoint.
 const xrayVersionsCacheTTL = 15 * time.Minute
 
 // allowedHistoryBuckets is the bucket-second whitelist for time-series
@@ -739,67 +743,9 @@ const (
 )
 
 func (s *ServerService) GetXrayVersions() ([]string, error) {
-	const (
-		XrayURL    = "https://api.github.com/repos/XTLS/Xray-core/releases"
-		bufferSize = 8192
-	)
-
-	resp, err := s.settingService.NewProxiedHTTPClient(10 * time.Second).Get(XrayURL)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	// Check HTTP status code - GitHub API returns object instead of array on error
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		var errorResponse struct {
-			Message string `json:"message"`
-		}
-		if json.Unmarshal(bodyBytes, &errorResponse) == nil && errorResponse.Message != "" {
-			return nil, fmt.Errorf("GitHub API error: %s", errorResponse.Message)
-		}
-		return nil, fmt.Errorf("GitHub API returned status %d: %s", resp.StatusCode, resp.Status)
-	}
-
-	buffer := bytes.NewBuffer(make([]byte, bufferSize))
-	buffer.Reset()
-	if _, err := buffer.ReadFrom(resp.Body); err != nil {
-		return nil, err
-	}
-
-	var releases []Release
-	if err := json.Unmarshal(buffer.Bytes(), &releases); err != nil {
-		return nil, err
-	}
-
-	var versions []string
-	for _, release := range releases {
-		if release.Draft || release.Prerelease {
-			continue
-		}
-		tagVersion := strings.TrimPrefix(release.TagName, "v")
-		tagParts := strings.Split(tagVersion, ".")
-		if len(tagParts) != 3 {
-			continue
-		}
-
-		if _, err := strconv.Atoi(tagParts[0]); err != nil {
-			continue
-		}
-		if _, err := strconv.Atoi(tagParts[1]); err != nil {
-			continue
-		}
-		if _, err := strconv.Atoi(tagParts[2]); err != nil {
-			continue
-		}
-
-		// GitHub returns releases newest-first. Do not impose a minimum
-		// Xray version here: stable 26.3.x (and future major lines) are valid
-		// releases and must remain selectable when the API is current.
-		versions = append(versions, release.TagName)
-	}
-	return versions, nil
+	// Do not query a moving release list here. The panel can only install the
+	// exact core version shipped and tested by this repository.
+	return []string{PinnedXrayVersion}, nil
 }
 
 func (s *ServerService) StopXrayService() error {
@@ -889,21 +835,13 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 }
 
 func (s *ServerService) UpdateXray(version string) error {
-	versions, err := s.GetXrayVersions()
-	if err != nil {
-		return err
-	}
-	if !slices.Contains(versions, version) {
-		return fmt.Errorf("xray version %q is not in the fetched release list", version)
+	if version != PinnedXrayVersion {
+		return fmt.Errorf("xray version %q is not the pinned release %s", version, PinnedXrayVersion)
 	}
 
-	// 1. Stop xray before doing anything
-	if err := s.StopXrayService(); err != nil {
-		logger.Warning("failed to stop xray before update:", err)
-	}
-
-	// 2. Download the zip
-	zipFileName, err := s.downloadXRay(version)
+	// Download and validate the archive before stopping the active process, so
+	// a network/API failure never disconnects users or leaves Xray stopped.
+	zipFileName, err := s.downloadXRay(PinnedXrayVersion)
 	if err != nil {
 		return err
 	}
@@ -922,6 +860,26 @@ func (s *ServerService) UpdateXray(version string) error {
 	reader, err := zip.NewReader(zipFile, stat.Size())
 	if err != nil {
 		return err
+	}
+	requiredZipName := "xray"
+	if runtime.GOOS == "windows" {
+		requiredZipName = "xray.exe"
+	}
+	var coreEntry *zip.File
+	for _, entry := range reader.File {
+		if entry.Name == requiredZipName {
+			coreEntry = entry
+			break
+		}
+	}
+	if coreEntry == nil {
+		return fmt.Errorf("xray archive does not contain %q", requiredZipName)
+	}
+	if coreEntry.UncompressedSize64 > maxXrayBinaryBytes {
+		return fmt.Errorf("xray binary exceeds %d bytes", maxXrayBinaryBytes)
+	}
+	if err := s.StopXrayService(); err != nil {
+		return fmt.Errorf("stop xray before pinned update: %w", err)
 	}
 
 	// 3. Helper to extract files

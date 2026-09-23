@@ -351,9 +351,9 @@ func (s *ResellerService) OwnedInboundIdSet(resellerId int) (map[int]struct{}, e
 	return set, nil
 }
 
-// OwnedEmailSet returns every client email that belongs to a reseller. A client
-// belongs to a reseller when it is explicitly assigned to it, or when it is
-// attached to an inbound that the reseller owns.
+// OwnedEmailSet returns only the client emails explicitly mapped to a
+// reseller. Owning an inbound grants access to that inbound's configuration,
+// but never implicitly grants access to every client attached to it.
 func (s *ResellerService) OwnedEmailSet(resellerId int) (map[string]struct{}, error) {
 	emails, err := s.OwnedEmails(resellerId)
 	if err != nil {
@@ -361,27 +361,27 @@ func (s *ResellerService) OwnedEmailSet(resellerId int) (map[string]struct{}, er
 	}
 	set := make(map[string]struct{}, len(emails))
 	for _, email := range emails {
-		set[email] = struct{}{}
+		key := strings.ToLower(strings.TrimSpace(email))
+		if key != "" {
+			set[key] = struct{}{}
+		}
 	}
 	return set, nil
 }
 
-// OwnedEmails lists the client emails owned by a reseller (see OwnedEmailSet).
+// OwnedEmails lists only the client emails explicitly mapped to a reseller.
+// Keep this query independent from reseller_inbounds: inbound ownership is a
+// separate capability and must not become a transitive client grant.
 func (s *ResellerService) OwnedEmails(resellerId int) ([]string, error) {
 	db := database.GetDB()
 	var emails []string
-	err := db.Raw(`
-		SELECT email FROM reseller_clients WHERE reseller_id = ?
-		UNION
-		SELECT c.email FROM clients c
-		JOIN client_inbounds ci ON ci.client_id = c.id
-		JOIN reseller_inbounds ri ON ri.inbound_id = ci.inbound_id
-		WHERE ri.reseller_id = ?
-	`, resellerId, resellerId).Scan(&emails).Error
+	err := db.Model(model.ResellerClient{}).
+		Where("reseller_id = ?", resellerId).
+		Order("email ASC").
+		Pluck("email", &emails).Error
 	if err != nil {
 		return nil, err
 	}
-	sort.Strings(emails)
 	return emails, nil
 }
 
@@ -400,9 +400,10 @@ func (s *ResellerService) OwnsInbound(resellerId, inboundId int) (bool, error) {
 	return count > 0, nil
 }
 
-// OwnsClient reports whether the client (by email) belongs to the reseller.
+// OwnsClient reports whether the client (by email) has an explicit mapping
+// to the reseller. Inbound ownership is deliberately not considered here.
 func (s *ResellerService) OwnsClient(resellerId int, email string) (bool, error) {
-	email = strings.TrimSpace(email)
+	email = strings.ToLower(strings.TrimSpace(email))
 	if resellerId <= 0 || email == "" {
 		return false, nil
 	}
@@ -475,7 +476,9 @@ func (s *ResellerService) ExplicitAssignedEmails(resellerId int) ([]string, erro
 	return emails, nil
 }
 
-// AssignClient assigns a single client to a reseller.
+// AssignClient assigns a single client to a reseller. The canonical email from
+// clients is stored in the mapping so casing cannot create a mapping that the
+// explicit-only readers fail to find.
 func (s *ResellerService) AssignClient(resellerId int, email string) error {
 	if _, err := s.Get(resellerId); err != nil {
 		return errors.New("reseller not found")
@@ -485,15 +488,19 @@ func (s *ResellerService) AssignClient(resellerId int, email string) error {
 		return errors.New("email can not be empty")
 	}
 	db := database.GetDB()
-	var count int64
-	if err := db.Model(model.ClientRecord{}).Where("email = ?", email).Count(&count).Error; err != nil {
+	var client model.ClientRecord
+	if err := db.Model(model.ClientRecord{}).Where("email = ?", email).First(&client).Error; err != nil {
+		if database.IsNotFound(err) {
+			return errors.New("client not found")
+		}
 		return err
 	}
-	if count == 0 {
-		return errors.New("client not found")
+	row := &model.ResellerClient{
+		ResellerId: resellerId,
+		Email:      client.Email,
+		CreatedAt:  time.Now().UnixMilli(),
 	}
-	row := &model.ResellerClient{ResellerId: resellerId, Email: email, CreatedAt: time.Now().UnixMilli()}
-	return db.Where("reseller_id = ? AND email = ?", resellerId, email).FirstOrCreate(row).Error
+	return db.Where("reseller_id = ? AND email = ?", resellerId, client.Email).FirstOrCreate(row).Error
 }
 
 // UnassignClient detaches an explicitly assigned client from a reseller.
@@ -583,10 +590,10 @@ func (s *ResellerService) Stat(reseller *model.Reseller) (*ResellerStat, error) 
 	online := s.inboundService.GetOnlineClients()
 	onlineSet := make(map[string]struct{}, len(online))
 	for _, email := range online {
-		onlineSet[email] = struct{}{}
+		onlineSet[strings.ToLower(strings.TrimSpace(email))] = struct{}{}
 	}
 	for _, email := range emails {
-		if _, ok := onlineSet[email]; ok {
+		if _, ok := onlineSet[strings.ToLower(strings.TrimSpace(email))]; ok {
 			stat.OnlineCount++
 		}
 	}
@@ -616,6 +623,10 @@ func (s *ResellerService) Report(resellerId int) (*ResellerReport, error) {
 		return nil, err
 	}
 	emails, err := s.OwnedEmails(resellerId)
+	if err != nil {
+		return nil, err
+	}
+	ownedInboundIDs, err := s.OwnedInboundIdSet(resellerId)
 	if err != nil {
 		return nil, err
 	}
@@ -653,6 +664,9 @@ func (s *ResellerService) Report(resellerId int) (*ResellerReport, error) {
 			rows = append(rows, part...)
 		}
 		for _, r := range rows {
+			if _, allowed := ownedInboundIDs[r.InboundId]; !allowed {
+				continue
+			}
 			inboundIdsByEmail[r.Email] = append(inboundIdsByEmail[r.Email], r.InboundId)
 		}
 	}

@@ -723,6 +723,20 @@ func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSet
 // then saves the inbound to the database and optionally adds it to the running Xray instance.
 // Returns the created inbound, whether Xray needs restart, and any error.
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
+	return s.addInbound(inbound, false)
+}
+
+// AddInboundPreservingExistingClients imports an inbound without allowing its
+// embedded client payload to overwrite canonical destination client records.
+// New clients are still created and all imported associations are preserved.
+func (s *InboundService) AddInboundPreservingExistingClients(inbound *model.Inbound) (*model.Inbound, bool, error) {
+	if err := s.PrepareInboundImport(inbound); err != nil {
+		return inbound, false, err
+	}
+	return s.addInbound(inbound, true)
+}
+
+func (s *InboundService) addInbound(inbound *model.Inbound, preserveExistingClients bool) (*model.Inbound, bool, error) {
 	if inbound != nil && inbound.Protocol == model.L2TP {
 		l2tpInboundMu.Lock()
 		defer l2tpInboundMu.Unlock()
@@ -771,16 +785,20 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			return inbound, false, err
 		}
 	}
-	existEmail, err := s.clientService.checkEmailsExistForClients(s, clients, nil)
-	if err != nil {
-		return inbound, false, err
-	}
-	if existEmail != "" {
-		return inbound, false, common.NewError("Duplicate email:", existEmail)
+	if !preserveExistingClients {
+		existEmail, err := s.clientService.checkEmailsExistForClients(s, clients, nil)
+		if err != nil {
+			return inbound, false, err
+		}
+		if existEmail != "" {
+			return inbound, false, common.NewError("Duplicate email:", existEmail)
+		}
 	}
 
-	// Ensure created_at and updated_at on clients in settings
-	if len(clients) > 0 {
+	// Ensure created_at and updated_at on clients in settings. Import-preserving
+	// flows keep the canonical destination timestamps in the payload; updating
+	// them here would make a harmless association import look like a client edit.
+	if !preserveExistingClients && len(clients) > 0 {
 		var settings map[string]any
 		if err2 := json.Unmarshal([]byte(inbound.Settings), &settings); err2 == nil && settings != nil {
 			now := time.Now().Unix() * 1000
@@ -880,7 +898,12 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		}
 	}
 
-	if err = s.clientService.SyncInbound(tx, inbound.Id, clients); err != nil {
+	if preserveExistingClients {
+		err = s.clientService.SyncInboundPreservingExisting(tx, inbound.Id, clients)
+	} else {
+		err = s.clientService.SyncInbound(tx, inbound.Id, clients)
+	}
+	if err != nil {
 		return inbound, false, err
 	}
 
