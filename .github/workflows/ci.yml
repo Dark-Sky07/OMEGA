@@ -11,6 +11,7 @@ on:
       - "go.sum"
       - "frontend/**"
       - ".nvmrc"
+      - ".github/workflows/ci.yml"
   push:
     branches:
       - "**"
@@ -20,6 +21,7 @@ on:
       - "go.sum"
       - "frontend/**"
       - ".nvmrc"
+      - ".github/workflows/ci.yml"
 
 permissions:
   contents: read
