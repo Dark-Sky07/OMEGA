@@ -730,6 +730,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 // embedded client payload to overwrite canonical destination client records.
 // New clients are still created and all imported associations are preserved.
 func (s *InboundService) AddInboundPreservingExistingClients(inbound *model.Inbound) (*model.Inbound, bool, error) {
+	if inbound == nil {
+		return nil, false, common.NewError("inbound is required")
+	}
 	if err := s.PrepareInboundImport(inbound); err != nil {
 		return inbound, false, err
 	}

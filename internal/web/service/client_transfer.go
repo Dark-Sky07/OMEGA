@@ -579,6 +579,11 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, envelope Clien
 
 	for index, entry := range envelope.Clients {
 		email := strings.TrimSpace(entry.Client.Email)
+		// Keep the canonical identity consistent across Create, mapping, and
+		// subsequent case-insensitive lookups. Otherwise an export containing
+		// incidental surrounding whitespace could create a record that the
+		// reseller mapping step cannot find.
+		entry.Client.Email = email
 		resolvedIDs, resolvedFlows, resolveErr := resolveTransferEntry(entry)
 		if resolveErr != nil {
 			report.Failed++
@@ -630,10 +635,12 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, envelope Clien
 					report.NeedRestart = true
 				}
 			}
-			if flowErr := s.applyTransferFlowOverrides(inboundSvc, email, entry, scope); flowErr != nil {
+			if flowChanged, flowErr := s.applyTransferFlowOverrides(inboundSvc, email, entry, scope); flowErr != nil {
 				report.Failed++
 				report.Errors = append(report.Errors, newTransferError(index, email, flowErr.Error()))
 				continue
+			} else if flowChanged {
+				report.NeedRestart = true
 			}
 			if mappingErr := ensureTransferResellerClient(scope, email); mappingErr != nil {
 				report.Failed++
@@ -696,10 +703,12 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, envelope Clien
 				report.NeedRestart = true
 			}
 		}
-		if flowErr := s.applyTransferFlowOverrides(inboundSvc, email, entry, scope); flowErr != nil {
+		if flowChanged, flowErr := s.applyTransferFlowOverrides(inboundSvc, email, entry, scope); flowErr != nil {
 			report.Failed++
 			report.Errors = append(report.Errors, newTransferError(index, email, flowErr.Error()))
 			continue
+		} else if flowChanged {
+			report.NeedRestart = true
 		}
 		if mappingErr := ensureTransferResellerClient(scope, email); mappingErr != nil {
 			report.Failed++
@@ -762,62 +771,75 @@ func filterTransferInboundIDs(ids []int, scope *ClientTransferScope) []int {
 // applyTransferFlowOverrides updates both the persisted per-inbound override
 // and the protocol settings consumed by Xray. It never logs the client's
 // credentials; only the selected flow string is written to storage.
-func (s *ClientService) applyTransferFlowOverrides(inboundSvc *InboundService, email string, entry ClientTransferEntry, scope *ClientTransferScope) error {
+func (s *ClientService) applyTransferFlowOverrides(inboundSvc *InboundService, email string, entry ClientTransferEntry, scope *ClientTransferScope) (bool, error) {
 	rec, err := s.GetRecordByEmail(nil, email)
 	if err != nil {
-		return err
+		return false, err
 	}
 	db := database.GetDB()
+	changedAny := false
 	for _, inboundID := range transferUniqueInts(entry.InboundIds) {
-			if !scopeAllowsInbound(scope, inboundID) {
-				continue
-			}
-			// Only an explicit per-inbound value may change an existing
-			// destination association. The client-level Flow field is a
-			// legacy/default value and is already handled when creating a new
-			// client; applying it here would overwrite destination data.
-			flow, ok := entry.FlowOverrides[strconv.Itoa(inboundID)]
-			if !ok {
-				continue
-			}
-			if err := db.Model(&model.ClientInbound{}).
-			Where("client_id = ? AND inbound_id = ?", rec.Id, inboundID).
-			Update("flow_override", flow).Error; err != nil {
-			return err
+		if !scopeAllowsInbound(scope, inboundID) {
+			continue
 		}
-		inbound, err := inboundSvc.GetInbound(inboundID)
-		if err != nil {
-			return err
-		}
-		var settings map[string]any
-		if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
-			return err
-		}
-		clients, ok := settings["clients"].([]any)
+		// Only an explicit per-inbound value may change an existing
+		// destination association. The client-level Flow field is a
+		// legacy/default value and is already handled when creating a new
+		// client; applying it here would overwrite destination data.
+		flow, ok := entry.FlowOverrides[strconv.Itoa(inboundID)]
 		if !ok {
 			continue
 		}
-		changed := false
-		for _, raw := range clients {
-			client, ok := raw.(map[string]any)
-			if !ok {
-				continue
-			}
-			candidate, _ := client["email"].(string)
-			if transferEmailKey(candidate) == transferEmailKey(email) {
-				client["flow"] = flow
-				changed = true
+
+		var link model.ClientInbound
+		if err := db.Where("client_id = ? AND inbound_id = ?", rec.Id, inboundID).First(&link).Error; err != nil {
+			return changedAny, err
+		}
+		inboundChanged := link.FlowOverride != flow
+		if inboundChanged {
+			if err := db.Model(&model.ClientInbound{}).
+				Where("client_id = ? AND inbound_id = ?", rec.Id, inboundID).
+				Update("flow_override", flow).Error; err != nil {
+				return changedAny, err
 			}
 		}
-		if changed {
+
+		inbound, err := inboundSvc.GetInbound(inboundID)
+		if err != nil {
+			return changedAny, err
+		}
+		var settings map[string]any
+		if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+			return changedAny, err
+		}
+		clients, ok := settings["clients"].([]any)
+		settingsChanged := false
+		if ok {
+			for _, raw := range clients {
+				client, ok := raw.(map[string]any)
+				if !ok {
+					continue
+				}
+				candidate, _ := client["email"].(string)
+				if transferEmailKey(candidate) == transferEmailKey(email) {
+					current, _ := client["flow"].(string)
+					if current != flow {
+						client["flow"] = flow
+						settingsChanged = true
+					}
+				}
+			}
+		}
+		if settingsChanged {
 			encoded, err := json.MarshalIndent(settings, "", "  ")
 			if err != nil {
-				return err
+				return changedAny, err
 			}
 			if err := db.Model(&model.Inbound{}).Where("id = ?", inboundID).Update("settings", string(encoded)).Error; err != nil {
-				return err
+				return changedAny, err
 			}
 		}
+		changedAny = changedAny || inboundChanged || settingsChanged
 	}
-	return nil
+	return changedAny, nil
 }

@@ -46,7 +46,8 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		return false, common.NewError("empty payload")
 	}
 	client := payload.Client
-	if strings.TrimSpace(client.Email) == "" {
+	client.Email = strings.TrimSpace(client.Email)
+	if client.Email == "" {
 		return false, common.NewError("client email is required")
 	}
 	if err := validateClientEmail(client.Email); err != nil {

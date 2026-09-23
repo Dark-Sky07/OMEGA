@@ -290,7 +290,7 @@ func (a *ClientController) create(c *gin.Context) {
 	if reseller := resellerSession(c); reseller != nil {
 		// Reseller-created clients must remain visible under explicit-only
 		// ownership, even when the target inbound is also reseller-owned.
-		if err := a.resellerService.AssignClient(reseller.Id, payload.Client.Email); err != nil {
+		if err := a.resellerService.AssignClient(reseller.Id, strings.TrimSpace(payload.Client.Email)); err != nil {
 			jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 			return
 		}

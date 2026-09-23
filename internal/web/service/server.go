@@ -878,6 +878,35 @@ func (s *ServerService) UpdateXray(version string) error {
 	if coreEntry.UncompressedSize64 > maxXrayBinaryBytes {
 		return fmt.Errorf("xray binary exceeds %d bytes", maxXrayBinaryBytes)
 	}
+
+	// Validate the target and keep a bounded in-memory copy before stopping the
+	// running process. If extraction or the first restart fails, restoring the
+	// previous executable and starting it again is the difference between a
+	// failed update and an avoidable outage.
+	targetBinary := xray.GetBinaryPath()
+	if runtime.GOOS == "windows" {
+		targetBinary = filepath.Join(config.GetBinFolderPath(), "xray-windows-amd64.exe")
+	}
+	var previousBinary []byte
+	previousMode := os.FileMode(0755)
+	previousExists := false
+	if info, statErr := os.Stat(targetBinary); statErr == nil {
+		if info.IsDir() {
+			return fmt.Errorf("xray target is a directory: %s", targetBinary)
+		}
+		if info.Size() > maxXrayBinaryBytes {
+			return fmt.Errorf("existing xray binary exceeds %d bytes", maxXrayBinaryBytes)
+		}
+		previousBinary, err = os.ReadFile(targetBinary)
+		if err != nil {
+			return fmt.Errorf("read existing xray binary: %w", err)
+		}
+		previousMode = info.Mode().Perm()
+		previousExists = true
+	} else if !os.IsNotExist(statErr) {
+		return fmt.Errorf("inspect existing xray binary: %w", statErr)
+	}
+
 	if err := s.StopXrayService(); err != nil {
 		return fmt.Errorf("stop xray before pinned update: %w", err)
 	}
@@ -927,21 +956,67 @@ func (s *ServerService) UpdateXray(version string) error {
 		return nil
 	}
 
-	// 4. Extract correct binary
-	if runtime.GOOS == "windows" {
-		targetBinary := filepath.Join(config.GetBinFolderPath(), "xray-windows-amd64.exe")
-		err = copyZipFile("xray.exe", targetBinary)
-	} else {
-		err = copyZipFile("xray", xray.GetBinaryPath())
+	// Restore the previous executable and process whenever the replacement or
+	// restart fails. The archive was fully validated before StopXrayService, so
+	// this path is only for filesystem/process failures after the stop.
+	restorePrevious := func() error {
+		if !previousExists {
+			return nil
+		}
+		tmpFile, createErr := os.CreateTemp(filepath.Dir(targetBinary), ".xray-restore-*")
+		if createErr != nil {
+			return createErr
+		}
+		tmpPath := tmpFile.Name()
+		ok := false
+		defer func() {
+			_ = tmpFile.Close()
+			if !ok {
+				_ = os.Remove(tmpPath)
+			}
+		}()
+		if _, writeErr := tmpFile.Write(previousBinary); writeErr != nil {
+			return writeErr
+		}
+		if chmodErr := tmpFile.Chmod(previousMode); chmodErr != nil {
+			return chmodErr
+		}
+		if closeErr := tmpFile.Close(); closeErr != nil {
+			return closeErr
+		}
+		if runtime.GOOS == "windows" {
+			_ = os.Remove(targetBinary)
+		}
+		if renameErr := os.Rename(tmpPath, targetBinary); renameErr != nil {
+			return renameErr
+		}
+		ok = true
+		return nil
 	}
-	if err != nil {
-		return err
+	rollback := func(cause error) error {
+		if restoreErr := restorePrevious(); restoreErr != nil {
+			logger.Error("restore previous Xray-core failed:", restoreErr)
+			return fmt.Errorf("%w (rollback failed: %v)", cause, restoreErr)
+		}
+		if restartErr := s.xrayService.RestartXray(true); restartErr != nil {
+			logger.Error("restart previous Xray-core after rollback failed:", restartErr)
+			return fmt.Errorf("%w (rollback restart failed: %v)", cause, restartErr)
+		}
+		return fmt.Errorf("%w (update rolled back)", cause)
 	}
 
-	// 5. Restart xray
+	// 4. Extract correct binary
+	err = copyZipFile(requiredZipName, targetBinary)
+	if err != nil {
+		return rollback(fmt.Errorf("install pinned Xray-core: %w", err))
+	}
+
+	// 5. Restart xray. A process that rejects the generated configuration must
+	// not leave users on a stopped service or a newly installed incompatible
+	// core; put the old executable back and restart it instead.
 	if err := s.xrayService.RestartXray(true); err != nil {
-		logger.Error("start xray failed:", err)
-		return err
+		logger.Error("start pinned xray failed; rolling back:", err)
+		return rollback(fmt.Errorf("start pinned Xray-core: %w", err))
 	}
 
 	return nil
