@@ -37,9 +37,22 @@ jobs:
           cache: true
       - name: Stub internal/web/dist for go:embed
         run: mkdir -p internal/web/dist && touch internal/web/dist/.gitkeep
+      - name: Format Go sources for validation
+        shell: bash
+        run: gofmt -w $(git ls-files '*.go')
+      - name: Capture gofmt patch
+        shell: bash
+        run: git diff --binary -- '*.go' > /tmp/gofmt.patch
+      - name: Upload gofmt patch when sources need formatting
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gofmt-patch
+          path: /tmp/gofmt.patch
+          if-no-files-found: ignore
       - name: Verify Go formatting
         shell: bash
-        run: test -z "$(gofmt -l $(git ls-files '*.go'))"
+        run: test ! -s /tmp/gofmt.patch
       - name: Test
         shell: bash
         run: |
