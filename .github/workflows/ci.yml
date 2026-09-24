@@ -84,7 +84,7 @@ jobs:
       - name: Regenerate schemas, examples and OpenAPI
         run: npm run gen
         working-directory: frontend
-      # Temporary diagnostic artifact while generated outputs are being
+      # Temporary diagnostic output while generated outputs are being
       # reconciled locally; remove after the first green regeneration run.
       - name: Upload regenerated API files
         if: always()
@@ -94,7 +94,27 @@ jobs:
           path: |
             frontend/src/generated
             frontend/public/openapi.json
-      - name: Fail if generated files are stale (run 'npm run gen' and commit)
+      - name: Emit generated files in chunked annotations
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import base64
+          from pathlib import Path
+          files = [
+              Path('frontend/src/generated/examples.ts'),
+              Path('frontend/src/generated/schemas.ts'),
+              Path('frontend/src/generated/types.ts'),
+              Path('frontend/src/generated/zod.ts'),
+              Path('frontend/public/openapi.json'),
+          ]
+          for path in files:
+              encoded = base64.b64encode(path.read_bytes()).decode()
+              for index in range(0, len(encoded), 24000):
+                  chunk = encoded[index:index + 24000]
+                  part = index // 24000
+                  print(f'::error file={path},line={part + 1},title=generated-{part}::{chunk}')
+          PY
+      - name: Fail if generated files are stale (run 'npm run gen' and commit')
         run: git diff --exit-code -- frontend/src/generated frontend/public/openapi.json
 
   govulncheck:
