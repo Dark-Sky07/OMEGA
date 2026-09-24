@@ -94,7 +94,7 @@ update_db_snapshot_ready=0
 update_defer_service_start=0
 resolve_latest_xray_version() {
     local releases version
-    releases="$(curl -4fsSL --retry 3 --connect-timeout 10 "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=100")" || return 1
+    releases="$(curl -4fsSL --retry 3 --connect-timeout 10 "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=20")" || return 1
     version="$(printf '%s\n' "$releases" \
         | grep -oE '"tag_name"[[:space:]]*:[[:space:]]*"v[0-9]+\.[0-9]+\.[0-9]+"' \
         | sed -E 's/.*"(v[0-9]+\.[0-9]+\.[0-9]+)"/\1/' \
@@ -1132,7 +1132,7 @@ stage_update_assets() {
     fi
 
     update_wrapper_stage="${update_stage_root}/x-ui-wrapper"
-    if ! download_update_file "$update_wrapper_stage" "https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh"; then
+    if ! download_update_file "$update_wrapper_stage" "https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.sh"; then
         return 1
     fi
     chmod 0755 "$update_wrapper_stage" || return 1
@@ -1142,7 +1142,7 @@ stage_update_assets() {
         if [[ -f "$update_stage_dir/x-ui.rc" ]]; then
             cp -f "$update_stage_dir/x-ui.rc" "$update_service_stage" || return 1
         else
-            if ! download_update_file "$update_service_stage" "https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.rc"; then
+            if ! download_update_file "$update_service_stage" "https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.rc"; then
                 return 1
             fi
         fi
@@ -1153,9 +1153,9 @@ stage_update_assets() {
             cp -f "$update_stage_dir/x-ui.service" "$update_service_stage" || return 1
         else
             case "$release" in
-                ubuntu|debian|armbian) service_url="https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.service.debian" ;;
-                arch|manjaro|parch) service_url="https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.service.arch" ;;
-                *) service_url="https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.service.rhel" ;;
+                ubuntu|debian|armbian) service_url="https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.service.debian" ;;
+                arch|manjaro|parch) service_url="https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.service.arch" ;;
+                *) service_url="https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.service.rhel" ;;
             esac
             if ! download_update_file "$update_service_stage" "$service_url"; then
                 return 1

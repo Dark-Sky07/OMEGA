@@ -1217,7 +1217,7 @@ xray_install_archive=""
 
 resolve_latest_xray_version() {
     local releases version
-    releases="$(curl -4fsSL --retry 3 --connect-timeout 10 "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=100")" || return 1
+    releases="$(curl -4fsSL --retry 3 --connect-timeout 10 "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=20")" || return 1
     version="$(printf '%s\n' "$releases" \
         | grep -oE '"tag_name"[[:space:]]*:[[:space:]]*"v[0-9]+\.[0-9]+\.[0-9]+"' \
         | sed -E 's/.*"(v[0-9]+\.[0-9]+\.[0-9]+)"/\1/' \
@@ -1320,7 +1320,7 @@ install_x-ui() {
 
     # Stage the current core before any service stop or directory replacement.
     stage_latest_xray
-    curl -4fLRo /usr/bin/x-ui-temp https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh
+    curl -4fLRo /usr/bin/x-ui-temp https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.sh
     if [[ $? -ne 0 ]]; then
         echo -e "${red}Failed to download x-ui.sh${plain}"
         exit 1
@@ -1392,7 +1392,7 @@ install_x-ui() {
     fi
 
     if [[ $release == "alpine" ]]; then
-        curl -4fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.rc
+        curl -4fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.rc
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Failed to download x-ui.rc${plain}"
             exit 1
@@ -1449,13 +1449,13 @@ install_x-ui() {
             echo -e "${yellow}Service files not found in tar.gz, downloading from GitHub...${plain}"
             case "${release}" in
                 ubuntu | debian | armbian)
-                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.service.debian > /dev/null 2>&1
+                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.service.debian > /dev/null 2>&1
                     ;;
                 arch | manjaro | parch)
-                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.service.arch > /dev/null 2>&1
+                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.service.arch > /dev/null 2>&1
                     ;;
                 *)
-                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.service.rhel > /dev/null 2>&1
+                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.service.rhel > /dev/null 2>&1
                     ;;
             esac
 

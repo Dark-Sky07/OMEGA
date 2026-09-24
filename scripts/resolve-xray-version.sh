@@ -4,7 +4,7 @@
 # install time instead of silently retaining the core bundled in an old panel.
 set -eu
 
-api_url="https://api.github.com/repos/XTLS/Xray-core/releases?per_page=100"
+api_url="https://api.github.com/repos/XTLS/Xray-core/releases?per_page=20"
 releases="$(curl -4fsSL --retry 3 --connect-timeout 10 "$api_url")" || {
   echo "failed to query Xray-core releases" >&2
   exit 1

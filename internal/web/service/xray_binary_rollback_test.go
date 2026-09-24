@@ -2,8 +2,10 @@ package service
 
 import (
 	"bytes"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 )
 
@@ -103,12 +105,24 @@ func TestCompareXrayVersionsUsesNumericComponents(t *testing.T) {
 	}
 }
 
-func TestSelectLatestXrayReleaseSkipsDraftsAndMissingAssets(t *testing.T) {
+func TestXrayReleasesAPIUsesBoundedRecentPage(t *testing.T) {
+	parsed, err := url.Parse(xrayReleasesAPIURL)
+	if err != nil {
+		t.Fatalf("parse Xray releases API URL: %v", err)
+	}
+	pageSize, err := strconv.Atoi(parsed.Query().Get("per_page"))
+	if err != nil || pageSize <= 0 || pageSize > 20 {
+		t.Fatalf("Xray releases API page size = %q, want a positive bounded page of at most 20", parsed.Query().Get("per_page"))
+	}
+}
+
+func TestSelectLatestXrayReleaseSkipsDraftsInvalidTagsAndMissingAssets(t *testing.T) {
 	assetName := "Xray-linux-64.zip"
 	releases := []xrayRelease{
 		{TagName: "v26.10.0", Assets: nil},
-		{TagName: "v26.9.9", Assets: []xrayReleaseAsset{{Name: assetName}}},
-		{TagName: "v27.0.0", Draft: true, Assets: []xrayReleaseAsset{{Name: assetName}}},
+		{TagName: "v26.9.9", Prerelease: true, Assets: []xrayReleaseAsset{{Name: assetName}}},
+		{TagName: "v28.0.0", Draft: true, Assets: []xrayReleaseAsset{{Name: assetName}}},
+		{TagName: "v27.0.0-rc1", Prerelease: true, Assets: []xrayReleaseAsset{{Name: assetName}}},
 		{TagName: "v26.3.27", Assets: []xrayReleaseAsset{{Name: assetName}}},
 	}
 

@@ -1336,7 +1336,7 @@ xray_install_archive=""
 
 resolve_latest_xray_version() {
     local releases version
-    releases="$(curl -4fsSL --retry 3 --connect-timeout 10 "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=100")" || return 1
+    releases="$(curl -4fsSL --retry 3 --connect-timeout 10 "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=20")" || return 1
     version="$(printf '%s\n' "$releases" \
         | grep -oE '"tag_name"[[:space:]]*:[[:space:]]*"v[0-9]+\.[0-9]+\.[0-9]+"' \
         | sed -E 's/.*"(v[0-9]+\.[0-9]+\.[0-9]+)"/\1/' \

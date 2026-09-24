@@ -185,7 +185,11 @@ type cachedXrayVersions struct {
 }
 
 const (
-	xrayReleasesAPIURL       = "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=100"
+	// A full 100-release GitHub response now exceeds the bounded metadata
+	// limit because every release carries a growing asset list. We only need a
+	// small recent window: the newest compatible numeric-tagged Xray archive is
+	// near the head, and a bounded response keeps the UI update check reliable.
+	xrayReleasesAPIURL       = "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=20"
 	maxXrayReleaseResponse   = 8 << 20
 	xrayVersionsCacheTTL     = 15 * time.Minute
 	xrayVersionPatternString = `^v[0-9]+\.[0-9]+\.[0-9]+$`
@@ -932,6 +936,8 @@ func selectLatestXrayRelease(releases []xrayRelease, assetName string) (xrayRele
 	var latest xrayRelease
 	found := false
 	for _, release := range releases {
+		// Xray marks its published production builds as GitHub prereleases, so
+		// the semantic tag format—not the prerelease flag—defines eligibility.
 		if release.Draft || !xrayVersionPattern.MatchString(release.TagName) {
 			continue
 		}

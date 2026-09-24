@@ -273,7 +273,7 @@ jobs:
           # Keep Windows bundles on the same current core as every Linux and
           # Docker path. Select the highest numeric release tag, including
           # prereleases, so a newer core is never silently skipped.
-          $xrayReleases = Invoke-RestMethod -Uri "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=100"
+          $xrayReleases = Invoke-RestMethod -Uri "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=20"
           $xrayVersion = $xrayReleases |
             Where-Object { !$_.draft -and $_.tag_name -match '^v\d+\.\d+\.\d+$' } |
             Sort-Object { [version]($_.tag_name.Substring(1)) } |
