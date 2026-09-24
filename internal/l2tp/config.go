@@ -71,9 +71,9 @@ func pppOptionsPath(id int) string    { return filepath.Join(dataDirForID(id), "
 func chapSecretsPath(id int) string   { return filepath.Join(dataDirForID(id), "chap-secrets") }
 func xl2tpdPIDPath(id int) string     { return filepath.Join(dataDirForID(id), "xl2tpd.pid") }
 func sessionDirPath(id int) string    { return filepath.Join(dataDirForID(id), "sessions") }
-func ipUpScriptPath(id int) string   { return filepath.Join(dataDirForID(id), "ip-up") }
-func ipDownScriptPath(id int) string { return filepath.Join(dataDirForID(id), "ip-down") }
-func strongSwanPIDDir(id int) string { return dataDirForID(id) }
+func ipUpScriptPath(id int) string    { return filepath.Join(dataDirForID(id), "ip-up") }
+func ipDownScriptPath(id int) string  { return filepath.Join(dataDirForID(id), "ip-down") }
+func strongSwanPIDDir(id int) string  { return dataDirForID(id) }
 
 func removeStrongSwanRuntime(id int) {
 	_ = os.RemoveAll(strongSwanDirForID(id))
