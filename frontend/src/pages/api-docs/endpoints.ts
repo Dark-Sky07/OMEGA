@@ -302,7 +302,7 @@ export const sections: readonly Section[] = [
       {
         method: 'GET',
         path: '/panel/api/server/getXrayVersion',
-        summary: 'Return the single pinned Xray-core release available for install on this host.',
+        summary: 'Check GitHub for the highest compatible Xray-core release available for this host.',
         response: '{\n  "success": true,\n  "obj": ["v26.9.9"]\n}',
       },
       {
@@ -425,9 +425,9 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/server/installXray/:version',
-        summary: 'Download and install the pinned Xray-core release v26.9.9.',
+        summary: 'Download, verify, and install the latest compatible Xray-core release; failed updates roll back automatically.',
         params: [
-          { name: 'version', in: 'path', type: 'string', desc: 'Pinned Xray tag: v26.9.9.' },
+          { name: 'version', in: 'path', type: 'string', desc: 'Version tag returned by getXrayVersion; the server accepts only the current compatible release.' },
         ],
       },
       {

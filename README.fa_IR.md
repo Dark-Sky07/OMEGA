@@ -15,11 +15,13 @@
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Base](https://img.shields.io/badge/base-3x--ui%20v3.3.1-informational)](https://github.com/MHSanaei/3x-ui/releases/tag/v3.3.1)
 
-**نصب با یک دستور** — روی سرور تازه، با کاربر `root`:
+**نصب آخرین release OMEGA با یک دستور** — روی سرور تازه، با کاربر `root`:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.29-omega/install-omega.sh) v3.3.29-omega
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
 ```
+
+این launcher پایدار همیشه جدیدترین release گیت‌هاب را پیدا و نصب می‌کند؛ برای نصب reproducible نسخه‌ی مشخص، از لینک tag‌شده‌ی پایین استفاده کنید.
 
 </div>
 
@@ -27,7 +29,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.29-omega
 > این پروژه فورکی بر پایه‌ی 3x-ui نسخه‌ی 3.3.1 است. قابلیت نمایندگی، daemon خارجی OpenVPN و daemon خارجی
 > L2TP/IPsec به آن اضافه شده‌اند، اما نام سرویس (`x-ui`)، مسیرهای نصب (`/usr/local/x-ui`، `/etc/x-ui`)،
 > متغیرهای محیطی و قراردادهای کانفیگ Xray با upstream سازگار باقی مانده‌اند. شماره‌ی release مربوط به OMEGA
-> جداگانه مدیریت می‌شود و نسخه‌ی stable فعلی `v3.3.29-omega` است.
+> جداگانه مدیریت می‌شود و نسخه‌ی stable فعلی `v3.3.30-omega` است.
 
 ---
 
@@ -49,9 +51,9 @@ OpenVPN یک daemon سیستم‌عامل است، نه بخشی از Xray و ن
 برای نصب یا تعمیر سرور موجود با آخرین release پایدار، با کاربر `root` اجرا کنید:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.29-omega/install-omega.sh \
+curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.30-omega/install-omega.sh \
   -o /tmp/install-omega.sh
-env OMEGA_REF=v3.3.29-omega bash /tmp/install-omega.sh v3.3.29-omega
+env OMEGA_REF=v3.3.30-omega bash /tmp/install-omega.sh v3.3.30-omega
 ```
 
 پیش‌نیاز را قبل از بررسی شبکه verify کنید:
@@ -90,13 +92,13 @@ L2TP/IPsec daemon سیستم‌عامل است و بخشی از Xray نیست. i
 روی سرور تازه، با کاربر **root**:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.29-omega/install-omega.sh) v3.3.29-omega
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
 ```
 
 اگر می‌خواهید نسخه‌ی مشخصی نصب شود (مثلاً قبل از merge شدن شاخه‌ی اصلی):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.29-omega/install-omega.sh) v3.3.29-omega
+bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.30-omega/install-omega.sh) v3.3.30-omega
 ```
 
 نصب‌کننده خودش این کارها را انجام می‌دهد:

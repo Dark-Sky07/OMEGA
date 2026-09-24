@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bufio"
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -131,6 +132,19 @@ type Release struct {
 	Prerelease bool   `json:"prerelease"`
 }
 
+type xrayReleaseAsset struct {
+	Name               string `json:"name"`
+	BrowserDownloadURL string `json:"browser_download_url"`
+	Digest             string `json:"digest"`
+}
+
+type xrayRelease struct {
+	TagName    string             `json:"tag_name"`
+	Draft      bool               `json:"draft"`
+	Prerelease bool               `json:"prerelease"`
+	Assets     []xrayReleaseAsset `json:"assets"`
+}
+
 // ServerService provides business logic for server monitoring and management.
 // It handles system status collection, IP detection, and application statistics.
 type ServerService struct {
@@ -160,15 +174,14 @@ type cachedXrayVersions struct {
 	fetchedAt time.Time
 }
 
-// PinnedXrayVersion is the only Xray-core release accepted by runtime/UI
-// installation paths and by release artifacts. Keeping the value in the
-// service makes the API and the frontend picker agree with Docker/installers.
-const PinnedXrayVersion = "v26.9.9"
+const (
+	xrayReleasesAPIURL       = "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=100"
+	maxXrayReleaseResponse   = 8 << 20
+	xrayVersionsCacheTTL     = 15 * time.Minute
+	xrayVersionPatternString = `^v[0-9]+\.[0-9]+\.[0-9]+$`
+)
 
-// xrayVersionsCacheTTL is retained for the API shape and future metadata, but
-// the version list itself is local and deterministic; it never follows a
-// moving GitHub /latest endpoint.
-const xrayVersionsCacheTTL = 15 * time.Minute
+var xrayVersionPattern = regexp.MustCompile(xrayVersionPatternString)
 
 // allowedHistoryBuckets is the bucket-second whitelist for time-series
 // aggregation endpoints (server + node metrics). Restricting it prevents
@@ -218,11 +231,11 @@ func (s *ServerService) RefreshStatus() *Status {
 // failure we serve the last successful list (if any) so the UI doesn't go
 // blank during a GitHub API hiccup; if there's no cache at all the underlying
 // error is surfaced.
-func (s *ServerService) GetXrayVersionsCached() ([]string, error) {
+func (s *ServerService) GetXrayVersionsCached(forceRefresh bool) ([]string, error) {
 	s.versionsCacheMu.Lock()
 	cache := s.versionsCache
 	s.versionsCacheMu.Unlock()
-	if cache != nil && time.Since(cache.fetchedAt) <= xrayVersionsCacheTTL {
+	if !forceRefresh && cache != nil && time.Since(cache.fetchedAt) <= xrayVersionsCacheTTL {
 		return cache.versions, nil
 	}
 	versions, err := s.GetXrayVersions()
@@ -823,31 +836,40 @@ func restoreXrayBinary(path string, snapshot xrayBinarySnapshot) error {
 	return writeXrayBinaryAtomically(path, bytes.NewReader(snapshot.contents), int64(maxXrayBinaryBytes), snapshot.mode)
 }
 
-func (s *ServerService) GetXrayVersions() ([]string, error) {
-	// Do not query a moving release list here. The panel can only install the
-	// exact core version shipped and tested by this repository.
-	return []string{PinnedXrayVersion}, nil
-}
-
-func (s *ServerService) StopXrayService() error {
-	err := s.xrayService.StopXray()
-	if err != nil {
-		logger.Error("stop xray failed:", err)
-		return err
+func parseXrayVersion(tag string) ([3]int, bool) {
+	var version [3]int
+	if !xrayVersionPattern.MatchString(tag) {
+		return version, false
 	}
-	return nil
-}
-
-func (s *ServerService) RestartXrayService() error {
-	err := s.xrayService.RestartXray(true)
-	if err != nil {
-		logger.Error("start xray failed:", err)
-		return err
+	parts := strings.Split(strings.TrimPrefix(tag, "v"), ".")
+	for i := range version {
+		value, err := strconv.Atoi(parts[i])
+		if err != nil {
+			return version, false
+		}
+		version[i] = value
 	}
-	return nil
+	return version, true
 }
 
-func (s *ServerService) downloadXRay(version string) (string, error) {
+func compareXrayVersions(left, right string) int {
+	leftVersion, leftOK := parseXrayVersion(left)
+	rightVersion, rightOK := parseXrayVersion(right)
+	if !leftOK || !rightOK {
+		return 0
+	}
+	for i := range leftVersion {
+		if leftVersion[i] > rightVersion[i] {
+			return 1
+		}
+		if leftVersion[i] < rightVersion[i] {
+			return -1
+		}
+	}
+	return 0
+}
+
+func (s *ServerService) xrayArchiveName() string {
 	osName := runtime.GOOS
 	arch := runtime.GOARCH
 
@@ -875,19 +897,118 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 		arch = "s390x"
 	}
 
-	fileName := fmt.Sprintf("Xray-%s-%s.zip", osName, arch)
-	url := fmt.Sprintf("https://github.com/XTLS/Xray-core/releases/download/%s/%s", version, fileName)
+	return fmt.Sprintf("Xray-%s-%s.zip", osName, arch)
+}
+
+func findXrayAsset(release xrayRelease, name string) (xrayReleaseAsset, bool) {
+	for _, asset := range release.Assets {
+		if asset.Name == name {
+			return asset, true
+		}
+	}
+	return xrayReleaseAsset{}, false
+}
+
+func selectLatestXrayRelease(releases []xrayRelease, assetName string) (xrayRelease, bool) {
+	var latest xrayRelease
+	found := false
+	for _, release := range releases {
+		if release.Draft || !xrayVersionPattern.MatchString(release.TagName) {
+			continue
+		}
+		if _, ok := findXrayAsset(release, assetName); !ok {
+			continue
+		}
+		if !found || compareXrayVersions(release.TagName, latest.TagName) > 0 {
+			latest = release
+			found = true
+		}
+	}
+	return latest, found
+}
+
+func (s *ServerService) latestXrayRelease() (xrayRelease, error) {
+	client := s.settingService.NewProxiedHTTPClient(30 * time.Second)
+	req, err := http.NewRequest(http.MethodGet, xrayReleasesAPIURL, nil)
+	if err != nil {
+		return xrayRelease{}, err
+	}
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("User-Agent", "OMEGA-Xray-Updater")
+	resp, err := client.Do(req)
+	if err != nil {
+		return xrayRelease{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return xrayRelease{}, fmt.Errorf("get latest Xray-core release: unexpected HTTP %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxXrayReleaseResponse+1))
+	if err != nil {
+		return xrayRelease{}, err
+	}
+	if len(body) > maxXrayReleaseResponse {
+		return xrayRelease{}, fmt.Errorf("Xray-core release metadata exceeds %d bytes", maxXrayReleaseResponse)
+	}
+	var releases []xrayRelease
+	if err := json.Unmarshal(body, &releases); err != nil {
+		return xrayRelease{}, fmt.Errorf("decode Xray-core release metadata: %w", err)
+	}
+	latest, ok := selectLatestXrayRelease(releases, s.xrayArchiveName())
+	if !ok {
+		return xrayRelease{}, fmt.Errorf("no compatible Xray-core release was found for %s", s.xrayArchiveName())
+	}
+	return latest, nil
+}
+
+func (s *ServerService) GetXrayVersions() ([]string, error) {
+	latest, err := s.latestXrayRelease()
+	if err != nil {
+		return nil, err
+	}
+	return []string{latest.TagName}, nil
+}
+
+func (s *ServerService) StopXrayService() error {
+	err := s.xrayService.StopXray()
+	if err != nil {
+		logger.Error("stop xray failed:", err)
+		return err
+	}
+	return nil
+}
+
+func (s *ServerService) RestartXrayService() error {
+	err := s.xrayService.RestartXray(true)
+	if err != nil {
+		logger.Error("start xray failed:", err)
+		return err
+	}
+	return nil
+}
+
+func (s *ServerService) downloadXRay(release xrayRelease) (string, error) {
+	fileName := s.xrayArchiveName()
+	asset, ok := findXrayAsset(release, fileName)
+	if !ok {
+		return "", fmt.Errorf("Xray-core release %s does not contain %s", release.TagName, fileName)
+	}
+	archiveURL := asset.BrowserDownloadURL
+	if archiveURL == "" {
+		archiveURL = fmt.Sprintf("https://github.com/XTLS/Xray-core/releases/download/%s/%s", release.TagName, fileName)
+	}
+
 	client := s.settingService.NewProxiedHTTPClient(60 * time.Second)
-	resp, err := client.Get(url)
+	resp, err := client.Get(archiveURL)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("download xray: unexpected HTTP %d", resp.StatusCode)
+		return "", fmt.Errorf("download Xray-core %s: unexpected HTTP %d", release.TagName, resp.StatusCode)
 	}
 	if resp.ContentLength > maxXrayArchiveBytes {
-		return "", fmt.Errorf("download xray: archive exceeds %d bytes", maxXrayArchiveBytes)
+		return "", fmt.Errorf("download Xray-core: archive exceeds %d bytes", maxXrayArchiveBytes)
 	}
 
 	file, err := os.CreateTemp("", "xray-*.zip")
@@ -895,7 +1016,7 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 		return "", err
 	}
 	path := file.Name()
-	ok := false
+	ok = false
 	defer func() {
 		_ = file.Close()
 		if !ok {
@@ -903,12 +1024,23 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 		}
 	}()
 
-	n, err := io.Copy(file, io.LimitReader(resp.Body, maxXrayArchiveBytes+1))
+	hash := sha256.New()
+	written, err := io.Copy(io.MultiWriter(file, hash), io.LimitReader(resp.Body, maxXrayArchiveBytes+1))
 	if err != nil {
 		return "", err
 	}
-	if n > maxXrayArchiveBytes {
-		return "", fmt.Errorf("download xray: archive exceeds %d bytes", maxXrayArchiveBytes)
+	if written > maxXrayArchiveBytes {
+		return "", fmt.Errorf("download Xray-core: archive exceeds %d bytes", maxXrayArchiveBytes)
+	}
+	if asset.Digest != "" {
+		expectedDigest := strings.TrimSpace(asset.Digest)
+		if !strings.HasPrefix(expectedDigest, "sha256:") {
+			return "", fmt.Errorf("download Xray-core: unsupported asset digest %q", expectedDigest)
+		}
+		actualDigest := fmt.Sprintf("sha256:%x", hash.Sum(nil))
+		if !strings.EqualFold(actualDigest, expectedDigest) {
+			return "", fmt.Errorf("download Xray-core: SHA-256 digest mismatch")
+		}
 	}
 
 	ok = true
@@ -916,13 +1048,24 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 }
 
 func (s *ServerService) UpdateXray(version string) error {
-	if version != PinnedXrayVersion {
-		return fmt.Errorf("xray version %q is not the pinned release %s", version, PinnedXrayVersion)
+	if !xrayVersionPattern.MatchString(version) {
+		return fmt.Errorf("invalid Xray-core version %q", version)
+	}
+
+	// Resolve the current highest release again at install time. The version
+	// shown in the UI may be stale, and arbitrary tags must never become a
+	// download primitive exposed by the panel API.
+	latest, err := s.latestXrayRelease()
+	if err != nil {
+		return fmt.Errorf("resolve latest Xray-core release: %w", err)
+	}
+	if version != latest.TagName {
+		return fmt.Errorf("Xray-core version %q is not the latest compatible release %s", version, latest.TagName)
 	}
 
 	// Download and validate the archive before stopping the active process, so
 	// a network/API failure never disconnects users or leaves Xray stopped.
-	zipFileName, err := s.downloadXRay(PinnedXrayVersion)
+	zipFileName, err := s.downloadXRay(latest)
 	if err != nil {
 		return err
 	}
@@ -978,7 +1121,7 @@ func (s *ServerService) UpdateXray(version string) error {
 	}
 
 	if err := s.StopXrayService(); err != nil {
-		return fmt.Errorf("stop xray before pinned update: %w", err)
+		return fmt.Errorf("stop xray before latest update: %w", err)
 	}
 
 	// 3. Extract into a same-directory temporary file and rename it into
@@ -1014,15 +1157,15 @@ func (s *ServerService) UpdateXray(version string) error {
 	// 4. Extract correct binary
 	err = copyZipFile(requiredZipName, targetBinary)
 	if err != nil {
-		return rollback(fmt.Errorf("install pinned Xray-core: %w", err))
+		return rollback(fmt.Errorf("install latest Xray-core: %w", err))
 	}
 
 	// 5. Restart xray. A process that rejects the generated configuration must
 	// not leave users on a stopped service or a newly installed incompatible
 	// core; put the old executable back and restart it instead.
 	if err := s.xrayService.RestartXray(true); err != nil {
-		logger.Error("start pinned xray failed; rolling back:", err)
-		return rollback(fmt.Errorf("start pinned Xray-core: %w", err))
+		logger.Error("start latest xray failed; rolling back:", err)
+		return rollback(fmt.Errorf("start latest Xray-core: %w", err))
 	}
 
 	return nil

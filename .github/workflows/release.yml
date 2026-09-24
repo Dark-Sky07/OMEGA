@@ -111,10 +111,10 @@ jobs:
           mkdir x-ui/bin
           cd x-ui/bin
 
-          # Download dependencies using the repository's pinned, tested Xray
-          # release so a panel bundle is identical across architectures.
+          # Download the highest published Xray-core release so each panel
+          # bundle ships with the same current core across architectures.
           XRAY_VERSION="$(../../scripts/resolve-xray-version.sh)"
-          echo "Using pinned Xray-core ${XRAY_VERSION}"
+          echo "Using latest Xray-core ${XRAY_VERSION}"
           Xray_URL="https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/"
           if [ "${{ matrix.platform }}" == "amd64" ]; then
             wget -q ${Xray_URL}Xray-linux-64.zip
@@ -270,14 +270,19 @@ jobs:
           mkdir x-ui\bin
           cd x-ui\bin
 
-          # Keep Windows bundles on the same tested core as every Linux and
-          # Docker path. Do not silently resolve a newer /latest binary.
-          $xrayVersion = "v26.9.9"
-          if ($xrayVersion -notmatch '^v\d+\.\d+\.\d+$') {
-            throw "Pinned Xray-core version is invalid"
+          # Keep Windows bundles on the same current core as every Linux and
+          # Docker path. Select the highest numeric release tag, including
+          # prereleases, so a newer core is never silently skipped.
+          $xrayReleases = Invoke-RestMethod -Uri "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=100"
+          $xrayVersion = $xrayReleases |
+            Where-Object { !$_.draft -and $_.tag_name -match '^v\d+\.\d+\.\d+$' } |
+            Sort-Object { [version]($_.tag_name.Substring(1)) } |
+            Select-Object -Last 1 -ExpandProperty tag_name
+          if ([string]::IsNullOrWhiteSpace($xrayVersion)) {
+            throw "Could not resolve the latest Xray-core version"
           }
           $Xray_URL = "https://github.com/XTLS/Xray-core/releases/download/$xrayVersion/"
-          Write-Host "Using pinned Xray-core $xrayVersion"
+          Write-Host "Using latest Xray-core $xrayVersion"
           Invoke-WebRequest -Uri "${Xray_URL}Xray-windows-64.zip" -OutFile "Xray-windows-64.zip"
           Expand-Archive -Path "Xray-windows-64.zip" -DestinationPath .
           Remove-Item "Xray-windows-64.zip"

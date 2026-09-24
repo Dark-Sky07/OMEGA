@@ -82,8 +82,38 @@ func TestWriteXrayBinaryAtomicallyRejectsOversizedReplacement(t *testing.T) {
 	}
 }
 
-func TestUpdateXrayRejectsUnpinnedVersionBeforeDownload(t *testing.T) {
-	if err := (&ServerService{}).UpdateXray("v26.9.8"); err == nil {
-		t.Fatal("unpinned Xray version unexpectedly accepted")
+func TestUpdateXrayRejectsMalformedVersionBeforeNetwork(t *testing.T) {
+	if err := (&ServerService{}).UpdateXray("latest"); err == nil {
+		t.Fatal("malformed Xray version unexpectedly accepted")
+	}
+}
+
+func TestCompareXrayVersionsUsesNumericComponents(t *testing.T) {
+	for _, test := range []struct {
+		left, right string
+		want        int
+	}{
+		{left: "v26.10.0", right: "v26.9.9", want: 1},
+		{left: "v26.9.9", right: "v26.9.9", want: 0},
+		{left: "v25.12.99", right: "v26.1.0", want: -1},
+	} {
+		if got := compareXrayVersions(test.left, test.right); got != test.want {
+			t.Fatalf("compareXrayVersions(%q, %q) = %d, want %d", test.left, test.right, got, test.want)
+		}
+	}
+}
+
+func TestSelectLatestXrayReleaseSkipsDraftsAndMissingAssets(t *testing.T) {
+	assetName := "Xray-linux-64.zip"
+	releases := []xrayRelease{
+		{TagName: "v26.10.0", Assets: nil},
+		{TagName: "v26.9.9", Assets: []xrayReleaseAsset{{Name: assetName}}},
+		{TagName: "v27.0.0", Draft: true, Assets: []xrayReleaseAsset{{Name: assetName}}},
+		{TagName: "v26.3.27", Assets: []xrayReleaseAsset{{Name: assetName}}},
+	}
+
+	latest, ok := selectLatestXrayRelease(releases, assetName)
+	if !ok || latest.TagName != "v26.9.9" {
+		t.Fatalf("selected release = %q, ok=%v; want v26.9.9", latest.TagName, ok)
 	}
 }

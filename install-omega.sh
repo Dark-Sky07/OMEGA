@@ -1319,14 +1319,30 @@ omega_raw_fetch() {
     fi
 }
 
-# The panel archive may contain an older bundled core. Stage the exact
-# repository-pinned Xray release before stopping or replacing an existing
-# installation, then install it over the archive copy after extraction.
-XRAY_PINNED_VERSION="v26.9.9"
+# The panel archive may contain an older bundled core. Resolve and stage the
+# current Xray release before stopping or replacing an existing installation,
+# then install it over the archive copy after extraction.
+XRAY_VERSION=""
 xray_install_archive=""
 
-stage_pinned_xray() {
+resolve_latest_xray_version() {
+    local releases version
+    releases="$(curl -4fsSL --retry 3 --connect-timeout 10 "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=100")" || return 1
+    version="$(printf '%s\n' "$releases" \
+        | grep -oE '"tag_name"[[:space:]]*:[[:space:]]*"v[0-9]+\.[0-9]+\.[0-9]+"' \
+        | sed -E 's/.*"(v[0-9]+\.[0-9]+\.[0-9]+)"/\1/' \
+        | sort -V \
+        | tail -n 1)"
+    [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || return 1
+    printf '%s\n' "$version"
+}
+
+stage_latest_xray() {
     local xray_arch archive_url
+    XRAY_VERSION="${OMEGA_XRAY_VERSION:-$(resolve_latest_xray_version)}" || {
+        echo -e "${red}Failed to resolve the latest Xray-core release; installation aborted before changing the current panel.${plain}"
+        exit 1
+    }
     case "$(arch)" in
         amd64) xray_arch="64" ;;
         386) xray_arch="32" ;;
@@ -1337,15 +1353,15 @@ stage_pinned_xray() {
         s390x) xray_arch="s390x" ;;
         *) echo -e "${red}Unsupported architecture for Xray-core: $(arch)${plain}"; exit 1 ;;
     esac
-    archive_url="https://github.com/XTLS/Xray-core/releases/download/${XRAY_PINNED_VERSION}/Xray-linux-${xray_arch}.zip"
-    xray_install_archive="$(mktemp "/tmp/xray-${XRAY_PINNED_VERSION#v}.XXXXXX.zip")" || exit 1
+    archive_url="https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/Xray-linux-${xray_arch}.zip"
+    xray_install_archive="$(mktemp "/tmp/xray-${XRAY_VERSION#v}.XXXXXX.zip")" || exit 1
     if ! curl -4fsSL --retry 3 -o "$xray_install_archive" "$archive_url" || ! unzip -tq "$xray_install_archive" > /dev/null 2>&1; then
         rm -f "$xray_install_archive"
         xray_install_archive=""
-        echo -e "${red}Failed to stage pinned Xray-core ${XRAY_PINNED_VERSION}; installation aborted before changing the current panel.${plain}"
+        echo -e "${red}Failed to stage latest Xray-core ${XRAY_VERSION}; installation aborted before changing the current panel.${plain}"
         exit 1
     fi
-    echo -e "${green}Staged pinned Xray-core ${XRAY_PINNED_VERSION}${plain}"
+    echo -e "${green}Staged latest Xray-core ${XRAY_VERSION}${plain}"
 }
 
 install_staged_xray() {
@@ -1358,19 +1374,19 @@ install_staged_xray() {
     if ! unzip -q "$xray_install_archive" -d "$extract_dir" || [[ ! -f "$extract_dir/xray" ]]; then
         rm -rf "$extract_dir" "$xray_install_archive"
         xray_install_archive=""
-        echo -e "${red}Failed to extract pinned Xray-core ${XRAY_PINNED_VERSION}; installation aborted.${plain}"
+        echo -e "${red}Failed to extract latest Xray-core ${XRAY_VERSION}; installation aborted.${plain}"
         exit 1
     fi
     target="bin/xray-linux-$(arch)"
     if ! install -m 0755 "$extract_dir/xray" "$target"; then
         rm -rf "$extract_dir" "$xray_install_archive"
         xray_install_archive=""
-        echo -e "${red}Failed to install pinned Xray-core ${XRAY_PINNED_VERSION}; installation aborted.${plain}"
+        echo -e "${red}Failed to install latest Xray-core ${XRAY_VERSION}; installation aborted.${plain}"
         exit 1
     fi
     rm -rf "$extract_dir" "$xray_install_archive"
     xray_install_archive=""
-    echo -e "${green}Installed pinned Xray-core ${XRAY_PINNED_VERSION}${plain}"
+    echo -e "${green}Installed latest Xray-core ${XRAY_VERSION}${plain}"
 }
 
 install_x-ui() {
@@ -1378,10 +1394,10 @@ install_x-ui() {
 
     # Download resources
     if [ $# == 0 ]; then
-        tag_version="${OMEGA_TAG:-$(curl -Ls "https://api.github.com/repos/${OMEGA_REPO}/releases" | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}"
+        tag_version="${OMEGA_TAG:-$(curl -4fsSL "https://api.github.com/repos/${OMEGA_REPO}/releases/latest" | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}"
         if [[ ! -n "$tag_version" ]]; then
             echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
-            tag_version="${OMEGA_TAG:-$(curl -4 -Ls "https://api.github.com/repos/${OMEGA_REPO}/releases" | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}"
+            tag_version="${OMEGA_TAG:-$(curl -4fsSL "https://api.github.com/repos/${OMEGA_REPO}/releases/latest" | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}"
             if [[ ! -n "$tag_version" ]]; then
                 echo -e "${red}Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later${plain}"
                 exit 1
@@ -1412,8 +1428,8 @@ install_x-ui() {
         fi
     fi
 
-    # Stage the pinned core before any service stop or directory replacement.
-    stage_pinned_xray
+    # Stage the current core before any service stop or directory replacement.
+    stage_latest_xray
     omega_raw_fetch /usr/bin/x-ui-temp x-ui.sh
     if [[ ! -s /usr/bin/x-ui-temp ]]; then
         echo -e "${red}Failed to download x-ui.sh${plain}"

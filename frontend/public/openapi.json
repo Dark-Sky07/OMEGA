@@ -3326,7 +3326,7 @@
         "tags": [
           "Server"
         ],
-        "summary": "Return the single pinned Xray-core release available for install on this host.",
+        "summary": "Check GitHub for the highest compatible Xray-core release available for this host.",
         "operationId": "get_panel_api_server_getXrayVersion",
         "responses": {
           "200": {
@@ -4094,14 +4094,14 @@
         "tags": [
           "Server"
         ],
-        "summary": "Download and install the pinned Xray-core release v26.9.9.",
+        "summary": "Download, verify, and install the latest compatible Xray-core release; failed updates roll back automatically.",
         "operationId": "post_panel_api_server_installXray_version",
         "parameters": [
           {
             "name": "version",
             "in": "path",
             "required": true,
-            "description": "Pinned Xray tag: v26.9.9.",
+            "description": "Version tag returned by getXrayVersion; the server accepts only the current compatible release.",
             "schema": {
               "type": "string"
             }

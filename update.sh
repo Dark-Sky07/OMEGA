@@ -67,7 +67,7 @@ arch() {
 
 echo "Arch: $(arch)"
 
-# Resolve and stage the pinned, tested Xray-core before stopping the panel.
+# Resolve and stage the current Xray-core before stopping the panel.
 # This keeps failures observable and prevents a broken download from replacing
 # the currently installed core.
 xray_update_archive=""
@@ -92,20 +92,21 @@ update_db_snapshot=""
 update_db_snapshot_dir=""
 update_db_snapshot_ready=0
 update_defer_service_start=0
-resolve_pinned_xray_version() {
-    # Keep the installer on the exact core validated for this OMEGA release.
-    # This must not follow /latest: a future core can change config semantics
-    # and an older bundled binary must never be silently retained.
-    local tag="v26.9.9"
-    if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        return 1
-    fi
-    printf '%s\n' "$tag"
+resolve_latest_xray_version() {
+    local releases version
+    releases="$(curl -4fsSL --retry 3 --connect-timeout 10 "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=100")" || return 1
+    version="$(printf '%s\n' "$releases" \
+        | grep -oE '"tag_name"[[:space:]]*:[[:space:]]*"v[0-9]+\.[0-9]+\.[0-9]+"' \
+        | sed -E 's/.*"(v[0-9]+\.[0-9]+\.[0-9]+)"/\1/' \
+        | sort -V \
+        | tail -n 1)"
+    [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || return 1
+    printf '%s\n' "$version"
 }
 
-stage_pinned_xray() {
+stage_latest_xray() {
     local xray_arch archive_url
-    xray_update_version=$(resolve_pinned_xray_version) || _fail "ERROR: Failed to resolve pinned Xray-core v26.9.9."
+    xray_update_version="${OMEGA_XRAY_VERSION:-$(resolve_latest_xray_version)}" || _fail "ERROR: Failed to resolve the latest Xray-core release."
     case "$(arch)" in
         amd64) xray_arch="64" ;;
         386) xray_arch="32" ;;
@@ -128,7 +129,7 @@ stage_pinned_xray() {
         xray_update_archive=""
         _fail "ERROR: Downloaded Xray-core archive is invalid; panel update aborted safely."
     fi
-    echo -e "${green}Staged pinned Xray-core ${xray_update_version}${plain}"
+    echo -e "${green}Staged latest Xray-core ${xray_update_version}${plain}"
 }
 
 install_staged_xray() {
@@ -1395,11 +1396,11 @@ update_x-ui() {
     update_transaction_active=1
     trap 'rollback_update' EXIT
 
-    stage_pinned_xray
+    stage_latest_xray
     if ! stage_update_assets; then
         _fail "ERROR: Failed to stage x-ui ${tag_version}; the existing installation was not touched."
     fi
-    echo -e "${green}Validated panel archive and pinned Xray-core ${xray_update_version}; committing the staged installation...${plain}"
+    echo -e "${green}Validated panel archive and latest Xray-core ${xray_update_version}; committing the staged installation...${plain}"
 
     if ! commit_update_transaction; then
         _fail "ERROR: Failed to activate x-ui ${tag_version}; rollback completed."

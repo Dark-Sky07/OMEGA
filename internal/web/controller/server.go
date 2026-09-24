@@ -185,7 +185,7 @@ func (a *ServerController) getXrayObservatoryHistoryBucket(c *gin.Context) {
 }
 
 func (a *ServerController) getXrayVersion(c *gin.Context) {
-	versions, err := a.serverService.GetXrayVersionsCached()
+	versions, err := a.serverService.GetXrayVersionsCached(c.Query("refresh") == "1")
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "getVersion"), err)
 		return
