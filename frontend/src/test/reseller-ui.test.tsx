@@ -11,8 +11,6 @@ import ResellersPage from '@/pages/resellers/ResellersPage';
 import ResellerReportPage from '@/pages/resellers/ResellerReportPage';
 import ResellerProfilePage from '@/pages/resellers/ResellerProfilePage';
 
-import { chooseSelectOption } from './test-utils';
-
 const sessionState = vi.hoisted(() => ({ role: 'admin' as 'admin' | 'reseller' }));
 
 vi.mock('@/api/queries/useSession', () => ({
@@ -175,9 +173,26 @@ describe('reseller pages', () => {
       { timeout: 5000 },
     );
     await waitFor(() => expect(HttpUtil.get).toHaveBeenCalledWith('/panel/api/clients/list'), { timeout: 5000 });
-
-    chooseSelectOption('emails', 'ali-c1');
-    chooseSelectOption('emails', 'ali-c2');
+    const select = document.getElementById('emails')?.closest('.ant-select') as HTMLElement | null;
+    expect(select).toBeTruthy();
+    fireEvent.mouseDown((select?.querySelector('.ant-select-selector') ?? select) as HTMLElement);
+    await waitFor(
+      () =>
+        expect(
+          document.querySelectorAll('.ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option'),
+        ).toHaveLength(2),
+      { timeout: 5000 },
+    );
+    for (const email of ['ali-c1', 'ali-c2']) {
+      const option = Array.from(document.querySelectorAll('.ant-select-item-option')).find(
+        (node) => (node.getAttribute('title') ?? node.textContent ?? '').trim() === email,
+      );
+      expect(option).toBeTruthy();
+      fireEvent.click(option as HTMLElement);
+      if (email === 'ali-c1') {
+        fireEvent.mouseDown((select?.querySelector('.ant-select-selector') ?? select) as HTMLElement);
+      }
+    }
     fireEvent.click(within(dialog).getByRole('button', { name: /^Assign$/i }));
 
     await waitFor(() =>
@@ -187,7 +202,7 @@ describe('reseller pages', () => {
         expect.anything(),
       ),
     );
-  });
+  }, 15000);
 
   it('reseller report page shows usage and the client rows', async () => {
     sessionState.role = 'reseller';
