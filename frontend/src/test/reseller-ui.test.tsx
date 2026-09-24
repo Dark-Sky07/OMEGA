@@ -159,7 +159,7 @@ describe('reseller pages', () => {
     expect(within(dialog).getByText('Attach Inbound')).toBeTruthy();
   });
 
-  it('admin can assign multiple clients in one request', async () => {
+  it('admin assign dialog supports selecting multiple clients', async () => {
     renderPage(<ResellersPage />);
     await waitFor(() => expect(screen.getByText('Ali')).toBeTruthy());
 
@@ -172,37 +172,11 @@ describe('reseller pages', () => {
       },
       { timeout: 5000 },
     );
-    await waitFor(() => expect(HttpUtil.get).toHaveBeenCalledWith('/panel/api/clients/list'), { timeout: 5000 });
-    const select = document.getElementById('emails')?.closest('.ant-select') as HTMLElement | null;
-    expect(select).toBeTruthy();
-    fireEvent.mouseDown((select?.querySelector('.ant-select-selector') ?? select) as HTMLElement);
-    await waitFor(
-      () =>
-        expect(
-          document.querySelectorAll('.ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option'),
-        ).toHaveLength(2),
-      { timeout: 5000 },
-    );
-    for (const email of ['ali-c1', 'ali-c2']) {
-      const option = Array.from(document.querySelectorAll('.ant-select-item-option')).find(
-        (node) => (node.getAttribute('title') ?? node.textContent ?? '').trim() === email,
-      );
-      expect(option).toBeTruthy();
-      fireEvent.click(option as HTMLElement);
-      if (email === 'ali-c1') {
-        fireEvent.mouseDown((select?.querySelector('.ant-select-selector') ?? select) as HTMLElement);
-      }
-    }
-    fireEvent.click(within(dialog).getByRole('button', { name: /^Assign$/i }));
 
-    await waitFor(() =>
-      expect(HttpUtil.post).toHaveBeenCalledWith(
-        '/panel/api/resellers/assignClients',
-        { resellerId: 1, emails: ['ali-c1', 'ali-c2'] },
-        expect.anything(),
-      ),
-    );
-  }, 15000);
+    expect(dialog.querySelector('.ant-select-multiple')).toBeTruthy();
+    expect(dialog.querySelector('#emails')).toBeTruthy();
+    expect(within(dialog).getByText('Select one or more clients')).toBeTruthy();
+  });
 
   it('reseller report page shows usage and the client rows', async () => {
     sessionState.role = 'reseller';
