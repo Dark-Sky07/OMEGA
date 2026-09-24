@@ -18,7 +18,7 @@ English · [فارسی](README.fa_IR.md)
 **Install the latest OMEGA release in one line** — on a fresh server, as `root`:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install
 ```
 
 This stable launcher resolves the newest GitHub release automatically; use a tagged `install-omega.sh` URL below when you need a reproducible version.
@@ -103,7 +103,7 @@ For Docker, the container needs `NET_ADMIN`, `NET_RAW`, `/dev/ppp`, `/dev/net/tu
 On a fresh server, as **root**:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install
 ```
 
 Pin a specific release instead (useful before a branch is merged):

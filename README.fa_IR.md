@@ -18,7 +18,7 @@
 **نصب آخرین release OMEGA با یک دستور** — روی سرور تازه، با کاربر `root`:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install
 ```
 
 این launcher پایدار همیشه جدیدترین release گیت‌هاب را پیدا و نصب می‌کند؛ برای نصب reproducible نسخه‌ی مشخص، از لینک tag‌شده‌ی پایین استفاده کنید.
@@ -92,7 +92,7 @@ L2TP/IPsec daemon سیستم‌عامل است و بخشی از Xray نیست. i
 روی سرور تازه، با کاربر **root**:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install
 ```
 
 اگر می‌خواهید نسخه‌ی مشخصی نصب شود (مثلاً قبل از merge شدن شاخه‌ی اصلی):
