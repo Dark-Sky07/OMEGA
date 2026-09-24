@@ -288,6 +288,10 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 // makes it compute its own (the single-add path).
 func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model.Inbound, emailSubIDs map[string]string) (bool, error) {
 	defer lockInbound(data.Id).Unlock()
+	if data.Protocol == model.WireGuard || data.Protocol == model.AmneziaWG {
+		tunnelAddressMutationMu.Lock()
+		defer tunnelAddressMutationMu.Unlock()
+	}
 
 	clients, err := inboundSvc.GetClients(data)
 	if err != nil {

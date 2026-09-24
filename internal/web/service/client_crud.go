@@ -383,6 +383,12 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		if nr {
 			needRestart = true
 		}
+		if ips, ok := updated.AllowedIPsByInbound[ibId]; ok &&
+			(inbound.Protocol == model.WireGuard || inbound.Protocol == model.AmneziaWG) {
+			if err := s.persistTunnelAllowedIPs(inboundSvc, ibId, existing.Email, ips); err != nil {
+				return needRestart, err
+			}
+		}
 	}
 
 	reverseStr := ""

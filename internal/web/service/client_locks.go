@@ -23,6 +23,14 @@ var (
 	inboundMutationLocksMu sync.Mutex
 	inboundMutationLocks   = map[int]*sync.Mutex{}
 
+	// Tunnel address allocation spans inbounds. Per-inbound locks alone allow
+	// two concurrent creates to observe the same free AllowedIPs value on
+	// different inbounds and both claim it before either transaction commits.
+	// Keep this short-lived process lock around the add path; the database
+	// remains the durable source of truth, while this closes the in-process
+	// race tested by the CRUD API.
+	tunnelAddressMutationMu sync.Mutex
+
 	// resellerScopeMutationMu serializes reseller ownership changes with
 	// reseller-scoped client mutations. The database checks in a controller
 	// are only a snapshot; keeping the service-level check and mutation under
