@@ -287,6 +287,7 @@ func (s *InboundService) MigrationRequirements() (err error) {
 	if err != nil {
 		return
 	}
+	return
 }
 
 func (s *InboundService) MigrateDB() error {
