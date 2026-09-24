@@ -511,6 +511,8 @@ func (s *SubService) GetLink(inbound *model.Inbound, email string) string {
 		return s.genHysteriaLink(inbound, email)
 	case "mtproto":
 		return s.genMtprotoLink(inbound, email)
+	case model.AmneziaWG:
+		return s.genAmneziaWGLink(inbound, email)
 	}
 	return ""
 }
