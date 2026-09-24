@@ -174,7 +174,7 @@ export const EXAMPLES: Record<string, unknown> = {
   },
   "AmneziaWGLogs": {
     "events": [
-      "amneziawg: started interface awg1"
+      "2025/01/01 12:00:00 amneziawg: started interface awg1 for inbound 1"
     ],
     "peers": [
       {
@@ -207,6 +207,10 @@ export const EXAMPLES: Record<string, unknown> = {
     "token": "new-token-string"
   },
   "Client": {
+    "allowedIPs": [
+      ""
+    ],
+    "allowedIPsByInbound": {},
     "auth": "",
     "comment": "",
     "created_at": 0,
@@ -214,10 +218,15 @@ export const EXAMPLES: Record<string, unknown> = {
     "enable": false,
     "expiryTime": 0,
     "flow": "",
+    "forwardedPorts": "",
     "group": "",
     "id": "",
+    "keepAlive": 0,
     "limitIp": 0,
     "password": "",
+    "preSharedKey": "",
+    "privateKey": "",
+    "publicKey": "",
     "reset": 0,
     "reverse": null,
     "security": "",
@@ -233,6 +242,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "inboundId": 0
   },
   "ClientRecord": {
+    "allowedIPs": "",
     "auth": "",
     "comment": "",
     "createdAt": 0,
@@ -240,10 +250,15 @@ export const EXAMPLES: Record<string, unknown> = {
     "enable": false,
     "expiryTime": 0,
     "flow": "",
+    "forwardedPorts": "",
     "group": "",
     "id": 0,
+    "keepAlive": 0,
     "limitIp": 0,
     "password": "",
+    "preSharedKey": "",
+    "privateKey": "",
+    "publicKey": "",
     "reset": 0,
     "reverse": null,
     "security": "",

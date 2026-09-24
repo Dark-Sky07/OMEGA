@@ -883,8 +883,12 @@
         "type": "object"
       },
       "AmneziaWGLogs": {
+        "description": "AmneziaWGLogs is what the overview's AmneziaWG log view renders: the live\nper-peer activity of every running embedded interface, plus the panel's\nown recent AmneziaWG lifecycle log lines that explain a peer being absent\nfrom Peers at all.",
         "properties": {
           "events": {
+            "example": [
+              "2025/01/01 12:00:00 amneziawg: started interface awg1 for inbound 1"
+            ],
             "items": {
               "type": "string"
             },
@@ -897,6 +901,7 @@
             "type": "array"
           },
           "running": {
+            "example": true,
             "type": "boolean"
           }
         },
@@ -969,6 +974,21 @@
       "Client": {
         "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
         "properties": {
+          "allowedIPs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "allowedIPsByInbound": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "object"
+          },
           "auth": {
             "description": "Auth password (Hysteria)",
             "type": "string"
@@ -997,6 +1017,9 @@
             "description": "Flow control (XTLS)",
             "type": "string"
           },
+          "forwardedPorts": {
+            "type": "string"
+          },
           "group": {
             "description": "Logical grouping label",
             "type": "string"
@@ -1005,12 +1028,25 @@
             "description": "Unique client identifier",
             "type": "string"
           },
+          "keepAlive": {
+            "type": "integer"
+          },
           "limitIp": {
             "description": "IP limit for this client",
             "type": "integer"
           },
           "password": {
             "description": "Client password",
+            "type": "string"
+          },
+          "preSharedKey": {
+            "type": "string"
+          },
+          "privateKey": {
+            "description": "Native WireGuard/AmneziaWG peer material. These fields remain optional\nfor the other Xray protocols and are persisted with the shared client\nrecord so one client identity can be attached to several inbounds.",
+            "type": "string"
+          },
+          "publicKey": {
             "type": "string"
           },
           "reset": {
@@ -1086,6 +1122,9 @@
       },
       "ClientRecord": {
         "properties": {
+          "allowedIPs": {
+            "type": "string"
+          },
           "auth": {
             "type": "string"
           },
@@ -1107,16 +1146,31 @@
           "flow": {
             "type": "string"
           },
+          "forwardedPorts": {
+            "type": "string"
+          },
           "group": {
             "type": "string"
           },
           "id": {
             "type": "integer"
           },
+          "keepAlive": {
+            "type": "integer"
+          },
           "limitIp": {
             "type": "integer"
           },
           "password": {
+            "type": "string"
+          },
+          "preSharedKey": {
+            "type": "string"
+          },
+          "privateKey": {
+            "type": "string"
+          },
+          "publicKey": {
             "type": "string"
           },
           "reset": {
@@ -1143,6 +1197,7 @@
           }
         },
         "required": [
+          "allowedIPs",
           "auth",
           "comment",
           "createdAt",
@@ -1150,10 +1205,15 @@
           "enable",
           "expiryTime",
           "flow",
+          "forwardedPorts",
           "group",
           "id",
+          "keepAlive",
           "limitIp",
           "password",
+          "preSharedKey",
+          "privateKey",
+          "publicKey",
           "reset",
           "reverse",
           "security",
@@ -1341,6 +1401,7 @@
               "trojan",
               "shadowsocks",
               "wireguard",
+              "amneziawg",
               "hysteria",
               "http",
               "mixed",
@@ -1857,35 +1918,47 @@
         "type": "object"
       },
       "PeerActivity": {
+        "description": "PeerActivity is one peer's live embedded-Device-reported state, the\ncounterpart of an Xray access-log entry: a tunnel logs no requests, only\nhandshakes and bytes.",
         "properties": {
           "allowedIPs": {
+            "example": "10.8.1.2/32",
             "type": "string"
           },
           "down": {
+            "example": 4194304,
             "type": "integer"
           },
           "email": {
+            "example": "peer@example.com",
             "type": "string"
           },
           "endpoint": {
+            "example": "203.0.113.9:51820",
             "type": "string"
           },
           "handshake": {
+            "description": "Handshake is unix milliseconds, 0 when the peer has never connected.",
+            "example": 1735732800000,
             "type": "integer"
           },
           "inboundId": {
+            "example": 1,
             "type": "integer"
           },
           "interface": {
+            "example": "awg1",
             "type": "string"
           },
           "online": {
+            "example": true,
             "type": "boolean"
           },
           "tag": {
+            "example": "inbound-51820",
             "type": "string"
           },
           "up": {
+            "example": 1048576,
             "type": "integer"
           }
         },
@@ -1959,6 +2032,7 @@
         "type": "object"
       },
       "ServerSettings": {
+        "description": "ServerSettings is the \"server\" block of an AmneziaWG inbound's Settings\nJSON: the interface-level configuration shared by every client/peer. The\nlisten port is deliberately not duplicated here — it lives on the inbound\nrow itself (Inbound.Port), like every other protocol.",
         "properties": {
           "contentPaddingAddition": {
             "type": "string"
@@ -1967,6 +2041,7 @@
             "type": "boolean"
           },
           "externalInterface": {
+            "description": "ExternalInterface, IPv6Enabled, and IPv6ExternalInterface are live\nagain as of Phase 3.5 -- see the matching fields on Instance for what\nthey gate (internal/amneziawgnet's IPv6-address-alias mechanism).\nIPv6Subnet was never actually vestigial either: InstanceFromInbound\nalready consumes it (via serverAddressV6) to build the server's own\ntunnel address, same as always. Only RouteThroughXray, below, remains\ngenuinely vestigial as of the hard cutover to the embedded path\n(internal/amneziawgnet) -- read from existing stored settings for\nbackward compatibility, but not acted on by anything.",
             "type": "string"
           },
           "h1": {
@@ -1982,6 +2057,7 @@
             "type": "string"
           },
           "headerProtectionKey": {
+            "description": "HeaderProtectionKey and ContentPaddingAddition are AmneziaWG 3.0\nfields, flat and top-level for the same tools/openapigen reason as\nthe block above; Obfuscation() below folds them back into\nObfuscation31's own identically named fields.\nHeaderProtectionKey is a base64 32-byte key; empty (the default)\ndisables AWG 3.0 header protection. A non-empty value requires\nevery one of S1-S4 above to be >= 12 -- ValidateObfuscation\nenforces this at save time, not just at IpcSet time.\nContentPaddingAddition is a \"low-high\" range or bare integer, the\nsame grammar and uint32 cap as H1-H4.",
             "type": "string"
           },
           "i1": {
@@ -2009,6 +2085,7 @@
             "type": "string"
           },
           "jc": {
+            "description": "Obfuscation31's fields, repeated flat (not embedded) rather than\nnested under their own key: encoding/json would happily inline an\nembedded Obfuscation31 the same way, but the frontend's Go->Zod/TS\ngenerator (tools/openapigen) does not — it emits a genuinely nested\n`obfuscation31` object, which would silently diverge from the real\nwire JSON. See Obfuscation() below for the manager-facing conversion.",
             "type": "integer"
           },
           "jmax": {
@@ -2027,6 +2104,7 @@
             "type": "integer"
           },
           "primaryDns": {
+            "description": "PrimaryDNS/SecondaryDNS seed client configs' DNS line. Blank is\nmeaningful, so no omitempty: a dropped key resurrects frontend defaults.",
             "type": "string"
           },
           "privateKey": {
@@ -2036,12 +2114,14 @@
             "type": "string"
           },
           "randomTrailers": {
+            "description": "RandomTrailers/DisableCookies mirror Instance's identically named\nAmneziaWG 3.1 fields -- see that type's own doc comment for the real\nprotocol/interop details. Both real bool fields (not omitempty):\nbuildUAPIConfig always emits both lines explicitly so the\nreconfigure-in-place diff correctly notices a true->false edit, not\njust false->true.",
             "type": "boolean"
           },
           "rejectAfterTime": {
             "type": "string"
           },
           "rekeyAfterTime": {
+            "description": "RekeyAfterTime/RekeyTimeout/RejectAfterTime/KeepaliveTimeout/\nMaxHandshakeAttempts mirror Instance's identically named fields --\nsee that type's own doc comment for the grammar/width/real-default\ndetails. Flat and top-level for the same tools/openapigen reason as\nthe rest of this struct.",
             "type": "string"
           },
           "rekeyTimeout": {
@@ -4640,7 +4720,7 @@
                   "success": true,
                   "obj": {
                     "events": [
-                      "amneziawg: started interface awg1"
+                      "2025/01/01 12:00:00 amneziawg: started interface awg1 for inbound 1"
                     ],
                     "peers": [
                       {
