@@ -11,6 +11,8 @@ import ResellersPage from '@/pages/resellers/ResellersPage';
 import ResellerReportPage from '@/pages/resellers/ResellerReportPage';
 import ResellerProfilePage from '@/pages/resellers/ResellerProfilePage';
 
+import { chooseSelectOption } from './test-utils';
+
 const sessionState = vi.hoisted(() => ({ role: 'admin' as 'admin' | 'reseller' }));
 
 vi.mock('@/api/queries/useSession', () => ({
@@ -82,7 +84,12 @@ describe('reseller pages', () => {
       if (url === '/panel/api/inbounds/list/slim') {
         return [{ id: 1, remark: 'res-inb', port: 12001, protocol: 'vless', enable: true }];
       }
-      if (url === '/panel/api/clients/list') return [{ email: 'ali-c1', totalGB: 10737418240 }];
+      if (url === '/panel/api/clients/list') {
+        return [
+          { email: 'ali-c1', totalGB: 10737418240 },
+          { email: 'ali-c2', totalGB: 21474836480 },
+        ];
+      }
       if (url === '/panel/api/reseller/report' || url === '/panel/api/resellers/report/1') {
         return {
           stat: statFixture,
@@ -154,6 +161,33 @@ describe('reseller pages', () => {
     expect(within(dialog).getByText('Attach Inbound')).toBeTruthy();
   });
 
+  it('admin can assign multiple clients in one request', async () => {
+    renderPage(<ResellersPage />);
+    await waitFor(() => expect(screen.getByText('Ali')).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: /Assign client/i }));
+    const dialog = await waitFor(
+      () => {
+        const el = document.querySelector('.ant-modal');
+        if (!el) throw new Error('modal not open');
+        return el as HTMLElement;
+      },
+      { timeout: 5000 },
+    );
+
+    chooseSelectOption('emails', 'ali-c1');
+    chooseSelectOption('emails', 'ali-c2');
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Assign$/i }));
+
+    await waitFor(() =>
+      expect(HttpUtil.post).toHaveBeenCalledWith(
+        '/panel/api/resellers/assignClients',
+        { resellerId: 1, emails: ['ali-c1', 'ali-c2'] },
+        expect.anything(),
+      ),
+    );
+  });
+
   it('reseller report page shows usage and the client rows', async () => {
     sessionState.role = 'reseller';
     renderPage(<ResellerReportPage />);
@@ -202,7 +236,7 @@ describe('reseller pages', () => {
       'POST /panel/api/resellers/resetPassword/:id',
       'POST /panel/api/resellers/assignInbound',
       'POST /panel/api/resellers/unassignInbound',
-      'POST /panel/api/resellers/assignClient',
+      'POST /panel/api/resellers/assignClients',
       'POST /panel/api/resellers/unassignClient',
       'GET /panel/api/reseller/profile',
       'GET /panel/api/reseller/report',

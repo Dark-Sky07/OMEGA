@@ -1844,8 +1844,9 @@
     "owner": "Owner",
     "noOwner": "Admin",
     "assignClient": "Assign client",
+    "selectClients": "Select one or more clients",
     "assign": "Assign",
-    "assignClientHint": "Explicitly assigned clients stay with the reseller even if their inbound is not assigned.",
+    "assignClientHint": "Select as many clients as needed, then save once to assign them all. Explicitly assigned clients stay with the reseller even if their inbound is not assigned.",
     "noAssignedClients": "No explicitly assigned clients",
     "unassign": "Remove",
     "balance": "Balance",
@@ -1904,6 +1905,7 @@
       "balanceUpdated": "Balance updated",
       "passwordReset": "Password reset. The reseller must log in again.",
       "clientAssigned": "Client assigned",
+      "clientsAssigned": "Clients assigned",
       "clientUnassigned": "Client unassigned",
       "passwordChanged": "Password changed"
     },
