@@ -84,6 +84,16 @@ jobs:
       - name: Regenerate schemas, examples and OpenAPI
         run: npm run gen
         working-directory: frontend
+      # Temporary diagnostic artifact while generated outputs are being
+      # reconciled locally; remove after the first green regeneration run.
+      - name: Upload regenerated API files
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: generated-api-${{ github.sha }}
+          path: |
+            frontend/src/generated
+            frontend/public/openapi.json
       - name: Fail if generated files are stale (run 'npm run gen' and commit)
         run: git diff --exit-code -- frontend/src/generated frontend/public/openapi.json
 
