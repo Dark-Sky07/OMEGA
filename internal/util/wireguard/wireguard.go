@@ -29,6 +29,17 @@ func GenerateWireguardKeypair() (privateKey string, publicKey string, err error)
 // 32-byte private key. Keeping this beside GenerateWireguardKeypair makes
 // imported/partially-filled native tunnel clients deterministic without ever
 // rotating a supplied private key.
+// GenerateWireguardPSK generates a random 32-byte base64 key for a
+// WireGuard preshared or AmneziaWG header-protection field. Unlike a private
+// key it is not clamped before encoding.
+func GenerateWireguardPSK() (string, error) {
+	var key [32]byte
+	if _, err := rand.Read(key[:]); err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(key[:]), nil
+}
+
 func PublicKeyFromPrivate(privateKey string) (string, error) {
 	decoded, err := base64.StdEncoding.DecodeString(privateKey)
 	if err != nil {
