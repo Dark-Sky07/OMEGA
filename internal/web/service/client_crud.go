@@ -246,17 +246,23 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		return false, err
 	}
 	if len(inboundFilter) > 0 {
+		// Older callers pass a zero sentinel for the unscoped/admin update
+		// path. Treat it as omitted; only positive ids form an actual filter.
 		allow := make(map[int]struct{}, len(inboundFilter))
 		for _, fid := range inboundFilter {
-			allow[fid] = struct{}{}
-		}
-		filtered := inboundIds[:0:0]
-		for _, ibId := range inboundIds {
-			if _, ok := allow[ibId]; ok {
-				filtered = append(filtered, ibId)
+			if fid > 0 {
+				allow[fid] = struct{}{}
 			}
 		}
-		inboundIds = filtered
+		if len(allow) > 0 {
+			filtered := inboundIds[:0:0]
+			for _, ibId := range inboundIds {
+				if _, ok := allow[ibId]; ok {
+					filtered = append(filtered, ibId)
+				}
+			}
+			inboundIds = filtered
+		}
 	}
 
 	updated.Email = strings.TrimSpace(updated.Email)

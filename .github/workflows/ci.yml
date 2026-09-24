@@ -109,9 +109,9 @@ jobs:
           ]
           for path in files:
               encoded = base64.b64encode(path.read_bytes()).decode()
-              for index in range(0, len(encoded), 24000):
-                  chunk = encoded[index:index + 24000]
-                  part = index // 24000
+              for index in range(0, len(encoded), 3000):
+                  chunk = encoded[index:index + 3000]
+                  part = index // 3000
                   print(f'::error file={path},line={part + 1},title=generated-{part}::{chunk}')
           PY
       - name: Fail if generated files are stale (run 'npm run gen' and commit')
