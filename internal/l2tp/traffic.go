@@ -32,6 +32,10 @@ type interfaceCounter struct {
 	tx int64
 }
 
+// l2tpSysClassNetRoot is a variable so filesystem accounting tests can use a
+// temporary interface tree. Production always points at Linux sysfs.
+var l2tpSysClassNetRoot = "/sys/class/net"
+
 func sessionDirForID(id int) string {
 	return filepath.Join(dataDirForID(id), "sessions")
 }
@@ -50,35 +54,41 @@ func validInterfaceName(name string) bool {
 	return true
 }
 
-func readCounter(path string) int64 {
-	file, err := os.Open(path)
+const maxInterfaceCounter = int64(^uint64(0) >> 1)
+
+func readCounter(path string) (int64, bool) {
+	contents, err := os.ReadFile(path)
 	if err != nil {
-		return 0
+		return 0, false
 	}
-	defer file.Close()
-	line, err := bufio.NewReader(file).ReadString('\n')
-	if err != nil && len(line) == 0 {
-		return 0
+	value, parseErr := strconv.ParseUint(strings.TrimSpace(string(contents)), 10, 64)
+	if parseErr != nil {
+		return 0, false
 	}
-	value, parseErr := strconv.ParseInt(strings.TrimSpace(line), 10, 64)
-	if parseErr != nil || value < 0 {
-		return 0
+	// Linux exposes unsigned 64-bit counters while the panel traffic model is
+	// signed. Saturating at MaxInt64 is safer than wrapping into a negative
+	// value and lets the next lower counter be treated as a reset.
+	if value > uint64(maxInterfaceCounter) {
+		return maxInterfaceCounter, true
 	}
-	return value
+	return int64(value), true
 }
 
-func readInterfaceCounter(iface string) interfaceCounter {
-	base := filepath.Join("/sys/class/net", iface, "statistics")
-	return interfaceCounter{
-		rx: readCounter(filepath.Join(base, "rx_bytes")),
-		tx: readCounter(filepath.Join(base, "tx_bytes")),
-	}
+func readInterfaceCounter(iface string) (interfaceCounter, bool) {
+	base := filepath.Join(l2tpSysClassNetRoot, iface, "statistics")
+	rx, rxOK := readCounter(filepath.Join(base, "rx_bytes"))
+	tx, txOK := readCounter(filepath.Join(base, "tx_bytes"))
+	return interfaceCounter{rx: rx, tx: tx}, rxOK && txOK
 }
 
-func readSessions(id int) map[string]interfaceCounter {
+func readSessions(id int) (map[string]interfaceCounter, bool) {
 	entries, err := os.ReadDir(sessionDirForID(id))
 	if err != nil {
-		return nil
+		if os.IsNotExist(err) {
+			// No marker directory is the normal no-active-session state.
+			return map[string]interfaceCounter{}, true
+		}
+		return nil, false
 	}
 	out := make(map[string]interfaceCounter, len(entries))
 	for _, entry := range entries {
@@ -100,12 +110,28 @@ func readSessions(id int) map[string]interfaceCounter {
 			continue
 		}
 		// A stale ip-up file must not make an offline client appear online.
-		if _, err := os.Stat(filepath.Join("/sys/class/net", entry.Name())); err != nil {
+		if _, err := os.Stat(filepath.Join(l2tpSysClassNetRoot, entry.Name())); err != nil {
 			continue
 		}
-		out[entry.Name()+"\x00"+email] = readInterfaceCounter(entry.Name())
+		counter, ok := readInterfaceCounter(entry.Name())
+		if !ok {
+			// Do not turn a temporarily unreadable counter into a zero delta;
+			// that would discard the baseline and double-count the next poll.
+			return nil, false
+		}
+		out[entry.Name()+"\x00"+email] = counter
 	}
-	return out
+	return out, true
+}
+
+func saturatingCounterAdd(current, delta int64) int64 {
+	if delta <= 0 {
+		return current
+	}
+	if current >= maxInterfaceCounter-delta {
+		return maxInterfaceCounter
+	}
+	return current + delta
 }
 
 func addDelta(dst map[string]ClientTrafficDelta, id int, email string, up, down int64) {
@@ -115,8 +141,8 @@ func addDelta(dst map[string]ClientTrafficDelta, id int, email string, up, down 
 	item := dst[email]
 	item.InboundId = id
 	item.Email = email
-	item.Up += up
-	item.Down += down
+	item.Up = saturatingCounterAdd(item.Up, up)
+	item.Down = saturatingCounterAdd(item.Down, down)
 	dst[email] = item
 }
 

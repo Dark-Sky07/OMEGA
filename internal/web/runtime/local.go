@@ -10,6 +10,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
+	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
@@ -46,6 +47,12 @@ func (l *Local) withAPI(fn func(api *xray.XrayAPI) error) error {
 }
 
 func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
+	if ib.Protocol == model.OpenVPN {
+		// OpenVPN is reconciled by the standalone daemon job. Do not send its
+		// panel model to the Xray API; the next job tick will start it from the
+		// committed database state.
+		return nil
+	}
 	if ib.Protocol == model.MTProto {
 		inst, ok := mtproto.InstanceFromInbound(ib)
 		if !ok {
@@ -70,6 +77,10 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 }
 
 func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
+	if ib.Protocol == model.OpenVPN {
+		openvpn.GetManager().Remove(ib.Id)
+		return nil
+	}
 	if ib.Protocol == model.MTProto {
 		mtproto.GetManager().Remove(ib.Id)
 		return nil
@@ -84,6 +95,22 @@ func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 }
 
 func (l *Local) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
+	if oldIb.Protocol == model.OpenVPN && newIb.Protocol == model.OpenVPN {
+		// The OpenVPN job owns daemon restarts and reads the committed DB
+		// snapshot, so an edit or enable toggle must not stop a live daemon.
+		return nil
+	}
+	if oldIb.Protocol == model.OpenVPN || newIb.Protocol == model.OpenVPN {
+		// A protocol conversion still has to remove the old runtime, but the
+		// OpenVPN side must never be sent to the Xray API.
+		if err := l.DelInbound(ctx, oldIb); err != nil {
+			return err
+		}
+		if !newIb.Enable {
+			return nil
+		}
+		return l.AddInbound(ctx, newIb)
+	}
 	_ = l.DelInbound(ctx, oldIb)
 	if !newIb.Enable {
 		return nil
@@ -92,7 +119,7 @@ func (l *Local) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound) 
 }
 
 func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string]any) error {
-	if ib.Protocol == model.MTProto || ib.Protocol == model.L2TP {
+	if ib.Protocol == model.OpenVPN || ib.Protocol == model.MTProto || ib.Protocol == model.L2TP {
 		return nil
 	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
@@ -101,7 +128,7 @@ func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string
 }
 
 func (l *Local) RemoveUser(_ context.Context, ib *model.Inbound, email string) error {
-	if ib.Protocol == model.MTProto || ib.Protocol == model.L2TP {
+	if ib.Protocol == model.OpenVPN || ib.Protocol == model.MTProto || ib.Protocol == model.L2TP {
 		return nil
 	}
 	return l.withAPI(func(api *xray.XrayAPI) error {

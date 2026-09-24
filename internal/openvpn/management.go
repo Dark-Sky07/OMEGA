@@ -2,8 +2,10 @@ package openvpn
 
 import (
 	"bufio"
+	"encoding/csv"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"strconv"
 	"strings"
@@ -19,11 +21,251 @@ type clientCounters struct {
 	Tx int64
 }
 
-// clientList queries the daemon's management interface (CLIENT_LIST) and
-// returns the current connected clients keyed by common name, with their
-// cumulative byte counters. A timeout or parse failure returns an error; an
-// idle (no clients) daemon yields an empty map, not an error.
-func clientList(mgmtPort int) (map[string]clientCounters, error) {
+// clientListLayout describes the columns in a CSV CLIENT_LIST response. The
+// management interface has emitted more than one status format over the
+// lifetime of OpenVPN: some versions use a comma-separated response with a
+// HEADER row, while older versions use space-separated rows. Keep the offsets
+// relative to the first data column because a HEADER row may start with
+// `HEADER,CLIENT_LIST` while data rows start with `CLIENT_LIST`.
+type clientListLayout struct {
+	name int
+	rx   int
+	tx   int
+}
+
+func normalizedColumn(value string) string {
+	return strings.ToLower(strings.TrimSpace(value))
+}
+
+func csvFields(line string) ([]string, error) {
+	reader := csv.NewReader(strings.NewReader(line))
+	reader.FieldsPerRecord = -1
+	reader.TrimLeadingSpace = true
+	return reader.Read()
+}
+
+// clientListLayoutFromHeader recognises both
+//
+//	CLIENT_LIST,Common Name,...,Bytes Received,Bytes Sent,...
+//
+// and
+//
+//	HEADER,CLIENT_LIST,Common Name,...,Bytes Received,Bytes Sent,...
+//
+// forms used by OpenVPN status/management replies.
+func clientListLayoutFromHeader(fields []string) (clientListLayout, bool) {
+	base := 0
+	if len(fields) > 0 && normalizedColumn(fields[0]) == "header" {
+		if len(fields) < 2 || normalizedColumn(fields[1]) != "client_list" {
+			return clientListLayout{}, false
+		}
+		base = 2
+	} else if len(fields) > 0 && normalizedColumn(fields[0]) == "client_list" {
+		base = 1
+	}
+
+	layout := clientListLayout{name: -1, rx: -1, tx: -1}
+	for i := base; i < len(fields); i++ {
+		switch normalizedColumn(fields[i]) {
+		case "common name", "common_name", "cn":
+			layout.name = i - base
+		case "bytes received", "bytes_received", "bytes rx", "rx":
+			layout.rx = i - base
+		case "bytes sent", "bytes_sent", "bytes tx", "tx":
+			layout.tx = i - base
+		}
+	}
+	if layout.name < 0 || layout.rx < 0 || layout.tx < 0 {
+		return clientListLayout{}, false
+	}
+	return layout, true
+}
+
+const maxManagementCounter = int64(^uint64(0) >> 1)
+
+func parseManagementCounter(raw string) (int64, error) {
+	value, err := strconv.ParseUint(strings.TrimSpace(raw), 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	if value > uint64(maxManagementCounter) {
+		return maxManagementCounter, nil
+	}
+	return int64(value), nil
+}
+
+func saturatingManagementAdd(current, delta int64) int64 {
+	if delta <= 0 {
+		return current
+	}
+	if current >= maxManagementCounter-delta {
+		return maxManagementCounter
+	}
+	return current + delta
+}
+
+func parseCounterPair(fields []string, start int) (clientCounters, bool) {
+	// In a status-version-2 row the virtual IPv6 column may be empty. Looking
+	// for the first pair of numeric columns after the address fields handles
+	// both the version-1 and version-2 layouts without mistaking the later
+	// client-id/peer-id fields for traffic counters.
+	for i := start; i+1 < len(fields) && i < start+7; i++ {
+		rx, errRx := parseManagementCounter(fields[i])
+		tx, errTx := parseManagementCounter(fields[i+1])
+		if errRx == nil && errTx == nil && rx >= 0 && tx >= 0 {
+			return clientCounters{Rx: rx, Tx: tx}, true
+		}
+	}
+	return clientCounters{}, false
+}
+
+func parseCSVClientRow(fields []string, layout *clientListLayout) (string, clientCounters, bool) {
+	if len(fields) == 0 {
+		return "", clientCounters{}, false
+	}
+
+	// A header can be prefixed with HEADER,CLIENT_LIST, whereas a data row is
+	// normally prefixed with CLIENT_LIST. Convert the relative layout to the
+	// current row's base before indexing it.
+	base := 0
+	if normalizedColumn(fields[0]) == "client_list" {
+		base = 1
+	} else if normalizedColumn(fields[0]) == "header" {
+		return "", clientCounters{}, false
+	}
+	if layout != nil {
+		nameIndex := base + layout.name
+		rxIndex := base + layout.rx
+		txIndex := base + layout.tx
+		if nameIndex >= 0 && rxIndex >= 0 && txIndex >= 0 &&
+			nameIndex < len(fields) && rxIndex < len(fields) && txIndex < len(fields) {
+			cn := strings.TrimSpace(fields[nameIndex])
+			rx, errRx := parseManagementCounter(fields[rxIndex])
+			tx, errTx := parseManagementCounter(fields[txIndex])
+			if cn != "" && errRx == nil && errTx == nil && rx >= 0 && tx >= 0 {
+				return cn, clientCounters{Rx: rx, Tx: tx}, true
+			}
+		}
+		return "", clientCounters{}, false
+	}
+
+	// Traditional status output has no CLIENT_LIST prefix and places the
+	// counters immediately after Common Name and Real Address. A management
+	// response without a header uses the same row shape but may carry the
+	// CLIENT_LIST prefix.
+	cnIndex := base
+	if cnIndex >= len(fields) {
+		return "", clientCounters{}, false
+	}
+	cn := strings.TrimSpace(fields[cnIndex])
+	if cn == "" {
+		return "", clientCounters{}, false
+	}
+	start := base + 2
+	counters, ok := parseCounterPair(fields, start)
+	if !ok {
+		return "", clientCounters{}, false
+	}
+	return cn, counters, true
+}
+
+func parseSpaceClientRow(line string) (string, clientCounters, bool) {
+	fields := strings.Fields(line)
+	if len(fields) < 6 {
+		return "", clientCounters{}, false
+	}
+
+	first := strings.TrimSpace(fields[0])
+	if first != "CLIENT_LIST" && first != "<CLIENT_LIST" {
+		return "", clientCounters{}, false
+	}
+	if strings.EqualFold(fields[1], "header") || strings.EqualFold(fields[1], "version") {
+		return "", clientCounters{}, false
+	}
+
+	// `<CLIENT_LIST 1 CN ...>` includes a numeric client id; the regular
+	// `CLIENT_LIST CN ...>` form does not. Common names are email addresses,
+	// so a numeric token immediately after the marker is unambiguously the id.
+	base := 1
+	if first == "<CLIENT_LIST" {
+		base = 2
+	} else if _, err := strconv.ParseInt(fields[1], 10, 64); err == nil {
+		base = 2
+	}
+	if base >= len(fields) {
+		return "", clientCounters{}, false
+	}
+	cn := fields[base]
+	counters, ok := parseCounterPair(fields, base+3)
+	if !ok || cn == "" {
+		return "", clientCounters{}, false
+	}
+	return cn, counters, true
+}
+
+// parseClientListResponse parses one complete management response. It is kept
+// separate from the socket code so the real OpenVPN response formats can be
+// tested without requiring an OpenVPN daemon in CI.
+func parseClientListResponse(reader io.Reader) (map[string]clientCounters, error) {
+	scanner := bufio.NewScanner(reader)
+	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
+	out := make(map[string]clientCounters)
+	var layout *clientListLayout
+	terminated := false
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || line == "OK" || strings.HasPrefix(line, ">INFO:") ||
+			strings.HasPrefix(line, "TITLE,") || strings.HasPrefix(line, "TIME,") {
+			continue
+		}
+		if line == "END" || line == "<END" {
+			terminated = true
+			break
+		}
+		if strings.HasPrefix(line, "ERROR:") {
+			return nil, errors.New(strings.TrimSpace(line))
+		}
+		if strings.HasPrefix(line, "OpenVPN CLIENT LIST") ||
+			line == "ROUTING TABLE" || line == "GLOBAL STATS" ||
+			strings.HasPrefix(line, "HEADER,ROUTING_TABLE") {
+			continue
+		}
+
+		// The old management response is space-separated and starts with
+		// <CLIENT_LIST (or CLIENT_LIST). Try it before CSV parsing because its
+		// header contains spaces and is not a valid CSV schema by itself.
+		if cn, counters, ok := parseSpaceClientRow(line); ok {
+			out[cn] = counters
+			continue
+		}
+
+		if !strings.Contains(line, ",") {
+			continue
+		}
+		fields, err := csvFields(line)
+		if err != nil {
+			continue
+		}
+		if parsed, ok := clientListLayoutFromHeader(fields); ok {
+			layoutCopy := parsed
+			layout = &layoutCopy
+			continue
+		}
+		if cn, counters, ok := parseCSVClientRow(fields, layout); ok {
+			out[cn] = counters
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	if !terminated {
+		return nil, errors.New("openvpn management response ended before END")
+	}
+	return out, nil
+}
+
+func queryClientListCommand(mgmtPort int, command string) (map[string]clientCounters, error) {
 	conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", mgmtPort), 3*time.Second)
 	if err != nil {
 		return nil, err
@@ -31,51 +273,24 @@ func clientList(mgmtPort int) (map[string]clientCounters, error) {
 	defer conn.Close()
 	_ = conn.SetDeadline(time.Now().Add(3 * time.Second))
 
-	if _, err := conn.Write([]byte("CLIENT_LIST\n")); err != nil {
+	if _, err := conn.Write([]byte(command + "\n")); err != nil {
 		return nil, err
 	}
+	return parseClientListResponse(conn)
+}
 
-	// Monitor mode: the connection is a stream; asynchronous EVENT lines may
-	// interleave with our reply. Read until the <END that closes the
-	// CLIENT_LIST block.
-	out := make(map[string]clientCounters)
-	scanner := bufio.NewScanner(conn)
-	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
-	seenStart := false
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if !seenStart {
-			if strings.HasPrefix(line, "<CLIENT_LIST") {
-				seenStart = true
-			}
-			continue
+// clientList queries the daemon's management interface and returns current
+// connected clients keyed by common name. status 3 is the canonical CSV
+// response on supported OpenVPN builds; status 2 is retained for older builds,
+// and the dedicated CLIENT_LIST command is the final legacy fallback.
+func clientList(mgmtPort int) (map[string]clientCounters, error) {
+	var lastErr error
+	for _, command := range []string{"status 3", "status 2", "CLIENT_LIST"} {
+		clients, err := queryClientListCommand(mgmtPort, command)
+		if err == nil {
+			return clients, nil
 		}
-		if line == "<END" {
-			break
-		}
-		if !strings.HasPrefix(line, "<CLIENT_LIST") {
-			continue
-		}
-		fields := strings.Fields(line)
-		// <CLIENT_LIST <id> <cn> <real-addr> <virt-addr> <bytes-rx> <bytes-tx> <connected-since>
-		if len(fields) < 8 {
-			continue
-		}
-		cn := fields[2]
-		rx, errRx := strconv.ParseInt(fields[len(fields)-3], 10, 64)
-		tx, errTx := strconv.ParseInt(fields[len(fields)-2], 10, 64)
-		if errRx != nil || errTx != nil {
-			continue
-		}
-		out[cn] = clientCounters{Rx: rx, Tx: tx}
+		lastErr = err
 	}
-	if err := scanner.Err(); err != nil {
-		if errors.Is(err, net.ErrClosed) {
-			return out, nil
-		}
-		if !seenStart {
-			return nil, err
-		}
-	}
-	return out, nil
+	return nil, lastErr
 }

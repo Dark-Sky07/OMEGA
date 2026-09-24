@@ -50,6 +50,10 @@ type managed struct {
 // Manager owns the set of running openvpn daemons keyed by inbound id.
 type Manager struct {
 	mu sync.Mutex
+	// trafficMu serializes management polls. The poll itself runs without mu
+	// because a management socket can take seconds to time out; the state update
+	// is committed under mu after the result returns.
+	trafficMu sync.Mutex
 	// procs maps inbound id -> running (or last-started) daemon state.
 	procs map[int]*managed
 
@@ -318,6 +322,13 @@ func removeDataDir(id int) error {
 // Daemons whose management interface is unreachable contribute nothing (and
 // drop their clients from the online set).
 func (m *Manager) CollectTraffic() (inbounds []InboundTraffic, clients []ClientTrafficDelta) {
+	// Do not let two scheduler/dashboard callers consume the same cumulative
+	// counters concurrently. More importantly, this keeps the snapshot/query/
+	// commit sequence ordered while still allowing status and reconcile to run
+	// during a slow management-socket timeout.
+	m.trafficMu.Lock()
+	defer m.trafficMu.Unlock()
+
 	m.mu.Lock()
 	type probe struct {
 		id       int
@@ -328,27 +339,41 @@ func (m *Manager) CollectTraffic() (inbounds []InboundTraffic, clients []ClientT
 	probes := make([]probe, 0, len(m.procs))
 	for id, man := range m.procs {
 		// A nil proc only happens in tests; in production every entry has
-		// one. A dead daemon is handled by the clientList error path below.
+		// one. A dead daemon is handled by the stale-online path below.
 		if man.mgmtPort > 0 && (man.proc == nil || man.proc.IsRunning()) {
 			probes = append(probes, probe{id: id, tag: man.tag, mgmtPort: man.mgmtPort, man: man})
-		} else {
-			// Not running: its online set is stale.
-			for cn := range man.online {
-				delete(man.online, cn)
-			}
+			continue
 		}
+		// Not running: its online set is stale. This mutation is protected by
+		// mu because Status and OnlineEmails read the same map.
+		clearOnline(man)
 	}
 	m.mu.Unlock()
 
 	for _, p := range probes {
+		// The socket query deliberately runs without m.mu. Once it returns,
+		// reacquire m.mu and verify that reconcile has not replaced this managed
+		// entry while the query was in flight. A result from an old daemon must
+		// never be applied to a newly started daemon for the same inbound.
 		list, err := clientList(p.mgmtPort)
-		if err != nil {
-			for cn := range p.man.online {
-				delete(p.man.online, cn)
-			}
+
+		m.mu.Lock()
+		man, current := m.procs[p.id]
+		if !current || man != p.man {
+			m.mu.Unlock()
 			continue
 		}
-		man := p.man
+		if err != nil {
+			clearOnline(man)
+			m.mu.Unlock()
+			continue
+		}
+		if man.lastRx == nil {
+			man.lastRx = make(map[string]int64)
+		}
+		if man.lastTx == nil {
+			man.lastTx = make(map[string]int64)
+		}
 		up, down := int64(0), int64(0)
 		newOnline := make(map[string]bool, len(list))
 		for cn, c := range list {
@@ -371,8 +396,8 @@ func (m *Manager) CollectTraffic() (inbounds []InboundTraffic, clients []ClientT
 			} else {
 				dTx = c.Tx - baseTx
 			}
-			up += dRx
-			down += dTx
+			up = saturatingManagementAdd(up, dRx)
+			down = saturatingManagementAdd(down, dTx)
 			if dRx > 0 || dTx > 0 {
 				clients = append(clients, ClientTrafficDelta{
 					InboundId: p.id,
@@ -396,8 +421,18 @@ func (m *Manager) CollectTraffic() (inbounds []InboundTraffic, clients []ClientT
 		if up > 0 || down > 0 {
 			inbounds = append(inbounds, InboundTraffic{InboundId: p.id, Tag: p.tag, Up: up, Down: down})
 		}
+		m.mu.Unlock()
 	}
 	return inbounds, clients
+}
+
+func clearOnline(man *managed) {
+	if man == nil || man.online == nil {
+		return
+	}
+	for cn := range man.online {
+		delete(man.online, cn)
+	}
 }
 
 // OnlineEmails returns the union of connected client CNs across all running

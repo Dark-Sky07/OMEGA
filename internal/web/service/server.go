@@ -15,7 +15,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -24,8 +23,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
-	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -94,14 +93,14 @@ type Status struct {
 		ErrorMsg string       `json:"errorMsg"`
 		Version  string       `json:"version"`
 	} `json:"xray"`
-	OpenVPN DaemonStatus `json:"openvpn"`
-	L2TP    DaemonStatus `json:"l2tp"`
-	PanelVersion string    `json:"panelVersion"`
-	PanelGuid    string    `json:"panelGuid"`
-	Uptime       uint64    `json:"uptime"`
-	Loads        []float64 `json:"loads"`
-	TcpCount     int       `json:"tcpCount"`
-	UdpCount     int       `json:"udpCount"`
+	OpenVPN      DaemonStatus `json:"openvpn"`
+	L2TP         DaemonStatus `json:"l2tp"`
+	PanelVersion string       `json:"panelVersion"`
+	PanelGuid    string       `json:"panelGuid"`
+	Uptime       uint64       `json:"uptime"`
+	Loads        []float64    `json:"loads"`
+	TcpCount     int          `json:"tcpCount"`
+	UdpCount     int          `json:"udpCount"`
 	NetIO        struct {
 		Up      uint64 `json:"up"`
 		Down    uint64 `json:"down"`
@@ -161,9 +160,14 @@ type cachedXrayVersions struct {
 	fetchedAt time.Time
 }
 
-// xrayVersionsCacheTTL bounds how often /getXrayVersion hits GitHub. The list
-// is purely informational (rendered in the "switch Xray version" picker) so a
-// quarter-hour staleness window is fine and saves the API budget.
+// PinnedXrayVersion is the only Xray-core release accepted by runtime/UI
+// installation paths and by release artifacts. Keeping the value in the
+// service makes the API and the frontend picker agree with Docker/installers.
+const PinnedXrayVersion = "v26.9.9"
+
+// xrayVersionsCacheTTL is retained for the API shape and future metadata, but
+// the version list itself is local and deterministic; it never follows a
+// moving GitHub /latest endpoint.
 const xrayVersionsCacheTTL = 15 * time.Minute
 
 // allowedHistoryBuckets is the bucket-second whitelist for time-series
@@ -738,68 +742,91 @@ const (
 	maxXrayBinaryBytes  = 200 << 20
 )
 
-func (s *ServerService) GetXrayVersions() ([]string, error) {
-	const (
-		XrayURL    = "https://api.github.com/repos/XTLS/Xray-core/releases"
-		bufferSize = 8192
-	)
+type xrayBinarySnapshot struct {
+	exists   bool
+	contents []byte
+	mode     os.FileMode
+}
 
-	resp, err := s.settingService.NewProxiedHTTPClient(10 * time.Second).Get(XrayURL)
+func snapshotXrayBinary(path string) (xrayBinarySnapshot, error) {
+	snapshot := xrayBinarySnapshot{mode: 0755}
+	info, err := os.Stat(path)
 	if err != nil {
-		return nil, err
+		if os.IsNotExist(err) {
+			return snapshot, nil
+		}
+		return snapshot, err
 	}
-	defer resp.Body.Close()
-
-	// Check HTTP status code - GitHub API returns object instead of array on error
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		var errorResponse struct {
-			Message string `json:"message"`
-		}
-		if json.Unmarshal(bodyBytes, &errorResponse) == nil && errorResponse.Message != "" {
-			return nil, fmt.Errorf("GitHub API error: %s", errorResponse.Message)
-		}
-		return nil, fmt.Errorf("GitHub API returned status %d: %s", resp.StatusCode, resp.Status)
+	if info.IsDir() {
+		return snapshot, fmt.Errorf("xray target is a directory: %s", path)
 	}
-
-	buffer := bytes.NewBuffer(make([]byte, bufferSize))
-	buffer.Reset()
-	if _, err := buffer.ReadFrom(resp.Body); err != nil {
-		return nil, err
+	if info.Size() > maxXrayBinaryBytes {
+		return snapshot, fmt.Errorf("existing xray binary exceeds %d bytes", maxXrayBinaryBytes)
 	}
-
-	var releases []Release
-	if err := json.Unmarshal(buffer.Bytes(), &releases); err != nil {
-		return nil, err
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return snapshot, err
 	}
+	snapshot.exists = true
+	snapshot.contents = contents
+	snapshot.mode = info.Mode().Perm()
+	return snapshot, nil
+}
 
-	var versions []string
-	for _, release := range releases {
-		if release.Draft || release.Prerelease {
-			continue
-		}
-		tagVersion := strings.TrimPrefix(release.TagName, "v")
-		tagParts := strings.Split(tagVersion, ".")
-		if len(tagParts) != 3 {
-			continue
-		}
-
-		if _, err := strconv.Atoi(tagParts[0]); err != nil {
-			continue
-		}
-		if _, err := strconv.Atoi(tagParts[1]); err != nil {
-			continue
-		}
-		if _, err := strconv.Atoi(tagParts[2]); err != nil {
-			continue
-		}
-
-		// GitHub returns releases newest-first. Do not impose a minimum
-		// Xray version here: stable 26.3.x (and future major lines) are valid
-		// releases and must remain selectable when the API is current.
-		versions = append(versions, release.TagName)
+func writeXrayBinaryAtomically(path string, source io.Reader, limit int64, mode os.FileMode) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return err
 	}
-	return versions, nil
+	tmpFile, err := os.CreateTemp(filepath.Dir(path), ".xray-*")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmpFile.Name()
+	keep := false
+	defer func() {
+		_ = tmpFile.Close()
+		if !keep {
+			_ = os.Remove(tmpPath)
+		}
+	}()
+
+	written, err := io.Copy(tmpFile, io.LimitReader(source, limit+1))
+	if err != nil {
+		return err
+	}
+	if written > limit {
+		return fmt.Errorf("xray binary exceeds %d bytes", limit)
+	}
+	if err := tmpFile.Chmod(mode.Perm()); err != nil {
+		return err
+	}
+	if err := tmpFile.Close(); err != nil {
+		return err
+	}
+	if runtime.GOOS == "windows" {
+		_ = os.Remove(path)
+	}
+	if err := os.Rename(tmpPath, path); err != nil {
+		return err
+	}
+	keep = true
+	return nil
+}
+
+func restoreXrayBinary(path string, snapshot xrayBinarySnapshot) error {
+	if !snapshot.exists {
+		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+		return nil
+	}
+	return writeXrayBinaryAtomically(path, bytes.NewReader(snapshot.contents), int64(maxXrayBinaryBytes), snapshot.mode)
+}
+
+func (s *ServerService) GetXrayVersions() ([]string, error) {
+	// Do not query a moving release list here. The panel can only install the
+	// exact core version shipped and tested by this repository.
+	return []string{PinnedXrayVersion}, nil
 }
 
 func (s *ServerService) StopXrayService() error {
@@ -889,21 +916,13 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 }
 
 func (s *ServerService) UpdateXray(version string) error {
-	versions, err := s.GetXrayVersions()
-	if err != nil {
-		return err
-	}
-	if !slices.Contains(versions, version) {
-		return fmt.Errorf("xray version %q is not in the fetched release list", version)
+	if version != PinnedXrayVersion {
+		return fmt.Errorf("xray version %q is not the pinned release %s", version, PinnedXrayVersion)
 	}
 
-	// 1. Stop xray before doing anything
-	if err := s.StopXrayService(); err != nil {
-		logger.Warning("failed to stop xray before update:", err)
-	}
-
-	// 2. Download the zip
-	zipFileName, err := s.downloadXRay(version)
+	// Download and validate the archive before stopping the active process, so
+	// a network/API failure never disconnects users or leaves Xray stopped.
+	zipFileName, err := s.downloadXRay(PinnedXrayVersion)
 	if err != nil {
 		return err
 	}
@@ -923,67 +942,87 @@ func (s *ServerService) UpdateXray(version string) error {
 	if err != nil {
 		return err
 	}
+	requiredZipName := "xray"
+	if runtime.GOOS == "windows" {
+		requiredZipName = "xray.exe"
+	}
+	var coreEntry *zip.File
+	for _, entry := range reader.File {
+		if entry.Name == requiredZipName {
+			coreEntry = entry
+			break
+		}
+	}
+	if coreEntry == nil {
+		return fmt.Errorf("xray archive does not contain %q", requiredZipName)
+	}
+	if coreEntry.UncompressedSize64 > maxXrayBinaryBytes {
+		return fmt.Errorf("xray binary exceeds %d bytes", maxXrayBinaryBytes)
+	}
 
-	// 3. Helper to extract files
+	// Validate the target and keep a bounded in-memory copy before stopping the
+	// running process. If extraction or the first restart fails, restoring the
+	// previous executable and starting it again is the difference between a
+	// failed update and an avoidable outage.
+	targetBinary := xray.GetBinaryPath()
+	if runtime.GOOS == "windows" {
+		targetBinary = filepath.Join(config.GetBinFolderPath(), "xray-windows-amd64.exe")
+	}
+	previous, err := snapshotXrayBinary(targetBinary)
+	if err != nil {
+		return fmt.Errorf("snapshot existing xray binary: %w", err)
+	}
+	installMode := os.FileMode(0755)
+	if previous.exists {
+		installMode = previous.mode
+	}
+
+	if err := s.StopXrayService(); err != nil {
+		return fmt.Errorf("stop xray before pinned update: %w", err)
+	}
+
+	// 3. Extract into a same-directory temporary file and rename it into
+	// place. The rename is atomic on the supported local filesystems and the
+	// existing executable's mode is preserved.
 	copyZipFile := func(zipName string, fileName string) error {
-		zipFile, err := reader.Open(zipName)
+		zipEntry, err := reader.Open(zipName)
 		if err != nil {
 			return err
 		}
-		defer zipFile.Close()
-		if err := os.MkdirAll(filepath.Dir(fileName), 0755); err != nil {
-			return err
+		defer zipEntry.Close()
+		return writeXrayBinaryAtomically(fileName, zipEntry, int64(maxXrayBinaryBytes), installMode)
+	}
+
+	// Restore the previous executable and process whenever the replacement or
+	// restart fails. The archive was fully validated before StopXrayService, so
+	// this path is only for filesystem/process failures after the stop.
+	restorePrevious := func() error {
+		return restoreXrayBinary(targetBinary, previous)
+	}
+	rollback := func(cause error) error {
+		if restoreErr := restorePrevious(); restoreErr != nil {
+			logger.Error("restore previous Xray-core failed:", restoreErr)
+			return fmt.Errorf("%w (rollback failed: %v)", cause, restoreErr)
 		}
-		tmpFile, err := os.CreateTemp(filepath.Dir(fileName), ".xray-*")
-		if err != nil {
-			return err
+		if restartErr := s.xrayService.RestartXray(true); restartErr != nil {
+			logger.Error("restart previous Xray-core after rollback failed:", restartErr)
+			return fmt.Errorf("%w (rollback restart failed: %v)", cause, restartErr)
 		}
-		tmpPath := tmpFile.Name()
-		ok := false
-		defer func() {
-			_ = tmpFile.Close()
-			if !ok {
-				_ = os.Remove(tmpPath)
-			}
-		}()
-		n, err := io.Copy(tmpFile, io.LimitReader(zipFile, maxXrayBinaryBytes+1))
-		if err != nil {
-			return err
-		}
-		if n > maxXrayBinaryBytes {
-			return fmt.Errorf("xray binary exceeds %d bytes", maxXrayBinaryBytes)
-		}
-		if err := tmpFile.Chmod(0755); err != nil {
-			return err
-		}
-		if err := tmpFile.Close(); err != nil {
-			return err
-		}
-		if runtime.GOOS == "windows" {
-			_ = os.Remove(fileName)
-		}
-		if err := os.Rename(tmpPath, fileName); err != nil {
-			return err
-		}
-		ok = true
-		return nil
+		return fmt.Errorf("%w (update rolled back)", cause)
 	}
 
 	// 4. Extract correct binary
-	if runtime.GOOS == "windows" {
-		targetBinary := filepath.Join(config.GetBinFolderPath(), "xray-windows-amd64.exe")
-		err = copyZipFile("xray.exe", targetBinary)
-	} else {
-		err = copyZipFile("xray", xray.GetBinaryPath())
-	}
+	err = copyZipFile(requiredZipName, targetBinary)
 	if err != nil {
-		return err
+		return rollback(fmt.Errorf("install pinned Xray-core: %w", err))
 	}
 
-	// 5. Restart xray
+	// 5. Restart xray. A process that rejects the generated configuration must
+	// not leave users on a stopped service or a newly installed incompatible
+	// core; put the old executable back and restart it instead.
 	if err := s.xrayService.RestartXray(true); err != nil {
-		logger.Error("start xray failed:", err)
-		return err
+		logger.Error("start pinned xray failed; rolling back:", err)
+		return rollback(fmt.Errorf("start pinned Xray-core: %w", err))
 	}
 
 	return nil
@@ -1375,7 +1414,9 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 		return common.NewErrorf("Error migrating db: %v", err)
 	}
 
-	s.inboundService.MigrateDB()
+	if err = s.inboundService.MigrateDB(); err != nil {
+		return common.NewErrorf("Error migrating db: %v", err)
+	}
 
 	xrayStopped = false
 	if err = s.RestartXrayService(); err != nil {
@@ -1503,7 +1544,9 @@ func (s *ServerService) importPostgresDB(file multipart.File) error {
 	if errInit := database.InitDB(config.GetDBPath()); errInit != nil {
 		return common.NewErrorf("Restore finished but reopening the database failed: %v", errInit)
 	}
-	s.inboundService.MigrateDB()
+	if err := s.inboundService.MigrateDB(); err != nil {
+		return common.NewErrorf("Error migrating restored db: %v", err)
+	}
 
 	if runErr != nil {
 		return common.NewErrorf("pg_restore failed (database left unchanged): %v: %s", runErr, strings.TrimSpace(stderr.String()))

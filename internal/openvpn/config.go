@@ -16,10 +16,10 @@ func dataDirForID(id int) string {
 	return openvpnDir() + "/" + strconv.Itoa(id)
 }
 
-func confPathForID(id int) string  { return filepath.Join(dataDirForID(id), "openvpn.conf") }
-func pidPathForID(id int) string   { return filepath.Join(dataDirForID(id), "openvpn.pid") }
-func logPathForID(id int) string   { return filepath.Join(dataDirForID(id), "openvpn.log") }
-func devNameForID(id int) string   { return "tun" + strconv.Itoa(id) }
+func confPathForID(id int) string { return filepath.Join(dataDirForID(id), "openvpn.conf") }
+func pidPathForID(id int) string  { return filepath.Join(dataDirForID(id), "openvpn.pid") }
+func logPathForID(id int) string  { return filepath.Join(dataDirForID(id), "openvpn.log") }
+func devNameForID(id int) string  { return "tun" + strconv.Itoa(id) }
 
 // renderServerConf builds the openvpn.conf for one inbound. Directives are
 // deliberately limited to ones present since OpenVPN 2.4 so the generated

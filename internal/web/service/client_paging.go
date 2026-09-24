@@ -60,6 +60,11 @@ type ClientPageParams struct {
 	// client emails. It is set by the reseller-scoped controller path and is
 	// deliberately not bindable from the query string.
 	ScopeEmails *[]string `form:"-"`
+	// ScopeInboundIDs redacts association IDs that are outside the reseller's
+	// inbound scope. Client visibility and inbound visibility are separate, but
+	// a reseller must not receive unrelated attachment metadata or an
+	// unpartitionable email-level traffic/online aggregate.
+	ScopeInboundIDs *map[int]struct{} `form:"-"`
 }
 
 // ClientPageResponse is the shape returned by ListPaged. `Total` is the
@@ -94,6 +99,21 @@ const (
 	clientPageMaxSize     = 200
 )
 
+func scopedClientGroups(rows []ClientWithAttachments) []string {
+	groupSet := make(map[string]struct{})
+	for _, row := range rows {
+		if group := strings.TrimSpace(row.Group); group != "" {
+			groupSet[group] = struct{}{}
+		}
+	}
+	groups := make([]string, 0, len(groupSet))
+	for group := range groupSet {
+		groups = append(groups, group)
+	}
+	slices.Sort(groups)
+	return groups
+}
+
 // ListPaged loads every client (with traffic + attachments) into memory,
 // applies the requested filter / search / protocol predicates, sorts, and
 // returns the requested page along with total and filtered counts. The DB
@@ -110,15 +130,43 @@ func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *Settin
 		// computed from the scoped set only.
 		allowed := make(map[string]struct{}, len(*params.ScopeEmails))
 		for _, email := range *params.ScopeEmails {
-			allowed[email] = struct{}{}
+			allowed[transferEmailKey(email)] = struct{}{}
 		}
 		scoped := make([]ClientWithAttachments, 0, len(allowed))
 		for _, row := range all {
-			if _, ok := allowed[row.Email]; ok {
+			if _, ok := allowed[transferEmailKey(row.Email)]; ok {
 				scoped = append(scoped, row)
 			}
 		}
 		all = scoped
+	}
+	visibleScopedOnline := make(map[string]struct{}, len(all))
+	if params.ScopeInboundIDs != nil {
+		for i := range all {
+			originalIDs := append([]int(nil), all[i].InboundIds...)
+			ids := all[i].InboundIds[:0]
+			isolated := len(originalIDs) > 0
+			for _, id := range originalIDs {
+				if _, ok := (*params.ScopeInboundIDs)[id]; ok {
+					ids = append(ids, id)
+				} else {
+					isolated = false
+				}
+			}
+			all[i].InboundIds = ids
+			if isolated && len(ids) > 0 {
+				visibleScopedOnline[transferEmailKey(all[i].Email)] = struct{}{}
+			}
+			if !isolated || len(ids) == 0 {
+				// Traffic is one email-level aggregate. Do not expose it when
+				// the same client is also attached to an out-of-scope inbound.
+				all[i].Traffic = nil
+			} else if all[i].Traffic != nil {
+				traffic := *all[i].Traffic
+				traffic.InboundId = 0
+				all[i].Traffic = &traffic
+			}
+		}
 	}
 	total := len(all)
 
@@ -151,8 +199,21 @@ func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *Settin
 
 	onlines := inboundSvc.GetOnlineClients()
 	onlineSet := make(map[string]struct{}, len(onlines))
+	visibleOnline := map[string]struct{}(nil)
+	if params.ScopeInboundIDs != nil {
+		// Online state is email-keyed and cannot be split by inbound. Only
+		// expose it for clients whose complete association set is in scope.
+		visibleOnline = visibleScopedOnline
+	}
 	for _, e := range onlines {
-		onlineSet[e] = struct{}{}
+		if key := transferEmailKey(e); key != "" {
+			if visibleOnline != nil {
+				if _, ok := visibleOnline[key]; !ok {
+					continue
+				}
+			}
+			onlineSet[key] = struct{}{}
+		}
 	}
 
 	var expireDiffMs, trafficDiffBytes int64
@@ -223,13 +284,22 @@ func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *Settin
 		items = append(items, toClientSlim(c))
 	}
 
-	groupRows, gErr := s.ListGroups()
-	if gErr != nil {
-		return nil, gErr
-	}
-	groups := make([]string, 0, len(groupRows))
-	for _, g := range groupRows {
-		groups = append(groups, g.Name)
+	var groups []string
+	if params.ScopeEmails != nil {
+		// Client groups are global database rows, but the paged response is a
+		// reseller-facing representation too. Derive this picker from the
+		// already scoped client rows so group names belonging only to another
+		// tenant cannot leak through an otherwise correctly filtered list.
+		groups = scopedClientGroups(all)
+	} else {
+		groupRows, gErr := s.ListGroups()
+		if gErr != nil {
+			return nil, gErr
+		}
+		groups = make([]string, 0, len(groupRows))
+		for _, g := range groupRows {
+			groups = append(groups, g.Name)
+		}
 	}
 
 	return &ClientPageResponse{
@@ -253,13 +323,14 @@ func buildClientsSummary(all []ClientWithAttachments, onlineSet map[string]struc
 	}
 	for _, c := range all {
 		used := int64(0)
-		if c.Traffic != nil {
+		trafficKnown := c.Traffic != nil
+		if trafficKnown {
 			used = c.Traffic.Up + c.Traffic.Down
 		}
-		exhausted := c.TotalGB > 0 && used >= c.TotalGB
+		exhausted := trafficKnown && c.TotalGB > 0 && used >= c.TotalGB
 		expired := c.ExpiryTime > 0 && c.ExpiryTime <= nowMs
 		if c.Enable {
-			if _, ok := onlineSet[c.Email]; ok {
+			if _, ok := onlineSet[transferEmailKey(c.Email)]; ok {
 				s.Online = append(s.Online, c.Email)
 			}
 		}
@@ -272,10 +343,14 @@ func buildClientsSummary(all []ClientWithAttachments, onlineSet map[string]struc
 			continue
 		}
 		nearExpiry := c.ExpiryTime > 0 && c.ExpiryTime-nowMs < expireDiffMs
-		nearLimit := c.TotalGB > 0 && c.TotalGB-used < trafficDiffBytes
+		nearLimit := trafficKnown && c.TotalGB > 0 && c.TotalGB-used < trafficDiffBytes
 		if nearExpiry || nearLimit {
 			s.Expiring = append(s.Expiring, c.Email)
-		} else {
+		} else if c.TotalGB == 0 || trafficKnown {
+			// A finite quota with redacted traffic is unknown, not active:
+			// do not turn a shared client's hidden usage into a false
+			// dashboard classification. Unlimited clients do not need a
+			// traffic row to be classified as active.
 			s.Active++
 		}
 	}
@@ -414,10 +489,13 @@ func clientMatchesUsageRange(c ClientWithAttachments, fromBytes, toBytes int64) 
 	if fromBytes <= 0 && toBytes <= 0 {
 		return true
 	}
-	used := int64(0)
-	if c.Traffic != nil {
-		used = c.Traffic.Up + c.Traffic.Down
+	if c.Traffic == nil {
+		// Unknown/redacted traffic is not evidence for either side of a
+		// usage range. In particular, never let a shared client's hidden
+		// usage match an upper-bound filter as if it were zero.
+		return false
 	}
+	used := c.Traffic.Up + c.Traffic.Down
 	if fromBytes > 0 && used < fromBytes {
 		return false
 	}
@@ -482,30 +560,31 @@ func clientMatchesBucket(c ClientWithAttachments, bucket string, onlineSet map[s
 		return true
 	}
 	used := int64(0)
-	if c.Traffic != nil {
+	trafficKnown := c.Traffic != nil
+	if trafficKnown {
 		used = c.Traffic.Up + c.Traffic.Down
 	}
-	exhausted := c.TotalGB > 0 && used >= c.TotalGB
+	exhausted := trafficKnown && c.TotalGB > 0 && used >= c.TotalGB
 	expired := c.ExpiryTime > 0 && c.ExpiryTime <= nowMs
 	switch bucket {
 	case "online":
 		if onlineSet == nil {
 			return false
 		}
-		_, ok := onlineSet[c.Email]
+		_, ok := onlineSet[transferEmailKey(c.Email)]
 		return ok && c.Enable
 	case "depleted":
 		return exhausted || expired
 	case "deactive":
 		return !c.Enable
 	case "active":
-		return c.Enable && !exhausted && !expired
+		return c.Enable && !expired && (c.TotalGB == 0 || trafficKnown) && !exhausted
 	case "expiring":
 		if !c.Enable || exhausted || expired {
 			return false
 		}
 		nearExpiry := c.ExpiryTime > 0 && c.ExpiryTime-nowMs < expireDiffMs
-		nearLimit := c.TotalGB > 0 && c.TotalGB-used < trafficDiffBytes
+		nearLimit := trafficKnown && c.TotalGB > 0 && c.TotalGB-used < trafficDiffBytes
 		return nearExpiry || nearLimit
 	}
 	return true
