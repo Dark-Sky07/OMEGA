@@ -793,13 +793,25 @@ func (s *ResellerService) AssignClients(resellerId int, emails []string) error {
 		}
 		for _, key := range keys {
 			email := canonical[key]
+			// Do not let the primary-key fields on row narrow the lookup to
+			// the canonical spelling. Older databases may already have the
+			// same mapping with case or whitespace differences; FirstOrCreate
+			// would otherwise miss that row and create a duplicate mapping.
+			var existing model.ResellerClient
+			err := tx.Where("reseller_id = ? AND LOWER(TRIM(email)) = LOWER(?)", resellerId, email).
+				First(&existing).Error
+			if err == nil {
+				continue
+			}
+			if !database.IsNotFound(err) {
+				return err
+			}
 			row := &model.ResellerClient{
 				ResellerId: resellerId,
 				Email:      email,
 				CreatedAt:  time.Now().UnixMilli(),
 			}
-			if err := tx.Where("reseller_id = ? AND LOWER(TRIM(email)) = LOWER(?)", resellerId, email).
-				FirstOrCreate(row).Error; err != nil {
+			if err := tx.Create(row).Error; err != nil {
 				return err
 			}
 		}

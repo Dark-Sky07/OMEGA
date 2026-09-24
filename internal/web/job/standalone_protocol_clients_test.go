@@ -77,6 +77,9 @@ func TestOpenVPNEnabledClientsUseCanonicalEmailKeyAndQuotaFlag(t *testing.T) {
 		Update("enable", true).Error; err != nil {
 		t.Fatalf("reenable traffic row: %v", err)
 	}
+	// enabledClientsForInbound receives the preloaded stats on the inbound;
+	// mirror the database update in this fixture before invoking it again.
+	ib.ClientStats[0].Enable = true
 	clients, ok = (&OpenvpnJob{}).enabledClientsForInbound(ib)
 	if !ok || len(clients) != 1 || clients[0] != "Alice@Example.test" {
 		t.Fatalf("enabled OpenVPN client was not selected canonically: %#v", clients)
@@ -99,6 +102,7 @@ func TestL2TPEnabledClientsUseCanonicalEmailKeyAndQuotaFlag(t *testing.T) {
 		Update("enable", true).Error; err != nil {
 		t.Fatalf("reenable traffic row: %v", err)
 	}
+	ib.ClientStats[0].Enable = true
 	clients, ok = (&L2TPJob{}).enabledClientsForInbound(ib)
 	if !ok || len(clients) != 1 || clients[0].Email != "Alice@Example.test" {
 		t.Fatalf("enabled L2TP client was not selected canonically: %#v", clients)
