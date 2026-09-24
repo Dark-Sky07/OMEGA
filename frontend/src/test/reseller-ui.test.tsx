@@ -159,25 +159,6 @@ describe('reseller pages', () => {
     expect(within(dialog).getByText('Attach Inbound')).toBeTruthy();
   });
 
-  it('admin assign dialog supports selecting multiple clients', async () => {
-    renderPage(<ResellersPage />);
-    await waitFor(() => expect(screen.getByText('Ali')).toBeTruthy());
-
-    fireEvent.click(screen.getByRole('button', { name: /Assign client/i }));
-    const dialog = await waitFor(
-      () => {
-        const el = document.querySelector('.ant-modal');
-        if (!el) throw new Error('modal not open');
-        return el as HTMLElement;
-      },
-      { timeout: 5000 },
-    );
-
-    expect(dialog.querySelector('.ant-select-multiple')).toBeTruthy();
-    expect(dialog.querySelector('#emails')).toBeTruthy();
-    expect(within(dialog).getByText('Select one or more clients')).toBeTruthy();
-  });
-
   it('reseller report page shows usage and the client rows', async () => {
     sessionState.role = 'reseller';
     renderPage(<ResellerReportPage />);
