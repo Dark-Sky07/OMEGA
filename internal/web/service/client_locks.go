@@ -22,6 +22,13 @@ const deleteTombstoneTTL = 90 * time.Second
 var (
 	inboundMutationLocksMu sync.Mutex
 	inboundMutationLocks   = map[int]*sync.Mutex{}
+
+	// resellerScopeMutationMu serializes reseller ownership changes with
+	// reseller-scoped client mutations. The database checks in a controller
+	// are only a snapshot; keeping the service-level check and mutation under
+	// this lock prevents an admin assignment/unassignment from changing the
+	// tenant boundary between validation and the runtime operation.
+	resellerScopeMutationMu sync.RWMutex
 )
 
 func lockInbound(inboundId int) *sync.Mutex {
@@ -40,33 +47,41 @@ func compactOrphans(db *gorm.DB, clients []any) []any {
 	if len(clients) == 0 {
 		return clients
 	}
-	emails := make([]string, 0, len(clients))
+	emailKeys := make([]string, 0, len(clients))
+	seenKeys := make(map[string]struct{}, len(clients))
 	for _, c := range clients {
 		cm, ok := c.(map[string]any)
 		if !ok {
 			continue
 		}
 		if e, _ := cm["email"].(string); e != "" {
-			emails = append(emails, e)
+			if key := transferEmailKey(e); key != "" {
+				if _, seen := seenKeys[key]; !seen {
+					seenKeys[key] = struct{}{}
+					emailKeys = append(emailKeys, key)
+				}
+			}
 		}
 	}
-	if len(emails) == 0 {
+	if len(emailKeys) == 0 {
 		return clients
 	}
-	existing := make(map[string]struct{}, len(emails))
+	existing := make(map[string]struct{}, len(emailKeys))
 	const orphanChunk = 400
-	for start := 0; start < len(emails); start += orphanChunk {
-		end := min(start+orphanChunk, len(emails))
+	for start := 0; start < len(emailKeys); start += orphanChunk {
+		end := min(start+orphanChunk, len(emailKeys))
 		var found []string
-		if err := db.Model(&model.ClientRecord{}).Where("email IN ?", emails[start:end]).Pluck("email", &found).Error; err != nil {
+		if err := db.Model(&model.ClientRecord{}).
+			Where("LOWER(TRIM(email)) IN ?", emailKeys[start:end]).
+			Pluck("email", &found).Error; err != nil {
 			logger.Warning("compactOrphans pluck:", err)
 			return clients
 		}
 		for _, e := range found {
-			existing[e] = struct{}{}
+			existing[transferEmailKey(e)] = struct{}{}
 		}
 	}
-	if len(existing) == len(emails) {
+	if len(existing) == len(emailKeys) {
 		return clients
 	}
 	out := make([]any, 0, len(existing))
@@ -81,7 +96,7 @@ func compactOrphans(db *gorm.DB, clients []any) []any {
 			out = append(out, c)
 			continue
 		}
-		if _, ok := existing[e]; ok {
+		if _, ok := existing[transferEmailKey(e)]; ok {
 			out = append(out, c)
 		}
 	}
@@ -89,6 +104,7 @@ func compactOrphans(db *gorm.DB, clients []any) []any {
 }
 
 func tombstoneClientEmail(email string) {
+	email = transferEmailKey(email)
 	if email == "" {
 		return
 	}
@@ -112,8 +128,8 @@ func tombstoneClientEmails(emails []string) {
 	recentlyDeletedMu.Lock()
 	defer recentlyDeletedMu.Unlock()
 	for _, email := range emails {
-		if email != "" {
-			recentlyDeleted[email] = now
+		if key := transferEmailKey(email); key != "" {
+			recentlyDeleted[key] = now
 		}
 	}
 	for e, ts := range recentlyDeleted {
@@ -124,6 +140,7 @@ func tombstoneClientEmails(emails []string) {
 }
 
 func isClientEmailTombstoned(email string) bool {
+	email = transferEmailKey(email)
 	if email == "" {
 		return false
 	}

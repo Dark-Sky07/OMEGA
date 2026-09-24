@@ -48,6 +48,13 @@ func (a *ResellerSelfController) currentReseller(c *gin.Context) *model.Reseller
 		})
 		return nil
 	}
+	if err := (&service.ResellerService{}).EnsureActive(reseller); err != nil {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"msg":     err.Error(),
+		})
+		return nil
+	}
 	return reseller
 }
 

@@ -106,6 +106,7 @@ export const BulkDeleteResultSchema = z.object({
 
 export const BulkCreateResultSchema = z.object({
   created: z.number(),
+  createdEmails: z.array(z.string()).optional(),
   skipped: z
     .array(z.object({ email: z.string(), reason: z.string() }))
     .optional(),

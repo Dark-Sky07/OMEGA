@@ -3041,7 +3041,7 @@
                     },
                     "xray": {
                       "state": "running",
-                      "version": "v25.10.31"
+                      "version": "v26.9.9"
                     },
                     "tcpCount": 42,
                     "load": {
@@ -3326,7 +3326,7 @@
         "tags": [
           "Server"
         ],
-        "summary": "List Xray binary versions available for install on this host.",
+        "summary": "Return the single pinned Xray-core release available for install on this host.",
         "operationId": "get_panel_api_server_getXrayVersion",
         "responses": {
           "200": {
@@ -3348,9 +3348,7 @@
                 "example": {
                   "success": true,
                   "obj": [
-                    "v25.10.31",
-                    "v25.9.15",
-                    "v25.8.1"
+                    "v26.9.9"
                   ]
                 }
               }
@@ -4096,14 +4094,14 @@
         "tags": [
           "Server"
         ],
-        "summary": "Download and install the specified Xray version. Pass \"latest\" for the newest release.",
+        "summary": "Download and install the pinned Xray-core release v26.9.9.",
         "operationId": "post_panel_api_server_installXray_version",
         "parameters": [
           {
             "name": "version",
             "in": "path",
             "required": true,
-            "description": "Xray tag (e.g. v25.10.31) or \"latest\".",
+            "description": "Pinned Xray tag: v26.9.9.",
             "schema": {
               "type": "string"
             }
@@ -8990,6 +8988,156 @@
         ],
         "summary": "Return an inbound to the admin. Clients that only belonged to the reseller through this inbound go back with it; explicitly assigned clients stay.",
         "operationId": "post_panel_api_resellers_unassignInbound",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/assignInbounds": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Atomically add a batch of inbounds to a reseller; missing ids or an ownership conflict reject the whole batch.",
+        "operationId": "post_panel_api_resellers_assignInbounds",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/unassignInbounds": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Atomically remove a batch of inbound mappings for a reseller without changing inbound configuration.",
+        "operationId": "post_panel_api_resellers_unassignInbounds",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/setInbounds": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Atomically replace the reseller inbound assignment set. Send the complete multi-select (an empty inboundIds array clears only this reseller); conflicts with another reseller or missing ids reject the whole transaction.",
+        "operationId": "post_panel_api_resellers_setInbounds",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/assignClients": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Atomically add explicit client visibility mappings for a reseller.",
+        "operationId": "post_panel_api_resellers_assignClients",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/unassignClients": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Atomically remove explicit client visibility mappings without deleting clients or inbound attachments.",
+        "operationId": "post_panel_api_resellers_unassignClients",
         "responses": {
           "200": {
             "description": "Successful response",

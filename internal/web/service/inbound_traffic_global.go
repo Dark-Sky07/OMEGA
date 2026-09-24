@@ -29,13 +29,14 @@ func (s *InboundService) AcceptGlobalTraffic(masterGuid string, traffics []*xray
 	emails := make([]string, 0, len(traffics))
 	byEmail := make(map[string]*xray.ClientTraffic, len(traffics))
 	for _, t := range traffics {
-		if t == nil || t.Email == "" {
+		if t == nil || strings.TrimSpace(t.Email) == "" {
 			continue
 		}
-		if _, dup := byEmail[t.Email]; !dup {
-			emails = append(emails, t.Email)
+		key := strings.ToLower(strings.TrimSpace(t.Email))
+		if _, dup := byEmail[key]; !dup {
+			emails = append(emails, key)
 		}
-		byEmail[t.Email] = t
+		byEmail[key] = t
 	}
 	if len(emails) == 0 {
 		return nil
@@ -47,7 +48,7 @@ func (s *InboundService) AcceptGlobalTraffic(masterGuid string, traffics []*xray
 		for _, batch := range chunkStrings(emails, sqlInChunk) {
 			var page []string
 			if err := db.Model(xray.ClientTraffic{}).
-				Where("email IN ?", batch).
+				Where("LOWER(TRIM(email)) IN ?", batch).
 				Pluck("email", &page).Error; err != nil {
 				return err
 			}
@@ -60,7 +61,7 @@ func (s *InboundService) AcceptGlobalTraffic(masterGuid string, traffics []*xray
 		now := time.Now().UnixMilli()
 		rows := make([]model.ClientGlobalTraffic, 0, len(known))
 		for _, email := range known {
-			t := byEmail[email]
+			t := byEmail[strings.ToLower(strings.TrimSpace(email))]
 			if t == nil {
 				continue
 			}
@@ -118,20 +119,23 @@ func overlayGlobalTraffic(db *gorm.DB, rows []*xray.ClientTraffic) {
 		if r == nil || r.Email == "" {
 			continue
 		}
-		key := strings.ToLower(r.Email)
+		key := strings.ToLower(strings.TrimSpace(r.Email))
+		if key == "" {
+			continue
+		}
 		if _, ok := byEmail[key]; !ok {
-			emails = append(emails, r.Email)
+			emails = append(emails, key)
 		}
 		byEmail[key] = append(byEmail[key], r)
 	}
 	for _, batch := range chunkStrings(emails, sqlInChunk) {
 		var globals []model.ClientGlobalTraffic
-		if err := db.Where("email IN ?", batch).Find(&globals).Error; err != nil {
+		if err := db.Where("LOWER(TRIM(email)) IN ?", batch).Find(&globals).Error; err != nil {
 			logger.Warning("overlayGlobalTraffic:", err)
 			return
 		}
 		for i := range globals {
-			for _, r := range byEmail[strings.ToLower(globals[i].Email)] {
+			for _, r := range byEmail[strings.ToLower(strings.TrimSpace(globals[i].Email))] {
 				if globals[i].Up > r.Up {
 					r.Up = globals[i].Up
 				}
@@ -162,11 +166,21 @@ func overlayGlobalTrafficValues(db *gorm.DB, rows []xray.ClientTraffic) {
 // its own aggregate.
 func (s *InboundService) GetNodeClientTraffics(nodeID int) ([]*xray.ClientTraffic, error) {
 	db := database.GetDB()
-	var emails []string
+	var rawEmails []string
 	if err := db.Model(&model.NodeClientTraffic{}).
 		Where("node_id = ?", nodeID).
-		Pluck("email", &emails).Error; err != nil {
+		Pluck("email", &rawEmails).Error; err != nil {
 		return nil, err
+	}
+	emails := make([]string, 0, len(rawEmails))
+	seen := make(map[string]struct{}, len(rawEmails))
+	for _, email := range rawEmails {
+		if key := strings.ToLower(strings.TrimSpace(email)); key != "" {
+			if _, ok := seen[key]; !ok {
+				seen[key] = struct{}{}
+				emails = append(emails, key)
+			}
+		}
 	}
 	if len(emails) == 0 {
 		return nil, nil
@@ -174,7 +188,7 @@ func (s *InboundService) GetNodeClientTraffics(nodeID int) ([]*xray.ClientTraffi
 	out := make([]*xray.ClientTraffic, 0, len(emails))
 	for _, batch := range chunkStrings(emails, sqlInChunk) {
 		var page []*xray.ClientTraffic
-		if err := db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Find(&page).Error; err != nil {
+		if err := db.Model(xray.ClientTraffic{}).Where("LOWER(TRIM(email)) IN ?", batch).Find(&page).Error; err != nil {
 			return nil, err
 		}
 		out = append(out, page...)
@@ -206,8 +220,14 @@ func clearGlobalTraffic(tx *gorm.DB, emails ...string) error {
 	if len(emails) == 0 {
 		return nil
 	}
-	for _, batch := range chunkStrings(emails, sqlInChunk) {
-		if err := tx.Where("email IN ?", batch).Delete(&model.ClientGlobalTraffic{}).Error; err != nil {
+	keys := make([]string, 0, len(emails))
+	for _, email := range emails {
+		if key := strings.ToLower(strings.TrimSpace(email)); key != "" {
+			keys = append(keys, key)
+		}
+	}
+	for _, batch := range chunkStrings(keys, sqlInChunk) {
+		if err := tx.Where("LOWER(TRIM(email)) IN ?", batch).Delete(&model.ClientGlobalTraffic{}).Error; err != nil {
 			return err
 		}
 	}

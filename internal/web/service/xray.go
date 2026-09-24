@@ -153,13 +153,13 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		clientStats := inbound.ClientStats
 		enableMap := make(map[string]bool, len(clientStats))
 		for _, clientTraffic := range clientStats {
-			enableMap[clientTraffic.Email] = clientTraffic.Enable
+			enableMap[transferEmailKey(clientTraffic.Email)] = clientTraffic.Enable
 		}
 
 		var finalClients []any
 		for i := range dbClients {
 			c := dbClients[i]
-			if enable, exists := enableMap[c.Email]; exists && !enable {
+			if enable, exists := enableMap[transferEmailKey(c.Email)]; exists && !enable {
 				logger.Infof("Remove Inbound User %s due to expiration or traffic limit", c.Email)
 				continue
 			}

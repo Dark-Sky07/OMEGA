@@ -67,25 +67,45 @@ arch() {
 
 echo "Arch: $(arch)"
 
-# Resolve and stage the newest stable Xray-core before stopping the panel.
+# Resolve and stage the pinned, tested Xray-core before stopping the panel.
 # This keeps failures observable and prevents a broken download from replacing
-# the currently installed core with a guessed or hard-coded version.
+# the currently installed core.
 xray_update_archive=""
 xray_update_version=""
-resolve_latest_xray_version() {
-    local payload tag
-    payload=$(${curl_bin} -fsSL --retry 3 --connect-timeout 10 \
-        "https://api.github.com/repos/XTLS/Xray-core/releases/latest" 2> /dev/null) || return 1
-    tag=$(printf '%s' "$payload" | grep -m1 '"tag_name"' | sed -E 's/.*"tag_name"[[:space:]]*:[[:space:]]*"(v[0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
+panel_update_archive=""
+update_stage_root=""
+update_stage_dir=""
+update_wrapper_stage=""
+update_service_stage=""
+update_backup_dir=""
+update_service_backup=""
+update_wrapper_backup=""
+update_old_service_present=0
+update_old_service_active=0
+update_old_service_enabled=0
+update_commit_started=0
+update_transaction_active=0
+update_db_kind=""
+update_db_dsn=""
+update_db_path=""
+update_db_snapshot=""
+update_db_snapshot_dir=""
+update_db_snapshot_ready=0
+update_defer_service_start=0
+resolve_pinned_xray_version() {
+    # Keep the installer on the exact core validated for this OMEGA release.
+    # This must not follow /latest: a future core can change config semantics
+    # and an older bundled binary must never be silently retained.
+    local tag="v26.9.9"
     if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
         return 1
     fi
     printf '%s\n' "$tag"
 }
 
-stage_latest_xray() {
+stage_pinned_xray() {
     local xray_arch archive_url
-    xray_update_version=$(resolve_latest_xray_version) || _fail "ERROR: Failed to resolve the latest stable Xray-core release."
+    xray_update_version=$(resolve_pinned_xray_version) || _fail "ERROR: Failed to resolve pinned Xray-core v26.9.9."
     case "$(arch)" in
         amd64) xray_arch="64" ;;
         386) xray_arch="32" ;;
@@ -108,23 +128,29 @@ stage_latest_xray() {
         xray_update_archive=""
         _fail "ERROR: Downloaded Xray-core archive is invalid; panel update aborted safely."
     fi
-    echo -e "${green}Staged stable Xray-core ${xray_update_version}${plain}"
+    echo -e "${green}Staged pinned Xray-core ${xray_update_version}${plain}"
 }
 
 install_staged_xray() {
-    local extract_dir target
+    local stage_dir="$1" extract_dir target
     [ -n "$xray_update_archive" ] || _fail "ERROR: No staged Xray-core archive is available."
+    [ -d "$stage_dir" ] || _fail "ERROR: Xray staging directory does not exist."
     extract_dir=$(mktemp -d "/tmp/xray-extract.XXXXXX")
     if ! unzip -q "$xray_update_archive" -d "$extract_dir" || [ ! -f "$extract_dir/xray" ]; then
         rm -rf "$extract_dir" "$xray_update_archive"
         xray_update_archive=""
         _fail "ERROR: Failed to extract staged Xray-core ${xray_update_version}."
     fi
-    target="${xui_folder}/bin/xray-linux-$(arch)"
-    install -m 0755 "$extract_dir/xray" "$target" || _fail "ERROR: Failed to install Xray-core ${xray_update_version}."
+    mkdir -p "$stage_dir/bin"
+    target="${stage_dir}/bin/xray-linux-$(arch)"
+    if ! install -m 0755 "$extract_dir/xray" "$target"; then
+        rm -rf "$extract_dir" "$xray_update_archive"
+        xray_update_archive=""
+        _fail "ERROR: Failed to install Xray-core ${xray_update_version}."
+    fi
     rm -rf "$extract_dir" "$xray_update_archive"
     xray_update_archive=""
-    echo -e "${green}Installed Xray-core ${xray_update_version}${plain}"
+    echo -e "${green}Installed Xray-core ${xray_update_version} in staged panel${plain}"
 }
 
 # Simple helpers
@@ -541,7 +567,7 @@ ssl_cert_issue() {
         if [ $? -ne 0 ]; then
             echo -e "${red}Issuing certificate failed, please check logs.${plain}"
             rm -rf ~/.acme.sh/${domain}
-            systemctl start x-ui 2> /dev/null || rc-service x-ui start 2> /dev/null
+            service_start_for_config || true
             return 1
         else
             echo -e "${green}Issuing certificate succeeded, installing certificates...${plain}"
@@ -596,7 +622,7 @@ ssl_cert_issue() {
         if [[ ${cert_exists} -eq 0 ]]; then
             rm -rf ~/.acme.sh/${domain}
         fi
-        systemctl start x-ui 2> /dev/null || rc-service x-ui start 2> /dev/null
+        service_start_for_config || true
         return 1
     fi
 
@@ -615,7 +641,7 @@ ssl_cert_issue() {
     fi
 
     # Restart panel
-    systemctl start x-ui 2> /dev/null || rc-service x-ui start 2> /dev/null
+    service_start_for_config || true
 
     # Prompt user to set panel paths after successful certificate installation
     read -rp "Would you like to set this certificate for the panel? (y/n): " setPanel
@@ -631,7 +657,7 @@ ssl_cert_issue() {
             echo ""
             echo -e "${green}Access URL: https://${domain}:${existing_port}/${existing_webBasePath}${plain}"
             echo -e "${yellow}Panel will restart to apply SSL certificate...${plain}"
-            systemctl restart x-ui 2> /dev/null || rc-service x-ui restart 2> /dev/null
+            service_restart_for_config || return 1
         else
             echo -e "${red}Error: Certificate or private key file not found for domain: $domain.${plain}"
         fi
@@ -713,11 +739,7 @@ prompt_and_setup_ssl() {
             fi
 
             # Restart panel after SSL is configured (restart applies new cert settings)
-            if [[ $release == "alpine" ]]; then
-                rc-service x-ui restart > /dev/null 2>&1
-            else
-                systemctl restart x-ui > /dev/null 2>&1
-            fi
+            service_restart_for_config || return 1
 
             ;;
         3)
@@ -778,7 +800,7 @@ prompt_and_setup_ssl() {
             echo -e "${green}✓ Custom certificate paths applied.${plain}"
             echo -e "${yellow}Note: You are responsible for renewing these files externally.${plain}"
 
-            systemctl restart x-ui > /dev/null 2>&1 || rc-service x-ui restart > /dev/null 2>&1
+            service_restart_for_config || return 1
             ;;
         4)
             echo ""
@@ -812,7 +834,7 @@ prompt_and_setup_ssl() {
                 echo -e "${yellow}Panel will listen on all interfaces over plain HTTP. Make sure something else is terminating TLS in front of it.${plain}"
             fi
 
-            systemctl restart x-ui > /dev/null 2>&1 || rc-service x-ui restart > /dev/null 2>&1
+            service_restart_for_config || return 1
             echo -e "${green}✓ SSL setup skipped.${plain}"
             ;;
         *)
@@ -826,8 +848,14 @@ config_after_update() {
     local panel_needs_restart=0
 
     echo -e "${yellow}x-ui settings:${plain}"
-    ${xui_folder}/x-ui setting -show true
-    ${xui_folder}/x-ui migrate
+    if ! ${xui_folder}/x-ui setting -show true; then
+        echo -e "${red}Failed to read x-ui settings after replacing the panel.${plain}"
+        return 1
+    fi
+    if ! ${xui_folder}/x-ui migrate; then
+        echo -e "${red}Database migration failed; the transaction will be rolled back.${plain}"
+        return 1
+    fi
 
     # Properly detect empty cert by checking if cert: line exists and has content after it
     local existing_cert=$(${xui_folder}/x-ui setting -getCert true 2> /dev/null | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
@@ -887,7 +915,10 @@ config_after_update() {
         echo ""
 
         # Prompt and setup SSL (domain or IP)
-        prompt_and_setup_ssl "${existing_port}" "${existing_webBasePath}" "${server_ip}"
+        if ! prompt_and_setup_ssl "${existing_port}" "${existing_webBasePath}" "${server_ip}"; then
+            echo -e "${red}SSL setup failed; the transaction will be rolled back.${plain}"
+            return 1
+        fi
 
         echo ""
         echo -e "${green}═══════════════════════════════════════════${plain}"
@@ -910,235 +941,491 @@ config_after_update() {
 
     if [[ "$panel_needs_restart" -eq 1 ]]; then
         echo -e "${yellow}Restarting panel to apply the new web base path...${plain}"
-        systemctl restart x-ui 2> /dev/null || rc-service x-ui restart 2> /dev/null
+        service_restart_for_config || return 1
     fi
 }
 
+download_update_file() {
+    local destination="$1" url="$2"
+    if ${curl_bin} -fLRsS --retry 3 -o "$destination" "$url"; then
+        return 0
+    fi
+    echo -e "${yellow}Retrying download over IPv4...${plain}"
+    ${curl_bin} -4fLRsS --retry 3 -o "$destination" "$url"
+}
+
+preserve_update_data() {
+    local relative
+    for relative in "db" "bin/config.json"; do
+        if [[ -e "${xui_folder}/${relative}" || -L "${xui_folder}/${relative}" ]]; then
+            rm -rf "${update_stage_dir}/${relative}"
+            mkdir -p "${update_stage_dir}/$(dirname "$relative")"
+            cp -a "${xui_folder}/${relative}" "${update_stage_dir}/${relative}" || return 1
+        fi
+    done
+}
+
+# Resolve the database used by the currently installed binary before the live
+# directory is moved. SQLite's filename is derived from the embedded panel
+# name, which may be versioned in older OMEGA installations; do not assume that
+# it is always x-ui.db when more than one database is present.
+configure_update_database() {
+    local kind folder embedded_name candidate
+    local -a candidates=()
+
+    kind="$(printf '%s' "${XUI_DB_TYPE:-sqlite}" | tr '[:upper:]' '[:lower:]')"
+    case "$kind" in
+        postgres|postgresql|pg)
+            update_db_kind="postgres"
+            update_db_dsn="${XUI_DB_DSN:-}"
+            if [[ -z "$update_db_dsn" ]]; then
+                echo -e "${red}PostgreSQL is configured but XUI_DB_DSN is empty; the installation was not touched.${plain}"
+                return 1
+            fi
+            if ! command -v pg_dump >/dev/null 2>&1 || ! command -v pg_restore >/dev/null 2>&1; then
+                echo -e "${red}PostgreSQL rollback tools pg_dump and pg_restore are required; the installation was not touched.${plain}"
+                return 1
+            fi
+            ;;
+        *)
+            update_db_kind="sqlite"
+            folder="${XUI_DB_FOLDER:-/etc/x-ui}"
+            if [[ "$folder" != /* ]]; then
+                folder="${xui_folder}/${folder}"
+            fi
+
+            # Prefer the exact name embedded in the old executable. This keeps
+            # upgrades compatible with releases whose database name included
+            # the panel version.
+            if command -v strings >/dev/null 2>&1; then
+                embedded_name=$(strings "${xui_folder}/x-ui" 2>/dev/null \
+                    | grep -Eo 'x-ui[0-9]+\.[0-9]+\.[0-9]+-[A-Za-z0-9._-]+' \
+                    | head -n1 || true)
+            fi
+            if [[ -n "$embedded_name" && -f "${folder}/${embedded_name}.db" ]]; then
+                update_db_path="${folder}/${embedded_name}.db"
+                return 0
+            fi
+            if [[ -f "${folder}/x-ui.db" ]]; then
+                update_db_path="${folder}/x-ui.db"
+                return 0
+            fi
+
+            if [[ -d "$folder" ]]; then
+                while IFS= read -r -d '' candidate; do
+                    candidates+=("$candidate")
+                done < <(find "$folder" -maxdepth 1 -type f -name '*.db' -print0 2>/dev/null)
+            fi
+            if [[ "${#candidates[@]}" -eq 1 ]]; then
+                update_db_path="${candidates[0]}"
+            elif [[ "${#candidates[@]}" -gt 1 ]]; then
+                echo -e "${red}Multiple SQLite databases were found in ${folder}; refusing an ambiguous rollback.${plain}"
+                return 1
+            elif [[ -n "$embedded_name" ]]; then
+                update_db_path="${folder}/${embedded_name}.db"
+            else
+                update_db_path="${folder}/x-ui.db"
+            fi
+            ;;
+    esac
+    return 0
+}
+
+# Take the database snapshot only after the old service has stopped. That makes
+# SQLite's main/WAL/SHM set coherent and prevents a live writer from racing the
+# snapshot. PostgreSQL is dumped in its native custom format for an atomic
+# pg_restore during rollback.
+snapshot_update_database() {
+    local suffix source destination
+    [[ "$update_db_snapshot_ready" -eq 0 ]] || return 0
+
+    if [[ "$update_db_kind" == "postgres" ]]; then
+        update_db_snapshot="${update_stage_root}/database.dump"
+        if ! pg_dump --format=custom --no-owner --no-privileges \
+            --dbname="$update_db_dsn" --file="$update_db_snapshot"; then
+            rm -f "$update_db_snapshot"
+            update_db_snapshot=""
+            echo -e "${red}Could not snapshot PostgreSQL before migration; the installation was not touched.${plain}"
+            return 1
+        fi
+        chmod 0600 "$update_db_snapshot" || return 1
+    else
+        if [[ ! -f "$update_db_path" && ! -L "$update_db_path" ]]; then
+            echo -e "${red}SQLite database ${update_db_path} is missing; the installation was not touched.${plain}"
+            return 1
+        fi
+        update_db_snapshot_dir="${update_stage_root}/database"
+        mkdir -p "$update_db_snapshot_dir" || return 1
+        for suffix in "" "-wal" "-shm" "-journal"; do
+            source="${update_db_path}${suffix}"
+            destination="${update_db_snapshot_dir}/db${suffix}"
+            rm -rf "$destination"
+            if [[ -e "$source" || -L "$source" ]]; then
+                cp -a "$source" "$destination" || return 1
+            fi
+        done
+    fi
+    update_db_snapshot_ready=1
+    return 0
+}
+
+# Restore every database artifact that existed at the transaction boundary.
+# This is deliberately separate from filesystem rollback because SQLite is
+# normally stored outside the panel directory and PostgreSQL is never part of
+# the directory swap.
+restore_update_database() {
+    local suffix source snapshot
+    [[ "$update_db_snapshot_ready" -eq 1 ]] || return 0
+
+    if [[ "$update_db_kind" == "postgres" ]]; then
+        [[ -f "$update_db_snapshot" ]] || return 1
+        pg_restore --clean --if-exists --no-owner --no-privileges \
+            --single-transaction --exit-on-error \
+            --dbname="$update_db_dsn" "$update_db_snapshot"
+        return $?
+    fi
+
+    [[ -n "$update_db_snapshot_dir" && -d "$update_db_snapshot_dir" ]] || return 1
+    for suffix in "" "-wal" "-shm" "-journal"; do
+        source="${update_db_path}${suffix}"
+        snapshot="${update_db_snapshot_dir}/db${suffix}"
+        rm -rf "$source" || return 1
+        if [[ -e "$snapshot" || -L "$snapshot" ]]; then
+            mkdir -p "$(dirname "$source")" || return 1
+            cp -a "$snapshot" "$source" || return 1
+        fi
+    done
+    return 0
+}
+
+stage_update_assets() {
+    local parent archive_name service_url
+    parent="$(dirname "$xui_folder")"
+    update_stage_root=$(mktemp -d "${parent}/.x-ui-update.XXXXXX") || return 1
+    update_stage_dir="${update_stage_root}/x-ui"
+    archive_name="x-ui-linux-$(arch).tar.gz"
+    panel_update_archive="${update_stage_root}/${archive_name}"
+
+    if ! download_update_file "$panel_update_archive" "https://github.com/Dark-Sky07/OMEGA/releases/download/${tag_version}/${archive_name}"; then
+        return 1
+    fi
+    if ! tar tzf "$panel_update_archive" >/dev/null 2>&1; then
+        echo -e "${red}Downloaded x-ui archive is invalid; the existing installation was not touched.${plain}"
+        return 1
+    fi
+    if ! tar xzf "$panel_update_archive" -C "$update_stage_root"; then
+        return 1
+    fi
+    [[ -d "$update_stage_dir" && -f "$update_stage_dir/x-ui" ]] || return 1
+
+    if ! preserve_update_data; then
+        return 1
+    fi
+    install_staged_xray "$update_stage_dir"
+    chmod +x "$update_stage_dir/x-ui" || return 1
+    [[ -f "$update_stage_dir/bin/xray-linux-$(arch)" || -f "$update_stage_dir/bin/xray-linux-arm32" ]] || return 1
+    if [[ "$(arch)" == "armv5" || "$(arch)" == "armv6" || "$(arch)" == "armv7" ]]; then
+        if [[ -f "$update_stage_dir/bin/xray-linux-$(arch)" ]]; then
+            mv "$update_stage_dir/bin/xray-linux-$(arch)" "$update_stage_dir/bin/xray-linux-arm32" || return 1
+        fi
+    fi
+
+    update_wrapper_stage="${update_stage_root}/x-ui-wrapper"
+    if ! download_update_file "$update_wrapper_stage" "https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh"; then
+        return 1
+    fi
+    chmod 0755 "$update_wrapper_stage" || return 1
+
+    if [[ "$release" == "alpine" ]]; then
+        update_service_stage="${update_stage_root}/x-ui.rc"
+        if [[ -f "$update_stage_dir/x-ui.rc" ]]; then
+            cp -f "$update_stage_dir/x-ui.rc" "$update_service_stage" || return 1
+        else
+            if ! download_update_file "$update_service_stage" "https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.rc"; then
+                return 1
+            fi
+        fi
+        chmod 0755 "$update_service_stage" || return 1
+    else
+        update_service_stage="${update_stage_root}/x-ui.service"
+        if [[ -f "$update_stage_dir/x-ui.service" ]]; then
+            cp -f "$update_stage_dir/x-ui.service" "$update_service_stage" || return 1
+        else
+            case "$release" in
+                ubuntu|debian|armbian) service_url="https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.service.debian" ;;
+                arch|manjaro|parch) service_url="https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.service.arch" ;;
+                *) service_url="https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.service.rhel" ;;
+            esac
+            if ! download_update_file "$update_service_stage" "$service_url"; then
+                return 1
+            fi
+        fi
+        chmod 0644 "$update_service_stage" || return 1
+    fi
+    rm -f "$panel_update_archive"
+    panel_update_archive=""
+    return 0
+}
+
+cleanup_update_transaction() {
+    [[ -n "$xray_update_archive" ]] && rm -f "$xray_update_archive"
+    [[ -n "$panel_update_archive" ]] && rm -f "$panel_update_archive"
+    [[ -n "$update_stage_root" && -d "$update_stage_root" ]] && rm -rf "$update_stage_root"
+    update_stage_root=""
+    update_stage_dir=""
+    update_db_snapshot=""
+    update_db_snapshot_dir=""
+    update_db_snapshot_ready=0
+    update_defer_service_start=0
+}
+
+service_is_active() {
+    if [[ "$release" == "alpine" ]]; then
+        rc-service x-ui status >/dev/null 2>&1
+    else
+        systemctl is-active --quiet x-ui
+    fi
+}
+
+service_is_enabled() {
+    if [[ "$release" == "alpine" ]]; then
+        rc-update show default 2>/dev/null | grep -Eq '(^|[[:space:]])x-ui([[:space:]]|$)'
+    else
+        systemctl is-enabled --quiet x-ui
+    fi
+}
+
+service_stop_for_update() {
+    if [[ "$release" == "alpine" ]]; then
+        rc-service x-ui stop >/dev/null 2>&1
+    else
+        systemctl stop x-ui >/dev/null 2>&1
+    fi
+}
+
+service_start_after_update() {
+    if [[ "$release" == "alpine" ]]; then
+        rc-service x-ui start >/dev/null 2>&1
+    else
+        systemctl daemon-reload >/dev/null 2>&1 || return 1
+        systemctl start x-ui >/dev/null 2>&1
+    fi
+}
+
+# Configuration is applied while the candidate is stopped. SSL helpers were
+# originally written for the installer and may otherwise start/restart x-ui in
+# the middle of the transaction, before migration and settings have succeeded.
+service_start_for_config() {
+    [[ "$update_defer_service_start" -eq 1 ]] && return 0
+    service_start_after_update
+}
+
+service_restart_for_config() {
+    [[ "$update_defer_service_start" -eq 1 ]] && return 0
+    if [[ "$release" == "alpine" ]]; then
+        rc-service x-ui restart >/dev/null 2>&1
+    else
+        systemctl restart x-ui >/dev/null 2>&1
+    fi
+}
+
+service_reload_after_update() {
+    if [[ "$release" == "alpine" ]]; then
+        return 0
+    fi
+    systemctl daemon-reload >/dev/null 2>&1
+}
+
+restore_update_service() {
+    local service_path
+    if [[ "$release" == "alpine" ]]; then
+        service_path="/etc/init.d/x-ui"
+    else
+        service_path="${xui_service}/x-ui.service"
+    fi
+    if [[ "$update_old_service_present" -eq 1 ]]; then
+        rm -f "$service_path"
+        cp -a "$update_service_backup" "$service_path" || return 1
+    else
+        rm -f "$service_path"
+    fi
+    service_reload_after_update
+}
+
+rollback_update() {
+    [[ "$update_transaction_active" -eq 1 ]] || return 0
+    echo -e "${red}Update failed; restoring the previous x-ui installation and service state.${plain}"
+
+    if [[ "$update_commit_started" -eq 1 ]]; then
+        # Stop the candidate before moving it out of the live path. Never kill
+        # unrelated daemon processes: active VPN users must not be disconnected
+        # by rollback cleanup.
+        service_stop_for_update >/dev/null 2>&1 || true
+        if [[ -n "$update_backup_dir" && -d "$update_backup_dir" ]]; then
+            if [[ -e "$xui_folder" || -L "$xui_folder" ]]; then
+                rm -rf "$xui_folder" || true
+            fi
+            mv "$update_backup_dir" "$xui_folder" || true
+        fi
+        restore_update_service >/dev/null 2>&1 || true
+        if [[ -n "$update_wrapper_backup" && -e "$update_wrapper_backup" ]]; then
+            rm -f /usr/bin/x-ui
+            cp -a "$update_wrapper_backup" /usr/bin/x-ui || true
+        elif [[ -n "$update_wrapper_backup" ]]; then
+            rm -f /usr/bin/x-ui
+        fi
+        if [[ "$update_db_snapshot_ready" -eq 1 ]]; then
+            echo -e "${yellow}Restoring the pre-update database/migration state.${plain}"
+            if ! restore_update_database; then
+                echo -e "${red}CRITICAL: Database rollback failed; the previous service will not be started automatically.${plain}"
+                update_old_service_active=0
+            fi
+        fi
+        if [[ "$update_old_service_active" -eq 1 ]]; then
+            service_start_after_update >/dev/null 2>&1 || true
+        fi
+    fi
+    update_transaction_active=0
+    update_commit_started=0
+    cleanup_update_transaction
+}
+
+commit_update_transaction() {
+    local parent service_path
+    parent="$(dirname "$xui_folder")"
+    update_backup_dir="${parent}/.x-ui-rollback.$$"
+    [[ ! -e "$update_backup_dir" ]] || return 1
+
+    if [[ "$release" == "alpine" ]]; then
+        service_path="/etc/init.d/x-ui"
+    else
+        service_path="${xui_service}/x-ui.service"
+    fi
+    if [[ -e "$service_path" || -L "$service_path" ]]; then
+        update_old_service_present=1
+        update_service_backup="${update_stage_root}/old-service"
+        cp -a "$service_path" "$update_service_backup" || return 1
+    else
+        echo -e "${red}Existing x-ui service unit is missing; the installation was not touched.${plain}"
+        return 1
+    fi
+
+    update_wrapper_backup="${update_stage_root}/old-wrapper"
+    if [[ -e /usr/bin/x-ui || -L /usr/bin/x-ui ]]; then
+        cp -a /usr/bin/x-ui "$update_wrapper_backup" || return 1
+    fi
+
+    if service_is_active; then update_old_service_active=1; fi
+    if service_is_enabled; then update_old_service_enabled=1; fi
+    update_commit_started=1
+    if ! service_stop_for_update; then return 1; fi
+    if service_is_active; then
+        echo -e "${red}Could not stop x-ui cleanly; the installation was not replaced.${plain}"
+        return 1
+    fi
+
+    if ! snapshot_update_database; then
+        return 1
+    fi
+
+    if ! mv "$xui_folder" "$update_backup_dir"; then return 1; fi
+    if ! mv "$update_stage_dir" "$xui_folder"; then return 1; fi
+
+    if ! install -m 0755 "$update_wrapper_stage" /usr/bin/x-ui; then return 1; fi
+    rm -f "$service_path"
+    if ! cp -a "$update_service_stage" "$service_path"; then return 1; fi
+    if [[ "$release" == "alpine" ]]; then
+        chown root:root "$service_path" 2>/dev/null || true
+        rc-update del x-ui >/dev/null 2>&1 || true
+        [[ "$update_old_service_enabled" -eq 1 ]] && rc-update add x-ui >/dev/null 2>&1 || true
+    else
+        chown root:root "$service_path" 2>/dev/null || true
+        chmod 0644 "$service_path" || return 1
+        service_reload_after_update || return 1
+        if [[ "$update_old_service_enabled" -eq 1 ]]; then
+            systemctl enable x-ui >/dev/null 2>&1 || return 1
+        else
+            systemctl disable x-ui >/dev/null 2>&1 || return 1
+        fi
+    fi
+
+    # Do not start the candidate here. Migration and post-update settings are
+    # applied while it is stopped; update_x-ui starts it only after they have
+    # completed successfully.
+    return 0
+}
+
+finalize_update_transaction() {
+    rm -rf "$update_backup_dir"
+    update_backup_dir=""
+    update_transaction_active=0
+    update_commit_started=0
+    cleanup_update_transaction
+    trap - EXIT
+}
+
 update_x-ui() {
-    cd ${xui_folder%/x-ui}/
+    cd "${xui_folder%/x-ui}/" || _fail "ERROR: x-ui parent directory is unavailable."
 
     load_xui_env
-
-    if [ -f "${xui_folder}/x-ui" ]; then
-        current_xui_version=$(${xui_folder}/x-ui -v)
-        echo -e "${green}Current x-ui version: ${current_xui_version}${plain}"
-    else
-        _fail "ERROR: Current x-ui version: unknown"
+    if [[ ! -f "${xui_folder}/x-ui" || ! -d "${xui_folder}" ]]; then
+        _fail "ERROR: Current x-ui installation is missing."
     fi
+    if ! configure_update_database; then
+        _fail "ERROR: Could not establish a safe database rollback boundary; the existing installation was not touched."
+    fi
+    case "$xui_folder" in
+        ""|/) _fail "ERROR: Refusing to update an unsafe installation path." ;;
+    esac
 
-    echo -e "${green}Downloading new x-ui version...${plain}"
+    current_xui_version=$(${xui_folder}/x-ui -v 2>/dev/null || true)
+    echo -e "${green}Current x-ui version: ${current_xui_version:-unknown}${plain}"
+    echo -e "${green}Preparing a transactional x-ui update; the live installation will remain untouched until validation completes.${plain}"
 
-    tag_version=$(${curl_bin} -Ls "https://api.github.com/repos/Dark-Sky07/OMEGA/releases?per_page=10" 2> /dev/null | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-    if [[ ! -n "$tag_version" ]]; then
+    tag_version=$(${curl_bin} -Ls "https://api.github.com/repos/Dark-Sky07/OMEGA/releases?per_page=10" 2>/dev/null | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+    if [[ -z "$tag_version" ]]; then
         echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
-        tag_version=$(${curl_bin} -4 -Ls "https://api.github.com/repos/Dark-Sky07/OMEGA/releases?per_page=10" | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-        if [[ ! -n "$tag_version" ]]; then
-            _fail "ERROR: Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later"
-        fi
+        tag_version=$(${curl_bin} -4 -Ls "https://api.github.com/repos/Dark-Sky07/OMEGA/releases?per_page=10" 2>/dev/null | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     fi
-    echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
-    ${curl_bin} -fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/Dark-Sky07/OMEGA/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2> /dev/null
-    if [[ $? -ne 0 ]]; then
-        echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
-        ${curl_bin} -4fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/Dark-Sky07/OMEGA/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2> /dev/null
-        if [[ $? -ne 0 ]]; then
-            _fail "ERROR: Failed to download x-ui, please be sure that your server can access GitHub"
-        fi
+    [[ -n "$tag_version" ]] || _fail "ERROR: Failed to fetch x-ui version; the existing installation was not touched."
+    echo -e "Got x-ui latest version: ${tag_version}; staging the installation..."
+
+    # From this point every failure cleans only temporary files, or restores the
+    # old directory/service/wrapper after the single atomic commit point.
+    update_transaction_active=1
+    trap 'rollback_update' EXIT
+
+    stage_pinned_xray
+    if ! stage_update_assets; then
+        _fail "ERROR: Failed to stage x-ui ${tag_version}; the existing installation was not touched."
     fi
+    echo -e "${green}Validated panel archive and pinned Xray-core ${xray_update_version}; committing the staged installation...${plain}"
 
-    # Resolve and stage the core before stopping/removing the current panel.
-    # The extracted release is only used as the panel bundle; this staged
-    # archive is the authoritative newest stable core for this update.
-    stage_latest_xray
-
-    if [[ -e ${xui_folder}/ ]]; then
-        echo -e "${green}Stopping x-ui...${plain}"
-        if [[ $release == "alpine" ]]; then
-            if [ -f "/etc/init.d/x-ui" ]; then
-                rc-service x-ui stop > /dev/null 2>&1
-                rc-update del x-ui > /dev/null 2>&1
-                echo -e "${green}Removing old service unit version...${plain}"
-                rm -f /etc/init.d/x-ui > /dev/null 2>&1
-            else
-                rm x-ui-linux-$(arch).tar.gz -f > /dev/null 2>&1
-                _fail "ERROR: x-ui service unit not installed."
-            fi
-        else
-            if [ -f "${xui_service}/x-ui.service" ]; then
-                systemctl stop x-ui > /dev/null 2>&1
-                systemctl disable x-ui > /dev/null 2>&1
-                echo -e "${green}Removing old systemd unit version...${plain}"
-                rm ${xui_service}/x-ui.service -f > /dev/null 2>&1
-                systemctl daemon-reload > /dev/null 2>&1
-            else
-                rm x-ui-linux-$(arch).tar.gz -f > /dev/null 2>&1
-                _fail "ERROR: x-ui systemd unit not installed."
-            fi
-        fi
-        # Kill any leftover mtg (MTProto) sidecars. x-ui runs them outside its own
-        # lifecycle, so on Linux a stale one can survive the stop and keep holding
-        # an inbound port with an outdated secret, silently breaking new clients.
-        # The new panel respawns a clean mtg per inbound on next start.
-        pkill -f 'mtg-linux-[^ ]* run ' > /dev/null 2>&1 || true
-        echo -e "${green}Removing old x-ui version...${plain}"
-        rm ${xui_folder} -f > /dev/null 2>&1
-        rm ${xui_folder}/x-ui.service -f > /dev/null 2>&1
-        rm ${xui_folder}/x-ui.service.debian -f > /dev/null 2>&1
-        rm ${xui_folder}/x-ui.service.arch -f > /dev/null 2>&1
-        rm ${xui_folder}/x-ui.service.rhel -f > /dev/null 2>&1
-        rm ${xui_folder}/x-ui -f > /dev/null 2>&1
-        rm ${xui_folder}/x-ui.sh -f > /dev/null 2>&1
-        echo -e "${green}The newest stable Xray-core will be installed after extracting the panel bundle.${plain}"
-        echo -e "${green}Removing old README and LICENSE file...${plain}"
-        rm ${xui_folder}/bin/README.md -f > /dev/null 2>&1
-        rm ${xui_folder}/bin/LICENSE -f > /dev/null 2>&1
-    else
-        rm x-ui-linux-$(arch).tar.gz -f > /dev/null 2>&1
-        _fail "ERROR: x-ui not installed."
+    if ! commit_update_transaction; then
+        _fail "ERROR: Failed to activate x-ui ${tag_version}; rollback completed."
+    fi
+    mkdir -p /var/log/x-ui || _fail "ERROR: Failed to prepare x-ui log directory; rollback completed."
+    chown -R root:root "$xui_folder" >/dev/null 2>&1 || _fail "ERROR: Failed to set x-ui ownership; rollback completed."
+    if [[ -f "${xui_folder}/bin/config.json" ]]; then
+        chmod 640 "${xui_folder}/bin/config.json" || _fail "ERROR: Failed to protect x-ui config; rollback completed."
     fi
 
-    echo -e "${green}Installing new x-ui version...${plain}"
-    tar zxvf x-ui-linux-$(arch).tar.gz > /dev/null 2>&1
-    rm x-ui-linux-$(arch).tar.gz -f > /dev/null 2>&1
-    cd x-ui > /dev/null 2>&1
-    # Replace any stale Xray bundled in the panel archive with the release
-    # resolved and validated before the old installation was stopped.
-    install_staged_xray
-    chmod +x x-ui > /dev/null 2>&1
-
-    # Check the system's architecture and rename the file accordingly
-    if [[ $(arch) == "armv5" || $(arch) == "armv6" || $(arch) == "armv7" ]]; then
-        mv bin/xray-linux-$(arch) bin/xray-linux-arm > /dev/null 2>&1
-        chmod +x bin/xray-linux-arm > /dev/null 2>&1
+    # Apply migration and settings while the candidate is stopped. This avoids
+    # exposing a partially migrated database through the new process. All DB
+    # writes remain covered by the snapshot taken at the commit boundary.
+    update_defer_service_start=1
+    if ! config_after_update; then
+        _fail "ERROR: Post-update migration/configuration failed; rollback completed."
     fi
+    update_defer_service_start=0
 
-    chmod +x x-ui bin/xray-linux-$(arch) > /dev/null 2>&1
-
-    echo -e "${green}Downloading and installing x-ui.sh script...${plain}"
-    ${curl_bin} -fLRo /usr/bin/x-ui https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh > /dev/null 2>&1
-    if [[ $? -ne 0 ]]; then
-        echo -e "${yellow}Trying to fetch x-ui with IPv4...${plain}"
-        ${curl_bin} -4fLRo /usr/bin/x-ui https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh > /dev/null 2>&1
-        if [[ $? -ne 0 ]]; then
-            _fail "ERROR: Failed to download x-ui.sh script, please be sure that your server can access GitHub"
-        fi
+    if ! service_start_after_update || ! service_is_active; then
+        _fail "ERROR: x-ui failed its post-configuration health check; rollback completed."
     fi
+    finalize_update_transaction
 
-    chmod +x ${xui_folder}/x-ui.sh > /dev/null 2>&1
-    chmod +x /usr/bin/x-ui > /dev/null 2>&1
-    mkdir -p /var/log/x-ui > /dev/null 2>&1
-
-    echo -e "${green}Changing owner...${plain}"
-    chown -R root:root ${xui_folder} > /dev/null 2>&1
-
-    if [ -f "${xui_folder}/bin/config.json" ]; then
-        echo -e "${green}Changing on config file permissions...${plain}"
-        chmod 640 ${xui_folder}/bin/config.json > /dev/null 2>&1
-    fi
-
-    if [[ $release == "alpine" ]]; then
-        echo -e "${green}Downloading and installing startup unit x-ui.rc...${plain}"
-        ${curl_bin} -fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.rc > /dev/null 2>&1
-        if [[ $? -ne 0 ]]; then
-            ${curl_bin} -4fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.rc > /dev/null 2>&1
-            if [[ $? -ne 0 ]]; then
-                _fail "ERROR: Failed to download startup unit x-ui.rc, please be sure that your server can access GitHub"
-            fi
-        fi
-        chmod +x /etc/init.d/x-ui > /dev/null 2>&1
-        chown root:root /etc/init.d/x-ui > /dev/null 2>&1
-        rc-update add x-ui > /dev/null 2>&1
-        rc-service x-ui start > /dev/null 2>&1
-    else
-        if [ -f "x-ui.service" ]; then
-            echo -e "${green}Installing systemd unit...${plain}"
-            cp -f x-ui.service ${xui_service}/ > /dev/null 2>&1
-            if [[ $? -ne 0 ]]; then
-                echo -e "${red}Failed to copy x-ui.service${plain}"
-                exit 1
-            fi
-        else
-            service_installed=false
-            case "${release}" in
-                ubuntu | debian | armbian)
-                    if [ -f "x-ui.service.debian" ]; then
-                        echo -e "${green}Installing debian-like systemd unit...${plain}"
-                        cp -f x-ui.service.debian ${xui_service}/x-ui.service > /dev/null 2>&1
-                        if [[ $? -eq 0 ]]; then
-                            service_installed=true
-                        fi
-                    fi
-                    ;;
-                arch | manjaro | parch)
-                    if [ -f "x-ui.service.arch" ]; then
-                        echo -e "${green}Installing arch-like systemd unit...${plain}"
-                        cp -f x-ui.service.arch ${xui_service}/x-ui.service > /dev/null 2>&1
-                        if [[ $? -eq 0 ]]; then
-                            service_installed=true
-                        fi
-                    fi
-                    ;;
-                *)
-                    if [ -f "x-ui.service.rhel" ]; then
-                        echo -e "${green}Installing rhel-like systemd unit...${plain}"
-                        cp -f x-ui.service.rhel ${xui_service}/x-ui.service > /dev/null 2>&1
-                        if [[ $? -eq 0 ]]; then
-                            service_installed=true
-                        fi
-                    fi
-                    ;;
-            esac
-
-            # If service file not found in tar.gz, download from GitHub
-            if [ "$service_installed" = false ]; then
-                echo -e "${yellow}Service files not found in tar.gz, downloading from GitHub...${plain}"
-                case "${release}" in
-                    ubuntu | debian | armbian)
-                        ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.service.debian > /dev/null 2>&1
-                        ;;
-                    arch | manjaro | parch)
-                        ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.service.arch > /dev/null 2>&1
-                        ;;
-                    *)
-                        ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.service.rhel > /dev/null 2>&1
-                        ;;
-                esac
-
-                if [[ $? -ne 0 ]]; then
-                    echo -e "${red}Failed to install x-ui.service from GitHub${plain}"
-                    exit 1
-                fi
-            fi
-        fi
-        chown root:root ${xui_service}/x-ui.service > /dev/null 2>&1
-        chmod 644 ${xui_service}/x-ui.service > /dev/null 2>&1
-        systemctl daemon-reload > /dev/null 2>&1
-        systemctl enable x-ui > /dev/null 2>&1
-        systemctl start x-ui > /dev/null 2>&1
-    fi
-
-    config_after_update
-
-    echo -e "${green}x-ui ${tag_version}${plain} updating finished, it is running now..."
-    echo -e ""
-    echo -e "┌───────────────────────────────────────────────────────┐
-│  ${blue}x-ui control menu usages (subcommands):${plain}              │
-│                                                       │
-│  ${blue}x-ui${plain}              - Admin Management Script          │
-│  ${blue}x-ui start${plain}        - Start                            │
-│  ${blue}x-ui stop${plain}         - Stop                             │
-│  ${blue}x-ui restart${plain}      - Restart                          │
-│  ${blue}x-ui status${plain}       - Current Status                   │
-│  ${blue}x-ui settings${plain}     - Current Settings                 │
-│  ${blue}x-ui enable${plain}       - Enable Autostart on OS Startup   │
-│  ${blue}x-ui disable${plain}      - Disable Autostart on OS Startup  │
-│  ${blue}x-ui log${plain}          - Check logs                       │
-│  ${blue}x-ui banlog${plain}       - Check Fail2ban ban logs          │
-│  ${blue}x-ui update${plain}       - Update                           │
-│  ${blue}x-ui legacy${plain}       - Legacy version                   │
-│  ${blue}x-ui install${plain}      - Install                          │
-│  ${blue}x-ui uninstall${plain}    - Uninstall                        │
-└───────────────────────────────────────────────────────┘"
+    echo -e "${green}x-ui ${tag_version} and Xray-core ${xray_update_version} update finished; it is running now.${plain}"
+    echo -e "${green}The prior installation was retained until the new service passed its health check, then removed.${plain}"
 }
 
 echo -e "${green}Running...${plain}"

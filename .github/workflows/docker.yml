@@ -6,6 +6,12 @@ permissions:
 
 on:
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Optional image tag for a manual publish"
+        required: false
+        default: ""
+        type: string
   push:
     tags:
       - "v*.*.*"
@@ -13,23 +19,39 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # Docker Hub credentials are optional. GHCR is always published, while
+      # Docker Hub is published when the repository secrets are configured.
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
 
     steps:
       - uses: actions/checkout@v6
         with:
           submodules: true
 
-      - name: Docker meta
-        id: meta
+      - name: Docker meta (GHCR)
+        id: meta_ghcr
         uses: docker/metadata-action@v6
         with:
-          images: |
-            hsanaeii/3x-ui
-            ghcr.io/mhsanaei/3x-ui
+          images: ghcr.io/mhsanaei/3x-ui
           tags: |
             type=ref,event=branch
             type=ref,event=tag
             type=semver,pattern={{version}}
+            type=raw,value=${{ inputs.image_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.image_tag != '' }}
+
+      - name: Docker meta (Docker Hub)
+        id: meta_dockerhub
+        if: ${{ env.DOCKER_HUB_USERNAME != '' && env.DOCKER_HUB_TOKEN != '' }}
+        uses: docker/metadata-action@v6
+        with:
+          images: hsanaeii/3x-ui
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=raw,value=${{ inputs.image_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.image_tag != '' }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -38,10 +60,11 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Login to Docker Hub
+        if: ${{ env.DOCKER_HUB_USERNAME != '' && env.DOCKER_HUB_TOKEN != '' }}
         uses: docker/login-action@v4
         with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+          username: ${{ env.DOCKER_HUB_USERNAME }}
+          password: ${{ env.DOCKER_HUB_TOKEN }}
 
       - name: Login to GHCR
         uses: docker/login-action@v4
@@ -56,5 +79,9 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64/v8,linux/arm/v7,linux/arm/v6,linux/386
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ steps.meta_ghcr.outputs.tags }}
+            ${{ steps.meta_dockerhub.outputs.tags }}
+          labels: |
+            ${{ steps.meta_ghcr.outputs.labels }}
+            ${{ steps.meta_dockerhub.outputs.labels }}

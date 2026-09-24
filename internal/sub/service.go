@@ -2232,14 +2232,14 @@ type L2TPConnection struct {
 // PageData is a view model for subpage.html
 // PageData contains data for rendering the subscription information page.
 type PageData struct {
-	Host          string
-	BasePath      string
-	SId           string
-	Enabled       bool
+	Host     string
+	BasePath string
+	SId      string
+	Enabled  bool
 	// Openvpn reports whether the subscription owner can download a per-client
 	// .ovpn profile (attached to an enabled local openvpn inbound). The SPA
 	// uses it to show the OpenVPN config row next to the share links.
-	Openvpn       bool
+	Openvpn bool
 	// L2TP contains native connection data for every matching client. It is
 	// empty when no enabled local L2TP inbound is attached.
 	L2TP          []L2TPConnection

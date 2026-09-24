@@ -145,7 +145,7 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 		}
 		if len(email) > 0 {
 			var enables []bool
-			if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).Limit(1).Pluck("enable", &enables).Error; err != nil {
+			if err := db.Model(xray.ClientTraffic{}).Where("LOWER(TRIM(email)) = LOWER(TRIM(?))", strings.TrimSpace(email)).Limit(1).Pluck("enable", &enables).Error; err != nil {
 				logger.Error("Get stats error")
 				return needRestart, err
 			}
@@ -605,7 +605,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 			emailUnchanged := strings.EqualFold(oldEmail, clients[0].Email)
 			targetExists := int64(0)
 			if !emailUnchanged {
-				if err = tx.Model(xray.ClientTraffic{}).Where("email = ?", clients[0].Email).Count(&targetExists).Error; err != nil {
+				if err = tx.Model(xray.ClientTraffic{}).Where("LOWER(TRIM(email)) = LOWER(TRIM(?))", strings.TrimSpace(clients[0].Email)).Count(&targetExists).Error; err != nil {
 					return false, err
 				}
 			}
@@ -756,7 +756,7 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 		if !ok {
 			continue
 		}
-		if cEmail, ok := c["email"].(string); ok && cEmail == email {
+		if cEmail, ok := c["email"].(string); ok && transferEmailKey(cEmail) == transferEmailKey(email) {
 			found = true
 			needApiDel, _ = c["enable"].(bool)
 		} else {
@@ -878,7 +878,7 @@ func (s *ClientService) SetClientTelegramUserID(inboundSvc *InboundService, traf
 
 	found := false
 	for _, oldClient := range oldClients {
-		if oldClient.Email == clientEmail {
+		if transferEmailKey(oldClient.Email) == transferEmailKey(clientEmail) {
 			found = true
 			break
 		}
@@ -897,7 +897,7 @@ func (s *ClientService) SetClientTelegramUserID(inboundSvc *InboundService, traf
 	var newClients []any
 	for client_index := range clients {
 		c := clients[client_index].(map[string]any)
-		if c["email"] == clientEmail {
+		if transferEmailKey(fmt.Sprint(c["email"])) == transferEmailKey(clientEmail) {
 			c["tgId"] = tgId
 			c["updated_at"] = time.Now().Unix() * 1000
 			newClients = append(newClients, any(c))
@@ -930,7 +930,7 @@ func (s *ClientService) CheckIsEnabledByEmail(inboundSvc *InboundService, client
 	isEnable := false
 
 	for _, client := range clients {
-		if client.Email == clientEmail {
+		if transferEmailKey(client.Email) == transferEmailKey(clientEmail) {
 			isEnable = client.Enable
 			break
 		}
@@ -957,7 +957,7 @@ func (s *ClientService) ToggleClientEnableByEmail(inboundSvc *InboundService, cl
 	clientOldEnabled := false
 
 	for _, oldClient := range oldClients {
-		if oldClient.Email == clientEmail {
+		if transferEmailKey(oldClient.Email) == transferEmailKey(clientEmail) {
 			found = true
 			clientOldEnabled = oldClient.Enable
 			break
@@ -977,7 +977,7 @@ func (s *ClientService) ToggleClientEnableByEmail(inboundSvc *InboundService, cl
 	var newClients []any
 	for client_index := range clients {
 		c := clients[client_index].(map[string]any)
-		if c["email"] == clientEmail {
+		if transferEmailKey(fmt.Sprint(c["email"])) == transferEmailKey(clientEmail) {
 			c["enable"] = !clientOldEnabled
 			c["updated_at"] = time.Now().Unix() * 1000
 			newClients = append(newClients, any(c))
@@ -1065,7 +1065,7 @@ func (s *ClientService) applyClientFieldByEmail(inboundSvc *InboundService, clie
 			if !ok {
 				continue
 			}
-			if c["email"] == clientEmail {
+			if transferEmailKey(fmt.Sprint(c["email"])) == transferEmailKey(clientEmail) {
 				mutate(c)
 				c["updated_at"] = time.Now().Unix() * 1000
 				newClients = append(newClients, any(c))

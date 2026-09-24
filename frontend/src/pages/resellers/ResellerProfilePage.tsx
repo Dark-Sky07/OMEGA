@@ -31,6 +31,8 @@ import { useTheme } from '@/hooks/useTheme';
 import type { ResellerStat } from '@/api/queries/useSession';
 import './ResellersPage.css';
 
+const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
+
 export default function ResellerProfilePage() {
   const { t } = useTranslation();
   const { isDark, isUltra, antdThemeConfig } = useTheme();
@@ -43,8 +45,6 @@ export default function ResellerProfilePage() {
   useEffect(() => {
     setMessageInstance(messageApi);
   }, [messageApi]);
-
-  const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
 
   const pageClass = useMemo(() => {
     const classes = ['resellers-page'];

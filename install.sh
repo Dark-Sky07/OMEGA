@@ -88,29 +88,29 @@ is_port_in_use() {
 install_base() {
     case "${release}" in
         ubuntu | debian | armbian)
-            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl
+            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl unzip
             ;;
         fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl
+            dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl unzip
             ;;
         centos)
             if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum -y update && yum install -y cronie curl tar tzdata socat ca-certificates openssl
+                yum -y update && yum install -y cronie curl tar tzdata socat ca-certificates openssl unzip
             else
-                dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl
+                dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl unzip
             fi
             ;;
         arch | manjaro | parch)
-            pacman -Syu && pacman -Syu --noconfirm cronie curl tar tzdata socat ca-certificates openssl
+            pacman -Syu && pacman -Syu --noconfirm cronie curl tar tzdata socat ca-certificates openssl unzip
             ;;
         opensuse-tumbleweed | opensuse-leap)
-            zypper refresh && zypper -q install -y cron curl tar timezone socat ca-certificates openssl
+            zypper refresh && zypper -q install -y cron curl tar timezone socat ca-certificates openssl unzip
             ;;
         alpine)
-            apk update && apk add dcron curl tar tzdata socat ca-certificates openssl
+            apk update && apk add dcron curl tar tzdata socat ca-certificates openssl unzip
             ;;
         *)
-            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl
+            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl unzip
             ;;
     esac
 }
@@ -1209,6 +1209,60 @@ EOF
     ${xui_folder}/x-ui migrate
 }
 
+# The panel archive may contain an older bundled core. Stage the exact
+# repository-pinned Xray release before stopping or replacing an existing
+# installation, then install it over the archive copy after extraction.
+XRAY_PINNED_VERSION="v26.9.9"
+xray_install_archive=""
+
+stage_pinned_xray() {
+    local xray_arch archive_url
+    case "$(arch)" in
+        amd64) xray_arch="64" ;;
+        386) xray_arch="32" ;;
+        arm64) xray_arch="arm64-v8a" ;;
+        armv7) xray_arch="arm32-v7a" ;;
+        armv6) xray_arch="arm32-v6" ;;
+        armv5) xray_arch="arm32-v5" ;;
+        s390x) xray_arch="s390x" ;;
+        *) echo -e "${red}Unsupported architecture for Xray-core: $(arch)${plain}"; exit 1 ;;
+    esac
+    archive_url="https://github.com/XTLS/Xray-core/releases/download/${XRAY_PINNED_VERSION}/Xray-linux-${xray_arch}.zip"
+    xray_install_archive="$(mktemp "/tmp/xray-${XRAY_PINNED_VERSION#v}.XXXXXX.zip")" || exit 1
+    if ! curl -4fsSL --retry 3 -o "$xray_install_archive" "$archive_url" || ! unzip -tq "$xray_install_archive" > /dev/null 2>&1; then
+        rm -f "$xray_install_archive"
+        xray_install_archive=""
+        echo -e "${red}Failed to stage pinned Xray-core ${XRAY_PINNED_VERSION}; installation aborted before changing the current panel.${plain}"
+        exit 1
+    fi
+    echo -e "${green}Staged pinned Xray-core ${XRAY_PINNED_VERSION}${plain}"
+}
+
+install_staged_xray() {
+    local extract_dir target
+    if [[ -z "$xray_install_archive" ]]; then
+        echo -e "${red}No staged Xray-core archive is available.${plain}"
+        exit 1
+    fi
+    extract_dir="$(mktemp -d "/tmp/xray-extract.XXXXXX")" || exit 1
+    if ! unzip -q "$xray_install_archive" -d "$extract_dir" || [[ ! -f "$extract_dir/xray" ]]; then
+        rm -rf "$extract_dir" "$xray_install_archive"
+        xray_install_archive=""
+        echo -e "${red}Failed to extract pinned Xray-core ${XRAY_PINNED_VERSION}; installation aborted.${plain}"
+        exit 1
+    fi
+    target="bin/xray-linux-$(arch)"
+    if ! install -m 0755 "$extract_dir/xray" "$target"; then
+        rm -rf "$extract_dir" "$xray_install_archive"
+        xray_install_archive=""
+        echo -e "${red}Failed to install pinned Xray-core ${XRAY_PINNED_VERSION}; installation aborted.${plain}"
+        exit 1
+    fi
+    rm -rf "$extract_dir" "$xray_install_archive"
+    xray_install_archive=""
+    echo -e "${green}Installed pinned Xray-core ${XRAY_PINNED_VERSION}${plain}"
+}
+
 install_x-ui() {
     cd ${xui_folder%/x-ui}/
 
@@ -1247,6 +1301,9 @@ install_x-ui() {
             exit 1
         fi
     fi
+
+    # Stage the pinned core before any service stop or directory replacement.
+    stage_pinned_xray
     curl -4fLRo /usr/bin/x-ui-temp https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
     if [[ $? -ne 0 ]]; then
         echo -e "${red}Failed to download x-ui.sh${plain}"
@@ -1273,19 +1330,25 @@ install_x-ui() {
     rm x-ui-linux-$(arch).tar.gz -f
 
     cd x-ui
+    # Replace any stale core bundled in the panel archive.
+    install_staged_xray
     chmod +x x-ui
     chmod +x x-ui.sh
 
     # Check the system's architecture and rename the file accordingly
     if [[ $(arch) == "armv5" || $(arch) == "armv6" || $(arch) == "armv7" ]]; then
-        mv bin/xray-linux-$(arch) bin/xray-linux-arm
-        chmod +x bin/xray-linux-arm
+        mv bin/xray-linux-$(arch) bin/xray-linux-arm32
+        chmod +x bin/xray-linux-arm32
         if [[ -f bin/mtg-linux-$(arch) ]]; then
             mv bin/mtg-linux-$(arch) bin/mtg-linux-arm
             chmod +x bin/mtg-linux-arm
         fi
     fi
-    chmod +x x-ui bin/xray-linux-$(arch)
+    if [[ $(arch) == "armv5" || $(arch) == "armv6" || $(arch) == "armv7" ]]; then
+        chmod +x x-ui bin/xray-linux-arm32
+    else
+        chmod +x x-ui bin/xray-linux-$(arch)
+    fi
     if [[ -f bin/mtg-linux-arm ]]; then
         chmod +x bin/mtg-linux-arm
     elif [[ -f bin/mtg-linux-$(arch) ]]; then

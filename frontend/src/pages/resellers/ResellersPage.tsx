@@ -188,6 +188,9 @@ export default function ResellersPage() {
         enable: stat.reseller.enable,
         trafficLimitGb: stat.reseller.trafficLimit ? stat.reseller.trafficLimit / GB : 0,
         clientLimit: stat.reseller.clientLimit,
+        // The assignment query is enabled by the modal. Start empty and let
+        // the effect below replace this once the authoritative map arrives.
+        inboundIds: [],
       });
       setFormOpen(true);
     },
@@ -227,44 +230,19 @@ export default function ResellersPage() {
         return;
       }
 
-      // Attach inbound: admin decides which inbounds the reseller can access.
+      // Apply the complete multi-select in one transactional request. This
+      // prevents a failed individual assignment from leaving a reseller with
+      // only part of the form's desired inbound set.
       const selected: number[] = values.inboundIds || [];
       const targetId = editing ? editing.reseller.id : (msg.obj as { id: number } | null)?.id;
       if (targetId) {
-        const prevOwned = editing
-          ? (assignmentsQuery.data || []).find((entry) => entry.resellerId === editing.reseller.id)?.inboundIds || []
-          : [];
-        const prev = new Set(prevOwned);
-        const next = new Set(selected);
-        for (const id of selected) {
-          if (!prev.has(id)) {
-            const assignMsg = await HttpUtil.post(
-              '/panel/api/resellers/assignInbound',
-              {
-                resellerId: targetId,
-                inboundId: id,
-              },
-              { ...JSON_HEADERS, silent: true } as never,
-            );
-            if (!assignMsg.success) {
-              messageApi.error(assignMsg.msg || t('somethingWentWrong'));
-            }
-          }
-        }
-        for (const id of prevOwned) {
-          if (!next.has(id)) {
-            const unassignMsg = await HttpUtil.post(
-              '/panel/api/resellers/unassignInbound',
-              {
-                resellerId: targetId,
-                inboundId: id,
-              },
-              { ...JSON_HEADERS, silent: true } as never,
-            );
-            if (!unassignMsg.success) {
-              messageApi.error(unassignMsg.msg || t('somethingWentWrong'));
-            }
-          }
+        const assignmentMsg = await HttpUtil.post(
+          '/panel/api/resellers/setInbounds',
+          { resellerId: targetId, inboundIds: selected },
+          { ...JSON_HEADERS, silent: true } as never,
+        );
+        if (!assignmentMsg.success) {
+          throw new Error(assignmentMsg.msg || t('somethingWentWrong'));
         }
       }
       messageApi.success(t(editing ? 'resellers.toasts.updated' : 'resellers.toasts.created'));

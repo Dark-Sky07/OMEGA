@@ -67,17 +67,17 @@ func (w *procLogWriter) LastLine() string {
 
 // Process supervises the strongSwan starter and xl2tpd foreground processes.
 type Process struct {
-	id         int
-	configDir  string
-	ipsecCmd   *exec.Cmd
-	xl2tpdCmd  *exec.Cmd
-	ipsecDone  chan struct{}
-	xl2tpdDone chan struct{}
-	ipsecLog   *procLogWriter
-	xl2tpdLog  *procLogWriter
-	exitErr    error
+	id          int
+	configDir   string
+	ipsecCmd    *exec.Cmd
+	xl2tpdCmd   *exec.Cmd
+	ipsecDone   chan struct{}
+	xl2tpdDone  chan struct{}
+	ipsecLog    *procLogWriter
+	xl2tpdLog   *procLogWriter
+	exitErr     error
 	intentional atomic.Bool
-	mu         sync.Mutex
+	mu          sync.Mutex
 }
 
 func newProcess(id int) *Process {
@@ -233,6 +233,37 @@ func (p *Process) GetResult() string {
 	return ""
 }
 
+// ensureControlFIFO creates the control FIFO explicitly before xl2tpd starts.
+// Several distro packages do not install /var/run/xl2tpd or its default
+// l2tp-control FIFO when the systemd unit is disabled. xl2tpd then exits with
+// "open_controlfd: Unable to open /var/run/xl2tpd/l2tp-control", even when the
+// rest of the generated configuration is valid. Keeping a private FIFO beside
+// the per-inbound config also avoids a global control-path collision.
+func ensureControlFIFO(id int) error {
+	path := xl2tpdControlPath(id)
+	if info, err := os.Lstat(path); err == nil {
+		if info.Mode()&os.ModeNamedPipe == 0 {
+			return fmt.Errorf("xl2tpd control path is not a FIFO: %s", path)
+		}
+		if err := os.Chmod(path, 0o600); err != nil {
+			return fmt.Errorf("chmod xl2tpd control FIFO: %w", err)
+		}
+		return nil
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("inspect xl2tpd control FIFO: %w", err)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
+		return fmt.Errorf("create xl2tpd control directory: %w", err)
+	}
+	// Use the system mkfifo utility rather than syscall.Mkfifo so this package
+	// continues to compile for the Windows release target as well.
+	if output, err := exec.Command("mkfifo", "-m", "600", path).CombinedOutput(); err != nil {
+		return fmt.Errorf("create xl2tpd control FIFO: %w (%s)", err, strings.TrimSpace(string(output)))
+	}
+	return nil
+}
+
 func (p *Process) Start() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -254,7 +285,7 @@ func (p *Process) Start() error {
 	// that config redirects the legacy stroke secrets loader to the PSK file.
 	ipsecCmd := exec.Command(ipsec, "start", "--nofork", "--conf", ipsecConfigPath(p.id))
 	ipsecCmd.Env = processEnvironment(
-		"STRONGSWAN_CONF="+strongSwanConfigPath(p.id),
+		"STRONGSWAN_CONF=" + strongSwanConfigPath(p.id),
 	)
 	ipsecCmd.Stdout = p.ipsecLog
 	ipsecCmd.Stderr = p.ipsecLog
@@ -267,7 +298,12 @@ func (p *Process) Start() error {
 	p.intentional.Store(false)
 	go p.wait(ipsecCmd, p.ipsecDone, p.ipsecLog, "strongSwan")
 
-	xl2tpdCmd := exec.Command(xl2tpd, "-D", "-c", xl2tpdConfigPath(p.id), "-p", xl2tpdPIDPath(p.id))
+	if err := ensureControlFIFO(p.id); err != nil {
+		p.intentional.Store(true)
+		_ = ipsecCmd.Process.Signal(syscall.SIGTERM)
+		return err
+	}
+	xl2tpdCmd := exec.Command(xl2tpd, "-D", "-c", xl2tpdConfigPath(p.id), "-C", xl2tpdControlPath(p.id), "-p", xl2tpdPIDPath(p.id))
 	xl2tpdCmd.Stdout = p.xl2tpdLog
 	xl2tpdCmd.Stderr = p.xl2tpdLog
 	if err := xl2tpdCmd.Start(); err != nil {
