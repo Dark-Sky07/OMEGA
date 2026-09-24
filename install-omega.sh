@@ -1302,20 +1302,29 @@ EOF
     ${xui_folder}/x-ui migrate
 }
 
-# Panel-side assets (x-ui.sh, systemd units, x-ui.rc) are fetched from the OMEGA
-# repository at the ref being installed — the release tag — so a given panel
-# version always installs the matching management script and units. Set
-# OMEGA_REF to force a specific ref instead (e.g. OMEGA_REF=main to track the
-# branch); "main" is used as the fallback when a tag lacks a file.
-omega_ref="${OMEGA_REF:-${1:-${tag_version:-main}}}"
-omega_ref_fallback="main"
-[[ -n "${OMEGA_REF:-}" ]] && omega_ref_fallback="${OMEGA_REF}"
+# Panel-side assets (x-ui.sh, systemd units, x-ui.rc) are fetched from the
+# exact OMEGA release tag selected by the dynamic launcher. Never fall back to
+# a branch or an older tag: mixing files from different releases can pair an
+# incompatible management script with the panel binary.
+omega_latest_tag() {
+    curl -4fsSL "https://api.github.com/repos/${OMEGA_REPO}/releases/latest" \
+        | grep -m1 '"tag_name":' \
+        | sed -E 's/.*"([^"]+)".*/\1/'
+}
+omega_ref="${OMEGA_REF:-${1:-${tag_version:-}}}"
+if [[ -z "${omega_ref}" ]]; then
+    omega_ref="$(omega_latest_tag)"
+fi
+if [[ -z "${omega_ref}" ]]; then
+    echo -e "${red}Could not resolve the latest OMEGA release tag; installation aborted.${plain}"
+    exit 1
+fi
 omega_raw_fetch() {
     local out="$1" path="$2"
-    curl -fLRo "$out" "https://raw.githubusercontent.com/${OMEGA_REPO}/${omega_ref}/${path}" > /dev/null 2>&1
-    if [[ $? -ne 0 && "${omega_ref}" != "${omega_ref_fallback}" ]]; then
-        echo -e "${yellow}Ref '${omega_ref}' has no ${path}, trying ${omega_ref_fallback}...${plain}"
-        curl -fLRo "$out" "https://raw.githubusercontent.com/${OMEGA_REPO}/${omega_ref_fallback}/${path}" > /dev/null 2>&1
+    if ! curl -fLRo "$out" "https://raw.githubusercontent.com/${OMEGA_REPO}/${omega_ref}/${path}" > /dev/null 2>&1; then
+        echo -e "${red}Release '${omega_ref}' does not contain ${path}; installation aborted.${plain}"
+        rm -f "$out"
+        return 1
     fi
 }
 
