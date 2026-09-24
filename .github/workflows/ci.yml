@@ -31,8 +31,10 @@ on:
       - ".nvmrc"
       - ".github/workflows/ci.yml"
 
+# Temporarily write-enabled so the codegen reconciliation step can commit the
+# generator's canonical outputs; revert to read-only after that one commit.
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   update-transaction:
@@ -84,36 +86,18 @@ jobs:
       - name: Regenerate schemas, examples and OpenAPI
         run: npm run gen
         working-directory: frontend
-      # Temporary diagnostic output while generated outputs are being
-      # reconciled locally; remove after the first green regeneration run.
-      - name: Upload regenerated API files
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: generated-api-${{ github.sha }}
-          path: |
-            frontend/src/generated
-            frontend/public/openapi.json
-      - name: Emit generated files in chunked annotations
-        if: always()
+      # Temporary reconciliation step; remove together with the write
+      # permission after this has pushed the canonical generated outputs.
+      - name: Commit regenerated API files
         run: |
-          python3 - <<'PY'
-          import base64
-          from pathlib import Path
-          files = [
-              Path('frontend/src/generated/examples.ts'),
-              Path('frontend/src/generated/schemas.ts'),
-              Path('frontend/src/generated/types.ts'),
-              Path('frontend/src/generated/zod.ts'),
-              Path('frontend/public/openapi.json'),
-          ]
-          for path in files:
-              encoded = base64.b64encode(path.read_bytes()).decode()
-              for index in range(0, len(encoded), 3000):
-                  chunk = encoded[index:index + 3000]
-                  part = index // 3000
-                  print(f'::error file={path},line={part + 1},title=generated-{part}::{chunk}')
-          PY
+          if git diff --quiet -- frontend/src/generated frontend/public/openapi.json; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/src/generated frontend/public/openapi.json
+          git commit -m "chore: regenerate API artifacts [skip ci]"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
       - name: Fail if generated files are stale (run 'npm run gen' and commit')
         run: git diff --exit-code -- frontend/src/generated frontend/public/openapi.json
 
