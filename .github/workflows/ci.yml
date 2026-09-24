@@ -70,14 +70,6 @@ jobs:
           print(f'::error title=go-test-output::{output}')
           PYLOG
           exit 1
-      - name: Upload Go test log for debugging
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: go-test-log
-          path: /tmp/go-test.log
-          if-no-files-found: ignore
-
   codegen:
     runs-on: ubuntu-latest
     steps:
