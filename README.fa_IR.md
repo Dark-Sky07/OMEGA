@@ -15,11 +15,13 @@
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Base](https://img.shields.io/badge/base-3x--ui%20v3.3.1-informational)](https://github.com/MHSanaei/3x-ui/releases/tag/v3.3.1)
 
-**نصب با یک دستور** — روی سرور تازه، با کاربر `root`:
+**نصب آخرین release OMEGA با یک دستور** — روی سرور تازه، با کاربر `root`:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega/install-omega.sh) v3.3.25-omega
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install
 ```
+
+این launcher پایدار همیشه جدیدترین release OMEGA در گیت‌هاب را پیدا و نصب می‌کند. دستورهای نصب عمومی عمداً tag را pin نمی‌کنند و هرگز به مخزن vanilla 3x-ui برنمی‌گردند.
 
 </div>
 
@@ -27,7 +29,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega
 > این پروژه فورکی بر پایه‌ی 3x-ui نسخه‌ی 3.3.1 است. قابلیت نمایندگی، daemon خارجی OpenVPN و daemon خارجی
 > L2TP/IPsec به آن اضافه شده‌اند، اما نام سرویس (`x-ui`)، مسیرهای نصب (`/usr/local/x-ui`، `/etc/x-ui`)،
 > متغیرهای محیطی و قراردادهای کانفیگ Xray با upstream سازگار باقی مانده‌اند. شماره‌ی release مربوط به OMEGA
-> جداگانه مدیریت می‌شود و نسخه‌ی stable فعلی `v3.3.25-omega` است.
+> جداگانه مدیریت می‌شود و نسخه‌ی stable فعلی `v3.3.30-omega` است.
 
 ---
 
@@ -39,7 +41,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega
 | ➕ **اضافه‌شده** | **اینباندهای OpenVPN** — برای هر اینباند یک daemon محلی OpenVPN روی پورت آن گوش می‌کند؛ گواهی هر کلاینت خودکار ساخته می‌شود (CN = ایمیل)، هر کلاینت پروفایل آماده‌ی `.ovpn` دارد (کپی/دانلود از صفحه‌ی اطلاعات کلاینت) و ترافیک و آنلاین بودن هر کلاینت وارد همان خط لوله‌ی آمار می‌شود. installer نسخه‌ی tag‌شده بسته‌ی سیستم‌عامل `openvpn` و `/dev/net/tun` را نصب و بررسی می‌کند؛ سپس پنل برای هر اینباند محلی فعال، کانفیگ و daemon مستقل می‌سازد. فایل tar پنل به‌تنهایی بسته‌ی OpenVPN سیستم‌عامل را شامل نمی‌شود؛ باید installer اجرا شود. |
 | ➕ **اضافه‌شده** | **اینباندهای L2TP/IPsec** — یک گروه daemon سراسری روی Linux با strongSwan و xl2tpd/PPP که از email/password کلاینت‌های موجود استفاده می‌کند، PSK را پایدار نگه می‌دارد، کانفیگ و `chap-secrets` را در مسیرهای single و bulk به‌صورت synchronous reconcile می‌کند، daemonهای orphan را بعد از restart جمع می‌کند، پورت‌های UDP 500/4500/1701 و ruleهای forwarding/FORWARD/MASQUERADE را مدیریت می‌کند و آمار آنلاین/ترافیک PPP را گزارش می‌دهد. این پروتکل خارج از Xray است، profile فایل و PPTP ندارد و پارامترهای native اتصال در UI نمایش داده می‌شوند. |
 | 🎨 **برندینگ** | نام پنل در سایدبار، صفحه‌ی ورود، عنوان صفحه‌ها، مستندات API و ترجمه‌ها **OMEGA** است. فقط برندینگ ظاهری؛ مسیرهای نصب و نام سرویس بدون تغییر باقی مانده‌اند. |
-| 🛠 **نصب** | [`install-omega.sh`](install-omega.sh) همین پنل را از همین ریپازیتوری نصب می‌کند و [`x-ui.sh`](x-ui.sh) هم از همین‌جا آپدیت می‌گیرد؛ بنابراین `x-ui update` هرگز پنل را با نسخه‌ی خام 3x-ui عوض نمی‌کند. |
+| 🛠 **نصب** | [`x-ui.sh`](x-ui.sh) launcher پنل OMEGA است؛ همیشه جدیدترین release همین ریپازیتوری را پیدا و نصب می‌کند و `x-ui update` نیز فقط از همین مسیر OMEGA استفاده می‌کند و هرگز به 3x-ui خام fallback نمی‌کند. |
 | ✅ **بدون تغییر** | بقیه‌ی همه‌چیز — تمام 3x-ui نسخه‌ی 3.3.1 (پروتکل‌ها، ترنسپورت‌ها، نودها، اشتراک‌ها، ربات تلگرام، روتینگ، API، تم‌ها و ۱۳ زبان). |
 
 ### نصب OpenVPN و چک‌لیست سمت سرور
@@ -49,9 +51,7 @@ OpenVPN یک daemon سیستم‌عامل است، نه بخشی از Xray و ن
 برای نصب یا تعمیر سرور موجود با آخرین release پایدار، با کاربر `root` اجرا کنید:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega/install-omega.sh \
-  -o /tmp/install-omega.sh
-env OMEGA_REF=v3.3.25-omega bash /tmp/install-omega.sh v3.3.25-omega
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install
 ```
 
 پیش‌نیاز را قبل از بررسی شبکه verify کنید:
@@ -90,13 +90,7 @@ L2TP/IPsec daemon سیستم‌عامل است و بخشی از Xray نیست. i
 روی سرور تازه، با کاربر **root**:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega/install-omega.sh) v3.3.25-omega
-```
-
-اگر می‌خواهید نسخه‌ی مشخصی نصب شود (مثلاً قبل از merge شدن شاخه‌ی اصلی):
-
-```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega/install-omega.sh) v3.3.25-omega
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install
 ```
 
 نصب‌کننده خودش این کارها را انجام می‌دهد:

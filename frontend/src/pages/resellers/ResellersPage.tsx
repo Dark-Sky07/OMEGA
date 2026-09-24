@@ -101,7 +101,7 @@ export default function ResellersPage() {
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm<ResellerFormValues>();
   const [passwordForm] = Form.useForm<{ password: string }>();
-  const [clientForm] = Form.useForm<{ email: string; resellerId: number }>();
+  const [clientForm] = Form.useForm<{ emails: string[]; resellerId: number }>();
 
   const pageClass = useMemo(() => {
     const classes = ['resellers-page'];
@@ -188,6 +188,9 @@ export default function ResellersPage() {
         enable: stat.reseller.enable,
         trafficLimitGb: stat.reseller.trafficLimit ? stat.reseller.trafficLimit / GB : 0,
         clientLimit: stat.reseller.clientLimit,
+        // The assignment query is enabled by the modal. Start empty and let
+        // the effect below replace this once the authoritative map arrives.
+        inboundIds: [],
       });
       setFormOpen(true);
     },
@@ -227,44 +230,19 @@ export default function ResellersPage() {
         return;
       }
 
-      // Attach inbound: admin decides which inbounds the reseller can access.
+      // Apply the complete multi-select in one transactional request. This
+      // prevents a failed individual assignment from leaving a reseller with
+      // only part of the form's desired inbound set.
       const selected: number[] = values.inboundIds || [];
       const targetId = editing ? editing.reseller.id : (msg.obj as { id: number } | null)?.id;
       if (targetId) {
-        const prevOwned = editing
-          ? (assignmentsQuery.data || []).find((entry) => entry.resellerId === editing.reseller.id)?.inboundIds || []
-          : [];
-        const prev = new Set(prevOwned);
-        const next = new Set(selected);
-        for (const id of selected) {
-          if (!prev.has(id)) {
-            const assignMsg = await HttpUtil.post(
-              '/panel/api/resellers/assignInbound',
-              {
-                resellerId: targetId,
-                inboundId: id,
-              },
-              { ...JSON_HEADERS, silent: true } as never,
-            );
-            if (!assignMsg.success) {
-              messageApi.error(assignMsg.msg || t('somethingWentWrong'));
-            }
-          }
-        }
-        for (const id of prevOwned) {
-          if (!next.has(id)) {
-            const unassignMsg = await HttpUtil.post(
-              '/panel/api/resellers/unassignInbound',
-              {
-                resellerId: targetId,
-                inboundId: id,
-              },
-              { ...JSON_HEADERS, silent: true } as never,
-            );
-            if (!unassignMsg.success) {
-              messageApi.error(unassignMsg.msg || t('somethingWentWrong'));
-            }
-          }
+        const assignmentMsg = await HttpUtil.post(
+          '/panel/api/resellers/setInbounds',
+          { resellerId: targetId, inboundIds: selected },
+          { ...JSON_HEADERS, silent: true } as never,
+        );
+        if (!assignmentMsg.success) {
+          throw new Error(assignmentMsg.msg || t('somethingWentWrong'));
         }
       }
       messageApi.success(t(editing ? 'resellers.toasts.updated' : 'resellers.toasts.created'));
@@ -277,7 +255,7 @@ export default function ResellersPage() {
     } finally {
       setSubmitting(false);
     }
-  }, [editing, form, messageApi, refreshAll, t, assignmentsQuery.data, queryClient]);
+  }, [editing, form, messageApi, refreshAll, t, queryClient]);
 
   const toggleEnable = useCallback(
     async (stat: ResellerStat, enable: boolean) => {
@@ -332,17 +310,17 @@ export default function ResellersPage() {
 
   const submitAssignClient = useCallback(async () => {
     const values = await clientForm.validateFields().catch(() => null);
-    if (!values) return;
+    if (!values || !values.emails?.length || !clientFor) return;
     const msg = await HttpUtil.post(
-      '/panel/api/resellers/assignClient',
+      '/panel/api/resellers/assignClients',
       {
-        resellerId: clientFor?.reseller.id,
-        email: values.email,
+        resellerId: clientFor.reseller.id,
+        emails: values.emails,
       },
       { ...JSON_HEADERS, silent: true } as never,
     );
     if (msg.success) {
-      messageApi.success(t('resellers.toasts.clientAssigned'));
+      messageApi.success(t('resellers.toasts.clientsAssigned'));
       clientForm.resetFields();
       queryClient.invalidateQueries({ queryKey: keys.resellers.assignments() });
       refreshAll();
@@ -383,6 +361,12 @@ export default function ResellersPage() {
     () => assignments.find((entry) => entry.resellerId === clientFor?.reseller.id)?.emails || [],
     [assignments, clientFor],
   );
+  const assignableClientOptions = useMemo(() => {
+    const assigned = new Set(explicitEmails.map((email) => email.trim().toLowerCase()));
+    return (clientsQuery.data || [])
+      .filter((client) => !assigned.has(client.email.trim().toLowerCase()))
+      .map((client) => ({ value: client.email, label: client.email }));
+  }, [clientsQuery.data, explicitEmails]);
 
   // The assignment map loads lazily when the form opens, so on the first edit
   // it is usually still empty when openEdit runs. Re-apply the owned set once
@@ -475,6 +459,7 @@ export default function ResellersPage() {
           <Tooltip title={t('resellers.assignClient')}>
             <Button
               size="small"
+              aria-label={t('resellers.assignClient')}
               icon={<ExportOutlined />}
               onClick={() => {
                 setClientFor(stat);
@@ -668,18 +653,19 @@ export default function ResellersPage() {
             >
               <Form form={clientForm} layout="vertical">
                 <Form.Item
-                  name="email"
+                  name="emails"
                   label={t('pages.clients.email')}
-                  rules={[{ required: true, message: t('resellers.validation.email') }]}
+                  rules={[{ required: true, type: 'array', min: 1, message: t('resellers.validation.email') }]}
                 >
                   <Select
+                    mode="multiple"
                     showSearch
+                    allowClear
+                    maxTagCount="responsive"
                     optionFilterProp="label"
                     loading={clientsQuery.isLoading}
-                    options={(clientsQuery.data || []).map((client) => ({
-                      value: client.email,
-                      label: client.email,
-                    }))}
+                    options={assignableClientOptions}
+                    placeholder={t('resellers.selectClients')}
                   />
                 </Form.Item>
               </Form>

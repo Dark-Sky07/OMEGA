@@ -37,6 +37,18 @@ func TestClientWithAttachmentsMarshalJSONIncludesExtras(t *testing.T) {
 	}
 }
 
+func TestScopedClientGroupsExcludeUnownedNames(t *testing.T) {
+	rows := []ClientWithAttachments{
+		{ClientRecord: model.ClientRecord{Email: "owned@example.com", Group: "  reseller-vip "}},
+		{ClientRecord: model.ClientRecord{Email: "other@example.com", Group: "admin-secret"}},
+		{ClientRecord: model.ClientRecord{Email: "owned-2@example.com", Group: "reseller-vip"}},
+	}
+	groups := scopedClientGroups(rows[:1])
+	if len(groups) != 1 || groups[0] != "reseller-vip" {
+		t.Fatalf("scoped groups = %v, want only the owned group's canonical name", groups)
+	}
+}
+
 func TestClientWithAttachmentsMarshalJSONOmitsAbsentTraffic(t *testing.T) {
 	c := ClientWithAttachments{
 		ClientRecord: model.ClientRecord{Id: 1, Email: "bob@example.com"},
@@ -55,5 +67,17 @@ func TestClientWithAttachmentsMarshalJSONOmitsAbsentTraffic(t *testing.T) {
 	}
 	if _, present := parsed["inboundIds"]; !present {
 		t.Errorf("expected inboundIds key to always be present, got %s", out)
+	}
+}
+
+func TestHasScopedAssociationRemoval(t *testing.T) {
+	if !hasScopedAssociationRemoval([]int{1, 2}, []int{2}, []int{1}) {
+		t.Fatal("expected an in-scope association removal to be detected")
+	}
+	if hasScopedAssociationRemoval([]int{1, 2}, []int{1, 2}, []int{1}) {
+		t.Fatal("unchanged associations were reported as removed")
+	}
+	if hasScopedAssociationRemoval([]int{2}, []int{}, []int{1}) {
+		t.Fatal("out-of-scope associations were reported as removed")
 	}
 }

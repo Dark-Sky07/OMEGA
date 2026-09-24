@@ -4,9 +4,12 @@ import (
 	"archive/zip"
 	"bufio"
 	"bytes"
+	"cmp"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -21,11 +24,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
-	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -94,8 +100,12 @@ type Status struct {
 		ErrorMsg string       `json:"errorMsg"`
 		Version  string       `json:"version"`
 	} `json:"xray"`
-	OpenVPN DaemonStatus `json:"openvpn"`
-	L2TP    DaemonStatus `json:"l2tp"`
+	OpenVPN   DaemonStatus `json:"openvpn"`
+	L2TP      DaemonStatus `json:"l2tp"`
+	AmneziaWG struct {
+		Configured bool `json:"configured"`
+		Running    bool `json:"running"`
+	} `json:"amneziawg"`
 	PanelVersion string    `json:"panelVersion"`
 	PanelGuid    string    `json:"panelGuid"`
 	Uptime       uint64    `json:"uptime"`
@@ -132,6 +142,19 @@ type Release struct {
 	Prerelease bool   `json:"prerelease"`
 }
 
+type xrayReleaseAsset struct {
+	Name               string `json:"name"`
+	BrowserDownloadURL string `json:"browser_download_url"`
+	Digest             string `json:"digest"`
+}
+
+type xrayRelease struct {
+	TagName    string             `json:"tag_name"`
+	Draft      bool               `json:"draft"`
+	Prerelease bool               `json:"prerelease"`
+	Assets     []xrayReleaseAsset `json:"assets"`
+}
+
 // ServerService provides business logic for server monitoring and management.
 // It handles system status collection, IP detection, and application statistics.
 type ServerService struct {
@@ -161,10 +184,14 @@ type cachedXrayVersions struct {
 	fetchedAt time.Time
 }
 
-// xrayVersionsCacheTTL bounds how often /getXrayVersion hits GitHub. The list
-// is purely informational (rendered in the "switch Xray version" picker) so a
-// quarter-hour staleness window is fine and saves the API budget.
-const xrayVersionsCacheTTL = 15 * time.Minute
+const (
+	xrayReleasesAPIURL       = "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=100"
+	maxXrayReleaseResponse   = 8 << 20
+	xrayVersionsCacheTTL     = 15 * time.Minute
+	xrayVersionPatternString = `^v[0-9]+\.[0-9]+\.[0-9]+$`
+)
+
+var xrayVersionPattern = regexp.MustCompile(xrayVersionPatternString)
 
 // allowedHistoryBuckets is the bucket-second whitelist for time-series
 // aggregation endpoints (server + node metrics). Restricting it prevents
@@ -214,11 +241,11 @@ func (s *ServerService) RefreshStatus() *Status {
 // failure we serve the last successful list (if any) so the UI doesn't go
 // blank during a GitHub API hiccup; if there's no cache at all the underlying
 // error is surfaced.
-func (s *ServerService) GetXrayVersionsCached() ([]string, error) {
+func (s *ServerService) GetXrayVersionsCached(forceRefresh bool) ([]string, error) {
 	s.versionsCacheMu.Lock()
 	cache := s.versionsCache
 	s.versionsCacheMu.Unlock()
-	if cache != nil && time.Since(cache.fetchedAt) <= xrayVersionsCacheTTL {
+	if !forceRefresh && cache != nil && time.Since(cache.fetchedAt) <= xrayVersionsCacheTTL {
 		return cache.versions, nil
 	}
 	versions, err := s.GetXrayVersions()
@@ -567,6 +594,15 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	}
 	status.Xray.Version = s.xrayService.GetXrayVersion()
 
+	var amneziawgCount int64
+	if err := database.GetDB().Model(model.Inbound{}).
+		Where("protocol = ? AND enable = ? AND node_id IS NULL", model.AmneziaWG, true).
+		Count(&amneziawgCount).Error; err != nil {
+		logger.Warning("count amneziawg inbounds failed:", err)
+	}
+	status.AmneziaWG.Configured = amneziawgCount > 0
+	status.AmneziaWG.Running = amneziawgnet.GetManager().HasRunning()
+
 	openvpnStatus := openvpn.GetManager().Status()
 	status.OpenVPN = daemonStatus(
 		openvpnStatus.Running,
@@ -738,89 +774,121 @@ const (
 	maxXrayBinaryBytes  = 200 << 20
 )
 
-func (s *ServerService) GetXrayVersions() ([]string, error) {
-	const (
-		XrayURL    = "https://api.github.com/repos/XTLS/Xray-core/releases"
-		bufferSize = 8192
-	)
-
-	resp, err := s.settingService.NewProxiedHTTPClient(10 * time.Second).Get(XrayURL)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	// Check HTTP status code - GitHub API returns object instead of array on error
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		var errorResponse struct {
-			Message string `json:"message"`
-		}
-		if json.Unmarshal(bodyBytes, &errorResponse) == nil && errorResponse.Message != "" {
-			return nil, fmt.Errorf("GitHub API error: %s", errorResponse.Message)
-		}
-		return nil, fmt.Errorf("GitHub API returned status %d: %s", resp.StatusCode, resp.Status)
-	}
-
-	buffer := bytes.NewBuffer(make([]byte, bufferSize))
-	buffer.Reset()
-	if _, err := buffer.ReadFrom(resp.Body); err != nil {
-		return nil, err
-	}
-
-	var releases []Release
-	if err := json.Unmarshal(buffer.Bytes(), &releases); err != nil {
-		return nil, err
-	}
-
-	var versions []string
-	for _, release := range releases {
-		if release.Draft || release.Prerelease {
-			continue
-		}
-		tagVersion := strings.TrimPrefix(release.TagName, "v")
-		tagParts := strings.Split(tagVersion, ".")
-		if len(tagParts) != 3 {
-			continue
-		}
-
-		if _, err := strconv.Atoi(tagParts[0]); err != nil {
-			continue
-		}
-		if _, err := strconv.Atoi(tagParts[1]); err != nil {
-			continue
-		}
-		if _, err := strconv.Atoi(tagParts[2]); err != nil {
-			continue
-		}
-
-		// GitHub returns releases newest-first. Do not impose a minimum
-		// Xray version here: stable 26.3.x (and future major lines) are valid
-		// releases and must remain selectable when the API is current.
-		versions = append(versions, release.TagName)
-	}
-	return versions, nil
+type xrayBinarySnapshot struct {
+	exists   bool
+	contents []byte
+	mode     os.FileMode
 }
 
-func (s *ServerService) StopXrayService() error {
-	err := s.xrayService.StopXray()
+func snapshotXrayBinary(path string) (xrayBinarySnapshot, error) {
+	snapshot := xrayBinarySnapshot{mode: 0755}
+	info, err := os.Stat(path)
 	if err != nil {
-		logger.Error("stop xray failed:", err)
+		if os.IsNotExist(err) {
+			return snapshot, nil
+		}
+		return snapshot, err
+	}
+	if info.IsDir() {
+		return snapshot, fmt.Errorf("xray target is a directory: %s", path)
+	}
+	if info.Size() > maxXrayBinaryBytes {
+		return snapshot, fmt.Errorf("existing xray binary exceeds %d bytes", maxXrayBinaryBytes)
+	}
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return snapshot, err
+	}
+	snapshot.exists = true
+	snapshot.contents = contents
+	snapshot.mode = info.Mode().Perm()
+	return snapshot, nil
+}
+
+func writeXrayBinaryAtomically(path string, source io.Reader, limit int64, mode os.FileMode) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err
 	}
+	tmpFile, err := os.CreateTemp(filepath.Dir(path), ".xray-*")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmpFile.Name()
+	keep := false
+	defer func() {
+		_ = tmpFile.Close()
+		if !keep {
+			_ = os.Remove(tmpPath)
+		}
+	}()
+
+	written, err := io.Copy(tmpFile, io.LimitReader(source, limit+1))
+	if err != nil {
+		return err
+	}
+	if written > limit {
+		return fmt.Errorf("xray binary exceeds %d bytes", limit)
+	}
+	if err := tmpFile.Chmod(mode.Perm()); err != nil {
+		return err
+	}
+	if err := tmpFile.Close(); err != nil {
+		return err
+	}
+	if runtime.GOOS == "windows" {
+		_ = os.Remove(path)
+	}
+	if err := os.Rename(tmpPath, path); err != nil {
+		return err
+	}
+	keep = true
 	return nil
 }
 
-func (s *ServerService) RestartXrayService() error {
-	err := s.xrayService.RestartXray(true)
-	if err != nil {
-		logger.Error("start xray failed:", err)
-		return err
+func restoreXrayBinary(path string, snapshot xrayBinarySnapshot) error {
+	if !snapshot.exists {
+		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+		return nil
 	}
-	return nil
+	return writeXrayBinaryAtomically(path, bytes.NewReader(snapshot.contents), int64(maxXrayBinaryBytes), snapshot.mode)
 }
 
-func (s *ServerService) downloadXRay(version string) (string, error) {
+func parseXrayVersion(tag string) ([3]int, bool) {
+	var version [3]int
+	if !xrayVersionPattern.MatchString(tag) {
+		return version, false
+	}
+	parts := strings.Split(strings.TrimPrefix(tag, "v"), ".")
+	for i := range version {
+		value, err := strconv.Atoi(parts[i])
+		if err != nil {
+			return version, false
+		}
+		version[i] = value
+	}
+	return version, true
+}
+
+func compareXrayVersions(left, right string) int {
+	leftVersion, leftOK := parseXrayVersion(left)
+	rightVersion, rightOK := parseXrayVersion(right)
+	if !leftOK || !rightOK {
+		return 0
+	}
+	for i := range leftVersion {
+		if leftVersion[i] > rightVersion[i] {
+			return 1
+		}
+		if leftVersion[i] < rightVersion[i] {
+			return -1
+		}
+	}
+	return 0
+}
+
+func (s *ServerService) xrayArchiveName() string {
 	osName := runtime.GOOS
 	arch := runtime.GOARCH
 
@@ -848,19 +916,118 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 		arch = "s390x"
 	}
 
-	fileName := fmt.Sprintf("Xray-%s-%s.zip", osName, arch)
-	url := fmt.Sprintf("https://github.com/XTLS/Xray-core/releases/download/%s/%s", version, fileName)
+	return fmt.Sprintf("Xray-%s-%s.zip", osName, arch)
+}
+
+func findXrayAsset(release xrayRelease, name string) (xrayReleaseAsset, bool) {
+	for _, asset := range release.Assets {
+		if asset.Name == name {
+			return asset, true
+		}
+	}
+	return xrayReleaseAsset{}, false
+}
+
+func selectLatestXrayRelease(releases []xrayRelease, assetName string) (xrayRelease, bool) {
+	var latest xrayRelease
+	found := false
+	for _, release := range releases {
+		if release.Draft || !xrayVersionPattern.MatchString(release.TagName) {
+			continue
+		}
+		if _, ok := findXrayAsset(release, assetName); !ok {
+			continue
+		}
+		if !found || compareXrayVersions(release.TagName, latest.TagName) > 0 {
+			latest = release
+			found = true
+		}
+	}
+	return latest, found
+}
+
+func (s *ServerService) latestXrayRelease() (xrayRelease, error) {
+	client := s.settingService.NewProxiedHTTPClient(30 * time.Second)
+	req, err := http.NewRequest(http.MethodGet, xrayReleasesAPIURL, nil)
+	if err != nil {
+		return xrayRelease{}, err
+	}
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("User-Agent", "OMEGA-Xray-Updater")
+	resp, err := client.Do(req)
+	if err != nil {
+		return xrayRelease{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return xrayRelease{}, fmt.Errorf("get latest Xray-core release: unexpected HTTP %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxXrayReleaseResponse+1))
+	if err != nil {
+		return xrayRelease{}, err
+	}
+	if len(body) > maxXrayReleaseResponse {
+		return xrayRelease{}, fmt.Errorf("Xray-core release metadata exceeds %d bytes", maxXrayReleaseResponse)
+	}
+	var releases []xrayRelease
+	if err := json.Unmarshal(body, &releases); err != nil {
+		return xrayRelease{}, fmt.Errorf("decode Xray-core release metadata: %w", err)
+	}
+	latest, ok := selectLatestXrayRelease(releases, s.xrayArchiveName())
+	if !ok {
+		return xrayRelease{}, fmt.Errorf("no compatible Xray-core release was found for %s", s.xrayArchiveName())
+	}
+	return latest, nil
+}
+
+func (s *ServerService) GetXrayVersions() ([]string, error) {
+	latest, err := s.latestXrayRelease()
+	if err != nil {
+		return nil, err
+	}
+	return []string{latest.TagName}, nil
+}
+
+func (s *ServerService) StopXrayService() error {
+	err := s.xrayService.StopXray()
+	if err != nil {
+		logger.Error("stop xray failed:", err)
+		return err
+	}
+	return nil
+}
+
+func (s *ServerService) RestartXrayService() error {
+	err := s.xrayService.RestartXray(true)
+	if err != nil {
+		logger.Error("start xray failed:", err)
+		return err
+	}
+	return nil
+}
+
+func (s *ServerService) downloadXRay(release xrayRelease) (string, error) {
+	fileName := s.xrayArchiveName()
+	asset, ok := findXrayAsset(release, fileName)
+	if !ok {
+		return "", fmt.Errorf("Xray-core release %s does not contain %s", release.TagName, fileName)
+	}
+	archiveURL := asset.BrowserDownloadURL
+	if archiveURL == "" {
+		archiveURL = fmt.Sprintf("https://github.com/XTLS/Xray-core/releases/download/%s/%s", release.TagName, fileName)
+	}
+
 	client := s.settingService.NewProxiedHTTPClient(60 * time.Second)
-	resp, err := client.Get(url)
+	resp, err := client.Get(archiveURL)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("download xray: unexpected HTTP %d", resp.StatusCode)
+		return "", fmt.Errorf("download Xray-core %s: unexpected HTTP %d", release.TagName, resp.StatusCode)
 	}
 	if resp.ContentLength > maxXrayArchiveBytes {
-		return "", fmt.Errorf("download xray: archive exceeds %d bytes", maxXrayArchiveBytes)
+		return "", fmt.Errorf("download Xray-core: archive exceeds %d bytes", maxXrayArchiveBytes)
 	}
 
 	file, err := os.CreateTemp("", "xray-*.zip")
@@ -868,7 +1035,7 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 		return "", err
 	}
 	path := file.Name()
-	ok := false
+	ok = false
 	defer func() {
 		_ = file.Close()
 		if !ok {
@@ -876,12 +1043,23 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 		}
 	}()
 
-	n, err := io.Copy(file, io.LimitReader(resp.Body, maxXrayArchiveBytes+1))
+	hash := sha256.New()
+	written, err := io.Copy(io.MultiWriter(file, hash), io.LimitReader(resp.Body, maxXrayArchiveBytes+1))
 	if err != nil {
 		return "", err
 	}
-	if n > maxXrayArchiveBytes {
-		return "", fmt.Errorf("download xray: archive exceeds %d bytes", maxXrayArchiveBytes)
+	if written > maxXrayArchiveBytes {
+		return "", fmt.Errorf("download Xray-core: archive exceeds %d bytes", maxXrayArchiveBytes)
+	}
+	if asset.Digest != "" {
+		expectedDigest := strings.TrimSpace(asset.Digest)
+		if !strings.HasPrefix(expectedDigest, "sha256:") {
+			return "", fmt.Errorf("download Xray-core: unsupported asset digest %q", expectedDigest)
+		}
+		actualDigest := fmt.Sprintf("sha256:%x", hash.Sum(nil))
+		if !strings.EqualFold(actualDigest, expectedDigest) {
+			return "", fmt.Errorf("download Xray-core: SHA-256 digest mismatch")
+		}
 	}
 
 	ok = true
@@ -889,21 +1067,24 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 }
 
 func (s *ServerService) UpdateXray(version string) error {
-	versions, err := s.GetXrayVersions()
+	if !xrayVersionPattern.MatchString(version) {
+		return fmt.Errorf("invalid Xray-core version %q", version)
+	}
+
+	// Resolve the current highest release again at install time. The version
+	// shown in the UI may be stale, and arbitrary tags must never become a
+	// download primitive exposed by the panel API.
+	latest, err := s.latestXrayRelease()
 	if err != nil {
-		return err
+		return fmt.Errorf("resolve latest Xray-core release: %w", err)
 	}
-	if !slices.Contains(versions, version) {
-		return fmt.Errorf("xray version %q is not in the fetched release list", version)
-	}
-
-	// 1. Stop xray before doing anything
-	if err := s.StopXrayService(); err != nil {
-		logger.Warning("failed to stop xray before update:", err)
+	if version != latest.TagName {
+		return fmt.Errorf("Xray-core version %q is not the latest compatible release %s", version, latest.TagName)
 	}
 
-	// 2. Download the zip
-	zipFileName, err := s.downloadXRay(version)
+	// Download and validate the archive before stopping the active process, so
+	// a network/API failure never disconnects users or leaves Xray stopped.
+	zipFileName, err := s.downloadXRay(latest)
 	if err != nil {
 		return err
 	}
@@ -923,67 +1104,87 @@ func (s *ServerService) UpdateXray(version string) error {
 	if err != nil {
 		return err
 	}
+	requiredZipName := "xray"
+	if runtime.GOOS == "windows" {
+		requiredZipName = "xray.exe"
+	}
+	var coreEntry *zip.File
+	for _, entry := range reader.File {
+		if entry.Name == requiredZipName {
+			coreEntry = entry
+			break
+		}
+	}
+	if coreEntry == nil {
+		return fmt.Errorf("xray archive does not contain %q", requiredZipName)
+	}
+	if coreEntry.UncompressedSize64 > maxXrayBinaryBytes {
+		return fmt.Errorf("xray binary exceeds %d bytes", maxXrayBinaryBytes)
+	}
 
-	// 3. Helper to extract files
+	// Validate the target and keep a bounded in-memory copy before stopping the
+	// running process. If extraction or the first restart fails, restoring the
+	// previous executable and starting it again is the difference between a
+	// failed update and an avoidable outage.
+	targetBinary := xray.GetBinaryPath()
+	if runtime.GOOS == "windows" {
+		targetBinary = filepath.Join(config.GetBinFolderPath(), "xray-windows-amd64.exe")
+	}
+	previous, err := snapshotXrayBinary(targetBinary)
+	if err != nil {
+		return fmt.Errorf("snapshot existing xray binary: %w", err)
+	}
+	installMode := os.FileMode(0755)
+	if previous.exists {
+		installMode = previous.mode
+	}
+
+	if err := s.StopXrayService(); err != nil {
+		return fmt.Errorf("stop xray before latest update: %w", err)
+	}
+
+	// 3. Extract into a same-directory temporary file and rename it into
+	// place. The rename is atomic on the supported local filesystems and the
+	// existing executable's mode is preserved.
 	copyZipFile := func(zipName string, fileName string) error {
-		zipFile, err := reader.Open(zipName)
+		zipEntry, err := reader.Open(zipName)
 		if err != nil {
 			return err
 		}
-		defer zipFile.Close()
-		if err := os.MkdirAll(filepath.Dir(fileName), 0755); err != nil {
-			return err
+		defer zipEntry.Close()
+		return writeXrayBinaryAtomically(fileName, zipEntry, int64(maxXrayBinaryBytes), installMode)
+	}
+
+	// Restore the previous executable and process whenever the replacement or
+	// restart fails. The archive was fully validated before StopXrayService, so
+	// this path is only for filesystem/process failures after the stop.
+	restorePrevious := func() error {
+		return restoreXrayBinary(targetBinary, previous)
+	}
+	rollback := func(cause error) error {
+		if restoreErr := restorePrevious(); restoreErr != nil {
+			logger.Error("restore previous Xray-core failed:", restoreErr)
+			return fmt.Errorf("%w (rollback failed: %v)", cause, restoreErr)
 		}
-		tmpFile, err := os.CreateTemp(filepath.Dir(fileName), ".xray-*")
-		if err != nil {
-			return err
+		if restartErr := s.xrayService.RestartXray(true); restartErr != nil {
+			logger.Error("restart previous Xray-core after rollback failed:", restartErr)
+			return fmt.Errorf("%w (rollback restart failed: %v)", cause, restartErr)
 		}
-		tmpPath := tmpFile.Name()
-		ok := false
-		defer func() {
-			_ = tmpFile.Close()
-			if !ok {
-				_ = os.Remove(tmpPath)
-			}
-		}()
-		n, err := io.Copy(tmpFile, io.LimitReader(zipFile, maxXrayBinaryBytes+1))
-		if err != nil {
-			return err
-		}
-		if n > maxXrayBinaryBytes {
-			return fmt.Errorf("xray binary exceeds %d bytes", maxXrayBinaryBytes)
-		}
-		if err := tmpFile.Chmod(0755); err != nil {
-			return err
-		}
-		if err := tmpFile.Close(); err != nil {
-			return err
-		}
-		if runtime.GOOS == "windows" {
-			_ = os.Remove(fileName)
-		}
-		if err := os.Rename(tmpPath, fileName); err != nil {
-			return err
-		}
-		ok = true
-		return nil
+		return fmt.Errorf("%w (update rolled back)", cause)
 	}
 
 	// 4. Extract correct binary
-	if runtime.GOOS == "windows" {
-		targetBinary := filepath.Join(config.GetBinFolderPath(), "xray-windows-amd64.exe")
-		err = copyZipFile("xray.exe", targetBinary)
-	} else {
-		err = copyZipFile("xray", xray.GetBinaryPath())
-	}
+	err = copyZipFile(requiredZipName, targetBinary)
 	if err != nil {
-		return err
+		return rollback(fmt.Errorf("install latest Xray-core: %w", err))
 	}
 
-	// 5. Restart xray
+	// 5. Restart xray. A process that rejects the generated configuration must
+	// not leave users on a stopped service or a newly installed incompatible
+	// core; put the old executable back and restart it instead.
 	if err := s.xrayService.RestartXray(true); err != nil {
-		logger.Error("start xray failed:", err)
-		return err
+		logger.Error("start latest xray failed; rolling back:", err)
+		return rollback(fmt.Errorf("start latest Xray-core: %w", err))
 	}
 
 	return nil
@@ -1034,6 +1235,148 @@ func (s *ServerService) GetLogs(count string, level string, syslog string) []str
 	}
 
 	return lines
+}
+
+// PeerActivity is one peer's live embedded-Device-reported state, the
+// counterpart of an Xray access-log entry: a tunnel logs no requests, only
+// handshakes and bytes.
+type PeerActivity struct {
+	Interface  string `json:"interface" example:"awg1"`
+	Tag        string `json:"tag" example:"inbound-51820"`
+	InboundId  int    `json:"inboundId" example:"1"`
+	Email      string `json:"email" example:"peer@example.com"`
+	Endpoint   string `json:"endpoint" example:"203.0.113.9:51820"`
+	AllowedIPs string `json:"allowedIPs" example:"10.8.1.2/32"`
+	// Handshake is unix milliseconds, 0 when the peer has never connected.
+	Handshake int64 `json:"handshake" example:"1735732800000"`
+	Up        int64 `json:"up" example:"1048576"`
+	Down      int64 `json:"down" example:"4194304"`
+	Online    bool  `json:"online" example:"true"`
+}
+
+// amneziawgOnlineWindow mirrors the standard WireGuard convention (and this
+// fork's own prior kernel-module behavior): a handshake this recent counts
+// as online.
+const amneziawgOnlineWindow = 180 * time.Second
+
+// AmneziaWGLogs is what the overview's AmneziaWG log view renders: the live
+// per-peer activity of every running embedded interface, plus the panel's
+// own recent AmneziaWG lifecycle log lines that explain a peer being absent
+// from Peers at all.
+type AmneziaWGLogs struct {
+	Peers   []PeerActivity `json:"peers"`
+	Events  []string       `json:"events" example:"[\"2025/01/01 12:00:00 amneziawg: started interface awg1 for inbound 1\"]"`
+	Running bool           `json:"running" example:"true"`
+}
+
+// amneziawgEventMarker selects the panel's own AmneziaWG log lines: every
+// logger call in internal/amneziawg, internal/amneziawgnet and their jobs
+// prefixes its message with it.
+const amneziawgEventMarker = "amneziawg"
+
+// amneziawgLogActivity gathers live PeerActivity rows across every enabled,
+// non-node-hosted AmneziaWG inbound, newest handshake first. An inbound
+// amneziawgnet has no running Device for yet (not reconciled, disabled,
+// errored) contributes no rows -- not reported as an error, since the
+// caller (GetAmneziaWGLogs) already has a device-agnostic Running flag from
+// amneziawgnet.GetManager().HasRunning() for that.
+// clampUint64ToInt64 saturates at math.MaxInt64 instead of wrapping negative,
+// for a live uint64 byte counter (amneziawgnet's own UAPI-dump snapshot, not
+// a DB-accumulated total) going into an int64 API field -- unreachable in
+// practice at real traffic volumes, but a silent negative value would be
+// worse than a saturated one if it were ever hit.
+func clampUint64ToInt64(v uint64) int64 {
+	if v > math.MaxInt64 {
+		return math.MaxInt64
+	}
+	return int64(v)
+}
+
+func amneziawgLogActivity() []PeerActivity {
+	var inbounds []*model.Inbound
+	if err := database.GetDB().
+		Where("protocol = ? AND enable = ? AND node_id IS NULL", model.AmneziaWG, true).
+		Find(&inbounds).Error; err != nil {
+		logger.Warning("amneziawg logs: list inbounds failed:", err)
+		return nil
+	}
+
+	now := time.Now()
+	var out []PeerActivity
+	for _, inbound := range inbounds {
+		inst, ok := amneziawg.InstanceFromInbound(inbound)
+		if !ok {
+			continue
+		}
+		diag := amneziawgnet.Diagnose(inbound.Id, inst.Peers)
+		if !diag.Running {
+			continue
+		}
+		for _, cd := range diag.Clients {
+			var handshakeMs int64
+			online := false
+			if !cd.LastHandshake.IsZero() {
+				handshakeMs = cd.LastHandshake.UnixMilli()
+				online = now.Sub(cd.LastHandshake) < amneziawgOnlineWindow
+			}
+			out = append(out, PeerActivity{
+				Interface:  inst.InterfaceName,
+				Tag:        inbound.Tag,
+				InboundId:  inbound.Id,
+				Email:      cd.Email,
+				Endpoint:   cd.Endpoint,
+				AllowedIPs: cd.AllowedIPs,
+				Handshake:  handshakeMs,
+				Up:         clampUint64ToInt64(cd.RxBytes),
+				Down:       clampUint64ToInt64(cd.TxBytes),
+				Online:     online,
+			})
+		}
+	}
+	slices.SortFunc(out, func(a, b PeerActivity) int {
+		if a.Handshake != b.Handshake {
+			return cmp.Compare(b.Handshake, a.Handshake)
+		}
+		return strings.Compare(a.Email, b.Email)
+	})
+	return out
+}
+
+// GetAmneziaWGLogs returns at most count peer rows and count event lines,
+// optionally narrowed to rows whose text contains filter (case-insensitive),
+// mirroring GetXrayLogs' own count+filter contract.
+func (s *ServerService) GetAmneziaWGLogs(count string, filter string) *AmneziaWGLogs {
+	limit, err := strconv.Atoi(count)
+	if err != nil || limit < 1 || limit > 10000 {
+		limit = 100
+	}
+	needle := strings.ToLower(strings.TrimSpace(filter))
+
+	logs := &AmneziaWGLogs{Peers: []PeerActivity{}, Events: []string{}, Running: amneziawgnet.GetManager().HasRunning()}
+
+	for _, peer := range amneziawgLogActivity() {
+		if len(logs.Peers) >= limit {
+			break
+		}
+		if needle != "" && !strings.Contains(strings.ToLower(peer.Email+" "+peer.Tag+" "+peer.Interface+" "+peer.Endpoint+" "+peer.AllowedIPs), needle) {
+			continue
+		}
+		logs.Peers = append(logs.Peers, peer)
+	}
+
+	for _, line := range logger.GetLogs(10000, "debug") {
+		if len(logs.Events) >= limit {
+			break
+		}
+		if !strings.Contains(strings.ToLower(line), amneziawgEventMarker) {
+			continue
+		}
+		if needle != "" && !strings.Contains(strings.ToLower(line), needle) {
+			continue
+		}
+		logs.Events = append(logs.Events, line)
+	}
+	return logs
 }
 
 func (s *ServerService) GetXrayLogs(
@@ -1375,7 +1718,9 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 		return common.NewErrorf("Error migrating db: %v", err)
 	}
 
-	s.inboundService.MigrateDB()
+	if err = s.inboundService.MigrateDB(); err != nil {
+		return common.NewErrorf("Error migrating db: %v", err)
+	}
 
 	xrayStopped = false
 	if err = s.RestartXrayService(); err != nil {
@@ -1503,7 +1848,9 @@ func (s *ServerService) importPostgresDB(file multipart.File) error {
 	if errInit := database.InitDB(config.GetDBPath()); errInit != nil {
 		return common.NewErrorf("Restore finished but reopening the database failed: %v", errInit)
 	}
-	s.inboundService.MigrateDB()
+	if err := s.inboundService.MigrateDB(); err != nil {
+		return common.NewErrorf("Error migrating restored db: %v", err)
+	}
 
 	if runErr != nil {
 		return common.NewErrorf("pg_restore failed (database left unchanged): %v: %s", runErr, strings.TrimSpace(stderr.String()))

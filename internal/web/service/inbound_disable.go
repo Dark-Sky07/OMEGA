@@ -22,7 +22,7 @@ func (s *InboundService) disableInvalidInbounds(tx *gorm.DB) (bool, int64, error
 		var tags []string
 		err := tx.Table("inbounds").
 			Select("inbounds.tag").
-			Where("((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?)) and enable = ? and node_id IS NULL", now, true).
+			Where("((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?)) and enable = ? and node_id IS NULL AND protocol NOT IN (?, ?)", now, true, model.OpenVPN, model.L2TP).
 			Scan(&tags).Error
 		if err != nil {
 			return false, 0, err
@@ -57,7 +57,7 @@ const depletedClientsCond = `((total > 0 AND up + down >= total)
 	OR (expiry_time > 0 AND expiry_time <= ?)
 	OR (total > 0 AND EXISTS (
 		SELECT 1 FROM client_global_traffics g
-		WHERE g.email = client_traffics.email AND g.up + g.down >= client_traffics.total
+		WHERE LOWER(TRIM(g.email)) = LOWER(TRIM(client_traffics.email)) AND g.up + g.down >= client_traffics.total
 	)))`
 
 func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, []int, error) {
@@ -80,7 +80,7 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, []int,
 		if depletedRows[i].Email == "" {
 			continue
 		}
-		depletedEmails = append(depletedEmails, depletedRows[i].Email)
+		depletedEmails = append(depletedEmails, transferEmailKey(depletedRows[i].Email))
 	}
 
 	type target struct {
@@ -88,16 +88,18 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, []int,
 		NodeID    *int `gorm:"column:node_id"`
 		Tag       string
 		Email     string
+		Protocol  model.Protocol `gorm:"column:protocol"`
 	}
 	var targets []target
 	if len(depletedEmails) > 0 {
 		err = tx.Raw(`
 			SELECT inbounds.id AS inbound_id, inbounds.node_id AS node_id,
-			       inbounds.tag AS tag, clients.email AS email
+			       inbounds.tag AS tag, inbounds.protocol AS protocol,
+			       clients.email AS email
 			FROM clients
 			JOIN client_inbounds ON client_inbounds.client_id = clients.id
 			JOIN inbounds        ON inbounds.id = client_inbounds.inbound_id
-			WHERE clients.email IN ?
+			WHERE LOWER(TRIM(clients.email)) IN ?
 		`, depletedEmails).Scan(&targets).Error
 		if err != nil {
 			return false, 0, nil, err
@@ -113,8 +115,9 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, []int,
 			if localByInbound[t.InboundID] == nil {
 				localByInbound[t.InboundID] = make(map[string]struct{})
 			}
-			localByInbound[t.InboundID][t.Email] = struct{}{}
+			localByInbound[t.InboundID][transferEmailKey(t.Email)] = struct{}{}
 		} else {
+			t.Email = strings.TrimSpace(t.Email)
 			remoteByInbound[t.InboundID] = append(remoteByInbound[t.InboundID], t)
 		}
 	}
@@ -122,6 +125,12 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, []int,
 	if p != nil && len(localTargets) > 0 {
 		s.xrayApi.Init(p.GetAPIPort())
 		for _, t := range localTargets {
+			// OpenVPN and L2TP are reconciled by their host-daemon jobs, not
+			// by the Xray API. The canonical client/stat rows and settings
+			// below are the source of truth for the next daemon reconcile.
+			if t.Protocol == model.OpenVPN || t.Protocol == model.L2TP {
+				continue
+			}
 			err1 := s.xrayApi.RemoveUser(t.Tag, t.Email)
 			if err1 == nil {
 				logger.Debug("Client disabled by api:", t.Email)
@@ -152,7 +161,7 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, []int,
 
 	if len(depletedEmails) > 0 {
 		if err := tx.Model(&model.ClientRecord{}).
-			Where("email IN ?", depletedEmails).
+			Where("LOWER(TRIM(email)) IN ?", depletedEmails).
 			Updates(map[string]any{"enable": false, "updated_at": now}).Error; err != nil {
 			logger.Warning("disableInvalidClients update clients.enable:", err)
 		}
@@ -162,7 +171,7 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, []int,
 	for inboundID, group := range remoteByInbound {
 		emails := make(map[string]struct{}, len(group))
 		for _, t := range group {
-			emails[t.Email] = struct{}{}
+			emails[transferEmailKey(t.Email)] = struct{}{}
 		}
 		if pushErr := s.disableRemoteClients(tx, inboundID, emails); pushErr != nil {
 			logger.Warning("disableInvalidClients: push to remote failed for inbound", inboundID, ":", pushErr)
@@ -207,10 +216,10 @@ func (s *InboundService) markClientsDisabledInSettings(tx *gorm.DB, inboundID in
 			continue
 		}
 		email, _ := entry["email"].(string)
-		if _, hit := emails[email]; !hit {
+		if _, hit := emails[transferEmailKey(email)]; !hit {
 			continue
 		}
-		if cur, _ := entry["enable"].(bool); cur == false {
+		if cur, exists := entry["enable"].(bool); exists && !cur {
 			continue
 		}
 		entry["enable"] = false

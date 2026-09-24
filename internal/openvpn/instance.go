@@ -115,11 +115,11 @@ func InstanceFromInbound(ib *model.Inbound, clients []string) (Instance, bool) {
 		return Instance{}, false
 	}
 	var parsed struct {
-		Proto        string `json:"proto"`
-		RedirectGw   *bool  `json:"redirectGateway"`
-		PushDNS      *bool  `json:"pushDNS"`
-		DNS1         string `json:"dns1"`
-		DNS2         string `json:"dns2"`
+		Proto      string `json:"proto"`
+		RedirectGw *bool  `json:"redirectGateway"`
+		PushDNS    *bool  `json:"pushDNS"`
+		DNS1       string `json:"dns1"`
+		DNS2       string `json:"dns2"`
 	}
 	if ib.Settings != "" {
 		if err := json.Unmarshal([]byte(ib.Settings), &parsed); err != nil {

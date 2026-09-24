@@ -1,6 +1,8 @@
 package job
 
 import (
+	"strings"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
@@ -31,20 +33,22 @@ func NewOpenvpnJob() *OpenvpnJob {
 // shared client-traffic row, where the auto-disable job records quota and
 // expiry violations). A disabled client's certificate is removed, so it
 // cannot connect even if it still holds an old profile.
-func (j *OpenvpnJob) enabledClientsForInbound(ib *model.Inbound) []string {
+func (j *OpenvpnJob) enabledClientsForInbound(ib *model.Inbound) ([]string, bool) {
 	dbClients, err := j.clientService.ListForInbound(nil, ib.Id)
 	if err != nil {
 		logger.Warning("openvpn job: list clients for inbound", ib.Id, "failed:", err)
-		return nil
+		// A lookup failure is not the same as an inbound with no clients. Keep
+		// the current daemon configuration intact until the next healthy poll.
+		return nil, false
 	}
 	enableMap := make(map[string]bool, len(ib.ClientStats))
 	for _, ct := range ib.ClientStats {
-		enableMap[ct.Email] = ct.Enable
+		enableMap[strings.ToLower(strings.TrimSpace(ct.Email))] = ct.Enable
 	}
 	emails := make([]string, 0, len(dbClients))
 	for i := range dbClients {
 		c := dbClients[i]
-		if enable, exists := enableMap[c.Email]; exists && !enable {
+		if enable, exists := enableMap[strings.ToLower(strings.TrimSpace(c.Email))]; exists && !enable {
 			continue
 		}
 		if !c.Enable {
@@ -52,7 +56,7 @@ func (j *OpenvpnJob) enabledClientsForInbound(ib *model.Inbound) []string {
 		}
 		emails = append(emails, c.Email)
 	}
-	return emails
+	return emails, true
 }
 
 // Run reconciles desired openvpn inbounds with running daemons and records
@@ -69,7 +73,11 @@ func (j *OpenvpnJob) Run() {
 		if ib.Protocol != model.OpenVPN || !ib.Enable || ib.NodeID != nil {
 			continue
 		}
-		inst, ok := openvpn.InstanceFromInbound(ib, j.enabledClientsForInbound(ib))
+		clients, clientsOK := j.enabledClientsForInbound(ib)
+		if !clientsOK {
+			return
+		}
+		inst, ok := openvpn.InstanceFromInbound(ib, clients)
 		if ok {
 			desired = append(desired, inst)
 		}
@@ -106,4 +114,3 @@ func (j *OpenvpnJob) Run() {
 		logger.Warning("openvpn job: add traffic failed:", err)
 	}
 }
-

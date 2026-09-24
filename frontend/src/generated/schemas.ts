@@ -856,6 +856,31 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "AmneziaWGLogs": {
+    "properties": {
+      "events": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "peers": {
+        "items": {
+          "$ref": "#/components/schemas/PeerActivity"
+        },
+        "type": "array"
+      },
+      "running": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "events",
+      "peers",
+      "running"
+    ],
+    "type": "object"
+  },
   "ApiToken": {
     "properties": {
       "createdAt": {
@@ -1438,6 +1463,14 @@ export const SCHEMAS: Record<string, unknown> = {
   },
   "InboundOption": {
     "properties": {
+      "awgServer": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ServerSettings"
+          }
+        ],
+        "nullable": true
+      },
       "id": {
         "example": 1,
         "type": "integer"
@@ -1449,6 +1482,12 @@ export const SCHEMAS: Record<string, unknown> = {
           }
         ],
         "nullable": true
+      },
+      "listen": {
+        "type": "string"
+      },
+      "nodeAddress": {
+        "type": "string"
       },
       "nodeId": {
         "description": "Hosting node; nil for this panel's own inbounds. Lets the clients\npage map a node filter onto inbound IDs (#4997).",
@@ -1465,6 +1504,12 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "remark": {
         "example": "VLESS-443",
+        "type": "string"
+      },
+      "shareAddr": {
+        "type": "string"
+      },
+      "shareAddrStrategy": {
         "type": "string"
       },
       "ssMethod": {
@@ -1785,6 +1830,53 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "PeerActivity": {
+    "properties": {
+      "allowedIPs": {
+        "type": "string"
+      },
+      "down": {
+        "type": "integer"
+      },
+      "email": {
+        "type": "string"
+      },
+      "endpoint": {
+        "type": "string"
+      },
+      "handshake": {
+        "type": "integer"
+      },
+      "inboundId": {
+        "type": "integer"
+      },
+      "interface": {
+        "type": "string"
+      },
+      "online": {
+        "type": "boolean"
+      },
+      "tag": {
+        "type": "string"
+      },
+      "up": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "allowedIPs",
+      "down",
+      "email",
+      "endpoint",
+      "handshake",
+      "inboundId",
+      "interface",
+      "online",
+      "tag",
+      "up"
+    ],
+    "type": "object"
+  },
   "ProbeResultUI": {
     "properties": {
       "cpuPct": {
@@ -1837,6 +1929,143 @@ export const SCHEMAS: Record<string, unknown> = {
       "xrayError",
       "xrayState",
       "xrayVersion"
+    ],
+    "type": "object"
+  },
+  "ServerSettings": {
+    "properties": {
+      "contentPaddingAddition": {
+        "type": "string"
+      },
+      "disableCookies": {
+        "type": "boolean"
+      },
+      "externalInterface": {
+        "type": "string"
+      },
+      "h1": {
+        "type": "string"
+      },
+      "h2": {
+        "type": "string"
+      },
+      "h3": {
+        "type": "string"
+      },
+      "h4": {
+        "type": "string"
+      },
+      "headerProtectionKey": {
+        "type": "string"
+      },
+      "i1": {
+        "type": "string"
+      },
+      "i2": {
+        "type": "string"
+      },
+      "i3": {
+        "type": "string"
+      },
+      "i4": {
+        "type": "string"
+      },
+      "i5": {
+        "type": "string"
+      },
+      "ipv6Enabled": {
+        "type": "boolean"
+      },
+      "ipv6ExternalInterface": {
+        "type": "string"
+      },
+      "ipv6Subnet": {
+        "type": "string"
+      },
+      "jc": {
+        "type": "integer"
+      },
+      "jmax": {
+        "type": "integer"
+      },
+      "jmin": {
+        "type": "integer"
+      },
+      "keepaliveTimeout": {
+        "type": "string"
+      },
+      "maxHandshakeAttempts": {
+        "type": "string"
+      },
+      "mtu": {
+        "type": "integer"
+      },
+      "primaryDns": {
+        "type": "string"
+      },
+      "privateKey": {
+        "type": "string"
+      },
+      "publicKey": {
+        "type": "string"
+      },
+      "randomTrailers": {
+        "type": "boolean"
+      },
+      "rejectAfterTime": {
+        "type": "string"
+      },
+      "rekeyAfterTime": {
+        "type": "string"
+      },
+      "rekeyTimeout": {
+        "type": "string"
+      },
+      "routeThroughXray": {
+        "type": "boolean"
+      },
+      "s1": {
+        "type": "integer"
+      },
+      "s2": {
+        "type": "integer"
+      },
+      "s3": {
+        "type": "integer"
+      },
+      "s4": {
+        "type": "integer"
+      },
+      "secondaryDns": {
+        "type": "string"
+      },
+      "subnetCidr": {
+        "type": "integer"
+      },
+      "subnetIp": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "disableCookies",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "jc",
+      "jmax",
+      "jmin",
+      "primaryDns",
+      "privateKey",
+      "publicKey",
+      "randomTrailers",
+      "s1",
+      "s2",
+      "s3",
+      "s4",
+      "secondaryDns",
+      "subnetCidr",
+      "subnetIp"
     ],
     "type": "object"
   },

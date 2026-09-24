@@ -882,6 +882,31 @@
         ],
         "type": "object"
       },
+      "AmneziaWGLogs": {
+        "properties": {
+          "events": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "peers": {
+            "items": {
+              "$ref": "#/components/schemas/PeerActivity"
+            },
+            "type": "array"
+          },
+          "running": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "events",
+          "peers",
+          "running"
+        ],
+        "type": "object"
+      },
       "ApiToken": {
         "properties": {
           "createdAt": {
@@ -1464,6 +1489,14 @@
       },
       "InboundOption": {
         "properties": {
+          "awgServer": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ServerSettings"
+              }
+            ],
+            "nullable": true
+          },
           "id": {
             "example": 1,
             "type": "integer"
@@ -1475,6 +1508,12 @@
               }
             ],
             "nullable": true
+          },
+          "listen": {
+            "type": "string"
+          },
+          "nodeAddress": {
+            "type": "string"
           },
           "nodeId": {
             "description": "Hosting node; nil for this panel's own inbounds. Lets the clients\npage map a node filter onto inbound IDs (#4997).",
@@ -1491,6 +1530,12 @@
           },
           "remark": {
             "example": "VLESS-443",
+            "type": "string"
+          },
+          "shareAddr": {
+            "type": "string"
+          },
+          "shareAddrStrategy": {
             "type": "string"
           },
           "ssMethod": {
@@ -1811,6 +1856,53 @@
         ],
         "type": "object"
       },
+      "PeerActivity": {
+        "properties": {
+          "allowedIPs": {
+            "type": "string"
+          },
+          "down": {
+            "type": "integer"
+          },
+          "email": {
+            "type": "string"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "handshake": {
+            "type": "integer"
+          },
+          "inboundId": {
+            "type": "integer"
+          },
+          "interface": {
+            "type": "string"
+          },
+          "online": {
+            "type": "boolean"
+          },
+          "tag": {
+            "type": "string"
+          },
+          "up": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "allowedIPs",
+          "down",
+          "email",
+          "endpoint",
+          "handshake",
+          "inboundId",
+          "interface",
+          "online",
+          "tag",
+          "up"
+        ],
+        "type": "object"
+      },
       "ProbeResultUI": {
         "properties": {
           "cpuPct": {
@@ -1863,6 +1955,143 @@
           "xrayError",
           "xrayState",
           "xrayVersion"
+        ],
+        "type": "object"
+      },
+      "ServerSettings": {
+        "properties": {
+          "contentPaddingAddition": {
+            "type": "string"
+          },
+          "disableCookies": {
+            "type": "boolean"
+          },
+          "externalInterface": {
+            "type": "string"
+          },
+          "h1": {
+            "type": "string"
+          },
+          "h2": {
+            "type": "string"
+          },
+          "h3": {
+            "type": "string"
+          },
+          "h4": {
+            "type": "string"
+          },
+          "headerProtectionKey": {
+            "type": "string"
+          },
+          "i1": {
+            "type": "string"
+          },
+          "i2": {
+            "type": "string"
+          },
+          "i3": {
+            "type": "string"
+          },
+          "i4": {
+            "type": "string"
+          },
+          "i5": {
+            "type": "string"
+          },
+          "ipv6Enabled": {
+            "type": "boolean"
+          },
+          "ipv6ExternalInterface": {
+            "type": "string"
+          },
+          "ipv6Subnet": {
+            "type": "string"
+          },
+          "jc": {
+            "type": "integer"
+          },
+          "jmax": {
+            "type": "integer"
+          },
+          "jmin": {
+            "type": "integer"
+          },
+          "keepaliveTimeout": {
+            "type": "string"
+          },
+          "maxHandshakeAttempts": {
+            "type": "string"
+          },
+          "mtu": {
+            "type": "integer"
+          },
+          "primaryDns": {
+            "type": "string"
+          },
+          "privateKey": {
+            "type": "string"
+          },
+          "publicKey": {
+            "type": "string"
+          },
+          "randomTrailers": {
+            "type": "boolean"
+          },
+          "rejectAfterTime": {
+            "type": "string"
+          },
+          "rekeyAfterTime": {
+            "type": "string"
+          },
+          "rekeyTimeout": {
+            "type": "string"
+          },
+          "routeThroughXray": {
+            "type": "boolean"
+          },
+          "s1": {
+            "type": "integer"
+          },
+          "s2": {
+            "type": "integer"
+          },
+          "s3": {
+            "type": "integer"
+          },
+          "s4": {
+            "type": "integer"
+          },
+          "secondaryDns": {
+            "type": "string"
+          },
+          "subnetCidr": {
+            "type": "integer"
+          },
+          "subnetIp": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "disableCookies",
+          "h1",
+          "h2",
+          "h3",
+          "h4",
+          "jc",
+          "jmax",
+          "jmin",
+          "primaryDns",
+          "privateKey",
+          "publicKey",
+          "randomTrailers",
+          "s1",
+          "s2",
+          "s3",
+          "s4",
+          "secondaryDns",
+          "subnetCidr",
+          "subnetIp"
         ],
         "type": "object"
       },
@@ -2320,12 +2549,17 @@
                   "success": true,
                   "obj": [
                     {
+                      "awgServer": null,
                       "id": 1,
                       "l2tp": null,
+                      "listen": "",
+                      "nodeAddress": "",
                       "nodeId": null,
                       "port": 443,
                       "protocol": "vless",
                       "remark": "VLESS-443",
+                      "shareAddr": "",
+                      "shareAddrStrategy": "",
                       "ssMethod": "",
                       "tag": "in-443-tcp",
                       "tlsFlowCapable": true
@@ -3041,7 +3275,7 @@
                     },
                     "xray": {
                       "state": "running",
-                      "version": "v25.10.31"
+                      "version": "v26.9.9"
                     },
                     "tcpCount": 42,
                     "load": {
@@ -3326,7 +3560,7 @@
         "tags": [
           "Server"
         ],
-        "summary": "List Xray binary versions available for install on this host.",
+        "summary": "Check GitHub for the highest compatible Xray-core release available for this host.",
         "operationId": "get_panel_api_server_getXrayVersion",
         "responses": {
           "200": {
@@ -3348,9 +3582,7 @@
                 "example": {
                   "success": true,
                   "obj": [
-                    "v25.10.31",
-                    "v25.9.15",
-                    "v25.8.1"
+                    "v26.9.9"
                   ]
                 }
               }
@@ -4096,14 +4328,14 @@
         "tags": [
           "Server"
         ],
-        "summary": "Download and install the specified Xray version. Pass \"latest\" for the newest release.",
+        "summary": "Download, verify, and install the latest compatible Xray-core release; failed updates roll back automatically.",
         "operationId": "post_panel_api_server_installXray_version",
         "parameters": [
           {
             "name": "version",
             "in": "path",
             "required": true,
-            "description": "Xray tag (e.g. v25.10.31) or \"latest\".",
+            "description": "Version tag returned by getXrayVersion; the server accepts only the current compatible release.",
             "schema": {
               "type": "string"
             }
@@ -4350,6 +4582,82 @@
                 "example": {
                   "success": true,
                   "obj": "2025/01/01 12:00:00 rejected  vless  proxy  example.com  reason: no valid user\n2025/01/01 12:00:01 direct  freedom  ok"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/amneziawglogs/{count}": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Return live AmneziaWG peer activity (handshake, endpoint, transfer) plus the panel’s own AmneziaWG event lines.",
+        "operationId": "post_panel_api_server_amneziawglogs_count",
+        "parameters": [
+          {
+            "name": "count",
+            "in": "path",
+            "required": true,
+            "description": "Maximum peer rows and event lines to return.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/AmneziaWGLogs"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "events": [
+                      "amneziawg: started interface awg1"
+                    ],
+                    "peers": [
+                      {
+                        "allowedIPs": "10.8.1.2/32",
+                        "down": 4194304,
+                        "email": "peer@example.com",
+                        "endpoint": "203.0.113.9:51820",
+                        "handshake": 1735732800000,
+                        "inboundId": 1,
+                        "interface": "awg1",
+                        "online": true,
+                        "tag": "inbound-51820",
+                        "up": 1048576
+                      }
+                    ],
+                    "running": true
+                  }
                 }
               }
             }
@@ -8990,6 +9298,156 @@
         ],
         "summary": "Return an inbound to the admin. Clients that only belonged to the reseller through this inbound go back with it; explicitly assigned clients stay.",
         "operationId": "post_panel_api_resellers_unassignInbound",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/assignInbounds": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Atomically add a batch of inbounds to a reseller; missing ids or an ownership conflict reject the whole batch.",
+        "operationId": "post_panel_api_resellers_assignInbounds",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/unassignInbounds": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Atomically remove a batch of inbound mappings for a reseller without changing inbound configuration.",
+        "operationId": "post_panel_api_resellers_unassignInbounds",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/setInbounds": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Atomically replace the reseller inbound assignment set. Send the complete multi-select (an empty inboundIds array clears only this reseller); conflicts with another reseller or missing ids reject the whole transaction.",
+        "operationId": "post_panel_api_resellers_setInbounds",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/assignClients": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Atomically add explicit client visibility mappings for a reseller.",
+        "operationId": "post_panel_api_resellers_assignClients",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/unassignClients": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Atomically remove explicit client visibility mappings without deleting clients or inbound attachments.",
+        "operationId": "post_panel_api_resellers_unassignClients",
         "responses": {
           "200": {
             "description": "Successful response",

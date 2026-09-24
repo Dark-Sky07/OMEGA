@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { AmneziawgInboundSettingsSchema } from './amneziawg';
 import { HttpInboundSettingsSchema } from './http';
 import { HysteriaInboundSettingsSchema } from './hysteria';
 import { MixedInboundSettingsSchema } from './mixed';
@@ -14,6 +15,7 @@ import { VlessInboundSettingsSchema } from './vless';
 import { VmessInboundSettingsSchema } from './vmess';
 import { WireguardInboundSettingsSchema } from './wireguard';
 
+export * from './amneziawg';
 export * from './http';
 export * from './hysteria';
 export * from './mixed';
@@ -39,6 +41,7 @@ export const InboundSettingsSchema = z.discriminatedUnion('protocol', [
   z.object({ protocol: z.literal('trojan'),      settings: TrojanInboundSettingsSchema }),
   z.object({ protocol: z.literal('shadowsocks'), settings: ShadowsocksInboundSettingsSchema }),
   z.object({ protocol: z.literal('wireguard'),   settings: WireguardInboundSettingsSchema }),
+  z.object({ protocol: z.literal('amneziawg'),   settings: AmneziawgInboundSettingsSchema }),
   z.object({ protocol: z.literal('hysteria'),    settings: HysteriaInboundSettingsSchema }),
   z.object({ protocol: z.literal('http'),        settings: HttpInboundSettingsSchema }),
   z.object({ protocol: z.literal('mixed'),       settings: MixedInboundSettingsSchema }),

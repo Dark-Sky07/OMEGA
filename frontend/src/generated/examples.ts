@@ -172,6 +172,26 @@ export const EXAMPLES: Record<string, unknown> = {
     "webListen": "",
     "webPort": 1
   },
+  "AmneziaWGLogs": {
+    "events": [
+      "amneziawg: started interface awg1"
+    ],
+    "peers": [
+      {
+        "allowedIPs": "10.8.1.2/32",
+        "down": 4194304,
+        "email": "peer@example.com",
+        "endpoint": "203.0.113.9:51820",
+        "handshake": 1735732800000,
+        "inboundId": 1,
+        "interface": "awg1",
+        "online": true,
+        "tag": "inbound-51820",
+        "up": 1048576
+      }
+    ],
+    "running": true
+  },
   "ApiToken": {
     "createdAt": 0,
     "enabled": false,
@@ -315,12 +335,17 @@ export const EXAMPLES: Record<string, unknown> = {
     "xver": 0
   },
   "InboundOption": {
+    "awgServer": null,
     "id": 1,
     "l2tp": null,
+    "listen": "",
+    "nodeAddress": "",
     "nodeId": null,
     "port": 443,
     "protocol": "vless",
     "remark": "VLESS-443",
+    "shareAddr": "",
+    "shareAddrStrategy": "",
     "ssMethod": "",
     "tag": "in-443-tcp",
     "tlsFlowCapable": true
@@ -391,6 +416,18 @@ export const EXAMPLES: Record<string, unknown> = {
     "total": 0,
     "up": 0
   },
+  "PeerActivity": {
+    "allowedIPs": "10.8.1.2/32",
+    "down": 4194304,
+    "email": "peer@example.com",
+    "endpoint": "203.0.113.9:51820",
+    "handshake": 1735732800000,
+    "inboundId": 1,
+    "interface": "awg1",
+    "online": true,
+    "tag": "inbound-51820",
+    "up": 1048576
+  },
   "ProbeResultUI": {
     "cpuPct": 12.5,
     "error": "",
@@ -402,6 +439,45 @@ export const EXAMPLES: Record<string, unknown> = {
     "xrayError": "",
     "xrayState": "",
     "xrayVersion": "25.10.31"
+  },
+  "ServerSettings": {
+    "contentPaddingAddition": "",
+    "disableCookies": false,
+    "externalInterface": "",
+    "h1": "",
+    "h2": "",
+    "h3": "",
+    "h4": "",
+    "headerProtectionKey": "",
+    "i1": "",
+    "i2": "",
+    "i3": "",
+    "i4": "",
+    "i5": "",
+    "ipv6Enabled": false,
+    "ipv6ExternalInterface": "",
+    "ipv6Subnet": "",
+    "jc": 0,
+    "jmax": 0,
+    "jmin": 0,
+    "keepaliveTimeout": "",
+    "maxHandshakeAttempts": "",
+    "mtu": 0,
+    "primaryDns": "",
+    "privateKey": "",
+    "publicKey": "",
+    "randomTrailers": false,
+    "rejectAfterTime": "",
+    "rekeyAfterTime": "",
+    "rekeyTimeout": "",
+    "routeThroughXray": false,
+    "s1": 0,
+    "s2": 0,
+    "s3": 0,
+    "s4": 0,
+    "secondaryDns": "",
+    "subnetCidr": 0,
+    "subnetIp": ""
   },
   "Setting": {
     "id": 0,

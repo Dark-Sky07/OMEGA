@@ -1,6 +1,7 @@
 import type { InboundFormValues, ShareAddrStrategy, TrafficReset } from '@/schemas/forms/inbound-form';
 import type { InboundSettings } from '@/schemas/protocols/inbound';
 import {
+  AmneziawgClientSchema,
   HysteriaClientSchema,
   ShadowsocksClientSchema,
   TrojanClientSchema,
@@ -234,6 +235,7 @@ function clientSchemaForProtocol(protocol: string): z.ZodType | null {
     case 'trojan': return TrojanClientSchema;
     case 'shadowsocks': return ShadowsocksClientSchema;
     case 'hysteria': return HysteriaClientSchema;
+    case 'amneziawg': return AmneziawgClientSchema;
     default: return null;
   }
 }

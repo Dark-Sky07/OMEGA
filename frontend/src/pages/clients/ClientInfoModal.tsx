@@ -8,6 +8,7 @@ import { formatInboundLabel } from '@/lib/inbounds/label';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
+import { buildAmneziaWGClientConfig, buildAmneziaWGClientLink } from './amneziawgConfig';
 import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
 import './ClientInfoModal.css';
@@ -20,6 +21,7 @@ const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
   hysteria: 'cyan',
   hysteria2: 'green',
   wireguard: 'gold',
+  amneziawg: 'gold',
   http: 'purple',
   mixed: 'lime',
   tunnel: 'orange',
@@ -205,6 +207,24 @@ export default function ClientInfoModal({
       })),
     [client?.inboundIds, inboundsById, legacyL2TPConfigs],
   );
+
+  const amneziawgProfiles = useMemo(
+    () => (client?.inboundIds ?? [])
+      .map((id) => inboundsById[id])
+      .filter((ib): ib is InboundOption =>
+        !!ib && (ib.protocol || '').toLowerCase() === 'amneziawg',
+      )
+      .map((ib) => {
+        const addressOverride = client?.allowedIPsByInbound?.[String(ib.id)] || '';
+        return {
+          inbound: ib,
+          config: client ? buildAmneziaWGClientConfig(client, ib, window.location.hostname, '', addressOverride) : '',
+          link: client ? buildAmneziaWGClientLink(client, ib, window.location.hostname, '', addressOverride) : '',
+        };
+      })
+      .filter((profile) => profile.config || profile.link),
+    [client, inboundsById],
+  );
   const [ovpnProfile, setOvpnProfile] = useState('');
   const [ovpnLoading, setOvpnLoading] = useState(false);
 
@@ -237,6 +257,19 @@ export default function ClientInfoModal({
     const a = document.createElement('a');
     a.href = url;
     a.download = `${safeName}.ovpn`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function downloadAmneziaWGConfig(config: string, inbound: InboundOption) {
+    if (!config || !client) return;
+    const safeName = client.email.replace(/[^a-zA-Z0-9._-]/g, '_') || 'client';
+    const tag = (inbound.tag || inbound.remark || 'amneziawg').replace(/[^a-zA-Z0-9._-]/g, '_');
+    const blob = new Blob([config], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${safeName}-${tag}.conf`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -531,6 +564,49 @@ export default function ClientInfoModal({
                             placement="left"
                             destroyOnHidden
                             content={<QrPanel value={link} remark={qrRemark} size={220} />}
+                          >
+                            <Tooltip title={t('pages.clients.qrCode')}>
+                              <Button size="small" icon={<QrcodeOutlined />} />
+                            </Tooltip>
+                          </Popover>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            )}
+
+            {amneziawgProfiles.length > 0 && (
+              <>
+                <Divider>AmneziaWG</Divider>
+                {amneziawgProfiles.map(({ inbound, config, link }) => {
+                  const label = formatInboundLabel(inbound.tag, inbound.remark);
+                  return (
+                    <div className="link-row" key={inbound.id}>
+                      <Tag color="gold" className="link-row-tag">AWG</Tag>
+                      <span className="link-row-title" title={label}>{label}</span>
+                      <div className="link-row-actions">
+                        {config && (
+                          <Tooltip title={t('download')}>
+                            <Button
+                              size="small"
+                              icon={<DownloadOutlined />}
+                              onClick={() => downloadAmneziaWGConfig(config, inbound)}
+                            />
+                          </Tooltip>
+                        )}
+                        {config && (
+                          <Tooltip title={t('copy')}>
+                            <Button size="small" icon={<CopyOutlined />} onClick={() => copyValue(config)} />
+                          </Tooltip>
+                        )}
+                        {link && (
+                          <Popover
+                            trigger="click"
+                            placement="left"
+                            destroyOnHidden
+                            content={<QrPanel value={link} remark={`${client.email} — ${label}`} size={220} />}
                           >
                             <Tooltip title={t('pages.clients.qrCode')}>
                               <Button size="small" icon={<QrcodeOutlined />} />

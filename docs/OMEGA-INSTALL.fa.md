@@ -11,12 +11,12 @@
 روی سرور (اوبونتو/دبیان/آرچ/الپاین/راکی/سن‌اواس …) با کاربر **root**:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install
 ```
 
 > اگر هنوز پول‌ریکوئست را merge نکرده‌اید، همین دستور را با تگ ریلیز بزنید:
 > ```bash
-> bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.1-omega/install-omega.sh)
+> bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install
 > ```
 
 اسکریپت خودش این کارها را می‌کند:

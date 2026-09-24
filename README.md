@@ -15,11 +15,13 @@ English · [فارسی](README.fa_IR.md)
 [![Go](https://img.shields.io/github/go-mod/go-version/Dark-Sky07/OMEGA)](go.mod)
 [![Platforms](https://img.shields.io/badge/platforms-linux%20%7C%20windows-lightgrey)](#supported-platforms)
 
-**Install in one line** — on a fresh server, as `root`:
+**Install the latest OMEGA release in one line** — on a fresh server, as `root`:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega/install-omega.sh) v3.3.25-omega
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install
 ```
+
+This stable launcher resolves the newest OMEGA GitHub release automatically. Public installation instructions intentionally do not pin a tag or fall back to the vanilla 3x-ui repository.
 
 </div>
 
@@ -27,7 +29,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega
 > OMEGA is a fork based on 3x-ui v3.3.1. It adds reseller controls, an external OpenVPN daemon, and an external
 > L2TP/IPsec daemon while keeping the panel service name (`x-ui`), install paths (`/usr/local/x-ui`, `/etc/x-ui`),
 > environment variables, and Xray configuration conventions compatible with the upstream project. The OMEGA release
-> version is maintained separately from the upstream core version, so the current stable release is `v3.3.25-omega`.
+> version is maintained separately from the upstream core version, so the current stable release is `v3.3.30-omega`.
 
 ---
 
@@ -39,7 +41,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega
 | ➕ **Added** | **OpenVPN inbounds** — an OpenVPN daemon per inbound binds the port directly; per-client certificates are generated automatically (CN = email), each client gets a ready-to-import `.ovpn` (copy/download from the client info), and per-client traffic + online status flow into the normal stats pipeline. The tagged release installer installs and verifies the host `openvpn` package and `/dev/net/tun`; the panel then renders one daemon config per enabled local OpenVPN inbound. The release archive does not embed an OS package, so use the installer rather than copying only the panel tarball. |
 | ➕ **Added** | **L2TP/IPsec inbounds** — one global local-Linux daemon group (strongSwan + xl2tpd/PPP) uses existing client email/password credentials, persists the IPsec PSK, reconciles daemon config and `chap-secrets` synchronously for single and bulk client operations, recovers orphaned daemons after restart, manages UDP 500/4500/1701 plus IPv4 forwarding/FORWARD/MASQUERADE rules, and reports PPP online/traffic state. It is not an Xray inbound, does not generate a profile file, and does not include PPTP; the UI shows native client parameters. |
 | 🎨 **Branding** | Panel name shown as **OMEGA** (sidebar, login page, page titles, API docs, translations). UI branding only; service names and install paths remain unchanged. |
-| 🛠 **Install** | [`install-omega.sh`](install-omega.sh) installs *this* panel from *this* repository; [`x-ui.sh`](x-ui.sh) updates from here too, so `x-ui update` can never silently swap in vanilla 3x-ui. |
+| 🛠 **Install** | [`x-ui.sh`](x-ui.sh) is the OMEGA launcher: it resolves and installs the latest OMEGA release from this repository; `x-ui update` uses the same release-only path and never falls back to vanilla 3x-ui. |
 | ✅ **Unchanged** | Everything else — all of 3x-ui v3.3.1 (protocols, transports, nodes, subscriptions, Telegram bot, routing, API, themes, 13 languages). |
 
 ### OpenVPN installation and host checklist
@@ -49,9 +51,7 @@ OpenVPN is a host daemon, not an Xray component and not a file inside the `x-ui`
 To install or repair an existing host with the exact stable release, run as `root`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega/install-omega.sh \
-  -o /tmp/install-omega.sh
-env OMEGA_REF=v3.3.25-omega bash /tmp/install-omega.sh v3.3.25-omega
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install
 ```
 
 Verify the prerequisite before troubleshooting the network:
@@ -101,13 +101,7 @@ For Docker, the container needs `NET_ADMIN`, `NET_RAW`, `/dev/ppp`, `/dev/net/tu
 On a fresh server, as **root**:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega/install-omega.sh) v3.3.25-omega
-```
-
-Pin a specific release instead (useful before a branch is merged):
-
-```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega/install-omega.sh) v3.3.25-omega
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install
 ```
 
 The installer takes care of everything:

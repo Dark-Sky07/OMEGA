@@ -351,9 +351,9 @@ func (s *ResellerService) OwnedInboundIdSet(resellerId int) (map[int]struct{}, e
 	return set, nil
 }
 
-// OwnedEmailSet returns every client email that belongs to a reseller. A client
-// belongs to a reseller when it is explicitly assigned to it, or when it is
-// attached to an inbound that the reseller owns.
+// OwnedEmailSet returns only the client emails explicitly mapped to a
+// reseller. Owning an inbound grants access to that inbound's configuration,
+// but never implicitly grants access to every client attached to it.
 func (s *ResellerService) OwnedEmailSet(resellerId int) (map[string]struct{}, error) {
 	emails, err := s.OwnedEmails(resellerId)
 	if err != nil {
@@ -361,28 +361,140 @@ func (s *ResellerService) OwnedEmailSet(resellerId int) (map[string]struct{}, er
 	}
 	set := make(map[string]struct{}, len(emails))
 	for _, email := range emails {
-		set[email] = struct{}{}
+		key := strings.ToLower(strings.TrimSpace(email))
+		if key != "" {
+			set[key] = struct{}{}
+		}
 	}
 	return set, nil
 }
 
-// OwnedEmails lists the client emails owned by a reseller (see OwnedEmailSet).
-func (s *ResellerService) OwnedEmails(resellerId int) ([]string, error) {
-	db := database.GetDB()
+// OwnedAssociatedEmailSet returns the explicitly mapped clients that are also
+// attached to at least one inbound owned by the same reseller. It is useful
+// for association-aware identity/configuration paths. Aggregate traffic,
+// online state, and last-online callers must use
+// OwnedIsolatedAssociatedEmailSet because ClientTraffic is email-level and a
+// shared admin association cannot be partitioned safely.
+func (s *ResellerService) OwnedAssociatedEmailSet(resellerId int) (map[string]struct{}, error) {
 	var emails []string
-	err := db.Raw(`
-		SELECT email FROM reseller_clients WHERE reseller_id = ?
-		UNION
-		SELECT c.email FROM clients c
-		JOIN client_inbounds ci ON ci.client_id = c.id
-		JOIN reseller_inbounds ri ON ri.inbound_id = ci.inbound_id
-		WHERE ri.reseller_id = ?
-	`, resellerId, resellerId).Scan(&emails).Error
+	db := database.GetDB()
+	err := db.Table("reseller_clients AS rc").
+		Select("DISTINCT LOWER(TRIM(c.email))").
+		Joins("JOIN clients AS c ON LOWER(TRIM(c.email)) = LOWER(TRIM(rc.email))").
+		Joins("JOIN client_inbounds AS ci ON ci.client_id = c.id").
+		Joins("JOIN reseller_inbounds AS ri ON ri.inbound_id = ci.inbound_id AND ri.reseller_id = rc.reseller_id").
+		Where("rc.reseller_id = ?", resellerId).
+		Scan(&emails).Error
 	if err != nil {
 		return nil, err
 	}
-	sort.Strings(emails)
-	return emails, nil
+	set := make(map[string]struct{}, len(emails))
+	for _, email := range emails {
+		if key := transferEmailKey(email); key != "" {
+			set[key] = struct{}{}
+		}
+	}
+	return set, nil
+}
+
+// OwnedIsolatedAssociatedEmailSet returns mapped clients whose every current
+// inbound association is owned by this reseller and that have at least one
+// such association. ClientTraffic is one email-level aggregate, so a client
+// shared with an admin-owned inbound cannot safely expose or mutate traffic,
+// online state, or last-online data from a reseller session.
+func (s *ResellerService) OwnedIsolatedAssociatedEmailSet(resellerId int) (map[string]struct{}, error) {
+	var emails []string
+	db := database.GetDB()
+	err := db.Table("reseller_clients AS rc").
+		Select("DISTINCT LOWER(TRIM(c.email))").
+		Joins("JOIN clients AS c ON LOWER(TRIM(c.email)) = LOWER(TRIM(rc.email))").
+		Joins("JOIN client_inbounds AS ci ON ci.client_id = c.id").
+		Joins("JOIN reseller_inbounds AS ri ON ri.inbound_id = ci.inbound_id AND ri.reseller_id = rc.reseller_id").
+		Where("rc.reseller_id = ?", resellerId).
+		Where(`NOT EXISTS (
+			SELECT 1 FROM client_inbounds AS foreign_ci
+			WHERE foreign_ci.client_id = c.id
+			  AND NOT EXISTS (
+				SELECT 1 FROM reseller_inbounds AS foreign_ri
+				WHERE foreign_ri.reseller_id = rc.reseller_id
+				  AND foreign_ri.inbound_id = foreign_ci.inbound_id
+			)
+		)`).
+		Scan(&emails).Error
+	if err != nil {
+		return nil, err
+	}
+	set := make(map[string]struct{}, len(emails))
+	for _, email := range emails {
+		if key := transferEmailKey(email); key != "" {
+			set[key] = struct{}{}
+		}
+	}
+	return set, nil
+}
+
+// OwnedEmails lists only the client emails explicitly mapped to a reseller.
+// Keep this query independent from reseller_inbounds: inbound ownership is a
+// separate capability and must not become a transitive client grant.
+func (s *ResellerService) OwnedEmails(resellerId int) ([]string, error) {
+	db := database.GetDB()
+	var mapped []string
+	if err := db.Model(model.ResellerClient{}).
+		Where("reseller_id = ?", resellerId).
+		Order("email ASC").
+		Pluck("email", &mapped).Error; err != nil {
+		return nil, err
+	}
+	if len(mapped) == 0 {
+		return []string{}, nil
+	}
+
+	// Older databases may contain a mapping with incidental whitespace or
+	// different casing. Resolve it to the canonical client email so every
+	// reseller representation (lists, reports, transfer scopes) uses the same
+	// identity, while retaining a trimmed fallback for a dangling mapping.
+	keys := make([]string, 0, len(mapped))
+	seenKeys := make(map[string]struct{}, len(mapped))
+	for _, email := range mapped {
+		key := strings.ToLower(strings.TrimSpace(email))
+		if key == "" {
+			continue
+		}
+		if _, seen := seenKeys[key]; !seen {
+			seenKeys[key] = struct{}{}
+			keys = append(keys, key)
+		}
+	}
+	canonical := make(map[string]string, len(keys))
+	for _, batch := range chunkStrings(keys, sqlInChunk) {
+		var clients []model.ClientRecord
+		if err := db.Model(model.ClientRecord{}).Where("LOWER(TRIM(email)) IN ?", batch).Find(&clients).Error; err != nil {
+			return nil, err
+		}
+		for i := range clients {
+			canonical[strings.ToLower(strings.TrimSpace(clients[i].Email))] = clients[i].Email
+		}
+	}
+
+	out := make([]string, 0, len(keys))
+	seen := make(map[string]struct{}, len(keys))
+	for _, email := range mapped {
+		trimmed := strings.TrimSpace(email)
+		key := strings.ToLower(trimmed)
+		if key == "" {
+			continue
+		}
+		value := trimmed
+		if canonicalEmail, ok := canonical[key]; ok {
+			value = canonicalEmail
+		}
+		if _, duplicate := seen[key]; duplicate {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, value)
+	}
+	return out, nil
 }
 
 // OwnsInbound reports whether the inbound is assigned to the reseller.
@@ -400,9 +512,10 @@ func (s *ResellerService) OwnsInbound(resellerId, inboundId int) (bool, error) {
 	return count > 0, nil
 }
 
-// OwnsClient reports whether the client (by email) belongs to the reseller.
+// OwnsClient reports whether the client (by email) has an explicit mapping
+// to the reseller. Inbound ownership is deliberately not considered here.
 func (s *ResellerService) OwnsClient(resellerId int, email string) (bool, error) {
-	email = strings.TrimSpace(email)
+	email = strings.ToLower(strings.TrimSpace(email))
 	if resellerId <= 0 || email == "" {
 		return false, nil
 	}
@@ -433,74 +546,324 @@ func (s *ResellerService) EmailBySubID(subId string) (string, error) {
 	return email, nil
 }
 
-// AssignInbound hands an inbound (with all of its clients) to a reseller.
-func (s *ResellerService) AssignInbound(resellerId, inboundId int) error {
-	if _, err := s.Get(resellerId); err != nil {
-		return errors.New("reseller not found")
+func normalizedPositiveIDs(values []int) ([]int, error) {
+	out := make([]int, 0, len(values))
+	seen := make(map[int]struct{}, len(values))
+	for _, value := range values {
+		if value <= 0 {
+			return nil, errors.New("ids must be positive")
+		}
+		if _, duplicate := seen[value]; duplicate {
+			continue
+		}
+		seen[value] = struct{}{}
+		out = append(out, value)
 	}
-	db := database.GetDB()
-	var count int64
-	if err := db.Model(model.Inbound{}).Where("id = ?", inboundId).Count(&count).Error; err != nil {
-		return err
+	if len(out) == 0 {
+		return nil, errors.New("at least one id is required")
 	}
-	if count == 0 {
-		return errors.New("inbound not found")
-	}
-	row := &model.ResellerInbound{ResellerId: resellerId, InboundId: inboundId, CreatedAt: time.Now().UnixMilli()}
-	return db.Where("reseller_id = ? AND inbound_id = ?", resellerId, inboundId).
-		FirstOrCreate(row).Error
+	return out, nil
 }
 
-// UnassignInbound returns an inbound to the admin. Clients that were assigned
-// to the reseller explicitly (by hand) stay with it; clients that only belonged
-// to it through the inbound follow the inbound back to the admin.
-func (s *ResellerService) UnassignInbound(resellerId, inboundId int) error {
+// AssignInbounds atomically assigns a set of inbounds to one reseller. An
+// inbound has one administrative owner: if any requested inbound is assigned
+// to another reseller, the whole operation is rejected before a row is
+// written. Repeating the same assignment is idempotent.
+func (s *ResellerService) AssignInbounds(resellerId int, inboundIds []int) error {
+	resellerScopeMutationMu.Lock()
+	defer resellerScopeMutationMu.Unlock()
+	ids, err := normalizedPositiveIDs(inboundIds)
+	if err != nil {
+		return err
+	}
 	db := database.GetDB()
-	return db.Where("reseller_id = ? AND inbound_id = ?", resellerId, inboundId).
-		Delete(&model.ResellerInbound{}).Error
+	return db.Transaction(func(tx *gorm.DB) error {
+		var reseller model.Reseller
+		if err := tx.Where("id = ?", resellerId).First(&reseller).Error; err != nil {
+			if database.IsNotFound(err) {
+				return errors.New("reseller not found")
+			}
+			return err
+		}
+		var inbounds []model.Inbound
+		if err := tx.Where("id IN ?", ids).Find(&inbounds).Error; err != nil {
+			return err
+		}
+		found := make(map[int]struct{}, len(inbounds))
+		for _, inbound := range inbounds {
+			found[inbound.Id] = struct{}{}
+		}
+		for _, id := range ids {
+			if _, ok := found[id]; !ok {
+				return fmt.Errorf("inbound %d not found", id)
+			}
+		}
+		var conflicts []model.ResellerInbound
+		if err := tx.Where("inbound_id IN ? AND reseller_id <> ?", ids, resellerId).
+			Find(&conflicts).Error; err != nil {
+			return err
+		}
+		if len(conflicts) > 0 {
+			return fmt.Errorf("inbound %d is already assigned to another reseller", conflicts[0].InboundId)
+		}
+		now := time.Now().UnixMilli()
+		for _, id := range ids {
+			row := &model.ResellerInbound{ResellerId: resellerId, InboundId: id, CreatedAt: now}
+			if err := tx.Where("reseller_id = ? AND inbound_id = ?", resellerId, id).
+				FirstOrCreate(row).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// SetInbounds replaces this reseller's complete inbound assignment set in one
+// transaction. It is used by the multi-select form: an empty desired set is
+// valid and clears only this reseller's mappings. Existing mappings are not
+// touched until every requested inbound and ownership conflict has passed
+// validation.
+func (s *ResellerService) SetInbounds(resellerId int, inboundIds []int) error {
+	resellerScopeMutationMu.Lock()
+	defer resellerScopeMutationMu.Unlock()
+	ids := make([]int, 0, len(inboundIds))
+	seen := make(map[int]struct{}, len(inboundIds))
+	for _, id := range inboundIds {
+		if id <= 0 {
+			return errors.New("ids must be positive")
+		}
+		if _, duplicate := seen[id]; duplicate {
+			continue
+		}
+		seen[id] = struct{}{}
+		ids = append(ids, id)
+	}
+	db := database.GetDB()
+	return db.Transaction(func(tx *gorm.DB) error {
+		var reseller model.Reseller
+		if err := tx.Where("id = ?", resellerId).First(&reseller).Error; err != nil {
+			if database.IsNotFound(err) {
+				return errors.New("reseller not found")
+			}
+			return err
+		}
+		if len(ids) > 0 {
+			var inbounds []model.Inbound
+			if err := tx.Where("id IN ?", ids).Find(&inbounds).Error; err != nil {
+				return err
+			}
+			found := make(map[int]struct{}, len(inbounds))
+			for _, inbound := range inbounds {
+				found[inbound.Id] = struct{}{}
+			}
+			for _, id := range ids {
+				if _, ok := found[id]; !ok {
+					return fmt.Errorf("inbound %d not found", id)
+				}
+			}
+			var conflicts []model.ResellerInbound
+			if err := tx.Where("inbound_id IN ? AND reseller_id <> ?", ids, resellerId).
+				Find(&conflicts).Error; err != nil {
+				return err
+			}
+			if len(conflicts) > 0 {
+				return fmt.Errorf("inbound %d is already assigned to another reseller", conflicts[0].InboundId)
+			}
+		}
+		deleteQuery := tx.Where("reseller_id = ?", resellerId)
+		if len(ids) > 0 {
+			deleteQuery = deleteQuery.Where("inbound_id NOT IN ?", ids)
+		}
+		if err := deleteQuery.Delete(&model.ResellerInbound{}).Error; err != nil {
+			return err
+		}
+		now := time.Now().UnixMilli()
+		for _, id := range ids {
+			row := &model.ResellerInbound{ResellerId: resellerId, InboundId: id, CreatedAt: now}
+			if err := tx.Where("reseller_id = ? AND inbound_id = ?", resellerId, id).
+				FirstOrCreate(row).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// AssignInbound is the compatibility wrapper for the original single-item
+// endpoint.
+func (s *ResellerService) AssignInbound(resellerId, inboundId int) error {
+	return s.AssignInbounds(resellerId, []int{inboundId})
+}
+
+// UnassignInbounds atomically removes only this reseller's inbound mappings.
+// It never changes client records or inbound configuration.
+func (s *ResellerService) UnassignInbounds(resellerId int, inboundIds []int) error {
+	resellerScopeMutationMu.Lock()
+	defer resellerScopeMutationMu.Unlock()
+	ids, err := normalizedPositiveIDs(inboundIds)
+	if err != nil {
+		return err
+	}
+	db := database.GetDB()
+	return db.Transaction(func(tx *gorm.DB) error {
+		var reseller model.Reseller
+		if err := tx.Where("id = ?", resellerId).First(&reseller).Error; err != nil {
+			if database.IsNotFound(err) {
+				return errors.New("reseller not found")
+			}
+			return err
+		}
+		return tx.Where("reseller_id = ? AND inbound_id IN ?", resellerId, ids).
+			Delete(&model.ResellerInbound{}).Error
+	})
+}
+
+// UnassignInbound is the compatibility wrapper for the original single-item
+// endpoint.
+func (s *ResellerService) UnassignInbound(resellerId, inboundId int) error {
+	return s.UnassignInbounds(resellerId, []int{inboundId})
 }
 
 // ExplicitAssignedEmails lists only the clients the admin assigned to a
 // reseller by hand (inherited ones are not included).
 func (s *ResellerService) ExplicitAssignedEmails(resellerId int) ([]string, error) {
-	db := database.GetDB()
-	emails := make([]string, 0)
-	err := db.Model(model.ResellerClient{}).
-		Where("reseller_id = ?", resellerId).
-		Order("email ASC").
-		Pluck("email", &emails).Error
-	if err != nil {
-		return nil, err
-	}
-	return emails, nil
+	return s.OwnedEmails(resellerId)
 }
 
-// AssignClient assigns a single client to a reseller.
-func (s *ResellerService) AssignClient(resellerId int, email string) error {
-	if _, err := s.Get(resellerId); err != nil {
-		return errors.New("reseller not found")
-	}
-	email = strings.TrimSpace(email)
-	if email == "" {
-		return errors.New("email can not be empty")
-	}
-	db := database.GetDB()
+// HasForeignInboundAssociation reports whether a canonical client is attached
+// to any inbound not owned by this reseller. This is used before a reseller
+// attaches an existing client: the legacy email-level traffic/limit row cannot
+// safely be shared across reseller and admin-owned associations.
+func (s *ResellerService) HasForeignInboundAssociation(resellerId int, email string) (bool, error) {
 	var count int64
-	if err := db.Model(model.ClientRecord{}).Where("email = ?", email).Count(&count).Error; err != nil {
-		return err
-	}
-	if count == 0 {
-		return errors.New("client not found")
-	}
-	row := &model.ResellerClient{ResellerId: resellerId, Email: email, CreatedAt: time.Now().UnixMilli()}
-	return db.Where("reseller_id = ? AND email = ?", resellerId, email).FirstOrCreate(row).Error
+	err := database.GetDB().Table("client_inbounds AS ci").
+		Joins("JOIN clients AS c ON c.id = ci.client_id").
+		Where("LOWER(TRIM(c.email)) = LOWER(?)", strings.TrimSpace(email)).
+		Where(`NOT EXISTS (
+			SELECT 1 FROM reseller_inbounds AS ri
+			WHERE ri.reseller_id = ? AND ri.inbound_id = ci.inbound_id
+		)`, resellerId).
+		Count(&count).Error
+	return count > 0, err
 }
 
-// UnassignClient detaches an explicitly assigned client from a reseller.
-func (s *ResellerService) UnassignClient(resellerId int, email string) error {
+// AssignClients atomically creates explicit client mappings for a reseller.
+// Inbound ownership is intentionally not consulted: this is the only operation
+// that grants client credentials/stats visibility.
+func (s *ResellerService) AssignClients(resellerId int, emails []string) error {
+	resellerScopeMutationMu.Lock()
+	defer resellerScopeMutationMu.Unlock()
+	keys := make([]string, 0, len(emails))
+	seen := make(map[string]struct{}, len(emails))
+	for _, raw := range emails {
+		key := transferEmailKey(raw)
+		if key == "" {
+			return errors.New("email can not be empty")
+		}
+		if _, duplicate := seen[key]; duplicate {
+			continue
+		}
+		seen[key] = struct{}{}
+		keys = append(keys, key)
+	}
+	if len(keys) == 0 {
+		return errors.New("at least one email is required")
+	}
 	db := database.GetDB()
-	return db.Where("reseller_id = ? AND email = ?", resellerId, strings.TrimSpace(email)).
-		Delete(&model.ResellerClient{}).Error
+	return db.Transaction(func(tx *gorm.DB) error {
+		var reseller model.Reseller
+		if err := tx.Where("id = ?", resellerId).First(&reseller).Error; err != nil {
+			if database.IsNotFound(err) {
+				return errors.New("reseller not found")
+			}
+			return err
+		}
+		var clients []model.ClientRecord
+		if err := tx.Where("LOWER(TRIM(email)) IN ?", keys).Find(&clients).Error; err != nil {
+			return err
+		}
+		canonical := make(map[string]string, len(clients))
+		for _, client := range clients {
+			canonical[transferEmailKey(client.Email)] = client.Email
+		}
+		for _, key := range keys {
+			if _, ok := canonical[key]; !ok {
+				return fmt.Errorf("client %q not found", key)
+			}
+		}
+		for _, key := range keys {
+			email := canonical[key]
+			// Do not let the primary-key fields on row narrow the lookup to
+			// the canonical spelling. Older databases may already have the
+			// same mapping with case or whitespace differences; FirstOrCreate
+			// would otherwise miss that row and create a duplicate mapping.
+			var existing model.ResellerClient
+			err := tx.Where("reseller_id = ? AND LOWER(TRIM(email)) = LOWER(?)", resellerId, email).
+				First(&existing).Error
+			if err == nil {
+				continue
+			}
+			if !database.IsNotFound(err) {
+				return err
+			}
+			row := &model.ResellerClient{
+				ResellerId: resellerId,
+				Email:      email,
+				CreatedAt:  time.Now().UnixMilli(),
+			}
+			if err := tx.Create(row).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// AssignClient is the compatibility wrapper for the original single-item
+// endpoint.
+func (s *ResellerService) AssignClient(resellerId int, email string) error {
+	return s.AssignClients(resellerId, []string{email})
+}
+
+// UnassignClients atomically removes explicit mappings for the requested
+// reseller. It does not delete the client or touch any inbound association.
+func (s *ResellerService) UnassignClients(resellerId int, emails []string) error {
+	resellerScopeMutationMu.Lock()
+	defer resellerScopeMutationMu.Unlock()
+	keys := make([]string, 0, len(emails))
+	seen := make(map[string]struct{}, len(emails))
+	for _, raw := range emails {
+		key := transferEmailKey(raw)
+		if key == "" {
+			return errors.New("email can not be empty")
+		}
+		if _, duplicate := seen[key]; duplicate {
+			continue
+		}
+		seen[key] = struct{}{}
+		keys = append(keys, key)
+	}
+	if len(keys) == 0 {
+		return errors.New("at least one email is required")
+	}
+	db := database.GetDB()
+	return db.Transaction(func(tx *gorm.DB) error {
+		var reseller model.Reseller
+		if err := tx.Where("id = ?", resellerId).First(&reseller).Error; err != nil {
+			if database.IsNotFound(err) {
+				return errors.New("reseller not found")
+			}
+			return err
+		}
+		return tx.Where("reseller_id = ? AND LOWER(TRIM(email)) IN ?", resellerId, keys).
+			Delete(&model.ResellerClient{}).Error
+	})
+}
+
+// UnassignClient is the compatibility wrapper for the original single-item
+// endpoint.
+func (s *ResellerService) UnassignClient(resellerId int, email string) error {
+	return s.UnassignClients(resellerId, []string{email})
 }
 
 // ---------------------------------------------------------------------------
@@ -513,20 +876,34 @@ func (s *ResellerService) ClientUsage(emails []string) (map[string]*xray.ClientT
 	if len(emails) == 0 {
 		return usage, nil
 	}
+	keys := make([]string, 0, len(emails))
+	seen := make(map[string]struct{}, len(emails))
+	for _, email := range emails {
+		key := strings.ToLower(strings.TrimSpace(email))
+		if key == "" {
+			continue
+		}
+		if _, ok := seen[key]; !ok {
+			seen[key] = struct{}{}
+			keys = append(keys, key)
+		}
+	}
 	db := database.GetDB()
 	rows := make([]*xray.ClientTraffic, 0)
-	for _, batch := range chunkStrings(emails, sqlInChunk) {
+	for _, batch := range chunkStrings(keys, sqlInChunk) {
 		var part []*xray.ClientTraffic
-		if err := db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Find(&part).Error; err != nil {
+		if err := db.Model(xray.ClientTraffic{}).Where("LOWER(TRIM(email)) IN ?", batch).Find(&part).Error; err != nil {
 			return nil, err
 		}
 		rows = append(rows, part...)
 	}
+	overlayGlobalTraffic(db, rows)
 	for _, row := range rows {
-		agg, ok := usage[row.Email]
+		key := strings.ToLower(strings.TrimSpace(row.Email))
+		agg, ok := usage[key]
 		if !ok {
 			agg = &xray.ClientTraffic{Email: row.Email}
-			usage[row.Email] = agg
+			usage[key] = agg
 		}
 		agg.Up += row.Up
 		agg.Down += row.Down
@@ -556,6 +933,20 @@ func (s *ResellerService) Stat(reseller *model.Reseller) (*ResellerStat, error) 
 		return nil, err
 	}
 	stat.ClientCount = len(emails)
+	// ResellerClient is the explicit visibility boundary. Do not require the
+	// client to be isolated from every admin association before showing its
+	// aggregate usage; a client explicitly attached to this reseller is
+	// authorized, and scoped payloads redact the stale inbound identifier.
+	visibleEmails, err := s.OwnedEmailSet(reseller.Id)
+	if err != nil {
+		return nil, err
+	}
+	usageEmails := make([]string, 0, len(emails))
+	for _, email := range emails {
+		if _, ok := visibleEmails[transferEmailKey(email)]; ok {
+			usageEmails = append(usageEmails, email)
+		}
+	}
 
 	if len(emails) > 0 {
 		for _, batch := range chunkStrings(emails, sqlInChunk) {
@@ -563,7 +954,7 @@ func (s *ResellerService) Stat(reseller *model.Reseller) (*ResellerStat, error) 
 				Total int64
 			}
 			if err := db.Model(model.ClientRecord{}).
-				Where("email IN ?", batch).
+				Where("LOWER(TRIM(email)) IN ?", batch).
 				Select("COALESCE(SUM(total_gb), 0) AS total").
 				Scan(&allocated).Error; err != nil {
 				return nil, err
@@ -572,7 +963,7 @@ func (s *ResellerService) Stat(reseller *model.Reseller) (*ResellerStat, error) 
 		}
 	}
 
-	usage, err := s.ClientUsage(emails)
+	usage, err := s.ClientUsage(usageEmails)
 	if err != nil {
 		return nil, err
 	}
@@ -583,9 +974,9 @@ func (s *ResellerService) Stat(reseller *model.Reseller) (*ResellerStat, error) 
 	online := s.inboundService.GetOnlineClients()
 	onlineSet := make(map[string]struct{}, len(online))
 	for _, email := range online {
-		onlineSet[email] = struct{}{}
+		onlineSet[transferEmailKey(email)] = struct{}{}
 	}
-	for _, email := range emails {
+	for email := range visibleEmails {
 		if _, ok := onlineSet[email]; ok {
 			stat.OnlineCount++
 		}
@@ -619,7 +1010,23 @@ func (s *ResellerService) Report(resellerId int) (*ResellerReport, error) {
 	if err != nil {
 		return nil, err
 	}
-	usage, err := s.ClientUsage(emails)
+	ownedInboundIDs, err := s.OwnedInboundIdSet(resellerId)
+	if err != nil {
+		return nil, err
+	}
+	// Explicit ResellerClient mappings authorize the report's aggregate usage;
+	// inbound ownership is used only to redact attachment ids below.
+	visibleEmails, err := s.OwnedEmailSet(resellerId)
+	if err != nil {
+		return nil, err
+	}
+	usageEmails := make([]string, 0, len(emails))
+	for _, email := range emails {
+		if _, ok := visibleEmails[transferEmailKey(email)]; ok {
+			usageEmails = append(usageEmails, email)
+		}
+	}
+	usage, err := s.ClientUsage(usageEmails)
 	if err != nil {
 		return nil, err
 	}
@@ -628,7 +1035,7 @@ func (s *ResellerService) Report(resellerId int) (*ResellerReport, error) {
 	records := make([]*model.ClientRecord, 0, len(emails))
 	for _, batch := range chunkStrings(emails, sqlInChunk) {
 		var part []*model.ClientRecord
-		if err := db.Model(model.ClientRecord{}).Where("email IN ?", batch).Find(&part).Error; err != nil {
+		if err := db.Model(model.ClientRecord{}).Where("LOWER(TRIM(email)) IN ?", batch).Find(&part).Error; err != nil {
 			return nil, err
 		}
 		records = append(records, part...)
@@ -646,25 +1053,29 @@ func (s *ResellerService) Report(resellerId int) (*ResellerReport, error) {
 			if err := db.Raw(`
 				SELECT c.email AS email, ci.inbound_id AS inbound_id
 				FROM clients c JOIN client_inbounds ci ON ci.client_id = c.id
-				WHERE c.email IN ?
+				WHERE LOWER(TRIM(c.email)) IN ?
 			`, batch).Scan(&part).Error; err != nil {
 				return nil, err
 			}
 			rows = append(rows, part...)
 		}
 		for _, r := range rows {
-			inboundIdsByEmail[r.Email] = append(inboundIdsByEmail[r.Email], r.InboundId)
+			if _, allowed := ownedInboundIDs[r.InboundId]; !allowed {
+				continue
+			}
+			key := strings.ToLower(strings.TrimSpace(r.Email))
+			inboundIdsByEmail[key] = append(inboundIdsByEmail[key], r.InboundId)
 		}
 	}
 
 	rows := make([]ResellerClientRow, 0, len(records))
 	for _, rec := range records {
 		up, down, used := int64(0), int64(0), int64(0)
-		if t, ok := usage[rec.Email]; ok && t != nil {
+		if t, ok := usage[strings.ToLower(strings.TrimSpace(rec.Email))]; ok && t != nil {
 			up, down = t.Up, t.Down
 			used = up + down
 		}
-		ids := inboundIdsByEmail[rec.Email]
+		ids := inboundIdsByEmail[strings.ToLower(strings.TrimSpace(rec.Email))]
 		sort.Ints(ids)
 		rows = append(rows, ResellerClientRow{
 			Email:      rec.Email,

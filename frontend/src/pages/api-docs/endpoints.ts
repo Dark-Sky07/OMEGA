@@ -9,6 +9,7 @@ export type ParamLocation =
   | 'body (multipart)';
 export type ParamType =
   | 'string'
+  | 'string[]'
   | 'integer'
   | 'integer[]'
   | 'number'
@@ -250,7 +251,7 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/server/status',
         summary: 'Real-time machine snapshot: CPU, memory, swap, disk, network IO, load averages, open connections, Xray state. Cached and refreshed every 2 seconds in the background.',
-        response: '{\n  "success": true,\n  "obj": {\n    "cpu": 12.5,\n    "mem": { "current": 2147483648, "total": 8589934592 },\n    "swap": { "current": 0, "total": 4294967296 },\n    "disk": { "current": 53687091200, "total": 268435456000 },\n    "netIO": { "up": 1073741824, "down": 2147483648 },\n    "xray": { "state": "running", "version": "v25.10.31" },\n    "tcpCount": 42,\n    "load": { "load1": 0.5, "load5": 0.3, "load15": 0.2 }\n  }\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "cpu": 12.5,\n    "mem": { "current": 2147483648, "total": 8589934592 },\n    "swap": { "current": 0, "total": 4294967296 },\n    "disk": { "current": 53687091200, "total": 268435456000 },\n    "netIO": { "up": 1073741824, "down": 2147483648 },\n    "xray": { "state": "running", "version": "v26.9.9" },\n    "tcpCount": 42,\n    "load": { "load1": 0.5, "load5": 0.3, "load15": 0.2 }\n  }\n}',
       },
       {
         method: 'GET',
@@ -301,8 +302,8 @@ export const sections: readonly Section[] = [
       {
         method: 'GET',
         path: '/panel/api/server/getXrayVersion',
-        summary: 'List Xray binary versions available for install on this host.',
-        response: '{\n  "success": true,\n  "obj": ["v25.10.31", "v25.9.15", "v25.8.1"]\n}',
+        summary: 'Check GitHub for the highest compatible Xray-core release available for this host.',
+        response: '{\n  "success": true,\n  "obj": ["v26.9.9"]\n}',
       },
       {
         method: 'GET',
@@ -424,9 +425,9 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/server/installXray/:version',
-        summary: 'Download and install the specified Xray version. Pass "latest" for the newest release.',
+        summary: 'Download, verify, and install the latest compatible Xray-core release; failed updates roll back automatically.',
         params: [
-          { name: 'version', in: 'path', type: 'string', desc: 'Xray tag (e.g. v25.10.31) or "latest".' },
+          { name: 'version', in: 'path', type: 'string', desc: 'Version tag returned by getXrayVersion; the server accepts only the current compatible release.' },
         ],
       },
       {
@@ -474,6 +475,28 @@ export const sections: readonly Section[] = [
         ],
         body: 'filter=error&showDirect=false&showBlocked=true&showProxy=true',
         response: '{\n  "success": true,\n  "obj": "2025/01/01 12:00:00 rejected  vless  proxy  example.com  reason: no valid user\\n2025/01/01 12:00:01 direct  freedom  ok"\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/amneziawglogs/:count',
+        summary:
+          'Return live AmneziaWG peer activity (handshake, endpoint, transfer) plus the panel’s own AmneziaWG event lines.',
+        params: [
+          {
+            name: 'count',
+            in: 'path',
+            type: 'number',
+            desc: 'Maximum peer rows and event lines to return.',
+          },
+          {
+            name: 'filter',
+            in: 'body (form)',
+            type: 'string',
+            desc: 'Keyword filter — only rows/lines containing this string.',
+          },
+        ],
+        body: 'filter=awg1',
+        responseSchema: 'AmneziaWGLogs',
       },
       {
         method: 'POST',
@@ -1387,6 +1410,52 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'resellerId', in: 'body (json)', type: 'integer' },
           { name: 'inboundId', in: 'body (json)', type: 'integer' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/resellers/assignInbounds',
+        summary: 'Atomically add a batch of inbounds to a reseller; missing ids or an ownership conflict reject the whole batch.',
+        params: [
+          { name: 'resellerId', in: 'body (json)', type: 'integer' },
+          { name: 'inboundIds', in: 'body (json)', type: 'integer[]' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/resellers/unassignInbounds',
+        summary: 'Atomically remove a batch of inbound mappings for a reseller without changing inbound configuration.',
+        params: [
+          { name: 'resellerId', in: 'body (json)', type: 'integer' },
+          { name: 'inboundIds', in: 'body (json)', type: 'integer[]' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/resellers/setInbounds',
+        summary:
+          'Atomically replace the reseller inbound assignment set. Send the complete multi-select (an empty inboundIds array clears only this reseller); conflicts with another reseller or missing ids reject the whole transaction.',
+        params: [
+          { name: 'resellerId', in: 'body (json)', type: 'integer' },
+          { name: 'inboundIds', in: 'body (json)', type: 'integer[]', optional: true },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/resellers/assignClients',
+        summary: 'Atomically add explicit client visibility mappings for a reseller.',
+        params: [
+          { name: 'resellerId', in: 'body (json)', type: 'integer' },
+          { name: 'emails', in: 'body (json)', type: 'string[]' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/resellers/unassignClients',
+        summary: 'Atomically remove explicit client visibility mappings without deleting clients or inbound attachments.',
+        params: [
+          { name: 'resellerId', in: 'body (json)', type: 'integer' },
+          { name: 'emails', in: 'body (json)', type: 'string[]' },
         ],
       },
       {
