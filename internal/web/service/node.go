@@ -607,10 +607,21 @@ func (s *NodeService) UpdateHeartbeat(id int, p HeartbeatPatch) error {
 }
 
 func (s *NodeService) MarkNodeDirty(id int) error {
+	return s.MarkNodeDirtyTx(database.GetDB(), id)
+}
+
+// MarkNodeDirtyTx marks a node dirty using the caller's transaction. Traffic
+// mutations use this variant so the database update and the dirty marker
+// commit or roll back together; the non-transactional wrapper above remains
+// convenient for post-commit/runtime paths.
+func (s *NodeService) MarkNodeDirtyTx(tx *gorm.DB, id int) error {
 	if id <= 0 {
 		return nil
 	}
-	return database.GetDB().Model(model.Node{}).
+	if tx == nil {
+		tx = database.GetDB()
+	}
+	return tx.Model(model.Node{}).
 		Where("id = ?", id).
 		Updates(map[string]any{
 			"config_dirty":    true,

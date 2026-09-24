@@ -6,6 +6,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
@@ -33,6 +34,24 @@ type trafficMutationBatch struct {
 }
 
 type trafficInboundUpdatePlan struct{ oldInbound, newInbound model.Inbound }
+
+// applyLocalMtproto refreshes a single mtg sidecar after a quota or expiry
+// mutation. The regular job remains the backstop, but immediate reconciliation
+// keeps disable/reset behavior consistent with Xray and AmneziaWG clients.
+func (s *InboundService) applyLocalMtproto(inboundID int) {
+	inbound, err := s.GetInbound(inboundID)
+	if err != nil || inbound == nil || inbound.Protocol != model.MTProto || inbound.NodeID != nil {
+		return
+	}
+	inst, ok := mtproto.InstanceFromInbound(inbound)
+	if !ok || !inbound.Enable {
+		mtproto.GetManager().Remove(inboundID)
+		return
+	}
+	if err := mtproto.GetManager().Ensure(inst); err != nil {
+		logger.Debugf("mtproto: immediate apply failed for inbound %d: %v", inboundID, err)
+	}
+}
 
 func newTrafficMutationBatch() *trafficMutationBatch {
 	return &trafficMutationBatch{nodeIDs: make(map[int]struct{})}

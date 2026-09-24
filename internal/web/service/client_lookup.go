@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"

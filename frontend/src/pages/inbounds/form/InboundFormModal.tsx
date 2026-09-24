@@ -14,6 +14,7 @@ import {
   Tooltip,
   message,
 } from 'antd';
+import type { NamePath } from 'antd/es/form/interface';
 
 import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter, Wireguard } from '@/utils';
 import {
@@ -306,7 +307,7 @@ export default function InboundFormModal({
     const obf = generateAwgObfuscation();
     for (const [field, value] of Object.entries(obf)) {
       form.setFieldValue(
-        ['settings', 'server', field as keyof AmneziawgServer] as const,
+        ['settings', 'server', field as keyof AmneziawgServer] as NamePath,
         value,
       );
     }
