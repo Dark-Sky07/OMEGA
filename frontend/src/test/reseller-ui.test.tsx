@@ -174,6 +174,7 @@ describe('reseller pages', () => {
       },
       { timeout: 5000 },
     );
+    await waitFor(() => expect(HttpUtil.get).toHaveBeenCalledWith('/panel/api/clients/list'), { timeout: 5000 });
 
     chooseSelectOption('emails', 'ali-c1');
     chooseSelectOption('emails', 'ali-c2');

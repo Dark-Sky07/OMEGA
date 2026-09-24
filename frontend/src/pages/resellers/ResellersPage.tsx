@@ -255,7 +255,7 @@ export default function ResellersPage() {
     } finally {
       setSubmitting(false);
     }
-  }, [editing, form, messageApi, refreshAll, t, assignmentsQuery.data, queryClient]);
+  }, [editing, form, messageApi, refreshAll, t, queryClient]);
 
   const toggleEnable = useCallback(
     async (stat: ResellerStat, enable: boolean) => {
