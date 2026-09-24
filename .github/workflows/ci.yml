@@ -31,10 +31,8 @@ on:
       - ".nvmrc"
       - ".github/workflows/ci.yml"
 
-# Temporarily write-enabled so the codegen reconciliation step can commit the
-# generator's canonical outputs; revert to read-only after that one commit.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   update-transaction:
@@ -86,18 +84,6 @@ jobs:
       - name: Regenerate schemas, examples and OpenAPI
         run: npm run gen
         working-directory: frontend
-      # Temporary reconciliation step; remove together with the write
-      # permission after this has pushed the canonical generated outputs.
-      - name: Commit regenerated API files
-        run: |
-          if git diff --quiet -- frontend/src/generated frontend/public/openapi.json; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add frontend/src/generated frontend/public/openapi.json
-          git commit -m "chore: regenerate API artifacts [skip ci]"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
       - name: Fail if generated files are stale (run 'npm run gen' and commit')
         run: git diff --exit-code -- frontend/src/generated frontend/public/openapi.json
 
