@@ -97,7 +97,16 @@ jobs:
           export CC=$(realpath "$(find "$TOOLCHAIN_DIR/bin" -name '*-gcc.br_real' -type f -executable | head -n1)")
           [ -z "$CC" ] && { echo "No gcc.br_real found in $TOOLCHAIN_DIR/bin" >&2; exit 1; }
           cd -
-          go build -ldflags "-w -s -linkmode external -extldflags '-static'" -o xui-release -v main.go
+          PANEL_VERSION=""
+          case "${GITHUB_REF_NAME:-}" in
+            v[0-9]*.[0-9]*.[0-9]*) PANEL_VERSION="${GITHUB_REF_NAME#v}" ;;
+          esac
+          PANEL_LDFLAGS="-w -s -linkmode external -extldflags '-static'"
+          if [ -n "$PANEL_VERSION" ]; then
+            PANEL_LDFLAGS="$PANEL_LDFLAGS -X github.com/mhsanaei/3x-ui/v3/internal/config.version=$PANEL_VERSION"
+          fi
+          echo "Building panel version ${PANEL_VERSION:-embedded default}"
+          go build -ldflags "$PANEL_LDFLAGS" -o xui-release -v main.go
           file xui-release
           ldd xui-release || echo "Static binary confirmed"
 
@@ -260,7 +269,15 @@ jobs:
           go version
           gcc --version
 
-          go build -ldflags "-w -s" -o xui-release.exe -v main.go
+          $panelVersion = $env:GITHUB_REF_NAME
+          if ($panelVersion -match '^v[0-9]+\.[0-9]+\.[0-9]+') {
+            $panelVersion = $panelVersion.Substring(1)
+            $versionLdflags = "-X github.com/mhsanaei/3x-ui/v3/internal/config.version=$panelVersion"
+          } else {
+            $versionLdflags = ""
+          }
+          Write-Host "Building panel version $($panelVersion ?? 'embedded default')"
+          go build -ldflags "-w -s $versionLdflags" -o xui-release.exe -v main.go
 
       - name: Copy and download resources
         shell: pwsh
