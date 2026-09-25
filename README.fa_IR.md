@@ -6,7 +6,7 @@
 
 # OMEGA
 
-**پنل مدیریت سرورهای Xray-core، بر پایه‌ی [3x-ui](https://github.com/MHSanaei/3x-ui) نسخه‌ی `v3.3.1`، با قابلیت‌های [نمایندگی‌ها](#-نمایندگی-نمایندگی)، OpenVPN و L2TP/IPsec به‌صورت daemon خارجی.**
+**پنل مدیریت سرورهای Xray-core، بر پایه‌ی [3x-ui](https://github.com/MHSanaei/3x-ui) نسخه‌ی `v3.3.1`، با قابلیت‌های [نمایندگی‌ها](#-نمایندگی-نمایندگی)، AmneziaWG native، OpenVPN و L2TP/IPsec.**
 
 [English](README.md) · فارسی
 
@@ -18,18 +18,21 @@
 **نصب آخرین release OMEGA با یک دستور** — روی سرور تازه، با کاربر `root`:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
 ```
 
-این launcher پایدار همیشه جدیدترین release OMEGA در گیت‌هاب را پیدا و نصب می‌کند. دستورهای نصب عمومی عمداً tag را pin نمی‌کنند و هرگز به مخزن vanilla 3x-ui برنمی‌گردند.
+این لینک، installer رسمی و خودکار OMEGA است: جدیدترین release همین ریپازیتوری را resolve می‌کند، فایل‌های هماهنگ همان release را می‌گیرد و هرگز به مخزن vanilla 3x-ui یا tag قدیمی fallback نمی‌کند. برای نصب‌های موجود از `x-ui update` استفاده کنید؛ آن هم فقط آخرین مسیر OMEGA را دنبال می‌کند.
+
+`main/x-ui.sh` برای منوی مدیریت و سازگاری با نصب‌های قدیمی حفظ شده است، اما برای نصب جدید همین دستور مستقیم را استفاده کنید.
 
 </div>
 
 > [!NOTE]
-> این پروژه فورکی بر پایه‌ی 3x-ui نسخه‌ی 3.3.1 است. قابلیت نمایندگی، daemon خارجی OpenVPN و daemon خارجی
-> L2TP/IPsec به آن اضافه شده‌اند، اما نام سرویس (`x-ui`)، مسیرهای نصب (`/usr/local/x-ui`، `/etc/x-ui`)،
-> متغیرهای محیطی و قراردادهای کانفیگ Xray با upstream سازگار باقی مانده‌اند. شماره‌ی release مربوط به OMEGA
-> جداگانه مدیریت می‌شود و نسخه‌ی stable فعلی `v3.3.30-omega` است.
+> این پروژه فورکی بر پایه‌ی 3x-ui نسخه‌ی 3.3.1 است. قابلیت نمایندگی، AmneziaWG native، daemon خارجی OpenVPN
+> و daemon خارجی L2TP/IPsec به آن اضافه شده‌اند، اما نام سرویس (`x-ui`)، مسیرهای نصب (`/usr/local/x-ui`،
+> `/etc/x-ui`)، متغیرهای محیطی و قراردادهای کانفیگ Xray با upstream سازگار باقی مانده‌اند. شماره‌ی release مربوط
+> به OMEGA جداگانه مدیریت می‌شود؛ [آخرین release](https://github.com/Dark-Sky07/OMEGA/releases/latest) همیشه
+> نسخه‌ی فعلی را نشان می‌دهد و این مستندات عمداً tag قدیمی را hard-code نمی‌کنند.
 
 ---
 
@@ -37,11 +40,15 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.s
 
 | | تغییر |
 | --- | --- |
-| ➕ **اضافه‌شده** | **نمایندگی‌ها** — زیرحساب‌هایی با ورود مستقل، مالکیت محدود روی ورودی/کلاینت، سهمیه‌ی ترافیک و تعداد، و گزارش فروش و حساب. |
-| ➕ **اضافه‌شده** | **اینباندهای OpenVPN** — برای هر اینباند یک daemon محلی OpenVPN روی پورت آن گوش می‌کند؛ گواهی هر کلاینت خودکار ساخته می‌شود (CN = ایمیل)، هر کلاینت پروفایل آماده‌ی `.ovpn` دارد (کپی/دانلود از صفحه‌ی اطلاعات کلاینت) و ترافیک و آنلاین بودن هر کلاینت وارد همان خط لوله‌ی آمار می‌شود. installer نسخه‌ی tag‌شده بسته‌ی سیستم‌عامل `openvpn` و `/dev/net/tun` را نصب و بررسی می‌کند؛ سپس پنل برای هر اینباند محلی فعال، کانفیگ و daemon مستقل می‌سازد. فایل tar پنل به‌تنهایی بسته‌ی OpenVPN سیستم‌عامل را شامل نمی‌شود؛ باید installer اجرا شود. |
-| ➕ **اضافه‌شده** | **اینباندهای L2TP/IPsec** — یک گروه daemon سراسری روی Linux با strongSwan و xl2tpd/PPP که از email/password کلاینت‌های موجود استفاده می‌کند، PSK را پایدار نگه می‌دارد، کانفیگ و `chap-secrets` را در مسیرهای single و bulk به‌صورت synchronous reconcile می‌کند، daemonهای orphan را بعد از restart جمع می‌کند، پورت‌های UDP 500/4500/1701 و ruleهای forwarding/FORWARD/MASQUERADE را مدیریت می‌کند و آمار آنلاین/ترافیک PPP را گزارش می‌دهد. این پروتکل خارج از Xray است، profile فایل و PPTP ندارد و پارامترهای native اتصال در UI نمایش داده می‌شوند. |
+| ➕ **اضافه‌شده** | **نمایندگی‌ها** — زیرحساب‌هایی با ورود مستقل، attach صریح inbound/client، واگذاری و لغو واگذاری چندانتخابی/گروهی، سهمیه‌ها و گزارش فروش و حساب. association صرفاً با inbound به‌تنهایی clientها را قابل مشاهده نمی‌کند. |
+| ➕ **اضافه‌شده** | **اینباندهای OpenVPN** — برای هر اینباند یک daemon محلی OpenVPN روی پورت آن گوش می‌کند؛ گواهی هر کلاینت خودکار ساخته می‌شود (CN = ایمیل)، هر کلاینت پروفایل آماده‌ی `.ovpn` دارد (کپی/دانلود از صفحه‌ی اطلاعات کلاینت) و traffic، وضعیت آنلاین و enforcement سهمیه‌ی هر کلاینت وارد همان چرخه‌ی عادی می‌شود. installer نسخه‌ی tag‌شده بسته‌ی سیستم‌عامل `openvpn` و `/dev/net/tun` را نصب و بررسی می‌کند؛ سپس پنل برای هر اینباند محلی فعال، کانفیگ و daemon مستقل می‌سازد. فایل tar پنل به‌تنهایی بسته‌ی OpenVPN سیستم‌عامل را شامل نمی‌شود؛ باید installer اجرا شود. |
+| ➕ **اضافه‌شده** | **اینباندهای L2TP/IPsec** — یک گروه daemon سراسری روی Linux با strongSwan و xl2tpd/PPP که از email/password کلاینت‌های موجود استفاده می‌کند، PSK را پایدار نگه می‌دارد، کانفیگ و `chap-secrets` را در مسیرهای single و bulk به‌صورت synchronous reconcile می‌کند، daemonهای orphan را بعد از restart جمع می‌کند، پورت‌های UDP 500/4500/1701 و ruleهای forwarding/FORWARD/MASQUERADE را مدیریت می‌کند و آمار آنلاین/ترافیک PPP را با enforcement سهمیه‌ی هر کلاینت گزارش می‌دهد. این پروتکل خارج از Xray است، profile فایل و PPTP ندارد و پارامترهای native اتصال در UI نمایش داده می‌شوند. |
+| ➕ **اضافه‌شده** | **AmneziaWG native** — پارامترهای واقعی AWG 3.1، کلید و چرخه‌ی کامل کلاینت، status، handshake، traffic، quota، allowed IP، subscription، reseller، import/export و فایل `.conf`/QR سازگار با اپ مستقل AmneziaWG. این قابلیت فقط یک گزینه‌ی ظاهری در فرم نیست. |
+| 🛡️ **چرخه‌ی امن** | import/export داده‌ی موجود را حفظ می‌کند؛ reseller فقط clientهای صراحتاً attach‌شده را می‌بیند؛ OpenVPN و L2TP accounting و quota دارند؛ recovery L2TP idempotent است و عملیات گروهی attach نیز وجود دارد. |
+| 🔄 **آپدیت** | installer و updater داخل پنل فقط جدیدترین release OMEGA را resolve می‌کنند؛ نسخه‌ی واقعی tag داخل binary stamp می‌شود، Xray قبل از جایگزینی validate می‌شود و rollback guard از خراب شدن نصب قبلی جلوگیری می‌کند. |
+| 🐳 **Docker** | image چندمعماری releaseها در [GHCR](https://ghcr.io/dark-sky07/omega) منتشر می‌شود؛ نیازمندی‌های OpenVPN/L2TP در `docker-compose.yml` مستند شده‌اند. |
 | 🎨 **برندینگ** | نام پنل در سایدبار، صفحه‌ی ورود، عنوان صفحه‌ها، مستندات API و ترجمه‌ها **OMEGA** است. فقط برندینگ ظاهری؛ مسیرهای نصب و نام سرویس بدون تغییر باقی مانده‌اند. |
-| 🛠 **نصب** | [`x-ui.sh`](x-ui.sh) launcher پنل OMEGA است؛ همیشه جدیدترین release همین ریپازیتوری را پیدا و نصب می‌کند و `x-ui update` نیز فقط از همین مسیر OMEGA استفاده می‌کند و هرگز به 3x-ui خام fallback نمی‌کند. |
+| 🛠 **نصب** | [`install-omega.sh`](install-omega.sh) مسیر canonical نصب تازه است؛ [`x-ui.sh`](x-ui.sh) برای منوی مدیریت و سازگاری باقی مانده است. هر دو فقط جدیدترین release OMEGA را resolve می‌کنند و `x-ui update` هرگز به 3x-ui خام fallback نمی‌کند. |
 | ✅ **بدون تغییر** | بقیه‌ی همه‌چیز — تمام 3x-ui نسخه‌ی 3.3.1 (پروتکل‌ها، ترنسپورت‌ها، نودها، اشتراک‌ها، ربات تلگرام، روتینگ، API، تم‌ها و ۱۳ زبان). |
 
 ### نصب OpenVPN و چک‌لیست سمت سرور
@@ -51,7 +58,7 @@ OpenVPN یک daemon سیستم‌عامل است، نه بخشی از Xray و ن
 برای نصب یا تعمیر سرور موجود با آخرین release پایدار، با کاربر `root` اجرا کنید:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
 ```
 
 پیش‌نیاز را قبل از بررسی شبکه verify کنید:
@@ -83,6 +90,25 @@ L2TP/IPsec daemon سیستم‌عامل است و بخشی از Xray نیست. i
 
 ---
 
+## :shield: AmneziaWG
+
+پشتیبانی AmneziaWG در OMEGA یک مسیر native و کامل است و فقط به اضافه کردن یک گزینه به فرم محدود نمی‌شود:
+
+- **چرخه‌ی سرور و peer:** کلیدهای سرور و کلاینت، allowed IP، pre-shared key، keepalive، فعال/غیرفعال‌سازی، ساخت/ویرایش/حذف، attach/detach، عملیات bulk و reconcile امن پس از restart.
+- **پارامترهای AWG:** `Jc`، `Jmin`، `Jmax`، `S1` تا `S4`، `H1` تا `H4`، `I1` تا `I5` و گزینه‌های AWG 3.1 مانند `HeaderProtectionKey`، padding، زمان‌بندی rekey/reject، random trailers و cookieها validate و به engine فعال منتقل می‌شوند.
+- **امکانات پنل:** status، handshake و traffic هر کلاینت، quota و expiry، آدرس tunnel به‌تفکیک inbound، subscription، reseller visibility، import/export و diagnostics.
+- **فایل و QR:** پنل فایل native با بخش‌های `[Interface]` و `[Peer]` می‌سازد. QR بخش اطلاعات کلاینت متن خام مورد انتظار اپ مستقل **AmneziaWG Android** را دارد؛ `vpn://` فقط برای کلاینت‌هایی است که فرمت URI خود AmneziaVPN را پشتیبانی می‌کنند.
+
+در اندروید از مسیر **Client information → AmneziaWG → QR** استفاده کنید یا فایل `.conf` را دانلود کرده و در AmneziaWG گزینه‌ی **Import from file or archive** را بزنید. `vpn://` مخصوص AmneziaVPN را داخل importer مستقل AmneziaWG وارد نکنید.
+
+## :arrows_counterclockwise: import/export و آپدیت امن
+
+- **انتقال کلاینت:** export تنظیمات کلاینت و identity قابل‌حمل attachmentهای inbound را دارد، اما counterهای ترافیک مقصد و IDهای دیتابیس را overwrite نمی‌کند. import ابتدا کل envelope را validate می‌کند، کلاینت را با email پیدا می‌کند، رکورد موجود مقصد را authoritative نگه می‌دارد و به‌صورت پیش‌فرض فقط attachmentهای کمبود را اضافه می‌کند.
+- **Import inbound:** inbound جدید identity محلی می‌گیرد، اما تنظیمات پروتکل، clientها و وضعیت فعال/غیرفعال حفظ می‌شوند. داده‌ی موجود بدون درخواست صریح جایگزین یا حذف نمی‌شود؛ جایگزینی attachmentها فقط با گزینه‌ی explicit `replaceAttachments` ممکن است.
+- **مسیر update:** سیاست `dynamic_latest` جدیدترین tag OMEGA را resolve می‌کند، archive و binary جدید Xray-core را قبل از فعال‌سازی validate می‌کند و binary قبلی را برای rollback نگه می‌دارد. کاربران فعال تا آماده و validate شدن binary جدید و ضرورت restart قطع نمی‌شوند.
+
+---
+
 ## :rocket: نصب
 
 ### نصب سریع (پیشنهادی)
@@ -90,7 +116,7 @@ L2TP/IPsec daemon سیستم‌عامل است و بخشی از Xray نیست. i
 روی سرور تازه، با کاربر **root**:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
 ```
 
 نصب‌کننده خودش این کارها را انجام می‌دهد:
@@ -157,9 +183,7 @@ cp /etc/x-ui/x-ui.db /root/x-ui-backup.db     # یا از بخش تنظیمات 
 - **ورود مستقل.** نماینده با یوزر/پس خودش در همان صفحه‌ی ورود لاگین می‌کند. نشست او فقط به
   `/panel/api/inbounds/*`، `/panel/api/clients/*`، `/panel/api/reseller/*` و `/panel/api/auth/me` دسترسی دارد؛
   بقیه‌ی آدرس‌ها `403` می‌دهند و فید وب‌سوکت پنل هم فقط برای مدیر است.
-- **مالکیت محدود.** هر ورودی را می‌توان به یک نماینده واگذار کرد و کلاینت‌های تک‌نفره را هم می‌توان مستقیم
-  واگذار کرد. نماینده فقط دارایی خودش را می‌بیند؛ دسترسی به دارایی دیگران با `inbound not found` /
-  `client not found` رد می‌شود. مالکیت در جدول‌های نگاشت ذخیره می‌شود و جداول اصلی ورودی/کلاینت دست‌نخورده می‌مانند.
+- **مالکیت محدود.** رابطه‌ی attach ورودی و کلاینت جداست؛ association با inbound به‌تنهایی همه‌ی clientهای آن را برای نماینده قابل مشاهده نمی‌کند و فقط clientهای صراحتاً attach‌شده دیده می‌شوند. دسترسی به دارایی دیگران با `inbound not found` / `client not found` رد می‌شود. منوی attachment از انتخاب چندتایی و attach/detach گروهی پشتیبانی می‌کند و برای inbound مشترک، واگذاری تک‌کلاینت هم ممکن است. مالکیت در جدول‌های نگاشت ذخیره می‌شود و جداول اصلی ورودی/کلاینت دست‌نخورده می‌مانند.
 - **سهمیه‌ها.** سقف ترافیک (مجموع سهمیه‌هایی که به کلاینت‌ها می‌دهد)، سقف تعداد کلاینت، سقف تعداد ورودی و
   تاریخ انقضای اختیاری. مقدار `0` یعنی *نامحدود*. سهمیه‌ها فقط در ظاهر نیستند؛ روی ساخت، ویرایش،
   عملیات گروهی و ایمپورت ورودی اعمال می‌شوند.
@@ -243,7 +267,7 @@ API مدیریتی سمت مدیر زیر `/panel/api/resellers` است و در 
 
 ## امکانات (ارث‌بری از 3x-ui، دست‌نخورده)
 
-- **ورودی‌های چندپروتکلی** — VLESS، VMess، Trojan، Shadowsocks، WireGuard، Hysteria2، HTTP، SOCKS (Mixed)، Dokodemo-door / Tunnel و TUN.
+- **ورودی‌های چندپروتکلی** — VLESS، VMess، Trojan، Shadowsocks، WireGuard، Hysteria2، HTTP، SOCKS (Mixed)، Dokodemo-door / Tunnel و TUN. AmneziaWG native به‌عنوان قابلیت اضافه‌شده‌ی OMEGA در بخش بالا مستند شده است.
 - **ترنسپورت و امنیت مدرن** — TCP (Raw)، mKCP، WebSocket، gRPC، HTTPUpgrade و XHTTP همراه با TLS، XTLS و REALITY.
 - **فالبک** — اجرای چند پروتکل روی یک پورت (مثلاً VLESS و Trojan روی ۴۴۳) با پشتیبانی fallback در Xray.
 - **مدیریت هر کلاینت** — سهمیه‌ی ترافیک، تاریخ انقضا، محدودیت IP، وضعیت آنلاین زنده و لینک/QR/اشتراک یک‌کلیکی.
@@ -300,7 +324,7 @@ systemctl restart x-ui
 
 - **پروژه‌ی اصلی:** [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — این ریپازیتوری فورک **3x-ui نسخه‌ی 3.3.1** است
   و طراحی، مستندات و مجوز آن را به ارث می‌برد. سپاس از [alireza0](https://github.com/alireza0/) و همه‌ی مشارکت‌کنندگان.
-- **اضافه‌شده اینجا:** قابلیت نمایندگی، برندینگ OMEGA و نصب‌کننده‌ی فورک‌محور.
+- **اضافه‌شده اینجا:** قابلیت نمایندگی، AmneziaWG native، یکپارچه‌سازی OpenVPN و L2TP/IPsec، accounting و quota چرخه‌ی کلاینت، آپدیت امن، برندینگ OMEGA و نصب‌کننده‌ی فورک‌محورِ آخرین release.
 - **مجوز:** [GPL-3.0](LICENSE) — مانند پروژه‌ی اصلی.
 
 <h2 align="center">حمایت از پروژه‌ی اصلی</h2>
