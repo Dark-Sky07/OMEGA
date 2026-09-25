@@ -1,6 +1,8 @@
 package job
 
 import (
+	"strings"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -29,14 +31,14 @@ func (j *L2TPJob) enabledClientsForInbound(ib *model.Inbound) ([]model.Client, b
 	}
 	enableMap := make(map[string]bool, len(ib.ClientStats))
 	for _, stat := range ib.ClientStats {
-		enableMap[stat.Email] = stat.Enable
+		enableMap[strings.ToLower(strings.TrimSpace(stat.Email))] = stat.Enable
 	}
 	out := make([]model.Client, 0, len(clients))
 	for _, client := range clients {
 		if !client.Enable {
 			continue
 		}
-		if enabled, exists := enableMap[client.Email]; exists && !enabled {
+		if enabled, exists := enableMap[strings.ToLower(strings.TrimSpace(client.Email))]; exists && !enabled {
 			continue
 		}
 		out = append(out, client)

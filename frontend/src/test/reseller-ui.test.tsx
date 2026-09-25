@@ -82,7 +82,12 @@ describe('reseller pages', () => {
       if (url === '/panel/api/inbounds/list/slim') {
         return [{ id: 1, remark: 'res-inb', port: 12001, protocol: 'vless', enable: true }];
       }
-      if (url === '/panel/api/clients/list') return [{ email: 'ali-c1', totalGB: 10737418240 }];
+      if (url === '/panel/api/clients/list') {
+        return [
+          { email: 'ali-c1', totalGB: 10737418240 },
+          { email: 'ali-c2', totalGB: 21474836480 },
+        ];
+      }
       if (url === '/panel/api/reseller/report' || url === '/panel/api/resellers/report/1') {
         return {
           stat: statFixture,
@@ -202,7 +207,7 @@ describe('reseller pages', () => {
       'POST /panel/api/resellers/resetPassword/:id',
       'POST /panel/api/resellers/assignInbound',
       'POST /panel/api/resellers/unassignInbound',
-      'POST /panel/api/resellers/assignClient',
+      'POST /panel/api/resellers/assignClients',
       'POST /panel/api/resellers/unassignClient',
       'GET /panel/api/reseller/profile',
       'GET /panel/api/reseller/report',

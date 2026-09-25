@@ -43,8 +43,13 @@ func (a *ResellerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/resetPassword/:id", a.resetPassword)
 	g.POST("/assignInbound", a.assignInbound)
 	g.POST("/unassignInbound", a.unassignInbound)
+	g.POST("/assignInbounds", a.assignInbounds)
+	g.POST("/unassignInbounds", a.unassignInbounds)
+	g.POST("/setInbounds", a.setInbounds)
 	g.POST("/assignClient", a.assignClient)
 	g.POST("/unassignClient", a.unassignClient)
+	g.POST("/assignClients", a.assignClients)
+	g.POST("/unassignClients", a.unassignClients)
 	g.POST("/balance", a.balance)
 }
 
@@ -261,6 +266,57 @@ func (a *ResellerController) unassignInbound(c *gin.Context) {
 	jsonObj(c, nil, nil)
 }
 
+// assignInbounds and unassignInbounds are the atomic multi-select endpoints
+// used by the admin UI. They deliberately accept the complete desired batch so
+// a partial loop of HTTP requests can never leave half an assignment applied.
+func (a *ResellerController) assignInbounds(c *gin.Context) {
+	var form struct {
+		ResellerId int   `json:"resellerId" form:"resellerId"`
+		InboundIds []int `json:"inboundIds" form:"inboundIds"`
+	}
+	if err := c.ShouldBindJSON(&form); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	if err := a.resellerService.AssignInbounds(form.ResellerId, form.InboundIds); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, nil, nil)
+}
+
+func (a *ResellerController) unassignInbounds(c *gin.Context) {
+	var form struct {
+		ResellerId int   `json:"resellerId" form:"resellerId"`
+		InboundIds []int `json:"inboundIds" form:"inboundIds"`
+	}
+	if err := c.ShouldBindJSON(&form); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	if err := a.resellerService.UnassignInbounds(form.ResellerId, form.InboundIds); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, nil, nil)
+}
+
+func (a *ResellerController) setInbounds(c *gin.Context) {
+	var form struct {
+		ResellerId int   `json:"resellerId" form:"resellerId"`
+		InboundIds []int `json:"inboundIds" form:"inboundIds"`
+	}
+	if err := c.ShouldBindJSON(&form); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	if err := a.resellerService.SetInbounds(form.ResellerId, form.InboundIds); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, nil, nil)
+}
+
 func (a *ResellerController) assignClient(c *gin.Context) {
 	var form struct {
 		ResellerId int    `json:"resellerId" form:"resellerId"`
@@ -287,6 +343,38 @@ func (a *ResellerController) unassignClient(c *gin.Context) {
 		return
 	}
 	if err := a.resellerService.UnassignClient(form.ResellerId, form.Email); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, nil, nil)
+}
+
+func (a *ResellerController) assignClients(c *gin.Context) {
+	var form struct {
+		ResellerId int      `json:"resellerId" form:"resellerId"`
+		Emails     []string `json:"emails" form:"emails"`
+	}
+	if err := c.ShouldBindJSON(&form); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	if err := a.resellerService.AssignClients(form.ResellerId, form.Emails); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, nil, nil)
+}
+
+func (a *ResellerController) unassignClients(c *gin.Context) {
+	var form struct {
+		ResellerId int      `json:"resellerId" form:"resellerId"`
+		Emails     []string `json:"emails" form:"emails"`
+	}
+	if err := c.ShouldBindJSON(&form); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	if err := a.resellerService.UnassignClients(form.ResellerId, form.Emails); err != nil {
 		jsonMsg(c, "", err)
 		return
 	}

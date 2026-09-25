@@ -14,6 +14,7 @@ import {
   Tooltip,
   message,
 } from 'antd';
+import type { NamePath } from 'antd/es/form/interface';
 
 import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter, Wireguard } from '@/utils';
 import {
@@ -21,6 +22,7 @@ import {
   formValuesToWirePayload,
 } from '@/lib/xray/inbound-form-adapter';
 import { createDefaultInboundSettings } from '@/lib/xray/inbound-defaults';
+import { generateAwgObfuscation } from '@/lib/xray/amneziawg-obfuscation';
 import { composeInboundTag, isAutoInboundTag, type InboundTagInput } from '@/lib/xray/inbound-tag';
 import {
   canEnableReality,
@@ -37,6 +39,7 @@ import {
 import { antdRule } from '@/utils/zodForm';
 import { Protocols } from '@/schemas/primitives';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
+import type { AmneziawgServer } from '@/schemas/protocols/inbound/amneziawg';
 import { HysteriaStreamSettingsSchema } from '@/schemas/protocols/stream/hysteria';
 import { createHysteriaTlsSettingsWithDefaultCert } from '@/lib/xray/inbound-tls-defaults';
 import { SniffingSchema } from '@/schemas/primitives/sniffing';
@@ -53,6 +56,7 @@ import './InboundFormModal.css';
 import { AdvancedAllEditor, AdvancedSliceEditor } from './advanced-editors';
 import { formatInboundIssue, formatInboundValidation } from './formatValidationError';
 import {
+  AmneziawgFields,
   HttpFields,
   HysteriaFields,
   MixedFields,
@@ -96,6 +100,7 @@ const NODE_ELIGIBLE_PROTOCOLS = new Set<string>([
   Protocols.SHADOWSOCKS,
   Protocols.HYSTERIA,
   Protocols.WIREGUARD,
+  Protocols.AMNEZIAWG,
 ]);
 
 function isValidShareAddrInput(value: string): boolean {
@@ -280,6 +285,34 @@ export default function InboundFormModal({
     form.setFieldValue(['settings', 'secretKey'], kp.privateKey);
   };
 
+  const awgPrivateKey = Form.useWatch(['settings', 'server', 'privateKey'], form);
+  const awgPubKey = typeof awgPrivateKey === 'string' && awgPrivateKey.length > 0
+    ? Wireguard.generateKeypair(awgPrivateKey).publicKey
+    : '';
+
+  useEffect(() => {
+    if (protocol === Protocols.AMNEZIAWG) {
+      form.setFieldValue(['settings', 'server', 'publicKey'], awgPubKey);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [awgPubKey, protocol]);
+
+  const regenInboundAwg = () => {
+    const kp = Wireguard.generateKeypair();
+    form.setFieldValue(['settings', 'server', 'privateKey'], kp.privateKey);
+    form.setFieldValue(['settings', 'server', 'publicKey'], kp.publicKey);
+  };
+
+  const regenInboundAwgObfuscation = () => {
+    const obf = generateAwgObfuscation();
+    for (const [field, value] of Object.entries(obf)) {
+      form.setFieldValue(
+        ['settings', 'server', field as keyof AmneziawgServer] as NamePath,
+        value,
+      );
+    }
+  };
+
   const regenWgPeerKeypair = (peerName: number) => {
     const kp = Wireguard.generateKeypair();
     form.setFieldValue(['settings', 'peers', peerName, 'privateKey'], kp.privateKey);
@@ -409,7 +442,10 @@ export default function InboundFormModal({
       // tcpSettings from the previous protocol. When leaving hysteria,
       // snap back to TCP so the standard network selector has a valid
       // starting point.
-      if (next === Protocols.HYSTERIA) {
+      if (next === Protocols.AMNEZIAWG) {
+        form.setFieldValue('streamSettings', { security: 'none' });
+        form.setFieldValue('port', 51820);
+      } else if (next === Protocols.HYSTERIA) {
         form.setFieldValue('streamSettings', {
           network: 'hysteria',
           security: 'tls',
@@ -687,6 +723,14 @@ export default function InboundFormModal({
     <>
       {protocol === Protocols.WIREGUARD && <WireguardFields wgPubKey={wgPubKey} regenInboundWg={regenInboundWg} regenWgPeerKeypair={regenWgPeerKeypair} />}
 
+      {protocol === Protocols.AMNEZIAWG && (
+        <AmneziawgFields
+          awgPubKey={awgPubKey}
+          regenInboundAwg={regenInboundAwg}
+          regenInboundAwgObfuscation={regenInboundAwgObfuscation}
+        />
+      )}
+
       {protocol === Protocols.TUN && <TunFields />}
 
       {protocol === Protocols.TUNNEL && <TunnelFields />}
@@ -823,7 +867,7 @@ export default function InboundFormModal({
           .conf fanout resolves its host elsewhere, openvpn embeds the host
           in its .ovpn profile, and tunnel (dokodemo-door) has no clients at
           all — the section is dead weight on all three. */}
-      {protocol !== Protocols.WIREGUARD && protocol !== Protocols.TUNNEL && protocol !== Protocols.OPENVPN && (
+      {protocol !== Protocols.WIREGUARD && protocol !== Protocols.AMNEZIAWG && protocol !== Protocols.TUNNEL && protocol !== Protocols.OPENVPN && (
         <ExternalProxyForm toggleExternalProxy={toggleExternalProxy} />
       )}
 
@@ -1036,6 +1080,7 @@ export default function InboundFormModal({
               Protocols.TUNNEL,
               Protocols.TUN,
               Protocols.WIREGUARD,
+              Protocols.AMNEZIAWG,
               Protocols.MTPROTO,
               Protocols.OPENVPN,
               Protocols.L2TP,
@@ -1048,7 +1093,7 @@ export default function InboundFormModal({
                 // Wireguard, Tunnel and OpenVPN can't do TLS/Reality
                 // (canEnableTls is false), so the security tab would only
                 // show a fully disabled radio.
-                ...(protocol !== Protocols.WIREGUARD && protocol !== Protocols.TUNNEL && protocol !== Protocols.OPENVPN
+                ...(protocol !== Protocols.WIREGUARD && protocol !== Protocols.AMNEZIAWG && protocol !== Protocols.TUNNEL && protocol !== Protocols.OPENVPN
                   ? [{ key: 'security', label: t('pages.inbounds.securityTab'), children: securityTab, forceRender: true }]
                   : []),
               ]

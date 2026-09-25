@@ -15,6 +15,8 @@ RUN npm run build
 FROM golang:1.26-alpine AS builder
 WORKDIR /app
 ARG TARGETARCH
+ARG TARGETVARIANT
+ARG PANEL_VERSION
 
 RUN apk --no-cache --update add \
   build-base \
@@ -27,8 +29,14 @@ COPY --from=frontend /src/internal/web/dist ./internal/web/dist
 
 ENV CGO_ENABLED=1
 ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
-RUN go build -ldflags "-w -s" -o build/x-ui main.go
-RUN ./DockerInit.sh "$TARGETARCH"
+RUN panel_version="$PANEL_VERSION"; \
+  case "$panel_version" in v*) panel_version="$(printf '%s' "$panel_version" | cut -c2-)" ;; esac; \
+  if [ -n "$panel_version" ]; then \
+    go build -ldflags "-w -s -X github.com/mhsanaei/3x-ui/v3/internal/config.version=$panel_version" -o build/x-ui main.go; \
+  else \
+    go build -ldflags "-w -s" -o build/x-ui main.go; \
+  fi
+RUN ./DockerInit.sh "$TARGETARCH" "$TARGETVARIANT"
 
 # ========================================================
 # Stage: Final Image of 3x-ui

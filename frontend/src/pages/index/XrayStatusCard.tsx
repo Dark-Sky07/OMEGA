@@ -6,6 +6,7 @@ import {
   PoweroffOutlined,
   ReloadOutlined,
   ToolOutlined,
+  ApiOutlined,
 } from '@ant-design/icons';
 
 import type { Status } from '@/models/status';
@@ -19,6 +20,7 @@ interface XrayStatusCardProps {
   onRestartXray: () => void;
   onOpenLogs: () => void;
   onOpenXrayLogs: () => void;
+  onOpenAmneziaWGLogs: () => void;
   onOpenVersionSwitch: () => void;
 }
 
@@ -36,6 +38,7 @@ export default function XrayStatusCard({
   onRestartXray,
   onOpenLogs,
   onOpenXrayLogs,
+  onOpenAmneziaWGLogs,
   onOpenVersionSwitch,
 }: XrayStatusCardProps) {
   const { t } = useTranslation();
@@ -86,6 +89,10 @@ export default function XrayStatusCard({
     );
 
   const actions = [
+    <Space className="action" key="amneziawglogs" onClick={onOpenAmneziaWGLogs}>
+      <ApiOutlined />
+      {!isMobile && <span>{t('pages.index.amneziawgLogs')}</span>}
+    </Space>,
     // the xray log viewer reads the access log file, so the button only makes
     // sense when one is configured (unlike IP limit, which no longer needs it)
     ...(accessLogEnable

@@ -10,21 +10,38 @@ on:
       - "go.mod"
       - "go.sum"
       - "frontend/**"
+      - "scripts/**"
+      - "update.sh"
+      - "install.sh"
+      - "install-omega.sh"
       - ".nvmrc"
+      - ".github/workflows/ci.yml"
   push:
     branches:
-      - main
+      - "**"
     paths:
       - "**.go"
       - "go.mod"
       - "go.sum"
       - "frontend/**"
+      - "scripts/**"
+      - "update.sh"
+      - "install.sh"
+      - "install-omega.sh"
       - ".nvmrc"
+      - ".github/workflows/ci.yml"
 
 permissions:
   contents: read
 
 jobs:
+  update-transaction:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify transactional update rollback guards
+        run: bash scripts/update-transaction-test.sh
+
   go-test:
     runs-on: ubuntu-latest
     steps:
@@ -35,6 +52,9 @@ jobs:
           cache: true
       - name: Stub internal/web/dist for go:embed
         run: mkdir -p internal/web/dist && touch internal/web/dist/.gitkeep
+      - name: Verify Go formatting
+        shell: bash
+        run: test -z "$(gofmt -l $(git ls-files '*.go'))"
       - name: Test
         shell: bash
         run: |
@@ -50,7 +70,6 @@ jobs:
           print(f'::error title=go-test-output::{output}')
           PYLOG
           exit 1
-
   codegen:
     runs-on: ubuntu-latest
     steps:
@@ -65,7 +84,7 @@ jobs:
       - name: Regenerate schemas, examples and OpenAPI
         run: npm run gen
         working-directory: frontend
-      - name: Fail if generated files are stale (run 'npm run gen' and commit)
+      - name: Fail if generated files are stale (run 'npm run gen' and commit')
         run: git diff --exit-code -- frontend/src/generated frontend/public/openapi.json
 
   govulncheck:

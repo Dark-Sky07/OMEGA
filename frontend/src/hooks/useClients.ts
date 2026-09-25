@@ -238,35 +238,29 @@ export function useClients() {
 
   const ownership = useMemo(() => {
     const byEmail = new Map<string, string>();
-    const byInbound = new Map<number, string>();
     for (const a of ownershipQuery.data ?? []) {
       const label = a.name || a.username || `#${a.resellerId}`;
-      for (const email of a.emails ?? []) byEmail.set(email, label);
-      for (const id of a.inboundIds ?? []) byInbound.set(id, label);
+      for (const email of a.emails ?? []) {
+        byEmail.set(email.trim().toLowerCase(), label);
+      }
     }
-    return { byEmail, byInbound };
+    return { byEmail };
   }, [ownershipQuery.data]);
 
   /**
-   * Display name of the reseller that owns this client, or null when the
-   * client belongs to the panel admin. Undefined while the ownership data
-   * is still loading — callers should render nothing then rather than
-   * mislabel the client as admin-owned.
+   * Display name of the reseller that explicitly owns this client, or null
+   * when the client belongs to the panel admin. Undefined while the
+   * ownership data is still loading — callers should render nothing then
+   * rather than mislabel the client as admin-owned.
    *
-   * A client is owned by a reseller when it is explicitly assigned to that
-   * reseller (wins) or when one of its attached inbounds is assigned to it.
+   * Inbound ownership is intentionally not consulted here. An inbound gives
+   * a reseller access to the inbound itself, never to every client attached
+   * to it.
    */
   const ownerOf = useCallback(
-    (email: string, inboundIds?: (number | null)[] | null): string | null | undefined => {
+    (email: string, _inboundIds?: (number | null)[] | null): string | null | undefined => {
       if (ownershipQuery.data === undefined) return undefined;
-      const direct = ownership.byEmail.get(email);
-      if (direct) return direct;
-      for (const id of inboundIds ?? []) {
-        if (id == null) continue;
-        const viaInbound = ownership.byInbound.get(id);
-        if (viaInbound) return viaInbound;
-      }
-      return null;
+      return ownership.byEmail.get(email.trim().toLowerCase()) ?? null;
     },
     [ownershipQuery.data, ownership],
   );

@@ -452,7 +452,9 @@ export default function ClientsPage() {
     // Paged list omits per-client secrets to keep the row payload tiny;
     // edit needs them, so fetch the full record first.
     const full = await hydrate(row.email);
-    const merged: ClientRecord = full ? { ...row, ...full.client } : { ...row };
+    const merged: ClientRecord = full
+      ? { ...row, ...full.client, allowedIPsByInbound: full.allowedIPsByInbound }
+      : { ...row };
     setEditingClient(merged);
     const ids = full?.inboundIds ?? (Array.isArray(row.inboundIds) ? row.inboundIds : []);
     setEditingAttachedIds([...ids]);
@@ -492,13 +494,27 @@ export default function ClientsPage() {
 
   async function onShowInfo(row: ClientRecord) {
     const full = await hydrate(row.email);
-    setInfoClient(full ? { ...row, ...full.client, inboundIds: full.inboundIds } : row);
+    setInfoClient(full
+      ? {
+          ...row,
+          ...full.client,
+          inboundIds: full.inboundIds,
+          allowedIPsByInbound: full.allowedIPsByInbound,
+        }
+      : row);
     setInfoOpen(true);
   }
 
   async function onShowQr(row: ClientRecord) {
     const full = await hydrate(row.email);
-    setQrClient(full ? { ...row, ...full.client, inboundIds: full.inboundIds } : row);
+    setQrClient(full
+      ? {
+          ...row,
+          ...full.client,
+          inboundIds: full.inboundIds,
+          allowedIPsByInbound: full.allowedIPsByInbound,
+        }
+      : row);
     setQrOpen(true);
   }
 
