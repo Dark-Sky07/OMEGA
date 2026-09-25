@@ -283,7 +283,7 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 		JOIN client_inbounds ON client_inbounds.inbound_id = inbounds.id
 		JOIN clients ON clients.id = client_inbounds.client_id
 		WHERE
-			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria')
+			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria','amneziawg')
 			AND clients.sub_id = ? AND inbounds.enable = ?
 	)`, subId, true).Order("sub_sort_index ASC").Order("id ASC").Find(&inbounds).Error
 	if err != nil {
@@ -511,6 +511,8 @@ func (s *SubService) GetLink(inbound *model.Inbound, email string) string {
 		return s.genHysteriaLink(inbound, email)
 	case "mtproto":
 		return s.genMtprotoLink(inbound, email)
+	case model.AmneziaWG:
+		return s.genAmneziaWGLink(inbound, email)
 	}
 	return ""
 }
@@ -2232,14 +2234,14 @@ type L2TPConnection struct {
 // PageData is a view model for subpage.html
 // PageData contains data for rendering the subscription information page.
 type PageData struct {
-	Host          string
-	BasePath      string
-	SId           string
-	Enabled       bool
+	Host     string
+	BasePath string
+	SId      string
+	Enabled  bool
 	// Openvpn reports whether the subscription owner can download a per-client
 	// .ovpn profile (attached to an enabled local openvpn inbound). The SPA
 	// uses it to show the OpenVPN config row next to the share links.
-	Openvpn       bool
+	Openvpn bool
 	// L2TP contains native connection data for every matching client. It is
 	// empty when no enabled local L2TP inbound is attached.
 	L2TP          []L2TPConnection

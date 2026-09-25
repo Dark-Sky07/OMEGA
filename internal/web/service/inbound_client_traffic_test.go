@@ -94,6 +94,40 @@ func TestAddClientTraffic_MatchesByEmail(t *testing.T) {
 // after an inbound delete+recreate), the conversion used to resolve no inbound and
 // silently skip, leaving the client perpetually "not started". The fix resolves the
 // owning inbound via the client_inbounds link instead.
+func TestAddClientTraffic_AggregatesDuplicateNormalizedEmails(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	db := database.GetDB()
+	const email = "duplicate-user@example.com"
+	if err := db.Create(&xray.ClientTraffic{Email: email, Enable: true}).Error; err != nil {
+		t.Fatalf("create client traffic: %v", err)
+	}
+
+	svc := InboundService{}
+	if err := svc.addClientTraffic(db, []*xray.ClientTraffic{
+		{Email: " Duplicate-User@example.com ", Up: 10, Down: 20},
+		{Email: "duplicate-user@example.com", Up: 30, Down: 40},
+	}); err != nil {
+		t.Fatalf("addClientTraffic: %v", err)
+	}
+
+	var row xray.ClientTraffic
+	if err := db.Where("LOWER(TRIM(email)) = LOWER(?)", email).First(&row).Error; err != nil {
+		t.Fatalf("reload client traffic: %v", err)
+	}
+	if row.Up != 40 || row.Down != 60 {
+		t.Fatalf("duplicate normalized deltas were not summed: up=%d down=%d, want 40/60", row.Up, row.Down)
+	}
+	if row.LastOnline == 0 {
+		t.Fatal("duplicate normalized deltas did not mark the client online")
+	}
+}
+
 func TestAdjustTraffics_DelayedStartConvertsDespiteStaleInboundId(t *testing.T) {
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)

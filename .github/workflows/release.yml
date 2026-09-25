@@ -97,7 +97,16 @@ jobs:
           export CC=$(realpath "$(find "$TOOLCHAIN_DIR/bin" -name '*-gcc.br_real' -type f -executable | head -n1)")
           [ -z "$CC" ] && { echo "No gcc.br_real found in $TOOLCHAIN_DIR/bin" >&2; exit 1; }
           cd -
-          go build -ldflags "-w -s -linkmode external -extldflags '-static'" -o xui-release -v main.go
+          PANEL_VERSION=""
+          case "${GITHUB_REF_NAME:-}" in
+            v[0-9]*.[0-9]*.[0-9]*) PANEL_VERSION="${GITHUB_REF_NAME#v}" ;;
+          esac
+          PANEL_LDFLAGS="-w -s -linkmode external -extldflags '-static'"
+          if [ -n "$PANEL_VERSION" ]; then
+            PANEL_LDFLAGS="$PANEL_LDFLAGS -X github.com/mhsanaei/3x-ui/v3/internal/config.version=$PANEL_VERSION"
+          fi
+          echo "Building panel version ${PANEL_VERSION:-embedded default}"
+          go build -ldflags "$PANEL_LDFLAGS" -o xui-release -v main.go
           file xui-release
           ldd xui-release || echo "Static binary confirmed"
 
@@ -111,11 +120,10 @@ jobs:
           mkdir x-ui/bin
           cd x-ui/bin
 
-          # Download dependencies. Resolve the newest stable Xray release at
-          # build time so a panel release can never silently reset to an old
-          # pinned core version.
+          # Download the highest published Xray-core release so each panel
+          # bundle ships with the same current core across architectures.
           XRAY_VERSION="$(../../scripts/resolve-xray-version.sh)"
-          echo "Using stable Xray-core ${XRAY_VERSION}"
+          echo "Using latest Xray-core ${XRAY_VERSION}"
           Xray_URL="https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/"
           if [ "${{ matrix.platform }}" == "amd64" ]; then
             wget -q ${Xray_URL}Xray-linux-64.zip
@@ -153,14 +161,24 @@ jobs:
           wget -q -O geosite_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
           wget -q -O geoip_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
           wget -q -O geosite_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
-          mv xray xray-linux-${{ matrix.platform }}
+          # Xray uses arm32 for both 32-bit ARM variants at runtime, while
+          # the release archive keeps the mtg and panel platform names stable.
+          case "${{ matrix.platform }}" in
+            armv5|armv6|armv7) XRAY_NAME="arm32" ;;
+            *) XRAY_NAME="${{ matrix.platform }}" ;;
+          esac
+          mv xray "xray-linux-${XRAY_NAME}"
           # mtg (MTProto sidecar) - only for arches mtg publishes
           MTG_VER="2.2.8"
           case "${{ matrix.platform }}" in
             amd64|arm64|armv7|armv6|386)
               wget -q "https://github.com/9seconds/mtg/releases/download/v${MTG_VER}/mtg-${MTG_VER}-linux-${{ matrix.platform }}.tar.gz"
               tar -xzf "mtg-${MTG_VER}-linux-${{ matrix.platform }}.tar.gz"
-              mv "mtg-${MTG_VER}-linux-${{ matrix.platform }}/mtg" "mtg-linux-${{ matrix.platform }}" 2>/dev/null || mv mtg "mtg-linux-${{ matrix.platform }}"
+              case "${{ matrix.platform }}" in
+                armv7|armv6) MTG_NAME="arm" ;;
+                *) MTG_NAME="${{ matrix.platform }}" ;;
+              esac
+              mv "mtg-${MTG_VER}-linux-${{ matrix.platform }}/mtg" "mtg-linux-${MTG_NAME}" 2>/dev/null || mv mtg "mtg-linux-${MTG_NAME}"
               rm -rf "mtg-${MTG_VER}-linux-${{ matrix.platform }}" "mtg-${MTG_VER}-linux-${{ matrix.platform }}.tar.gz"
               ;;
           esac
@@ -183,7 +201,9 @@ jobs:
           tag: ${{ github.ref_name }}
           file: x-ui-linux-${{ matrix.platform }}.tar.gz
           asset_name: x-ui-linux-${{ matrix.platform }}.tar.gz
-          overwrite: true
+          # Never mutate assets of an existing release. A reused tag must
+          # fail rather than delete, replace, or force-move published files.
+          overwrite: false
           prerelease: false
 
   # =================================
@@ -249,7 +269,16 @@ jobs:
           go version
           gcc --version
 
-          go build -ldflags "-w -s" -o xui-release.exe -v main.go
+          PANEL_VERSION=""
+          case "${GITHUB_REF_NAME:-}" in
+            v[0-9]*.[0-9]*.[0-9]*) PANEL_VERSION="${GITHUB_REF_NAME#v}" ;;
+          esac
+          PANEL_LDFLAGS="-w -s"
+          if [ -n "$PANEL_VERSION" ]; then
+            PANEL_LDFLAGS="$PANEL_LDFLAGS -X github.com/mhsanaei/3x-ui/v3/internal/config.version=$PANEL_VERSION"
+          fi
+          echo "Building panel version ${PANEL_VERSION:-embedded default}"
+          go build -ldflags "$PANEL_LDFLAGS" -o xui-release.exe -v main.go
 
       - name: Copy and download resources
         shell: pwsh
@@ -259,15 +288,19 @@ jobs:
           mkdir x-ui\bin
           cd x-ui\bin
 
-          # Download the newest stable Xray for Windows. The latest endpoint
-          # excludes drafts/prereleases; reject malformed responses instead of
-          # constructing a surprising download URL.
-          $xrayRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/XTLS/Xray-core/releases/latest"
-          if ($xrayRelease.draft -or $xrayRelease.prerelease -or $xrayRelease.tag_name -notmatch '^v\d+\.\d+\.\d+$') {
-            throw "Xray-core latest release is missing or is not a stable semver tag"
+          # Keep Windows bundles on the same current core as every Linux and
+          # Docker path. Select the highest numeric release tag, including
+          # prereleases, so a newer core is never silently skipped.
+          $xrayReleases = Invoke-RestMethod -Uri "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=20"
+          $xrayVersion = $xrayReleases |
+            Where-Object { !$_.draft -and $_.tag_name -match '^v\d+\.\d+\.\d+$' } |
+            Sort-Object { [version]($_.tag_name.Substring(1)) } |
+            Select-Object -Last 1 -ExpandProperty tag_name
+          if ([string]::IsNullOrWhiteSpace($xrayVersion)) {
+            throw "Could not resolve the latest Xray-core version"
           }
-          $Xray_URL = "https://github.com/XTLS/Xray-core/releases/download/$($xrayRelease.tag_name)/"
-          Write-Host "Using stable Xray-core $($xrayRelease.tag_name)"
+          $Xray_URL = "https://github.com/XTLS/Xray-core/releases/download/$xrayVersion/"
+          Write-Host "Using latest Xray-core $xrayVersion"
           Invoke-WebRequest -Uri "${Xray_URL}Xray-windows-64.zip" -OutFile "Xray-windows-64.zip"
           Expand-Archive -Path "Xray-windows-64.zip" -DestinationPath .
           Remove-Item "Xray-windows-64.zip"
@@ -311,5 +344,7 @@ jobs:
           tag: ${{ github.ref_name }}
           file: x-ui-windows-amd64.zip
           asset_name: x-ui-windows-amd64.zip
-          overwrite: true
+          # Never mutate assets of an existing release. A reused tag must
+          # fail rather than delete, replace, or force-move published files.
+          overwrite: false
           prerelease: false

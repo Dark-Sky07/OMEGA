@@ -21,6 +21,13 @@ export const ClientRecordSchema = z.object({
   auth: z.string().optional(),
   flow: z.string().optional(),
   security: z.string().optional(),
+  privateKey: z.string().optional(),
+  publicKey: z.string().optional(),
+  allowedIPs: z.union([z.string(), z.array(z.string())]).optional(),
+  allowedIPsByInbound: z.record(z.string(), z.string()).optional(),
+  preSharedKey: z.string().optional(),
+  keepAlive: z.number().optional(),
+  forwardedPorts: z.string().optional(),
   totalGB: z.number().optional(),
   expiryTime: z.number().optional(),
   limitIp: z.number().optional(),
@@ -49,6 +56,31 @@ const L2TPInboundOptionSchema = z.object({
   redirectGateway: z.boolean().optional(),
 }).loose();
 
+export const AwgServerOptionSchema = z.object({
+  publicKey: z.string().optional(),
+  mtu: z.number().optional(),
+  primaryDns: z.string().optional(),
+  secondaryDns: z.string().optional(),
+  jc: z.number().optional(),
+  jmin: z.number().optional(),
+  jmax: z.number().optional(),
+  s1: z.number().optional(),
+  s2: z.number().optional(),
+  s3: z.number().optional(),
+  s4: z.number().optional(),
+  h1: z.string().optional(), h2: z.string().optional(), h3: z.string().optional(), h4: z.string().optional(),
+  i1: z.string().optional(), i2: z.string().optional(), i3: z.string().optional(), i4: z.string().optional(), i5: z.string().optional(),
+  headerProtectionKey: z.string().optional(),
+  contentPaddingAddition: z.string().optional(),
+  rekeyAfterTime: z.string().optional(),
+  rekeyTimeout: z.string().optional(),
+  rejectAfterTime: z.string().optional(),
+  keepaliveTimeout: z.string().optional(),
+  maxHandshakeAttempts: z.string().optional(),
+  randomTrailers: z.boolean().optional(),
+  disableCookies: z.boolean().optional(),
+}).loose();
+
 export const InboundOptionSchema = z.object({
   id: z.number(),
   remark: z.string().optional(),
@@ -57,6 +89,11 @@ export const InboundOptionSchema = z.object({
   port: z.number().optional(),
   tlsFlowCapable: z.boolean().optional(),
   ssMethod: z.string().optional(),
+  awgServer: AwgServerOptionSchema.nullable().optional(),
+  nodeAddress: z.string().optional(),
+  listen: z.string().optional(),
+  shareAddr: z.string().optional(),
+  shareAddrStrategy: z.string().optional(),
   l2tp: L2TPInboundOptionSchema.optional(),
   // Hosting node id; absent/null for this panel's own inbounds (#4997).
   nodeId: z.number().nullable().optional(),
@@ -88,6 +125,7 @@ export const ClientPageResponseSchema = z.object({
 export const ClientHydrateSchema = z.object({
   client: ClientRecordSchema,
   inboundIds: nullableNumberArray,
+  allowedIPsByInbound: z.record(z.string(), z.string()).optional(),
 });
 
 export const BulkAdjustResultSchema = z.object({
@@ -106,6 +144,7 @@ export const BulkDeleteResultSchema = z.object({
 
 export const BulkCreateResultSchema = z.object({
   created: z.number(),
+  createdEmails: z.array(z.string()).optional(),
   skipped: z
     .array(z.object({ email: z.string(), reason: z.string() }))
     .optional(),

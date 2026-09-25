@@ -119,6 +119,49 @@ func TestDelDepletedRemovesOnlyDepleted(t *testing.T) {
 	}
 }
 
+func TestDelDepletedClientsKeepsInboundAndCommitsBeforeRuntime(t *testing.T) {
+	setupBulkDB(t)
+	inboundSvc := &InboundService{}
+	clientSvc := &ClientService{}
+
+	client := model.Client{
+		Email:  "expired@x",
+		ID:     "44444444-4444-4444-4444-444444444444",
+		SubID:  "expired-sub",
+		Enable: true,
+	}
+	ib := mkInbound(t, 21004, model.VLESS, clientsSettings(t, []model.Client{client}))
+	if err := clientSvc.SyncInbound(nil, ib.Id, []model.Client{client}); err != nil {
+		t.Fatalf("seed linkage: %v", err)
+	}
+	mkTraffic(t, ib.Id, client.Email, 100, 0, 100, 0, true)
+
+	if err := inboundSvc.DelDepletedClients(ib.Id); err != nil {
+		t.Fatalf("DelDepletedClients: %v", err)
+	}
+	if _, err := inboundSvc.GetInbound(ib.Id); err != nil {
+		t.Fatalf("depleted-client cleanup must not delete the inbound: %v", err)
+	}
+	fresh, err := inboundSvc.GetInbound(ib.Id)
+	if err != nil {
+		t.Fatalf("reload inbound: %v", err)
+	}
+	clients, err := inboundSvc.GetClients(fresh)
+	if err != nil {
+		t.Fatalf("GetClients: %v", err)
+	}
+	if len(clients) != 0 {
+		t.Fatalf("depleted client should be removed from settings, got %d", len(clients))
+	}
+	var links int64
+	if err := database.GetDB().Model(&model.ClientInbound{}).Where("inbound_id = ?", ib.Id).Count(&links).Error; err != nil {
+		t.Fatalf("count links: %v", err)
+	}
+	if links != 0 {
+		t.Fatalf("depleted client association should be removed, got %d links", links)
+	}
+}
+
 func TestGetClientTrafficByEmailReadsClientsTable(t *testing.T) {
 	setupBulkDB(t)
 	svc := &ClientService{}

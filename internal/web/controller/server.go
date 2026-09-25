@@ -6,16 +6,17 @@ import (
 	"regexp"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
-	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/job"
+	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/job"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
@@ -84,6 +85,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/updateGeofile/:fileName", a.updateGeofile)
 	g.POST("/logs/:count", a.getLogs)
 	g.POST("/xraylogs/:count", a.getXrayLogs)
+	g.POST("/amneziawglogs/:count", a.getAmneziaWGLogs)
 	g.POST("/importDB", a.importDB)
 	g.POST("/getNewEchCert", a.getNewEchCert)
 	g.POST("/clientIps", a.setClientIps)
@@ -184,7 +186,7 @@ func (a *ServerController) getXrayObservatoryHistoryBucket(c *gin.Context) {
 }
 
 func (a *ServerController) getXrayVersion(c *gin.Context) {
-	versions, err := a.serverService.GetXrayVersionsCached()
+	versions, err := a.serverService.GetXrayVersionsCached(c.Query("refresh") == "1")
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "getVersion"), err)
 		return
@@ -331,6 +333,13 @@ func (a *ServerController) getXrayLogs(c *gin.Context) {
 		freedoms,
 		blackholes,
 	)
+	jsonObj(c, logs, nil)
+}
+
+// getAmneziaWGLogs retrieves the live AmneziaWG peer activity and the panel's
+// own AmneziaWG event lines, optionally narrowed by a free-text filter.
+func (a *ServerController) getAmneziaWGLogs(c *gin.Context) {
+	logs := a.serverService.GetAmneziaWGLogs(c.Param("count"), c.PostForm("filter"))
 	jsonObj(c, logs, nil)
 }
 
@@ -486,7 +495,22 @@ func (a *ServerController) getNewmlkem768(c *gin.Context) {
 }
 
 func (a *ServerController) getClientIps(c *gin.Context) {
-	ips, err := (&service.InboundService{}).GetAllInboundClientIps()
+	inboundService := &service.InboundService{}
+	if reseller := resellerSession(c); reseller != nil {
+		associated, err := newResellerService().OwnedIsolatedAssociatedEmailSet(reseller.Id)
+		if err != nil {
+			jsonObj(c, nil, err)
+			return
+		}
+		emails := make([]string, 0, len(associated))
+		for email := range associated {
+			emails = append(emails, email)
+		}
+		ips, err := inboundService.GetInboundClientIpsForEmails(emails)
+		jsonObj(c, ips, err)
+		return
+	}
+	ips, err := inboundService.GetAllInboundClientIps()
 	jsonObj(c, ips, err)
 }
 
@@ -495,6 +519,20 @@ func (a *ServerController) setClientIps(c *gin.Context) {
 	if err := c.ShouldBindJSON(&ips); err != nil {
 		jsonMsg(c, "invalid data", err)
 		return
+	}
+	if reseller := resellerSession(c); reseller != nil {
+		associated, err := newResellerService().OwnedIsolatedAssociatedEmailSet(reseller.Id)
+		if err != nil {
+			jsonMsg(c, "invalid data", err)
+			return
+		}
+		filtered := make([]model.InboundClientIps, 0, len(ips))
+		for _, row := range ips {
+			if _, ok := associated[strings.ToLower(strings.TrimSpace(row.ClientEmail))]; ok {
+				filtered = append(filtered, row)
+			}
+		}
+		ips = filtered
 	}
 	err := (&service.InboundService{}).MergeInboundClientIps(ips)
 	jsonMsg(c, "Client IPs merged", err)

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Collapse, Modal, Radio, Spin, Tag, Tooltip } from 'antd';
+import { Alert, Button, Collapse, Modal, Spin, Tag, Tooltip } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
@@ -29,6 +29,11 @@ const GEOFILES = [
   'geoip_RU.dat',
 ];
 
+function normalizeXrayVersion(version?: string) {
+  if (!version || version === 'Unknown') return '';
+  return version.startsWith('v') ? version : `v${version}`;
+}
+
 export default function VersionModal({ open, status, onClose, onBusy }: VersionModalProps) {
   const { t } = useTranslation();
   const [modal, modalContextHolder] = Modal.useModal();
@@ -39,7 +44,7 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
   const fetchVersions = useCallback(async () => {
     setLoading(true);
     try {
-      const msg = await HttpUtil.get<string[]>('/panel/api/server/getXrayVersion');
+      const msg = await HttpUtil.get<string[]>('/panel/api/server/getXrayVersion?refresh=1');
       if (msg?.success) setVersions(msg.obj || []);
     } finally {
       setLoading(false);
@@ -50,7 +55,7 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
     if (open) fetchVersions();
   }, [open, fetchVersions]);
 
-  function switchXrayVersion(version: string) {
+  function installXrayVersion(version: string) {
     modal.confirm({
       title: t('pages.index.xraySwitchVersionDialog'),
       content: t('pages.index.xraySwitchVersionDialogDesc').replace('#version#', version),
@@ -93,6 +98,9 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
   }
 
   const activeKeyStr = Array.isArray(activeKey) ? activeKey[0] : activeKey;
+  const currentVersion = normalizeXrayVersion(status?.xray?.version);
+  const latestVersion = versions[0] || '';
+  const updateAvailable = !!latestVersion && latestVersion !== currentVersion;
 
   return (
     <Modal
@@ -114,21 +122,44 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
               children: (
                 <>
                   <Alert
-                    type="warning"
+                    type={updateAvailable ? 'warning' : 'success'}
                     className="mb-12"
-                    title={t('pages.index.xraySwitchClickDesk')}
+                    title={
+                      latestVersion
+                        ? updateAvailable
+                          ? t('pages.index.xrayUpdateAvailable')
+                          : t('pages.index.xrayUpToDate')
+                        : t('pages.index.xrayLatestUnavailable')
+                    }
                     showIcon
                   />
                   <div className="version-list">
-                    {versions.map((version, index) => (
-                      <div key={version} className="version-list-item">
-                        <Tag color={index % 2 === 0 ? 'purple' : 'green'}>{version}</Tag>
-                        <Radio
-                          checked={version === `v${status?.xray?.version}`}
-                          onClick={() => switchXrayVersion(version)}
-                        />
-                      </div>
-                    ))}
+                    <div className="version-list-item">
+                      <span>{t('pages.index.xrayCurrentVersion')}</span>
+                      <Tag color="green">{currentVersion || '-'}</Tag>
+                    </div>
+                    <div className="version-list-item">
+                      <span>{t('pages.index.xrayLatestVersion')}</span>
+                      <Tag color={updateAvailable ? 'purple' : 'green'}>
+                        {latestVersion || '-'}
+                      </Tag>
+                    </div>
+                  </div>
+                  <div className="actions-row">
+                    <Button
+                      type="primary"
+                      disabled={!updateAvailable}
+                      onClick={() => installXrayVersion(latestVersion)}
+                    >
+                      {t('pages.index.xrayInstallLatest')}
+                    </Button>
+                    <Tooltip title={t('pages.index.xrayCheckAgain')}>
+                      <Button
+                        aria-label={t('pages.index.xrayCheckAgain')}
+                        icon={<ReloadOutlined />}
+                        onClick={fetchVersions}
+                      />
+                    </Tooltip>
                   </div>
                 </>
               ),

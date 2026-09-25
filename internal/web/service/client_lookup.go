@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -15,10 +16,20 @@ func (s *ClientService) GetRecordByEmail(tx *gorm.DB, email string) (*model.Clie
 	if tx == nil {
 		tx = database.GetDB()
 	}
+	email = strings.TrimSpace(email)
 	row := &model.ClientRecord{}
 	err := tx.Where("email = ?", email).First(row).Error
-	if err != nil {
+	if err == nil {
+		return row, nil
+	}
+	if !database.IsNotFound(err) {
 		return nil, err
+	}
+	// Client email identity is case-insensitive. The fallback keeps older
+	// panels that stored mixed-case addresses from creating a second record
+	// during import or reseller-scoped writes.
+	if lowerErr := tx.Where("LOWER(TRIM(email)) = LOWER(?)", email).First(row).Error; lowerErr != nil {
+		return nil, lowerErr
 	}
 	return row, nil
 }
@@ -31,16 +42,35 @@ func (s *ClientService) GetRecordByEmail(tx *gorm.DB, email string) (*model.Clie
 // inbound stored a real flow. The per-inbound flow_override is always correct,
 // so derive the display flow from it (order-independent). See issue #4792.
 func (s *ClientService) EffectiveFlow(tx *gorm.DB, recordId int) (string, error) {
+	return s.effectiveFlow(tx, recordId, nil)
+}
+
+// EffectiveFlowForInbounds limits the derived flow to associations visible to
+// the caller. Reseller client records are explicit, but a client can also be
+// attached to an admin-owned inbound whose flow must not influence a scoped
+// response.
+func (s *ClientService) EffectiveFlowForInbounds(tx *gorm.DB, recordId int, allowedInboundIDs map[int]struct{}) (string, error) {
+	return s.effectiveFlow(tx, recordId, allowedInboundIDs)
+}
+
+func (s *ClientService) effectiveFlow(tx *gorm.DB, recordId int, allowedInboundIDs map[int]struct{}) (string, error) {
 	if tx == nil {
 		tx = database.GetDB()
 	}
+	query := tx.Model(&model.ClientInbound{}).
+		Where("client_id = ? AND flow_override <> ?", recordId, "")
+	if allowedInboundIDs != nil {
+		ids := make([]int, 0, len(allowedInboundIDs))
+		for id := range allowedInboundIDs {
+			ids = append(ids, id)
+		}
+		if len(ids) == 0 {
+			return "", nil
+		}
+		query = query.Where("inbound_id IN ?", ids)
+	}
 	var flows []string
-	err := tx.Model(&model.ClientInbound{}).
-		Where("client_id = ? AND flow_override <> ?", recordId, "").
-		Order("inbound_id ASC").
-		Limit(1).
-		Pluck("flow_override", &flows).Error
-	if err != nil {
+	if err := query.Order("inbound_id ASC").Limit(1).Pluck("flow_override", &flows).Error; err != nil {
 		return "", err
 	}
 	if len(flows) == 0 {
@@ -57,7 +87,7 @@ func (s *ClientService) GetInboundIdsForEmail(tx *gorm.DB, email string) ([]int,
 	err := tx.Table("client_inbounds").
 		Select("client_inbounds.inbound_id").
 		Joins("JOIN clients ON clients.id = client_inbounds.client_id").
-		Where("clients.email = ?", email).
+		Where("LOWER(TRIM(clients.email)) = LOWER(?)", strings.TrimSpace(email)).
 		Scan(&ids).Error
 	if err != nil {
 		return nil, err
@@ -85,6 +115,41 @@ func (s *ClientService) GetInboundIdsForRecord(id int) ([]int, error) {
 	return ids, nil
 }
 
+// TunnelAllowedIPsByInbound returns, for each given WireGuard/AmneziaWG
+// inbound id, the real AllowedIPs this email currently has on that specific
+// inbound's own settings JSON -- joined comma-separated, matching the form
+// value shape a single AllowedIPs field already uses. Non-tunnel inbounds
+// and ids the email isn't actually attached to are simply absent from the
+// result (not an error): callers use this to seed a per-protocol display
+// field, and ClientRecord's own single AllowedIPs column can't tell two
+// different protocol addresses apart, which is exactly the gap this closes.
+func (s *ClientService) TunnelAllowedIPsByInbound(inboundSvc *InboundService, email string, inboundIds []int) (map[int]string, error) {
+	result := make(map[int]string, len(inboundIds))
+	for _, ibId := range inboundIds {
+		inbound, err := inboundSvc.GetInbound(ibId)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				continue
+			}
+			return nil, err
+		}
+		if inbound.Protocol != model.WireGuard && inbound.Protocol != model.AmneziaWG {
+			continue
+		}
+		clients, err := inboundSvc.GetClients(inbound)
+		if err != nil {
+			return nil, err
+		}
+		for i := range clients {
+			if strings.EqualFold(clients[i].Email, email) {
+				result[ibId] = strings.Join(clients[i].AllowedIPs, ",")
+				break
+			}
+		}
+	}
+	return result, nil
+}
+
 func (s *ClientService) List() ([]ClientWithAttachments, error) {
 	db := database.GetDB()
 	var rows []model.ClientRecord
@@ -99,8 +164,8 @@ func (s *ClientService) List() ([]ClientWithAttachments, error) {
 	emails := make([]string, 0, len(rows))
 	for i := range rows {
 		clientIds = append(clientIds, rows[i].Id)
-		if rows[i].Email != "" {
-			emails = append(emails, rows[i].Email)
+		if key := transferEmailKey(rows[i].Email); key != "" {
+			emails = append(emails, key)
 		}
 	}
 
@@ -120,14 +185,14 @@ func (s *ClientService) List() ([]ClientWithAttachments, error) {
 		var stats []xray.ClientTraffic
 		for _, batch := range chunkStrings(emails, sqlInChunk) {
 			var batchStats []xray.ClientTraffic
-			if err := db.Where("email IN ?", batch).Find(&batchStats).Error; err != nil {
+			if err := db.Where("LOWER(TRIM(email)) IN ?", batch).Find(&batchStats).Error; err != nil {
 				return nil, err
 			}
 			stats = append(stats, batchStats...)
 		}
 		overlayGlobalTrafficValues(db, stats)
 		for i := range stats {
-			trafficByEmail[stats[i].Email] = &stats[i]
+			trafficByEmail[strings.ToLower(strings.TrimSpace(stats[i].Email))] = &stats[i]
 		}
 	}
 
@@ -136,7 +201,7 @@ func (s *ClientService) List() ([]ClientWithAttachments, error) {
 		out = append(out, ClientWithAttachments{
 			ClientRecord: rows[i],
 			InboundIds:   attachments[rows[i].Id],
-			Traffic:      trafficByEmail[rows[i].Email],
+			Traffic:      trafficByEmail[strings.ToLower(strings.TrimSpace(rows[i].Email))],
 		})
 	}
 	return out, nil
@@ -160,7 +225,7 @@ func (s *ClientService) findInboundIdsByClientEmail(email string) ([]int, error)
 	var inbounds []model.Inbound
 	if err := database.GetDB().
 		Select("id, settings").
-		Where("settings LIKE ?", "%"+email+"%").
+		Where("LOWER(settings) LIKE LOWER(?)", "%"+strings.TrimSpace(email)+"%").
 		Find(&inbounds).Error; err != nil {
 		return nil, err
 	}
@@ -179,7 +244,7 @@ func (s *ClientService) findInboundIdsByClientEmail(email string) ([]int, error)
 			if !ok {
 				continue
 			}
-			if cEmail, _ := cm["email"].(string); cEmail == email {
+			if cEmail, _ := cm["email"].(string); transferEmailKey(cEmail) == transferEmailKey(email) {
 				out = append(out, ib.Id)
 				break
 			}

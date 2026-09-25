@@ -36,6 +36,23 @@ func (s *FallbackService) GetByMaster(masterId int) ([]model.InboundFallback, er
 	return rows, nil
 }
 
+// GetByMasterForOwnedChildren returns fallback rows whose child inbound is
+// assigned to the reseller, plus custom-destination rows (child_id = 0), which
+// are non-client configuration of the reseller-owned master. It must not
+// disclose an unrelated tenant's child identity or destination metadata.
+func (s *FallbackService) GetByMasterForOwnedChildren(masterId, resellerId int) ([]model.InboundFallback, error) {
+	var rows []model.InboundFallback
+	err := database.GetDB().Table("inbound_fallbacks").
+		Joins("LEFT JOIN reseller_inbounds ON reseller_inbounds.inbound_id = inbound_fallbacks.child_id AND reseller_inbounds.reseller_id = ?", resellerId).
+		Where("inbound_fallbacks.master_id = ? AND (inbound_fallbacks.child_id = 0 OR reseller_inbounds.inbound_id IS NOT NULL)", masterId).
+		Order("inbound_fallbacks.sort_order ASC, inbound_fallbacks.id ASC").
+		Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
 // GetParentForChild finds the first fallback rule that points at childId.
 // Used by client-link generation: when a child inbound is attached as a
 // fallback, its client links should advertise the master's address+port

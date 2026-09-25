@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
@@ -340,14 +341,19 @@ func firstNonEmpty(value, fallback string) string {
 }
 
 type InboundOption struct {
-	Id             int    `json:"id" example:"1"`
-	Remark         string `json:"remark" example:"VLESS-443"`
-	Tag            string `json:"tag" example:"in-443-tcp"`
-	Protocol       string `json:"protocol" example:"vless"`
-	Port           int    `json:"port" example:"443"`
-	TlsFlowCapable bool   `json:"tlsFlowCapable" example:"true"`
-	SsMethod       string `json:"ssMethod"`
-	L2TP           *L2TPInboundOption `json:"l2tp,omitempty"`
+	Id                int                       `json:"id" example:"1"`
+	Remark            string                    `json:"remark" example:"VLESS-443"`
+	Tag               string                    `json:"tag" example:"in-443-tcp"`
+	Protocol          string                    `json:"protocol" example:"vless"`
+	Port              int                       `json:"port" example:"443"`
+	TlsFlowCapable    bool                      `json:"tlsFlowCapable" example:"true"`
+	SsMethod          string                    `json:"ssMethod"`
+	L2TP              *L2TPInboundOption        `json:"l2tp,omitempty"`
+	AwgServer         *amneziawg.ServerSettings `json:"awgServer,omitempty"`
+	NodeAddress       string                    `json:"nodeAddress,omitempty"`
+	Listen            string                    `json:"listen,omitempty"`
+	ShareAddr         string                    `json:"shareAddr,omitempty"`
+	ShareAddrStrategy string                    `json:"shareAddrStrategy,omitempty"`
 	// Hosting node; nil for this panel's own inbounds. Lets the clients
 	// page map a node filter onto inbound IDs (#4997).
 	NodeId *int `json:"nodeId,omitempty"`
@@ -356,18 +362,23 @@ type InboundOption struct {
 func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) {
 	db := database.GetDB()
 	var rows []struct {
-		Id             int    `gorm:"column:id"`
-		Remark         string `gorm:"column:remark"`
-		Tag            string `gorm:"column:tag"`
-		Protocol       string `gorm:"column:protocol"`
-		Port           int    `gorm:"column:port"`
-		StreamSettings string `gorm:"column:stream_settings"`
-		Settings       string `gorm:"column:settings"`
-		NodeId         *int   `gorm:"column:node_id"`
+		Id                int    `gorm:"column:id"`
+		Remark            string `gorm:"column:remark"`
+		Tag               string `gorm:"column:tag"`
+		Protocol          string `gorm:"column:protocol"`
+		Port              int    `gorm:"column:port"`
+		StreamSettings    string `gorm:"column:stream_settings"`
+		Settings          string `gorm:"column:settings"`
+		NodeId            *int   `gorm:"column:node_id"`
+		NodeAddress       string `gorm:"column:node_address"`
+		Listen            string `gorm:"column:listen"`
+		ShareAddr         string `gorm:"column:share_addr"`
+		ShareAddrStrategy string `gorm:"column:share_addr_strategy"`
 	}
 	err := db.Table("inbounds").
-		Select("id, remark, tag, protocol, port, stream_settings, settings, node_id").
-		Where("user_id = ?", userId).
+		Select("inbounds.id, inbounds.remark, inbounds.tag, inbounds.protocol, inbounds.port, inbounds.stream_settings, inbounds.settings, inbounds.node_id, COALESCE(nodes.address, '') AS node_address, inbounds.listen, inbounds.share_addr, inbounds.share_addr_strategy").
+		Joins("LEFT JOIN nodes ON nodes.id = inbounds.node_id").
+		Where("inbounds.user_id = ?", userId).
 		Order("id ASC").
 		Scan(&rows).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
@@ -376,14 +387,19 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 	out := make([]InboundOption, 0, len(rows))
 	for _, r := range rows {
 		option := InboundOption{
-			Id:             r.Id,
-			Remark:         r.Remark,
-			Tag:            r.Tag,
-			Protocol:       r.Protocol,
-			Port:           r.Port,
-			TlsFlowCapable: inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings, r.Settings),
-			SsMethod:       inboundShadowsocksMethod(r.Protocol, r.Settings),
-			NodeId:         r.NodeId,
+			Id:                r.Id,
+			Remark:            r.Remark,
+			Tag:               r.Tag,
+			Protocol:          r.Protocol,
+			Port:              r.Port,
+			TlsFlowCapable:    inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings, r.Settings),
+			SsMethod:          inboundShadowsocksMethod(r.Protocol, r.Settings),
+			AwgServer:         inboundAmneziaWGServer(r.Protocol, r.Settings),
+			NodeId:            r.NodeId,
+			NodeAddress:       r.NodeAddress,
+			Listen:            r.Listen,
+			ShareAddr:         r.ShareAddr,
+			ShareAddrStrategy: r.ShareAddrStrategy,
 		}
 		if r.Protocol == string(model.L2TP) {
 			option.L2TP = l2tpInboundOption(r.Settings)
@@ -391,6 +407,22 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 		out = append(out, option)
 	}
 	return out, nil
+}
+
+// inboundAmneziaWGServer returns the public AmneziaWG server block for the
+// clients page. The private key never leaves the backend through this list
+// endpoint; it is only needed to configure the local interface.
+func inboundAmneziaWGServer(protocol string, settings string) *amneziawg.ServerSettings {
+	if protocol != string(model.AmneziaWG) || strings.TrimSpace(settings) == "" {
+		return nil
+	}
+	var parsed amneziawg.InboundSettings
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil || parsed.Server == nil {
+		return nil
+	}
+	redacted := *parsed.Server
+	redacted.PrivateKey = ""
+	return &redacted
 }
 
 // GetAllInbounds retrieves all inbounds with client stats.
@@ -462,7 +494,7 @@ func (s *InboundService) getAllEmailSubIDs() (map[string]string, error) {
 	}
 	result := make(map[string]string, len(rows))
 	for _, r := range rows {
-		email := strings.ToLower(r.Email)
+		email := transferEmailKey(r.Email)
 		if email == "" {
 			continue
 		}
@@ -535,14 +567,14 @@ func (s *InboundService) normalizeL2TPSettings(inbound *model.Inbound) error {
 		settings["psk"] = model.GenerateL2TPPSK()
 	}
 	defaults := map[string]any{
-		"poolCIDR":          l2tp.DefaultPoolCIDR,
-		"localIP":           l2tp.DefaultLocalIP,
-		"poolStart":         l2tp.DefaultPoolStart,
-		"poolEnd":           l2tp.DefaultPoolEnd,
-		"dns1":              l2tp.DefaultDNS1,
-		"dns2":              l2tp.DefaultDNS2,
-		"redirectGateway":   true,
-		"clients":           []any{},
+		"poolCIDR":        l2tp.DefaultPoolCIDR,
+		"localIP":         l2tp.DefaultLocalIP,
+		"poolStart":       l2tp.DefaultPoolStart,
+		"poolEnd":         l2tp.DefaultPoolEnd,
+		"dns1":            l2tp.DefaultDNS1,
+		"dns2":            l2tp.DefaultDNS2,
+		"redirectGateway": true,
+		"clients":         []any{},
 	}
 	for key, value := range defaults {
 		if _, exists := settings[key]; !exists {
@@ -723,6 +755,23 @@ func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSet
 // then saves the inbound to the database and optionally adds it to the running Xray instance.
 // Returns the created inbound, whether Xray needs restart, and any error.
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
+	return s.addInbound(inbound, false)
+}
+
+// AddInboundPreservingExistingClients imports an inbound without allowing its
+// embedded client payload to overwrite canonical destination client records.
+// New clients are still created and all imported associations are preserved.
+func (s *InboundService) AddInboundPreservingExistingClients(inbound *model.Inbound) (*model.Inbound, bool, error) {
+	if inbound == nil {
+		return nil, false, common.NewError("inbound is required")
+	}
+	if err := s.PrepareInboundImport(inbound); err != nil {
+		return inbound, false, err
+	}
+	return s.addInbound(inbound, true)
+}
+
+func (s *InboundService) addInbound(inbound *model.Inbound, preserveExistingClients bool) (*model.Inbound, bool, error) {
 	if inbound != nil && inbound.Protocol == model.L2TP {
 		l2tpInboundMu.Lock()
 		defer l2tpInboundMu.Unlock()
@@ -733,6 +782,12 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	if err := s.normalizeL2TPSettings(inbound); err != nil {
 		return inbound, false, err
 	}
+	if err := s.normalizeAmneziaWGSettings(inbound); err != nil {
+		return inbound, false, err
+	}
+	if inbound.NodeID != nil && !isNodeEligibleProtocol(inbound.Protocol) {
+		return inbound, false, common.NewErrorf("%s inbounds cannot be assigned to a node", inbound.Protocol)
+	}
 	if inbound.Protocol == model.L2TP {
 		if inbound.NodeID != nil {
 			return inbound, false, common.NewError("l2tp/ipsec is supported only on the local Linux host")
@@ -740,6 +795,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		if err := s.checkL2TPSingleton(0); err != nil {
 			return inbound, false, err
 		}
+	}
+	if inbound.Protocol == model.OpenVPN && inbound.NodeID != nil {
+		return inbound, false, common.NewError("openvpn is supported only on the local Linux host")
 	}
 	if err := s.normalizeMtprotoXrayPort(inbound, ""); err != nil {
 		return inbound, false, err
@@ -771,16 +829,20 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			return inbound, false, err
 		}
 	}
-	existEmail, err := s.clientService.checkEmailsExistForClients(s, clients, nil)
-	if err != nil {
-		return inbound, false, err
-	}
-	if existEmail != "" {
-		return inbound, false, common.NewError("Duplicate email:", existEmail)
+	if !preserveExistingClients {
+		existEmail, err := s.clientService.checkEmailsExistForClients(s, clients, nil)
+		if err != nil {
+			return inbound, false, err
+		}
+		if existEmail != "" {
+			return inbound, false, common.NewError("Duplicate email:", existEmail)
+		}
 	}
 
-	// Ensure created_at and updated_at on clients in settings
-	if len(clients) > 0 {
+	// Ensure created_at and updated_at on clients in settings. Import-preserving
+	// flows keep the canonical destination timestamps in the payload; updating
+	// them here would make a harmless association import look like a client edit.
+	if !preserveExistingClients && len(clients) > 0 {
 		var settings map[string]any
 		if err2 := json.Unmarshal([]byte(inbound.Settings), &settings); err2 == nil && settings != nil {
 			now := time.Now().Unix() * 1000
@@ -817,6 +879,10 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		case "hysteria":
 			if client.Auth == "" {
 				return inbound, false, common.NewError("empty client ID")
+			}
+		case model.WireGuard, model.AmneziaWG:
+			if client.PublicKey == "" {
+				return inbound, false, common.NewError("wireguard client requires a key")
 			}
 		case model.L2TP:
 			if client.Email == "" || client.Password == "" {
@@ -859,8 +925,21 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	// already own a (shared) row are skipped instead of tripping the unique
 	// constraint.
 	for i := range inbound.ClientStats {
+		inbound.ClientStats[i].Email = strings.TrimSpace(inbound.ClientStats[i].Email)
 		if inbound.ClientStats[i].Email == "" {
 			continue
+		}
+		var existingTraffic xray.ClientTraffic
+		lookup := tx.Where("LOWER(TRIM(email)) = LOWER(?)", inbound.ClientStats[i].Email).First(&existingTraffic)
+		if lookup.Error == nil {
+			// Traffic rows are shared by email across inbounds. Keep the
+			// destination counters and limits when an import uses a different
+			// spelling or carries stale duplicate statistics.
+			continue
+		}
+		if !database.IsNotFound(lookup.Error) {
+			err = lookup.Error
+			return inbound, false, err
 		}
 		inbound.ClientStats[i].Id = 0
 		inbound.ClientStats[i].InboundId = inbound.Id
@@ -880,7 +959,12 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		}
 	}
 
-	if err = s.clientService.SyncInbound(tx, inbound.Id, clients); err != nil {
+	if preserveExistingClients {
+		err = s.clientService.SyncInboundPreservingExisting(tx, inbound.Id, clients)
+	} else {
+		err = s.clientService.SyncInbound(tx, inbound.Id, clients)
+	}
+	if err != nil {
 		return inbound, false, err
 	}
 
@@ -1058,6 +1142,9 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 	if inbound.Enable == enable {
 		return false, nil
 	}
+	if inbound.Protocol == model.OpenVPN && inbound.NodeID != nil {
+		return false, common.NewError("openvpn is supported only on the local Linux host")
+	}
 
 	db := database.GetDB()
 	if err := db.Model(model.Inbound{}).Where("id = ?", id).
@@ -1128,6 +1215,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	if err := s.normalizeL2TPSettings(inbound); err != nil {
 		return inbound, false, err
 	}
+	if err := s.normalizeAmneziaWGSettings(inbound); err != nil {
+		return inbound, false, err
+	}
 	if inbound.Protocol == model.L2TP {
 		if err := s.checkL2TPSingleton(inbound.Id); err != nil {
 			return inbound, false, err
@@ -1149,8 +1239,14 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	}
 	oldRuntime := *oldInbound
 	inbound.NodeID = oldInbound.NodeID
+	if inbound.NodeID != nil && !isNodeEligibleProtocol(inbound.Protocol) {
+		return inbound, false, common.NewErrorf("%s inbounds cannot be assigned to a node", inbound.Protocol)
+	}
 	if inbound.Protocol == model.L2TP && inbound.NodeID != nil {
 		return inbound, false, common.NewError("l2tp/ipsec is supported only on the local Linux host")
+	}
+	if inbound.Protocol == model.OpenVPN && inbound.NodeID != nil {
+		return inbound, false, common.NewError("openvpn is supported only on the local Linux host")
 	}
 	if inbound.Protocol == model.L2TP {
 		clients, clientErr := s.GetClients(inbound)
@@ -1208,15 +1304,15 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 						if email, ok3 := m["email"].(string); ok3 {
 							switch v := m["created_at"].(type) {
 							case float64:
-								emailToCreated[email] = int64(v)
+								emailToCreated[transferEmailKey(email)] = int64(v)
 							case int64:
-								emailToCreated[email] = v
+								emailToCreated[transferEmailKey(email)] = v
 							}
 							switch v := m["updated_at"].(type) {
 							case float64:
-								emailToUpdated[email] = int64(v)
+								emailToUpdated[transferEmailKey(email)] = int64(v)
 							case int64:
-								emailToUpdated[email] = v
+								emailToUpdated[transferEmailKey(email)] = v
 							}
 						}
 					}
@@ -1231,7 +1327,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 					if m, ok2 := nSlice[i].(map[string]any); ok2 {
 						email, _ := m["email"].(string)
 						if _, ok3 := m["created_at"]; !ok3 {
-							if v, ok4 := emailToCreated[email]; ok4 && v > 0 {
+							if v, ok4 := emailToCreated[transferEmailKey(email)]; ok4 && v > 0 {
 								m["created_at"] = v
 							} else {
 								m["created_at"] = now
@@ -1239,7 +1335,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 						}
 						// Preserve client's updated_at if present; do not bump on parent inbound update
 						if _, hasUpdated := m["updated_at"]; !hasUpdated {
-							if v, ok4 := emailToUpdated[email]; ok4 && v > 0 {
+							if v, ok4 := emailToUpdated[transferEmailKey(email)]; ok4 && v > 0 {
 								m["updated_at"] = v
 							}
 						}
@@ -1385,7 +1481,7 @@ func (s *InboundService) buildRuntimeInboundForAPI(tx *gorm.DB, inbound *model.I
 
 	enableMap := make(map[string]bool, len(clientStats))
 	for _, clientTraffic := range clientStats {
-		enableMap[clientTraffic.Email] = clientTraffic.Enable
+		enableMap[transferEmailKey(clientTraffic.Email)] = clientTraffic.Enable
 	}
 
 	finalClients := make([]any, 0, len(clients))
@@ -1396,7 +1492,7 @@ func (s *InboundService) buildRuntimeInboundForAPI(tx *gorm.DB, inbound *model.I
 		}
 
 		email, _ := c["email"].(string)
-		if enable, exists := enableMap[email]; exists && !enable {
+		if enable, exists := enableMap[transferEmailKey(email)]; exists && !enable {
 			continue
 		}
 
@@ -1437,17 +1533,15 @@ func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inb
 	// risking a unique-constraint hit or accidental delete of an unrelated row.
 	oldEmails := make(map[string]struct{}, len(oldClients))
 	for i := range oldClients {
-		if oldClients[i].Email == "" {
-			continue
+		if key := transferEmailKey(oldClients[i].Email); key != "" {
+			oldEmails[key] = struct{}{}
 		}
-		oldEmails[oldClients[i].Email] = struct{}{}
 	}
 	newEmails := make(map[string]struct{}, len(newClients))
 	for i := range newClients {
-		if newClients[i].Email == "" {
-			continue
+		if key := transferEmailKey(newClients[i].Email); key != "" {
+			newEmails[key] = struct{}{}
 		}
-		newEmails[newClients[i].Email] = struct{}{}
 	}
 
 	// Drop stats rows for removed emails — but not when a sibling inbound
@@ -1457,7 +1551,7 @@ func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inb
 		if email == "" {
 			continue
 		}
-		if _, kept := newEmails[email]; kept {
+		if _, kept := newEmails[transferEmailKey(email)]; kept {
 			continue
 		}
 		stillUsed, err := s.emailUsedByOtherInbounds(email, oldInbound.Id)
@@ -1481,7 +1575,7 @@ func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inb
 		if email == "" {
 			continue
 		}
-		if _, existed := oldEmails[email]; existed {
+		if _, existed := oldEmails[transferEmailKey(email)]; existed {
 			if err := s.UpdateClientStat(tx, email, &newClients[i]); err != nil {
 				return err
 			}

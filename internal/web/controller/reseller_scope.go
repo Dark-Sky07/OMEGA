@@ -2,6 +2,7 @@ package controller
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -130,7 +131,7 @@ func ensureEmailsOwned(c *gin.Context, reseller *model.Reseller, emails []string
 		return false
 	}
 	for _, email := range emails {
-		if _, ok := owned[email]; !ok {
+		if _, ok := owned[strings.ToLower(strings.TrimSpace(email))]; !ok {
 			abortForbidden(c, errNotYourClient)
 			return false
 		}
@@ -138,12 +139,23 @@ func ensureEmailsOwned(c *gin.Context, reseller *model.Reseller, emails []string
 	return true
 }
 
-// filterOwnedEmails keeps only the emails the reseller owns.
+// filterOwnedEmails keeps only the explicitly mapped client emails. It keeps
+// the canonical spelling returned by the traffic source in the response.
 func filterOwnedEmails(owned map[string]struct{}, emails []string) []string {
 	out := make([]string, 0, len(emails))
 	for _, email := range emails {
-		if _, ok := owned[email]; ok {
+		if _, ok := owned[strings.ToLower(strings.TrimSpace(email))]; ok {
 			out = append(out, email)
+		}
+	}
+	return out
+}
+
+func filterInboundIDs(ids []int, owned map[int]struct{}) []int {
+	out := make([]int, 0, len(ids))
+	for _, id := range ids {
+		if _, ok := owned[id]; ok {
+			out = append(out, id)
 		}
 	}
 	return out

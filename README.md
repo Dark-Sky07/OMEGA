@@ -4,7 +4,7 @@
 
 # OMEGA
 
-**A panel for managing Xray-core servers — built on [3x-ui](https://github.com/MHSanaei/3x-ui) `v3.3.1`, extended with [Resellers (نمایندگی)](#-resellers-نمایندگی), external OpenVPN, and external L2TP/IPsec daemons.**
+**A panel for managing Xray-core servers — built on [3x-ui](https://github.com/MHSanaei/3x-ui) `v3.3.1`, extended with [Resellers (نمایندگی)](#-resellers-نمایندگی), native AmneziaWG, OpenVPN, and L2TP/IPsec daemons.**
 
 English · [فارسی](README.fa_IR.md)
 
@@ -15,19 +15,24 @@ English · [فارسی](README.fa_IR.md)
 [![Go](https://img.shields.io/github/go-mod/go-version/Dark-Sky07/OMEGA)](go.mod)
 [![Platforms](https://img.shields.io/badge/platforms-linux%20%7C%20windows-lightgrey)](#supported-platforms)
 
-**Install in one line** — on a fresh server, as `root`:
+**Install the latest OMEGA release in one line** — on a fresh server, as `root`:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega/install-omega.sh) v3.3.25-omega
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
 ```
+
+This is the canonical automatic installer. It resolves the newest OMEGA release from this repository, downloads the matching panel archive and release-managed scripts, and never falls back to the vanilla 3x-ui repository or to an old tag. For an existing installation, use `x-ui update`; it follows the same latest-OMEGA-only path.
+
+> The `main/x-ui.sh` launcher remains available for the management menu and compatibility with existing installs, but new installations should use the direct `install-omega.sh` command above.
 
 </div>
 
 > [!NOTE]
-> OMEGA is a fork based on 3x-ui v3.3.1. It adds reseller controls, an external OpenVPN daemon, and an external
-> L2TP/IPsec daemon while keeping the panel service name (`x-ui`), install paths (`/usr/local/x-ui`, `/etc/x-ui`),
-> environment variables, and Xray configuration conventions compatible with the upstream project. The OMEGA release
-> version is maintained separately from the upstream core version, so the current stable release is `v3.3.25-omega`.
+> OMEGA is a fork based on 3x-ui v3.3.1. It adds reseller controls, native AmneziaWG, an external OpenVPN daemon,
+> and an external L2TP/IPsec daemon while keeping the panel service name (`x-ui`), install paths
+> (`/usr/local/x-ui`, `/etc/x-ui`), environment variables, and Xray configuration conventions compatible with the
+> upstream project. The OMEGA release version is maintained separately from the upstream core version; see the
+> [latest release](https://github.com/Dark-Sky07/OMEGA/releases/latest) for the current version; the documentation intentionally does not hard-code an older stable tag.
 
 ---
 
@@ -35,11 +40,15 @@ bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega
 
 | | Change |
 | --- | --- |
-| ➕ **Added** | **Resellers (نمایندگی)** — sub-accounts with their own login, scoped ownership, quotas and sales/billing reports. |
-| ➕ **Added** | **OpenVPN inbounds** — an OpenVPN daemon per inbound binds the port directly; per-client certificates are generated automatically (CN = email), each client gets a ready-to-import `.ovpn` (copy/download from the client info), and per-client traffic + online status flow into the normal stats pipeline. The tagged release installer installs and verifies the host `openvpn` package and `/dev/net/tun`; the panel then renders one daemon config per enabled local OpenVPN inbound. The release archive does not embed an OS package, so use the installer rather than copying only the panel tarball. |
-| ➕ **Added** | **L2TP/IPsec inbounds** — one global local-Linux daemon group (strongSwan + xl2tpd/PPP) uses existing client email/password credentials, persists the IPsec PSK, reconciles daemon config and `chap-secrets` synchronously for single and bulk client operations, recovers orphaned daemons after restart, manages UDP 500/4500/1701 plus IPv4 forwarding/FORWARD/MASQUERADE rules, and reports PPP online/traffic state. It is not an Xray inbound, does not generate a profile file, and does not include PPTP; the UI shows native client parameters. |
+| ➕ **Added** | **Resellers (نمایندگی)** — sub-accounts with their own login, explicit client/inbound attachment, multi-select/bulk attach and detach, scoped quotas, and sales/billing reports. An inbound association alone never exposes its clients. |
+| ➕ **Added** | **OpenVPN inbounds** — an OpenVPN daemon per inbound binds the port directly; per-client certificates are generated automatically (CN = email), each client gets a ready-to-import `.ovpn` (copy/download from the client info), and per-client traffic, online status, and quota enforcement flow into the normal client lifecycle. The tagged release installer installs and verifies the host `openvpn` package and `/dev/net/tun`; the panel then renders one daemon config per enabled local OpenVPN inbound. The release archive does not embed an OS package, so use the installer rather than copying only the panel tarball. |
+| ➕ **Added** | **L2TP/IPsec inbounds** — one global local-Linux daemon group (strongSwan + xl2tpd/PPP) uses existing client email/password credentials, persists the IPsec PSK, reconciles daemon config and `chap-secrets` synchronously for single and bulk client operations, recovers orphaned daemons after restart, manages UDP 500/4500/1701 plus IPv4 forwarding/FORWARD/MASQUERADE rules, and reports PPP online/traffic state with per-client quota enforcement. It is not an Xray inbound, does not generate a profile file, and does not include PPTP; the UI shows native client parameters. |
+| ➕ **Added** | **Native AmneziaWG** — real AWG inbounds with generated key material, AWG 3.1 obfuscation settings, peer/client lifecycle, per-client status and traffic, quotas, allowed-IP allocation, subscriptions, reseller scoping, native `.conf` downloads, and QR payloads accepted by the standalone AmneziaWG app. It is implemented as a working protocol path, not a form-only option. |
+| 🛡️ **Safety & lifecycle** | Client/inbound import-export preserves existing data and attachments; reseller visibility requires explicit attachment; OpenVPN and L2TP accounting and quotas use the same client lifecycle; L2TP recovery is idempotent; bulk attach and client operations are supported. |
+| 🔄 **Updates** | The installer and in-panel updater resolve the latest OMEGA release only. Release builds stamp the actual tag into the panel version, validate the latest Xray-core archive before replacement, and keep rollback guards so a failed update does not leave the old installation unusable. |
+| 🐳 **Docker** | Multi-architecture images are published to [GHCR](https://ghcr.io/dark-sky07/omega) on release tags, with OpenVPN/L2TP device and capability requirements documented in `docker-compose.yml`. |
 | 🎨 **Branding** | Panel name shown as **OMEGA** (sidebar, login page, page titles, API docs, translations). UI branding only; service names and install paths remain unchanged. |
-| 🛠 **Install** | [`install-omega.sh`](install-omega.sh) installs *this* panel from *this* repository; [`x-ui.sh`](x-ui.sh) updates from here too, so `x-ui update` can never silently swap in vanilla 3x-ui. |
+| 🛠 **Install** | [`install-omega.sh`](install-omega.sh) is the canonical fresh-install entry point; [`x-ui.sh`](x-ui.sh) remains the management/compatibility launcher. Both resolve the latest OMEGA release only, and `x-ui update` never falls back to vanilla 3x-ui. |
 | ✅ **Unchanged** | Everything else — all of 3x-ui v3.3.1 (protocols, transports, nodes, subscriptions, Telegram bot, routing, API, themes, 13 languages). |
 
 ### OpenVPN installation and host checklist
@@ -49,9 +58,7 @@ OpenVPN is a host daemon, not an Xray component and not a file inside the `x-ui`
 To install or repair an existing host with the exact stable release, run as `root`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega/install-omega.sh \
-  -o /tmp/install-omega.sh
-env OMEGA_REF=v3.3.25-omega bash /tmp/install-omega.sh v3.3.25-omega
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
 ```
 
 Verify the prerequisite before troubleshooting the network:
@@ -94,6 +101,41 @@ For Docker, the container needs `NET_ADMIN`, `NET_RAW`, `/dev/ppp`, `/dev/net/tu
 
 ---
 
+## :shield: AmneziaWG
+
+OMEGA's AmneziaWG support is a native, end-to-end protocol path. It is not limited to adding an option to the
+inbound form:
+
+- **Server and peer lifecycle:** server keys, client keys, allowed-IP allocation, pre-shared keys, keepalive,
+  enable/disable, add/edit/delete, attach/detach, bulk operations, and restart-safe reconciliation are handled by
+  the same client/inbound services used by the rest of OMEGA.
+- **AWG parameters:** `Jc`, `Jmin`, `Jmax`, `S1`–`S4`, `H1`–`H4`, `I1`–`I5`, and the AWG 3.1 fields such as
+  `HeaderProtectionKey`, `ContentPaddingAddition`, rekey/reject timing, random trailers, and cookie controls are
+  validated and passed to the running AmneziaWG engine.
+- **Panel features:** per-client status, handshake and traffic, quota/expiry enforcement, inbound-specific tunnel
+  addresses, subscriptions, reseller visibility, client transfer/import/export, and diagnostics remain available.
+- **Client profiles:** the panel generates native `[Interface]`/`[Peer]` `.conf` files. The client-details QR code
+  contains the plain configuration expected by the standalone **AmneziaWG Android** app; `vpn://` is kept only for
+  clients that explicitly support the AmneziaVPN URI format. The downloaded `.conf` file and QR payload carry the
+  same obfuscation values.
+
+For Android, use **Client information → AmneziaWG → QR**, or download the `.conf` file and choose **Import from file
+or archive** in the AmneziaWG app. Do not paste an AmneziaVPN `vpn://` URI into the standalone AmneziaWG importer.
+
+## :arrows_counterclockwise: Safe import/export and updates
+
+- **Client transfer:** export includes client configuration and portable inbound-attachment identities, not destination
+  traffic counters or database IDs. Import validates the complete envelope before making changes, matches clients by
+  email, keeps an existing destination client authoritative, and adds missing attachments by default.
+- **Inbound import:** imported inbounds receive local identities while their protocol settings, clients, enabled state,
+  and relevant configuration are preserved. Existing data is not replaced or deleted implicitly; destructive attachment
+  replacement requires the explicit `replaceAttachments` option.
+- **Release/update path:** `dynamic_latest` resolves the newest OMEGA tag, downloads the matching Xray-core archive,
+  validates the archive and binary before activation, and retains the previous working binary for rollback. Existing
+  users are not disconnected until a new binary is ready and validated and a restart is required.
+
+---
+
 ## :rocket: Installation
 
 ### One-line install (recommended)
@@ -101,13 +143,7 @@ For Docker, the container needs `NET_ADMIN`, `NET_RAW`, `/dev/ppp`, `/dev/net/tu
 On a fresh server, as **root**:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega/install-omega.sh) v3.3.25-omega
-```
-
-Pin a specific release instead (useful before a branch is merged):
-
-```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega/install-omega.sh) v3.3.25-omega
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
 ```
 
 The installer takes care of everything:
@@ -176,8 +212,8 @@ and a defined set of quotas — while the admin keeps full control over everythi
 - **Own login.** A reseller signs in on the same login page with its own username/password. Its session can only
   reach `/panel/api/inbounds/*`, `/panel/api/clients/*`, `/panel/api/reseller/*` and `/panel/api/auth/me` — every
   other endpoint answers `403`, and the panel-wide WebSocket feed is admin-only.
-- **Scoped ownership.** An inbound can be handed to a reseller, and individual clients can be assigned directly.
-  A reseller sees exactly what it owns; anything else answers `inbound not found` / `client not found`.
+- **Scoped ownership.** Inbounds and clients have separate attachment relationships. An inbound association alone never exposes all of that inbound's clients: a reseller sees only clients explicitly attached to it; anything else answers `inbound not found` / `client not found`.
+  The admin attachment picker supports multi-select/bulk attach and detach, while individual client assignments remain available for shared inbounds.
   Ownership is stored in mapping tables, so the base inbound/client tables stay pristine.
 - **Quotas.** Traffic cap (the sum of the quotas it allocates to clients), maximum client count, maximum inbound
   count, plus an optional expiry date. A quota of `0` means *unlimited*. Limits are enforced on create, update,
@@ -268,7 +304,7 @@ Panel pages inherited from 3x-ui v3.3.1 (the reseller pages follow the same desi
 
 Inherited from 3x-ui v3.3.1, untouched:
 
-- **Multi-protocol inbounds** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, Hysteria2, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel, and TUN.
+- **Multi-protocol inbounds** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, Hysteria2, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel, and TUN. Native AmneziaWG is documented above as an OMEGA addition.
 - **Modern transports & security** — TCP (Raw), mKCP, WebSocket, gRPC, HTTPUpgrade, and XHTTP, secured with TLS, XTLS, and REALITY.
 - **Fallbacks** — serve multiple protocols on a single port (e.g. VLESS and Trojan on 443) using Xray's fallback support.
 - **Per-client management** — traffic quotas, expiry dates, IP limits, live online status, and one-click share links, QR codes, and subscriptions.
@@ -314,7 +350,7 @@ The source SQLite file is left untouched; remove it manually once you have verif
 
 ### Docker
 
-This fork does not publish images; build one from the repository with the bundled `Dockerfile`, then run it:
+OMEGA publishes multi-architecture images to [GHCR](https://ghcr.io/dark-sky07/omega) for release tags. To build the same image locally instead, use the bundled `Dockerfile`:
 
 ```bash
 git clone https://github.com/Dark-Sky07/OMEGA.git && cd OMEGA
@@ -380,7 +416,7 @@ are the authoritative references.
 - **Upstream project:** [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — this repository is a fork of
   **3x-ui v3.3.1** and inherits its design, documentation and licence. Thanks to
   [alireza0](https://github.com/alireza0/) and every upstream contributor.
-- **Added here:** the reseller (نمایندگی) feature, the OMEGA branding, and the fork-aware installer.
+- **Added here:** reseller (نمایندگی) controls, native AmneziaWG, OpenVPN and L2TP/IPsec integrations, traffic/quota lifecycle support, safe release/update handling, OMEGA branding, and the fork-aware latest-release installer.
 - **Licence:** [GPL-3.0](LICENSE) — same as upstream.
 
 ## Acknowledgment

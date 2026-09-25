@@ -2,20 +2,23 @@ package l2tp
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 func validInstance() Instance {
 	return Instance{
-		Id:       7,
-		Tag:      "in-1701",
-		Port:     DefaultPort,
-		PSK:      "0123456789abcdef0123456789abcdef",
-		PoolCIDR: DefaultPoolCIDR,
-		LocalIP:  DefaultLocalIP,
+		Id:        7,
+		Tag:       "in-1701",
+		Port:      DefaultPort,
+		PSK:       "0123456789abcdef0123456789abcdef",
+		PoolCIDR:  DefaultPoolCIDR,
+		LocalIP:   DefaultLocalIP,
 		PoolStart: DefaultPoolStart,
 		PoolEnd:   DefaultPoolEnd,
 		DNS1:      DefaultDNS1,
@@ -82,6 +85,64 @@ func TestInstanceFromInboundUsesStoredClients(t *testing.T) {
 	}
 }
 
+func TestInstanceFromInboundFiltersPersistedQuotaDisabledClients(t *testing.T) {
+	settings := map[string]any{
+		"psk":       "0123456789abcdef0123456789abcdef",
+		"poolCIDR":  DefaultPoolCIDR,
+		"localIP":   DefaultLocalIP,
+		"poolStart": DefaultPoolStart,
+		"poolEnd":   DefaultPoolEnd,
+		"dns1":      DefaultDNS1,
+		"dns2":      DefaultDNS2,
+		"clients": []model.Client{
+			{Email: "quota@example.com", Password: "quota-password", Enable: true},
+			{Email: "active@example.com", Password: "active-password", Enable: true},
+		},
+	}
+	encoded, err := json.Marshal(settings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ib := &model.Inbound{
+		Id:       5,
+		Tag:      "l2tp-5",
+		Protocol: model.L2TP,
+		Port:     DefaultPort,
+		Settings: string(encoded),
+		ClientStats: []xray.ClientTraffic{
+			{Email: " QUOTA@example.com ", Enable: false},
+		},
+	}
+
+	inst, ok := InstanceFromInbound(ib, nil)
+	if !ok {
+		t.Fatal("expected L2TP settings to produce an instance")
+	}
+	if len(inst.Credentials) != 1 || inst.Credentials[0].Email != "active@example.com" {
+		t.Fatalf("quota-disabled client was retained: %#v", inst.Credentials)
+	}
+}
+
+func TestEnsureControlFIFO(t *testing.T) {
+	root := t.TempDir()
+	l2tpRootOverride = filepath.Join(root, "l2tp")
+	t.Cleanup(func() { l2tpRootOverride = "" })
+
+	if err := ensureControlFIFO(12); err != nil {
+		t.Fatalf("ensureControlFIFO: %v", err)
+	}
+	info, err := os.Lstat(xl2tpdControlPath(12))
+	if err != nil {
+		t.Fatalf("stat control FIFO: %v", err)
+	}
+	if info.Mode()&os.ModeNamedPipe == 0 {
+		t.Fatalf("control path is not a FIFO: %v", info.Mode())
+	}
+	if err := ensureControlFIFO(12); err != nil {
+		t.Fatalf("ensureControlFIFO should be idempotent: %v", err)
+	}
+}
+
 func TestStrongSwanRuntimeFilesUseAppArmorReadableDirectory(t *testing.T) {
 	inst := validInstance()
 	for _, path := range []string{strongSwanConfigPath(inst.Id), ipsecSecretsPath(inst.Id)} {
@@ -114,8 +175,16 @@ func TestRenderConfigQuotesCredentials(t *testing.T) {
 	if !strings.Contains(strongSwan, "include /etc/strongswan.d/charon/*.conf") || !strings.Contains(strongSwan, "secrets_file = "+ipsecSecretsPath(inst.Id)) {
 		t.Fatalf("strongSwan runtime config does not load modular plugins and redirect secrets: %s", strongSwan)
 	}
-	if !strings.Contains(renderIPUpScript(inst), "PEERNAME") || !strings.Contains(renderIPDownScript(inst), "PPP_IFACE") {
-		t.Fatal("PPP accounting hooks do not reference session environment")
+	upScript := renderIPUpScript(inst)
+	downScript := renderIPDownScript(inst)
+	if !strings.Contains(upScript, "PEERNAME") || !strings.Contains(upScript, "IFNAME") || !strings.Contains(upScript, "${1:-}") {
+		t.Fatal("PPP ip-up hook does not support pppd's documented session environment/arguments")
+	}
+	if !strings.Contains(downScript, "PPP_IFACE") || !strings.Contains(downScript, "IFNAME") || !strings.Contains(downScript, "${1:-}") {
+		t.Fatal("PPP ip-down hook does not support pppd's documented interface environment/arguments")
+	}
+	if !strings.HasPrefix(sessionDirPath(inst.Id), "/") {
+		t.Fatalf("session marker path must be absolute for pppd: %q", sessionDirPath(inst.Id))
 	}
 }
 

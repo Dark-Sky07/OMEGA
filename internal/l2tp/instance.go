@@ -44,20 +44,20 @@ type Credential struct {
 
 // Instance is the desired runtime configuration of the single global server.
 type Instance struct {
-	Id                 int
-	Tag                string
-	Listen             string
-	Port               int
-	PSK                string
-	PoolCIDR           string
-	LocalIP            string
-	PoolStart          string
-	PoolEnd            string
-	DNS1               string
-	DNS2               string
-	OutboundInterface  string
-	RedirectGateway    bool
-	Credentials        []Credential
+	Id                int
+	Tag               string
+	Listen            string
+	Port              int
+	PSK               string
+	PoolCIDR          string
+	LocalIP           string
+	PoolStart         string
+	PoolEnd           string
+	DNS1              string
+	DNS2              string
+	OutboundInterface string
+	RedirectGateway   bool
+	Credentials       []Credential
 }
 
 // fingerprint covers every value emitted into the daemon or firewall
@@ -150,15 +150,15 @@ func InstanceFromInbound(ib *model.Inbound, clients []model.Client) (Instance, b
 		return Instance{}, false
 	}
 	var parsed struct {
-		PSK                string `json:"psk"`
-		PoolCIDR           string `json:"poolCIDR"`
-		LocalIP            string `json:"localIP"`
-		PoolStart          string `json:"poolStart"`
-		PoolEnd            string `json:"poolEnd"`
-		DNS1               string `json:"dns1"`
-		DNS2               string `json:"dns2"`
-		OutboundInterface  string `json:"outboundInterface"`
-		RedirectGateway    *bool  `json:"redirectGateway"`
+		PSK               string `json:"psk"`
+		PoolCIDR          string `json:"poolCIDR"`
+		LocalIP           string `json:"localIP"`
+		PoolStart         string `json:"poolStart"`
+		PoolEnd           string `json:"poolEnd"`
+		DNS1              string `json:"dns1"`
+		DNS2              string `json:"dns2"`
+		OutboundInterface string `json:"outboundInterface"`
+		RedirectGateway   *bool  `json:"redirectGateway"`
 	}
 	if err := json.Unmarshal([]byte(ib.Settings), &parsed); err != nil {
 		return Instance{}, false
@@ -169,6 +169,34 @@ func InstanceFromInbound(ib *model.Inbound, clients []model.Client) (Instance, b
 		}
 		if err := json.Unmarshal([]byte(ib.Settings), &stored); err == nil {
 			clients = stored.Clients
+		}
+	}
+
+	// ClientStats is the persisted quota/expiry state. The standalone job
+	// normally supplies an already-filtered client slice, but Local.AddInbound
+	// can call this constructor directly during a write. Apply the same
+	// disabled-state filter here so a client disabled by quota is not briefly
+	// reinstalled into xl2tpd until the next reconcile tick. Missing stats are
+	// intentionally left enabled: a row is only authoritative when it exists
+	// for the canonical email.
+	if len(ib.ClientStats) > 0 {
+		disabled := make(map[string]struct{}, len(ib.ClientStats))
+		for _, stat := range ib.ClientStats {
+			if !stat.Enable {
+				key := strings.ToLower(strings.TrimSpace(stat.Email))
+				if key != "" {
+					disabled[key] = struct{}{}
+				}
+			}
+		}
+		if len(disabled) > 0 {
+			filtered := make([]model.Client, 0, len(clients))
+			for _, client := range clients {
+				if _, skip := disabled[strings.ToLower(strings.TrimSpace(client.Email))]; !skip {
+					filtered = append(filtered, client)
+				}
+			}
+			clients = filtered
 		}
 	}
 	if parsed.PSK == "" {

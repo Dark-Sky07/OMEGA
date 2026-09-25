@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -286,6 +287,13 @@ func (s *Server) startTask(restartXray bool) {
 	s.cron.AddJob("@every 10s", mtJob)
 	go mtJob.Run()
 
+	// Reconcile native AmneziaWG interfaces independently of Xray. Traffic
+	// enters the injected local SOCKS inbound, so the existing Xray traffic
+	// sampler continues to account it per client.
+	awgJob := job.NewAmneziaWGJob()
+	s.cron.AddJob("@every 10s", awgJob)
+	go awgJob.Run()
+
 	// Reconcile openvpn daemons and scrape their per-client traffic
 	ovpnJob := job.NewOpenvpnJob()
 	s.cron.AddJob("@every 10s", ovpnJob)
@@ -481,6 +489,7 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	if stopXray {
 		s.xrayService.StopXray()
 		mtproto.GetManager().StopAll()
+		amneziawgnet.GetManager().StopAll()
 		openvpn.GetManager().StopAll()
 		l2tp.GetManager().StopAll()
 	}

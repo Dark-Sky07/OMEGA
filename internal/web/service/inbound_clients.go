@@ -39,10 +39,10 @@ func (s *InboundService) enrichClientStats(db *gorm.DB, inbounds []*model.Inboun
 		}
 		cMap := make(map[string]model.Client, len(clients))
 		for _, c := range clients {
-			cMap[strings.ToLower(c.Email)] = c
+			cMap[transferEmailKey(c.Email)] = c
 		}
 		for j := range inbound.ClientStats {
-			email := strings.ToLower(inbound.ClientStats[j].Email)
+			email := transferEmailKey(inbound.ClientStats[j].Email)
 			if c, ok := cMap[email]; ok {
 				inbound.ClientStats[j].UUID = c.ID
 				inbound.ClientStats[j].SubId = c.SubID
@@ -65,7 +65,7 @@ func (s *InboundService) backfillClientStats(db *gorm.DB, inbounds []*model.Inbo
 		seen := make(map[string]struct{}, len(inbound.ClientStats))
 		for _, st := range inbound.ClientStats {
 			if st.Email != "" {
-				seen[strings.ToLower(st.Email)] = struct{}{}
+				seen[transferEmailKey(st.Email)] = struct{}{}
 			}
 		}
 		seenByInbound[i] = seen
@@ -73,8 +73,10 @@ func (s *InboundService) backfillClientStats(db *gorm.DB, inbounds []*model.Inbo
 			if c.Email == "" {
 				continue
 			}
-			if _, ok := seen[strings.ToLower(c.Email)]; !ok {
-				missing[c.Email] = struct{}{}
+			if key := transferEmailKey(c.Email); key != "" {
+				if _, ok := seen[key]; !ok {
+					missing[key] = struct{}{}
+				}
 			}
 		}
 	}
@@ -87,7 +89,7 @@ func (s *InboundService) backfillClientStats(db *gorm.DB, inbounds []*model.Inbo
 		var loadErr error
 		for _, batch := range chunkStrings(emails, sqlInChunk) {
 			var page []xray.ClientTraffic
-			if err := db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Find(&page).Error; err != nil {
+			if err := db.Model(xray.ClientTraffic{}).Where("LOWER(TRIM(email)) IN ?", batch).Find(&page).Error; err != nil {
 				loadErr = err
 				break
 			}
@@ -98,14 +100,14 @@ func (s *InboundService) backfillClientStats(db *gorm.DB, inbounds []*model.Inbo
 		} else {
 			byEmail := make(map[string]xray.ClientTraffic, len(extra))
 			for _, st := range extra {
-				byEmail[strings.ToLower(st.Email)] = st
+				byEmail[transferEmailKey(st.Email)] = st
 			}
 			for i, inbound := range inbounds {
 				for _, c := range clientsByInbound[i] {
 					if c.Email == "" {
 						continue
 					}
-					key := strings.ToLower(c.Email)
+					key := transferEmailKey(c.Email)
 					if _, ok := seenByInbound[i][key]; ok {
 						continue
 					}
@@ -129,7 +131,7 @@ func (s *InboundService) emailUsedByOtherInbounds(email string, exceptInboundId 
 	db := database.GetDB()
 	var count int64
 	query := fmt.Sprintf(
-		"SELECT COUNT(*) %s WHERE inbounds.id != ? AND LOWER(%s) = LOWER(?)",
+		"SELECT COUNT(*) %s WHERE inbounds.id != ? AND LOWER(TRIM(%s)) = LOWER(TRIM(?))",
 		database.JSONClientsFromInbound(),
 		database.JSONFieldText("client.value", "email"),
 	)
@@ -143,7 +145,7 @@ func (s *InboundService) emailsUsedByOtherInbounds(emails []string, exceptInboun
 	shared := make(map[string]bool, len(emails))
 	want := make(map[string]struct{}, len(emails))
 	for _, e := range emails {
-		e = strings.ToLower(strings.TrimSpace(e))
+		e = transferEmailKey(e)
 		if e != "" {
 			want[e] = struct{}{}
 		}
@@ -154,7 +156,7 @@ func (s *InboundService) emailsUsedByOtherInbounds(emails []string, exceptInboun
 	db := database.GetDB()
 	var rows []string
 	query := fmt.Sprintf(
-		"SELECT DISTINCT LOWER(%s) %s WHERE inbounds.id != ?",
+		"SELECT DISTINCT LOWER(TRIM(%s)) %s WHERE inbounds.id != ?",
 		database.JSONFieldText("client.value", "email"),
 		database.JSONClientsFromInbound(),
 	)
@@ -162,7 +164,7 @@ func (s *InboundService) emailsUsedByOtherInbounds(emails []string, exceptInboun
 		return nil, err
 	}
 	for _, e := range rows {
-		e = strings.ToLower(strings.TrimSpace(e))
+		e = transferEmailKey(e)
 		if _, ok := want[e]; ok {
 			shared[e] = true
 		}
@@ -238,8 +240,8 @@ func (s *InboundService) nextAvailableCopiedEmail(originalEmail string, targetID
 	candidate := base
 	suffix := 0
 	for {
-		if _, exists := occupied[strings.ToLower(candidate)]; !exists {
-			occupied[strings.ToLower(candidate)] = struct{}{}
+		if _, exists := occupied[transferEmailKey(candidate)]; !exists {
+			occupied[transferEmailKey(candidate)] = struct{}{}
 			return candidate
 		}
 		suffix++
@@ -277,7 +279,7 @@ func (s *InboundService) CopyInboundClients(targetInboundID int, sourceInboundID
 	allowedEmails := map[string]struct{}{}
 	if len(clientEmails) > 0 {
 		for _, email := range clientEmails {
-			allowedEmails[strings.ToLower(strings.TrimSpace(email))] = struct{}{}
+			allowedEmails[transferEmailKey(email)] = struct{}{}
 		}
 	}
 
@@ -289,7 +291,7 @@ func (s *InboundService) CopyInboundClients(targetInboundID int, sourceInboundID
 	for _, email := range allEmails {
 		clean := strings.Trim(email, "\"")
 		if clean != "" {
-			occupiedEmails[strings.ToLower(clean)] = struct{}{}
+			occupiedEmails[transferEmailKey(clean)] = struct{}{}
 		}
 	}
 
@@ -301,7 +303,7 @@ func (s *InboundService) CopyInboundClients(targetInboundID int, sourceInboundID
 			continue
 		}
 		if len(allowedEmails) > 0 {
-			if _, ok := allowedEmails[strings.ToLower(originalEmail)]; !ok {
+			if _, ok := allowedEmails[transferEmailKey(originalEmail)]; !ok {
 				continue
 			}
 		}
@@ -385,7 +387,7 @@ func (s *InboundService) GetClientInboundByTrafficID(trafficId int) (traffic *xr
 func (s *InboundService) GetClientInboundByEmail(email string) (traffic *xray.ClientTraffic, inbound *model.Inbound, err error) {
 	db := database.GetDB()
 	var traffics []*xray.ClientTraffic
-	err = db.Model(xray.ClientTraffic{}).Where("email = ?", email).Find(&traffics).Error
+	err = db.Model(xray.ClientTraffic{}).Where("LOWER(TRIM(email)) = LOWER(?)", strings.TrimSpace(email)).Find(&traffics).Error
 	if err != nil {
 		logger.Warningf("Error retrieving ClientTraffic with email %s: %v", email, err)
 		return nil, nil, err
@@ -427,7 +429,7 @@ func (s *InboundService) GetClientByEmail(clientEmail string) (*xray.ClientTraff
 	}
 
 	for _, client := range clients {
-		if client.Email == clientEmail {
+		if strings.EqualFold(strings.TrimSpace(client.Email), strings.TrimSpace(clientEmail)) {
 			return traffic, &client, nil
 		}
 	}

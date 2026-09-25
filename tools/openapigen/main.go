@@ -71,10 +71,16 @@ func run(root, outDir string) error {
 		{
 			Path: resolveRel(root, "internal/web/service"),
 			StructAllow: setOf(
+				"AmneziaWGLogs",
 				"InboundOption",
 				"L2TPInboundOption",
+				"PeerActivity",
 				"ProbeResultUI",
 			),
+		},
+		{
+			Path:        resolveRel(root, "internal/amneziawg"),
+			StructAllow: setOf("ServerSettings"),
 		},
 		{
 			Path:        resolveRel(root, "internal/web/service/panel"),

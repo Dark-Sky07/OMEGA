@@ -43,10 +43,10 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 	records := make([]*model.ClientRecord, 0, len(emails))
 	seenEmail := make(map[string]struct{}, len(emails))
 	for _, email := range emails {
-		if email == "" {
+		key := transferEmailKey(email)
+		if key == "" {
 			continue
 		}
-		key := strings.ToLower(email)
 		if _, ok := seenEmail[key]; ok {
 			continue
 		}
@@ -79,12 +79,12 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 		}
 		have := make(map[string]struct{}, len(existingClients))
 		for _, c := range existingClients {
-			have[strings.ToLower(c.Email)] = struct{}{}
+			have[transferEmailKey(c.Email)] = struct{}{}
 		}
 
 		clientsToAdd := make([]model.Client, 0, len(records))
 		for _, rec := range records {
-			if _, attached := have[strings.ToLower(rec.Email)]; attached {
+			if _, attached := have[transferEmailKey(rec.Email)]; attached {
 				result.Skipped = append(result.Skipped, rec.Email)
 				continue
 			}
@@ -157,10 +157,10 @@ func (s *ClientService) BulkDetach(inboundSvc *InboundService, emails []string, 
 	emailFailed := make(map[string]bool, len(emails))
 	seenEmail := make(map[string]struct{}, len(emails))
 	for _, email := range emails {
-		if email == "" {
+		key := transferEmailKey(email)
+		if key == "" {
 			continue
 		}
-		key := strings.ToLower(email)
 		if _, ok := seenEmail[key]; ok {
 			continue
 		}
@@ -202,7 +202,7 @@ func (s *ClientService) BulkDetach(inboundSvc *InboundService, emails []string, 
 		if err != nil {
 			recordErr("inbound %d: %v", ibId, err)
 			for _, rec := range recs {
-				emailFailed[strings.ToLower(rec.Email)] = true
+				emailFailed[transferEmailKey(rec.Email)] = true
 			}
 			continue
 		}
@@ -251,6 +251,18 @@ type bulkAdjustEntry struct {
 // settings JSON is parsed and written exactly once regardless of how
 // many target emails it contains.
 func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, addDays int, addBytes int64) (BulkAdjustResult, bool, error) {
+	return s.bulkAdjust(inboundSvc, emails, addDays, addBytes, nil, false)
+}
+
+// BulkAdjustForInbounds applies bulk quota changes only to the supplied
+// inbounds. The admin-facing BulkAdjust remains association-wide; reseller
+// callers use this scoped variant so a shared client does not update an
+// unrelated inbound's settings.
+func (s *ClientService) BulkAdjustForInbounds(inboundSvc *InboundService, emails []string, addDays int, addBytes int64, inboundIDs []int) (BulkAdjustResult, bool, error) {
+	return s.bulkAdjust(inboundSvc, emails, addDays, addBytes, inboundIDs, true)
+}
+
+func (s *ClientService) bulkAdjust(inboundSvc *InboundService, emails []string, addDays int, addBytes int64, inboundIDs []int, scoped bool) (BulkAdjustResult, bool, error) {
 	result := BulkAdjustResult{}
 	if len(emails) == 0 {
 		return result, false, nil
@@ -264,7 +276,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 	seen := map[string]struct{}{}
 	cleanEmails := make([]string, 0, len(emails))
 	for _, e := range emails {
-		e = strings.TrimSpace(e)
+		e = transferEmailKey(e)
 		if e == "" {
 			continue
 		}
@@ -283,14 +295,14 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 	var records []model.ClientRecord
 	for _, batch := range chunkStrings(cleanEmails, sqlInChunk) {
 		var rows []model.ClientRecord
-		if err := db.Where("email IN ?", batch).Find(&rows).Error; err != nil {
+		if err := db.Where("LOWER(TRIM(email)) IN ?", batch).Find(&rows).Error; err != nil {
 			return result, false, err
 		}
 		records = append(records, rows...)
 	}
 	recordsByEmail := make(map[string]*model.ClientRecord, len(records))
 	for i := range records {
-		recordsByEmail[records[i].Email] = &records[i]
+		recordsByEmail[transferEmailKey(records[i].Email)] = &records[i]
 	}
 
 	skippedReasons := map[string]string{}
@@ -300,8 +312,30 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 		}
 	}
 
+	if scoped {
+		// Client limits and traffic rows are canonical/email-global. Refuse
+		// the whole adjustment for a client that is shared with an inbound
+		// outside this operation's scope, even when a non-HTTP caller invokes
+		// this service directly instead of passing through the controller guard.
+		for email, rec := range recordsByEmail {
+			if _, skipped := skippedReasons[email]; skipped {
+				continue
+			}
+			currentIDs, idsErr := s.GetInboundIdsForRecord(rec.Id)
+			if idsErr != nil {
+				return result, false, idsErr
+			}
+			if !allInboundIDsInScope(currentIDs, inboundIDs) {
+				skippedReasons[email] = "client has an association outside reseller scope"
+			}
+		}
+	}
+
 	plan := map[string]*bulkAdjustEntry{}
 	for email, rec := range recordsByEmail {
+		if _, skipped := skippedReasons[email]; skipped {
+			continue
+		}
 		entry := &bulkAdjustEntry{record: rec}
 		if addDays != 0 {
 			switch {
@@ -369,11 +403,26 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 		}
 		mappings = append(mappings, rows...)
 	}
+	allowedInboundIDs := make(map[int]struct{}, len(inboundIDs))
+	if scoped {
+		for _, inboundID := range inboundIDs {
+			if inboundID > 0 {
+				allowedInboundIDs[inboundID] = struct{}{}
+			}
+		}
+	}
 	emailsByInbound := map[int][]string{}
+	scopedMatches := make(map[string]struct{}, len(plan))
 	for _, m := range mappings {
 		email, ok := recordIdToEmail[m.ClientId]
 		if !ok {
 			continue
+		}
+		if scoped {
+			if _, allowed := allowedInboundIDs[m.InboundId]; !allowed {
+				continue
+			}
+			scopedMatches[email] = struct{}{}
 		}
 		emailsByInbound[m.InboundId] = append(emailsByInbound[m.InboundId], email)
 	}
@@ -395,6 +444,12 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 		if _, skipped := skippedReasons[email]; skipped {
 			continue
 		}
+		if scoped {
+			if _, matched := scopedMatches[email]; !matched {
+				skippedReasons[email] = "client is not attached to a reseller-owned inbound"
+				continue
+			}
+		}
 		updates := map[string]any{}
 		if entry.applyExpiry {
 			updates["expiry_time"] = entry.newExpiry
@@ -405,7 +460,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 		if len(updates) == 0 {
 			continue
 		}
-		if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).Updates(updates).Error; err != nil {
+		if err := db.Model(xray.ClientTraffic{}).Where("LOWER(TRIM(email)) = LOWER(?)", email).Updates(updates).Error; err != nil {
 			if _, already := skippedReasons[email]; !already {
 				skippedReasons[email] = err.Error()
 			}
@@ -462,15 +517,17 @@ func (s *ClientService) bulkAdjustInboundClients(
 	// can drift from the inbound JSON, so they are never used for matching.
 	wantedEmails := make(map[string]struct{}, len(emails))
 	for _, email := range emails {
-		if plan[email] == nil {
-			res.perEmailSkipped[email] = "client not found"
+		key := transferEmailKey(email)
+		if plan[key] == nil {
+			res.perEmailSkipped[key] = "client not found"
 			continue
 		}
-		wantedEmails[email] = struct{}{}
+		wantedEmails[key] = struct{}{}
 	}
 
 	interfaceClients, _ := settings["clients"].([]any)
 	foundEmails := map[string]bool{}
+	emailByKey := make(map[string]string, len(wantedEmails))
 	nowMs := time.Now().Unix() * 1000
 	for i, client := range interfaceClients {
 		c, ok := client.(map[string]any)
@@ -478,10 +535,11 @@ func (s *ClientService) bulkAdjustInboundClients(
 			continue
 		}
 		targetEmail, _ := c["email"].(string)
-		if _, want := wantedEmails[targetEmail]; !want || targetEmail == "" {
+		targetKey := transferEmailKey(targetEmail)
+		if _, want := wantedEmails[targetKey]; !want || targetKey == "" {
 			continue
 		}
-		entry := plan[targetEmail]
+		entry := plan[targetKey]
 		if entry.applyExpiry {
 			c["expiryTime"] = entry.newExpiry
 		}
@@ -490,7 +548,8 @@ func (s *ClientService) bulkAdjustInboundClients(
 		}
 		c["updated_at"] = nowMs
 		interfaceClients[i] = c
-		foundEmails[targetEmail] = true
+		foundEmails[targetKey] = true
+		emailByKey[targetKey] = strings.TrimSpace(targetEmail)
 	}
 
 	for email := range wantedEmails {
@@ -536,7 +595,11 @@ func (s *ClientService) bulkAdjustInboundClients(
 						updated.TotalGB = entry.newTotal
 					}
 					updated.UpdatedAt = nowMs
-					if err1 := rt.UpdateUser(context.Background(), oldInbound, email, updated); err1 != nil {
+					runtimeEmail := emailByKey[email]
+					if runtimeEmail == "" {
+						runtimeEmail = email
+					}
+					if err1 := rt.UpdateUser(context.Background(), oldInbound, runtimeEmail, updated); err1 != nil {
 						logger.Warning("Error in updating client on", rt.Name(), ":", err1)
 						markDirty = true
 					}
@@ -576,6 +639,16 @@ func (s *ClientService) bulkAdjustInboundClients(
 type BulkDeleteResult struct {
 	Deleted int                `json:"deleted"`
 	Skipped []BulkDeleteReport `json:"skipped,omitempty"`
+
+	// DeletedEmails is an internal companion for scoped controller callers.
+	// Keep it out of the wire response so the existing frontend contract stays
+	// unchanged while reseller routes can revoke mappings for clients whose
+	// scoped attachments were actually removed.
+	DeletedEmails []string `json:"-"`
+	// UnassignedEmails covers explicitly mapped clients that had no attachment
+	// in the requested reseller scope. The canonical client is untouched, but
+	// the reseller delete action still revokes its independent visibility map.
+	UnassignedEmails []string `json:"-"`
 }
 
 type BulkDeleteReport struct {
@@ -596,7 +669,7 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 	seen := map[string]struct{}{}
 	cleanEmails := make([]string, 0, len(emails))
 	for _, e := range emails {
-		e = strings.TrimSpace(e)
+		e = transferEmailKey(e)
 		if e == "" {
 			continue
 		}
@@ -615,7 +688,7 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 	var records []model.ClientRecord
 	for _, batch := range chunkStrings(cleanEmails, sqlInChunk) {
 		var rows []model.ClientRecord
-		if err := db.Where("email IN ?", batch).Find(&rows).Error; err != nil {
+		if err := db.Where("LOWER(TRIM(email)) IN ?", batch).Find(&rows).Error; err != nil {
 			return result, false, err
 		}
 		records = append(records, rows...)
@@ -623,7 +696,7 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 	recordsByEmail := make(map[string]*model.ClientRecord, len(records))
 	tombstoneEmails := make([]string, 0, len(records))
 	for i := range records {
-		recordsByEmail[records[i].Email] = &records[i]
+		recordsByEmail[transferEmailKey(records[i].Email)] = &records[i]
 		tombstoneEmails = append(tombstoneEmails, records[i].Email)
 	}
 	tombstoneClientEmails(tombstoneEmails)
@@ -692,16 +765,21 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 		}
 		if !keepTraffic && len(successEmails) > 0 {
 			for _, batch := range chunkStrings(successEmails, sqlInChunk) {
-				if err := db.Where("email IN ?", batch).Delete(&xray.ClientTraffic{}).Error; err != nil {
+				if err := db.Where("LOWER(TRIM(email)) IN ?", batch).Delete(&xray.ClientTraffic{}).Error; err != nil {
 					return result, needRestart, err
 				}
-				if err := db.Where("client_email IN ?", batch).Delete(&model.InboundClientIps{}).Error; err != nil {
+				if err := db.Where("LOWER(TRIM(client_email)) IN ?", batch).Delete(&model.InboundClientIps{}).Error; err != nil {
 					return result, needRestart, err
 				}
 			}
 		}
 		for _, batch := range chunkInts(successIds, sqlInChunk) {
 			if err := db.Where("id IN ?", batch).Delete(&model.ClientRecord{}).Error; err != nil {
+				return result, needRestart, err
+			}
+		}
+		for _, batch := range chunkStrings(successEmails, sqlInChunk) {
+			if err := db.Where("LOWER(TRIM(email)) IN ?", batch).Delete(&model.ResellerClient{}).Error; err != nil {
 				return result, needRestart, err
 			}
 		}
@@ -712,6 +790,93 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 		result.Skipped = append(result.Skipped, BulkDeleteReport{Email: email, Reason: reason})
 	}
 	return result, needRestart, nil
+}
+
+// BulkDeleteForInbounds is the reseller-safe deletion path. The optimized
+// admin bulk pipeline intentionally removes canonical records and all
+// associations; this path delegates each email to the scoped single-delete
+// operation so an unrelated admin-owned association is preserved.
+func (s *ClientService) BulkDeleteForInbounds(inboundSvc *InboundService, emails []string, keepTraffic bool, inboundIDs []int) (BulkDeleteResult, bool, error) {
+	result := BulkDeleteResult{}
+	needRestart := false
+	seen := make(map[string]struct{}, len(emails))
+	for _, raw := range emails {
+		email := transferEmailKey(raw)
+		if email == "" {
+			continue
+		}
+		if _, duplicate := seen[email]; duplicate {
+			continue
+		}
+		seen[email] = struct{}{}
+
+		rec, recErr := s.GetRecordByEmail(nil, email)
+		if recErr != nil {
+			result.Skipped = append(result.Skipped, BulkDeleteReport{Email: email, Reason: recErr.Error()})
+			continue
+		}
+		beforeIDs, idsErr := s.GetInboundIdsForRecord(rec.Id)
+		if idsErr != nil {
+			result.Skipped = append(result.Skipped, BulkDeleteReport{Email: email, Reason: idsErr.Error()})
+			continue
+		}
+		if !hasInboundIntersection(beforeIDs, inboundIDs) {
+			result.Skipped = append(result.Skipped, BulkDeleteReport{Email: email, Reason: "client is not attached to a reseller-owned inbound"})
+			result.UnassignedEmails = append(result.UnassignedEmails, email)
+			continue
+		}
+
+		callRestart, err := s.DeleteByEmailForInbounds(inboundSvc, email, keepTraffic, inboundIDs)
+		if err != nil {
+			result.Skipped = append(result.Skipped, BulkDeleteReport{Email: email, Reason: err.Error()})
+			continue
+		}
+		removed := true
+		if after, afterErr := s.GetInboundIdsForRecord(rec.Id); afterErr == nil {
+			removed = hasScopedAssociationRemoval(beforeIDs, after, inboundIDs)
+		} else if !database.IsNotFound(afterErr) {
+			result.Skipped = append(result.Skipped, BulkDeleteReport{Email: email, Reason: afterErr.Error()})
+			continue
+		}
+		if !removed {
+			result.Skipped = append(result.Skipped, BulkDeleteReport{Email: email, Reason: "client attachment was not removed"})
+			continue
+		}
+		result.Deleted++
+		result.DeletedEmails = append(result.DeletedEmails, email)
+		if callRestart {
+			needRestart = true
+		}
+	}
+	return result, needRestart, nil
+}
+
+func hasInboundIntersection(current, allowed []int) bool {
+	allowedSet := make(map[int]struct{}, len(allowed))
+	for _, id := range allowed {
+		allowedSet[id] = struct{}{}
+	}
+	for _, id := range current {
+		if _, ok := allowedSet[id]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+func hasScopedAssociationRemoval(before, after, allowed []int) bool {
+	remaining := make(map[int]struct{}, len(after))
+	for _, id := range after {
+		remaining[id] = struct{}{}
+	}
+	for _, id := range before {
+		if hasInboundIntersection([]int{id}, allowed) {
+			if _, stillAttached := remaining[id]; !stillAttached {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 type bulkInboundDeleteResult struct {
@@ -756,16 +921,18 @@ func (s *ClientService) bulkDelInboundClients(
 	// entry carrying a wanted email, independent of credential drift.
 	wantedEmails := make(map[string]struct{}, len(emails))
 	for _, email := range emails {
-		if records[email] == nil {
-			res.perEmailSkipped[email] = "client not found"
+		key := transferEmailKey(email)
+		if records[key] == nil {
+			res.perEmailSkipped[key] = "client not found"
 			continue
 		}
-		wantedEmails[email] = struct{}{}
+		wantedEmails[key] = struct{}{}
 	}
 
 	interfaceClients, _ := settings["clients"].([]any)
 	newClients := make([]any, 0, len(interfaceClients))
 	foundEmails := map[string]bool{}
+	emailByKey := map[string]string{}
 	enableByEmail := map[string]bool{}
 	for _, client := range interfaceClients {
 		c, ok := client.(map[string]any)
@@ -774,10 +941,12 @@ func (s *ClientService) bulkDelInboundClients(
 			continue
 		}
 		em, _ := c["email"].(string)
-		if _, found := wantedEmails[em]; found && em != "" {
-			foundEmails[em] = true
+		key := transferEmailKey(em)
+		if _, found := wantedEmails[key]; found && key != "" {
+			foundEmails[key] = true
+			emailByKey[key] = strings.TrimSpace(em)
 			en, _ := c["enable"].(bool)
-			enableByEmail[em] = en
+			enableByEmail[key] = en
 			continue
 		}
 		newClients = append(newClients, client)
@@ -820,11 +989,11 @@ func (s *ClientService) bulkDelInboundClients(
 		for _, batch := range chunkStrings(foundList, sqlInChunk) {
 			var rows []trafficRow
 			if err := db.Model(xray.ClientTraffic{}).
-				Where("email IN ?", batch).
+				Where("LOWER(TRIM(email)) IN ?", batch).
 				Select("email, enable").
 				Scan(&rows).Error; err == nil {
 				for _, r := range rows {
-					notDepletedByEmail[r.Email] = r.Enable
+					notDepletedByEmail[transferEmailKey(r.Email)] = r.Enable
 				}
 			}
 		}
@@ -845,7 +1014,7 @@ func (s *ClientService) bulkDelInboundClients(
 	if !keepTraffic {
 		purge := make([]string, 0, len(foundEmails))
 		for email := range foundEmails {
-			if !sharedSet[strings.ToLower(strings.TrimSpace(email))] {
+			if !sharedSet[transferEmailKey(email)] {
 				purge = append(purge, email)
 			}
 		}
@@ -876,10 +1045,14 @@ func (s *ClientService) bulkDelInboundClients(
 				if !enableByEmail[email] || !notDepletedByEmail[email] {
 					continue
 				}
-				err1 := rt.RemoveUser(context.Background(), oldInbound, email)
+				clientEmail := emailByKey[email]
+				if clientEmail == "" {
+					clientEmail = email
+				}
+				err1 := rt.RemoveUser(context.Background(), oldInbound, clientEmail)
 				if err1 == nil {
-					logger.Debug("Client deleted on", rt.Name(), ":", email)
-				} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", email)) {
+					logger.Debug("Client deleted on", rt.Name(), ":", clientEmail)
+				} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", clientEmail)) {
 					logger.Debug("User is already deleted. Nothing to do more...")
 				} else {
 					logger.Debug("Error in deleting client on", rt.Name(), ":", err1)
@@ -900,8 +1073,12 @@ func (s *ClientService) bulkDelInboundClients(
 			}
 			if push {
 				for email := range foundEmails {
-					if err1 := rt.DeleteUser(context.Background(), oldInbound, email); err1 != nil {
-						logger.Warning("Error in deleting client on", rt.Name(), ":", err1)
+					clientEmail := emailByKey[email]
+					if clientEmail == "" {
+						clientEmail = email
+					}
+					if err1 := rt.DeleteUser(context.Background(), oldInbound, clientEmail); err1 != nil {
+						logger.Warning("Error in deleting client on", rt.Name(), ":", clientEmail, err1)
 						markDirty = true
 					}
 				}
@@ -947,8 +1124,9 @@ func (s *ClientService) bulkDelInboundClients(
 
 // BulkCreateResult mirrors BulkAdjustResult for the create flow.
 type BulkCreateResult struct {
-	Created int                `json:"created"`
-	Skipped []BulkCreateReport `json:"skipped,omitempty"`
+	Created       int                `json:"created"`
+	CreatedEmails []string           `json:"createdEmails,omitempty"`
+	Skipped       []BulkCreateReport `json:"skipped,omitempty"`
 }
 
 type BulkCreateReport struct {
@@ -1017,7 +1195,7 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 		}
 		client.UpdatedAt = now
 
-		le := strings.ToLower(email)
+		le := transferEmailKey(email)
 		if _, dup := seenEmail[le]; dup {
 			skip(email, "email already in use: "+email)
 			continue
@@ -1030,7 +1208,7 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 		seenSubID[client.SubID] = le
 
 		prep = append(prep, prepared{client: client, inboundIds: payloads[i].InboundIds})
-		emails = append(emails, email)
+		emails = append(emails, le)
 		subIDs = append(subIDs, client.SubID)
 	}
 
@@ -1044,11 +1222,11 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 	for start := 0; start < len(emails); start += lookupChunk {
 		end := min(start+lookupChunk, len(emails))
 		var rows []model.ClientRecord
-		if e := db.Where("email IN ?", emails[start:end]).Find(&rows).Error; e != nil {
+		if e := db.Where("LOWER(TRIM(email)) IN ?", emails[start:end]).Find(&rows).Error; e != nil {
 			return result, false, e
 		}
 		for i := range rows {
-			existingEmailSub[strings.ToLower(rows[i].Email)] = rows[i].SubID
+			existingEmailSub[transferEmailKey(rows[i].Email)] = rows[i].SubID
 		}
 	}
 	existingSubOwner := make(map[string]string, len(subIDs))
@@ -1059,7 +1237,7 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 			return result, false, e
 		}
 		for i := range rows {
-			existingSubOwner[rows[i].SubID] = strings.ToLower(rows[i].Email)
+			existingSubOwner[rows[i].SubID] = transferEmailKey(rows[i].Email)
 		}
 	}
 
@@ -1083,7 +1261,7 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 	reason := make([]string, len(prep))
 
 	for idx := range prep {
-		le := strings.ToLower(prep[idx].client.Email)
+		le := transferEmailKey(prep[idx].client.Email)
 		if existSub, ok := existingEmailSub[le]; ok && existSub != prep[idx].client.SubID {
 			failed[idx] = true
 			reason[idx] = "email already in use: " + prep[idx].client.Email
@@ -1149,6 +1327,7 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 			skip(prep[idx].client.Email, reason[idx])
 		} else {
 			result.Created++
+			result.CreatedEmails = append(result.CreatedEmails, prep[idx].client.Email)
 		}
 	}
 	return result, needRestart, nil

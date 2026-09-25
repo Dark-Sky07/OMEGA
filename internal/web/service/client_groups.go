@@ -25,7 +25,7 @@ func (s *ClientService) ListGroups() ([]GroupSummary, error) {
 	var derived []GroupSummary
 	if err := db.Table("clients AS c").
 		Select("c.group_name AS name, COUNT(*) AS client_count, COALESCE(SUM(ct.up + ct.down), 0) AS traffic_used, COALESCE(SUM(ct.up), 0) AS up, COALESCE(SUM(ct.down), 0) AS down").
-		Joins("LEFT JOIN client_traffics ct ON ct.email = c.email").
+		Joins("LEFT JOIN client_traffics ct ON LOWER(TRIM(ct.email)) = LOWER(TRIM(c.email))").
 		Where("c.group_name <> ''").
 		Group("c.group_name").
 		Scan(&derived).Error; err != nil {
@@ -126,6 +126,20 @@ func (s *ClientService) AddToGroup(emails []string, group string) (int, error) {
 		return 0, nil
 	}
 	db := database.GetDB()
+	normalizedEmails := make([]string, 0, len(emails))
+	seenEmails := make(map[string]struct{}, len(emails))
+	for _, email := range emails {
+		if key := transferEmailKey(email); key != "" {
+			if _, seen := seenEmails[key]; !seen {
+				seenEmails[key] = struct{}{}
+				normalizedEmails = append(normalizedEmails, key)
+			}
+		}
+	}
+	emails = normalizedEmails
+	if len(emails) == 0 {
+		return 0, nil
+	}
 
 	if group != "" {
 		var exists int64
@@ -148,7 +162,7 @@ func (s *ClientService) AddToGroup(emails []string, group string) (int, error) {
 	var records []model.ClientRecord
 	for _, batch := range chunkStrings(emails, sqlInChunk) {
 		var rows []model.ClientRecord
-		if err := db.Where("email IN ?", batch).Find(&rows).Error; err != nil {
+		if err := db.Where("LOWER(TRIM(email)) IN ?", batch).Find(&rows).Error; err != nil {
 			return 0, err
 		}
 		records = append(records, rows...)
@@ -158,13 +172,13 @@ func (s *ClientService) AddToGroup(emails []string, group string) (int, error) {
 	}
 	affectedEmails := make([]string, 0, len(records))
 	for _, r := range records {
-		affectedEmails = append(affectedEmails, r.Email)
+		affectedEmails = append(affectedEmails, transferEmailKey(r.Email))
 	}
 
 	tx := db.Begin()
 	for _, batch := range chunkStrings(affectedEmails, sqlInChunk) {
 		if err := tx.Model(&model.ClientRecord{}).
-			Where("email IN ?", batch).
+			Where("LOWER(TRIM(email)) IN ?", batch).
 			UpdateColumn("group_name", group).Error; err != nil {
 			tx.Rollback()
 			return 0, err
@@ -177,7 +191,7 @@ func (s *ClientService) AddToGroup(emails []string, group string) (int, error) {
 		var ids []int
 		if err := tx.Table("client_inbounds").
 			Joins("JOIN clients ON clients.id = client_inbounds.client_id").
-			Where("clients.email IN ?", batch).
+			Where("LOWER(TRIM(clients.email)) IN ?", batch).
 			Distinct("client_inbounds.inbound_id").
 			Pluck("inbound_id", &ids).Error; err != nil {
 			tx.Rollback()
@@ -193,7 +207,7 @@ func (s *ClientService) AddToGroup(emails []string, group string) (int, error) {
 
 	emailSet := make(map[string]struct{}, len(affectedEmails))
 	for _, e := range affectedEmails {
-		emailSet[e] = struct{}{}
+		emailSet[transferEmailKey(e)] = struct{}{}
 	}
 
 	for _, ibID := range inboundIDs {
@@ -217,7 +231,7 @@ func (s *ClientService) AddToGroup(emails []string, group string) (int, error) {
 				continue
 			}
 			email, _ := cm["email"].(string)
-			if _, hit := emailSet[email]; !hit {
+			if _, hit := emailSet[transferEmailKey(email)]; !hit {
 				continue
 			}
 			if group == "" {
@@ -268,7 +282,7 @@ func (s *ClientService) replaceGroupValue(oldName, newName string) (int, error) 
 	}
 	affectedEmails := make([]string, 0, len(records))
 	for _, r := range records {
-		affectedEmails = append(affectedEmails, r.Email)
+		affectedEmails = append(affectedEmails, transferEmailKey(r.Email))
 	}
 
 	tx := db.Begin()
@@ -285,7 +299,7 @@ func (s *ClientService) replaceGroupValue(oldName, newName string) (int, error) 
 		var ids []int
 		if err := tx.Table("client_inbounds").
 			Joins("JOIN clients ON clients.id = client_inbounds.client_id").
-			Where("clients.email IN ?", batch).
+			Where("LOWER(TRIM(clients.email)) IN ?", batch).
 			Distinct("client_inbounds.inbound_id").
 			Pluck("inbound_id", &ids).Error; err != nil {
 			tx.Rollback()

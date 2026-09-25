@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
 
 	"github.com/gin-gonic/gin"
@@ -44,8 +45,20 @@ var resellerAllowedExact = []string{
 // API. Admin sessions (and API-token requests) pass through untouched.
 func ResellerGuard() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if session.GetLoginReseller(c) == nil {
+		reseller := session.GetLoginReseller(c)
+		if reseller == nil {
 			c.Next()
+			return
+		}
+		// Session epochs invalidate password/enable changes, but an expiry
+		// timestamp can pass without an epoch bump. Enforce the account state at
+		// the API boundary as well, so an already-open reseller session cannot
+		// continue to read or mutate tenant data after it expires or is disabled.
+		if err := (&service.ResellerService{}).EnsureActive(reseller); err != nil {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"success": false,
+				"msg":     err.Error(),
+			})
 			return
 		}
 

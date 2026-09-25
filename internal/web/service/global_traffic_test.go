@@ -84,6 +84,35 @@ func TestGlobalUsage_DisablesClient(t *testing.T) {
 	}
 }
 
+func TestAddTrafficDoesNotReenableDisabledClient(t *testing.T) {
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+	seedClientRow(t, "vpn-user@example.com", 1, 0, 0, 1000)
+	if err := db.Model(&xray.ClientTraffic{}).
+		Where("email = ?", "vpn-user@example.com").
+		Update("enable", false).Error; err != nil {
+		t.Fatalf("disable traffic row: %v", err)
+	}
+
+	_, _, err := svc.AddTraffic(nil, []*xray.ClientTraffic{{
+		InboundId: 1,
+		Email:     "VPN-USER@example.com",
+		Enable:    true, // collector payload must not control the persisted flag
+		Up:        25,
+		Down:      35,
+	}})
+	if err != nil {
+		t.Fatalf("AddTraffic: %v", err)
+	}
+	row := readTraffic(t, db, "vpn-user@example.com")
+	if row.Enable {
+		t.Fatal("traffic persistence re-enabled a quota-disabled client")
+	}
+	if row.Up != 25 || row.Down != 35 {
+		t.Fatalf("traffic delta was not persisted, got up=%d down=%d", row.Up, row.Down)
+	}
+}
+
 func TestGlobalRows_ClearedOnReset(t *testing.T) {
 	db := initTrafficTestDB(t)
 	svc := &InboundService{}

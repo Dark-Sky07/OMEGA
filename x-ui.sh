@@ -209,18 +209,12 @@ update_menu() {
 }
 
 legacy_version() {
-    echo -n "Enter the panel version (like 2.4.0):"
-    read -r tag_version
-
-    if [ -z "$tag_version" ]; then
-        echo "Panel version cannot be empty. Exiting."
-        exit 1
-    fi
-    # Use the entered panel version in the download link
-    install_command="bash <(curl -Ls "https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v$tag_version/install-omega.sh") v$tag_version"
-
-    echo "Downloading and installing panel version $tag_version..."
-    eval $install_command
+    # The historical version selector used to fetch an arbitrary tag. That
+    # made a menu action an accidental downgrade path and could install a
+    # release with a mismatched launcher. Keep the menu entry safe by routing
+    # it through the same latest-release resolver as install/update.
+    echo "Version-pinned installation is no longer supported; resolving the latest OMEGA release."
+    omega_run_installer
 }
 
 # Function to handle the deletion of the script file
@@ -271,7 +265,7 @@ uninstall() {
     echo ""
     echo -e "Uninstalled Successfully.\n"
     echo "If you need to install this panel again, you can use below command:"
-    echo -e "${green}bash <(curl -Ls https://raw.githubusercontent.com/Dark-Sky07/OMEGA/v3.3.25-omega/install-omega.sh) v3.3.25-omega${plain}"
+    echo -e "${green}bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install${plain}"
     echo ""
     # Trap the SIGTERM signal
     trap delete_script SIGTERM

@@ -335,7 +335,9 @@ export default function InboundsPage() {
       value: '',
       json: true,
       confirm: async (value) => {
-        const msg = await HttpUtil.post('/panel/api/inbounds/import', { data: value });
+        const form = new FormData();
+        form.append('data', value);
+        const msg = await HttpUtil.post('/panel/api/inbounds/import', form);
         if (msg?.success) {
           await refresh();
           return true;

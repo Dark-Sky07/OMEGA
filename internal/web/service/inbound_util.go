@@ -17,8 +17,10 @@ func normalizeSubSortIndex(v int) int {
 	return v
 }
 
-// uniqueNonEmptyStrings returns a deduplicated copy of in with empty strings
-// removed, preserving the order of first occurrence.
+// uniqueNonEmptyStrings returns a deduplicated copy of client email inputs
+// with surrounding whitespace and case differences collapsed. All current
+// callers use it for email-keyed traffic operations, whose database identity
+// is case-insensitive even when legacy rows were stored with mixed casing.
 func uniqueNonEmptyStrings(in []string) []string {
 	if len(in) == 0 {
 		return nil
@@ -26,6 +28,7 @@ func uniqueNonEmptyStrings(in []string) []string {
 	seen := make(map[string]struct{}, len(in))
 	out := make([]string, 0, len(in))
 	for _, v := range in {
+		v = transferEmailKey(v)
 		if v == "" {
 			continue
 		}

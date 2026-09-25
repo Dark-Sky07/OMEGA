@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -123,5 +124,118 @@ func TestAddInbound_ImportStatsMissingClientStillGetsTrafficRow(t *testing.T) {
 	}
 	if erin.Total != 2000 {
 		t.Fatalf("erin Total = %d, want 2000 (quota taken from client settings)", erin.Total)
+	}
+}
+
+func TestAddInboundPreservingExistingClientsKeepsDestinationRecord(t *testing.T) {
+	setupConflictDB(t)
+
+	existing := &model.ClientRecord{
+		Email:      "shared@example.com",
+		SubID:      "destination-sub",
+		UUID:       "destination-uuid",
+		Password:   "destination-password",
+		Auth:       "destination-auth",
+		Flow:       "destination-flow",
+		Security:   "tls",
+		LimitIP:    7,
+		TotalGB:    321,
+		ExpiryTime: 123456,
+		Enable:     false,
+		Comment:    "destination-comment",
+		CreatedAt:  111,
+		UpdatedAt:  222,
+	}
+	if err := database.GetDB().Create(existing).Error; err != nil {
+		t.Fatalf("seed canonical client: %v", err)
+	}
+
+	inbound := &model.Inbound{
+		UserId:         1,
+		Tag:            "import-preserve-9443",
+		Enable:         true,
+		Listen:         "0.0.0.0",
+		Port:           9443,
+		Protocol:       model.VLESS,
+		StreamSettings: `{"network":"tcp"}`,
+		Settings:       `{"clients":[{"email":"shared@example.com","subId":"destination-sub","id":"source-uuid","password":"source-password","totalGB":9999,"enable":true,"flow":"source-flow"}]}`,
+	}
+	if err := (&InboundService{}).PrepareInboundImport(inbound); err != nil {
+		t.Fatalf("PrepareInboundImport: %v", err)
+	}
+	if _, _, err := (&InboundService{}).AddInboundPreservingExistingClients(inbound); err != nil {
+		t.Fatalf("AddInboundPreservingExistingClients: %v", err)
+	}
+
+	var got model.ClientRecord
+	if err := database.GetDB().Where("email = ?", existing.Email).First(&got).Error; err != nil {
+		t.Fatalf("load canonical client: %v", err)
+	}
+	if got.SubID != existing.SubID || got.UUID != existing.UUID || got.Password != existing.Password ||
+		got.Auth != existing.Auth || got.Flow != existing.Flow || got.Security != existing.Security ||
+		got.LimitIP != existing.LimitIP || got.TotalGB != existing.TotalGB || got.ExpiryTime != existing.ExpiryTime ||
+		got.Enable != existing.Enable || got.Comment != existing.Comment || got.CreatedAt != existing.CreatedAt || got.UpdatedAt != existing.UpdatedAt {
+		t.Fatalf("destination client was overwritten: got %+v want %+v", got, *existing)
+	}
+
+	var linkCount int64
+	if err := database.GetDB().Model(&model.ClientInbound{}).
+		Where("client_id = ? AND inbound_id = ?", got.Id, inbound.Id).
+		Count(&linkCount).Error; err != nil {
+		t.Fatalf("query imported association: %v", err)
+	}
+	if linkCount != 1 {
+		t.Fatalf("imported association count = %d, want 1", linkCount)
+	}
+}
+
+func TestPrepareInboundImportPreservesExistingCanonicalClient(t *testing.T) {
+	setupConflictDB(t)
+
+	existing := &model.ClientRecord{
+		Email:      "shared@example.com",
+		SubID:      "destination-sub",
+		UUID:       "destination-uuid",
+		Password:   "destination-password",
+		Auth:       "destination-auth",
+		Flow:       "destination-flow",
+		LimitIP:    7,
+		TotalGB:    321,
+		ExpiryTime: 123456,
+		Enable:     false,
+		Comment:    "destination-comment",
+		CreatedAt:  111,
+		UpdatedAt:  222,
+	}
+	if err := database.GetDB().Create(existing).Error; err != nil {
+		t.Fatalf("seed canonical client: %v", err)
+	}
+	// GORM applies the ClientRecord default:true tag to a zero-value bool on
+	// insert. Set the intentional disabled destination state explicitly so this
+	// test verifies import preservation rather than the ORM default.
+	if err := database.GetDB().Model(&model.ClientRecord{}).Where("id = ?", existing.Id).Update("enable", false).Error; err != nil {
+		t.Fatalf("set canonical client disabled: %v", err)
+	}
+
+	inbound := &model.Inbound{Settings: `{"clients":[{"email":"shared@example.com","subId":"destination-sub","id":"source-uuid","password":"source-password","totalGB":9999,"enable":true},{"email":"new@example.com","id":"new-uuid"}],"decryption":"none"}`}
+	if err := (&InboundService{}).PrepareInboundImport(inbound); err != nil {
+		t.Fatalf("PrepareInboundImport: %v", err)
+	}
+
+	var settings map[string]any
+	if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+		t.Fatalf("prepared settings are not JSON: %v", err)
+	}
+	clients, ok := settings["clients"].([]any)
+	if !ok || len(clients) != 2 {
+		t.Fatalf("prepared clients = %v, want two entries", settings["clients"])
+	}
+	canonical := clients[0].(map[string]any)
+	if canonical["id"] != "destination-uuid" || canonical["password"] != "destination-password" || canonical["totalGB"] != float64(321) || canonical["enable"] != false {
+		t.Fatalf("existing canonical client was replaced: %v", canonical)
+	}
+	newClient := clients[1].(map[string]any)
+	if newClient["id"] != "new-uuid" {
+		t.Fatalf("new client payload was unexpectedly changed: %v", newClient)
 	}
 }

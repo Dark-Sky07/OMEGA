@@ -163,6 +163,10 @@ export class DBInbound {
         return this.protocol === Protocols.WIREGUARD;
     }
 
+    get isAmneziaWG() {
+        return this.protocol === Protocols.AMNEZIAWG;
+    }
+
     get isHysteria() {
         return this.protocol === Protocols.HYSTERIA;
     }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Button, Modal, Space, Statistic, Upload } from 'antd';
+import { Alert, Button, Checkbox, Modal, Space, Statistic, Upload } from 'antd';
 import type { UploadFile } from 'antd';
 import { InboxOutlined, UploadOutlined } from '@ant-design/icons';
 
@@ -27,6 +27,7 @@ export default function ClientTransferModal({ open, onOpenChange, onImported }: 
   const [payload, setPayload] = useState<unknown>(null);
   const [parseError, setParseError] = useState('');
   const [report, setReport] = useState<TransferReport | null>(null);
+  const [replaceAttachments, setReplaceAttachments] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export default function ClientTransferModal({ open, onOpenChange, onImported }: 
       setPayload(null);
       setParseError('');
       setReport(null);
+      setReplaceAttachments(false);
       setSubmitting(false);
     }
   }, [open]);
@@ -71,7 +73,10 @@ export default function ClientTransferModal({ open, onOpenChange, onImported }: 
     }
     setSubmitting(true);
     try {
-      const msg = await HttpUtil.post<TransferReport>('/panel/api/clients/import', payload);
+      const requestPayload = payload && typeof payload === 'object' && !Array.isArray(payload)
+        ? { ...(payload as Record<string, unknown>), replaceAttachments }
+        : payload;
+      const msg = await HttpUtil.post<TransferReport>('/panel/api/clients/import', requestPayload);
       const nextReport = (msg.obj || {}) as TransferReport;
       setReport(nextReport);
       if (msg.success && (nextReport.failed || 0) === 0) {
@@ -103,6 +108,9 @@ export default function ClientTransferModal({ open, onOpenChange, onImported }: 
           showIcon
           message="The file is validated before any client or inbound is changed. Existing traffic usage is not imported."
         />
+        <Checkbox checked={replaceAttachments} onChange={(event) => setReplaceAttachments(event.target.checked)}>
+          Replace existing client-to-inbound attachments not listed in the file
+        </Checkbox>
         <Dragger
           accept=".json,application/json"
           maxCount={1}
@@ -117,6 +125,7 @@ export default function ClientTransferModal({ open, onOpenChange, onImported }: 
             setPayload(null);
             setParseError('');
             setReport(null);
+            setReplaceAttachments(false);
           }}
         >
           <p className="ant-upload-drag-icon"><InboxOutlined /></p>

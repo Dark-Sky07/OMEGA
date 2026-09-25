@@ -306,9 +306,10 @@ func (m *Manager) StopAll() {
 }
 
 // CollectTraffic reads pppd session markers and Linux interface counters. pppd
-// invokes the managed ip-up/ip-down hooks with PEERNAME and PPP_IFACE, which
-// gives us a stable email-to-interface mapping without inventing a profile or
-// requiring a RADIUS accounting server.
+// invokes the managed ip-up/ip-down hooks with PEERNAME and the interface name
+// in $1/$IFNAME (some distro wrappers also export PPP_IFACE), which gives us a
+// stable email-to-interface mapping without inventing a profile or requiring a
+// RADIUS accounting server.
 func (m *Manager) CollectTraffic() (inbounds []InboundTraffic, clients []ClientTrafficDelta) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -324,7 +325,12 @@ func (m *Manager) CollectTraffic() (inbounds []InboundTraffic, clients []ClientT
 	if m.proc.online == nil {
 		m.proc.online = make(map[string]bool)
 	}
-	current := readSessions(m.id)
+	current, countersOK := readSessions(m.id)
+	if !countersOK {
+		// A transient marker/interface read failure must not clear baselines or
+		// report a false zero. Retry on the next polling tick.
+		return nil, nil
+	}
 	newOnline := make(map[string]bool, len(current))
 	deltaByEmail := make(map[string]ClientTrafficDelta)
 	var totalUp, totalDown int64
@@ -344,8 +350,8 @@ func (m *Manager) CollectTraffic() (inbounds []InboundTraffic, clients []ClientT
 			down = counter.tx - previous.tx
 		}
 		addDelta(deltaByEmail, m.id, email, up, down)
-		totalUp += up
-		totalDown += down
+		totalUp = saturatingCounterAdd(totalUp, up)
+		totalDown = saturatingCounterAdd(totalDown, down)
 		m.proc.last[key] = counter
 	}
 	for key := range m.proc.last {

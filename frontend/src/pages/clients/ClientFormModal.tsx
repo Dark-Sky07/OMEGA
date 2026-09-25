@@ -32,7 +32,7 @@ const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 const VMESS_SECURITY_OPTIONS = ['auto', 'aes-128-gcm', 'chacha20-poly1305', 'none', 'zero'] as const;
 
 const MULTI_CLIENT_PROTOCOLS = new Set([
-  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'openvpn', 'l2tp',
+  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'wireguard', 'amneziawg', 'openvpn', 'l2tp',
 ]);
 
 const CLIENT_FORM_MODAL_Z_INDEX = 1000;
@@ -98,6 +98,13 @@ interface FormState {
   comment: string;
   enable: boolean;
   inboundIds: number[];
+  privateKey: string;
+  publicKey: string;
+  preSharedKey: string;
+  allowedIPs: string;
+  allowedIPsByInbound: Record<string, string>;
+  keepAlive: number;
+  forwardedPorts: string;
 }
 
 function emptyForm(): FormState {
@@ -121,6 +128,13 @@ function emptyForm(): FormState {
     comment: '',
     enable: true,
     inboundIds: [],
+    privateKey: '',
+    publicKey: '',
+    preSharedKey: '',
+    allowedIPs: '',
+    allowedIPsByInbound: {},
+    keepAlive: 0,
+    forwardedPorts: '',
   };
 }
 
@@ -132,6 +146,38 @@ function bytesToGB(bytes: number): number {
 function gbToBytes(gb: number): number {
   if (!gb || gb <= 0) return 0;
   return Math.round(gb * 1024 * 1024 * 1024);
+}
+
+// Keep the comma-separated database representation and the form's list
+// representation interchangeable. Empty values are deliberately omitted so
+// a partial client update cannot manufacture a blank peer address.
+export function parseAllowedIPsList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .filter((entry): entry is string => typeof entry === 'string')
+      .flatMap((entry) => parseAllowedIPsList(entry));
+  }
+  if (typeof value !== 'string') return [];
+  return value.split(',').map((entry) => entry.trim()).filter(Boolean);
+}
+
+// A shared client identity can be attached to both native WireGuard and
+// AmneziaWG. The backend exposes the two protocol-specific address values
+// separately; this helper keeps the UI payload keyed by inbound id rather than
+// accidentally copying one protocol's address into the other.
+export function resolveTunnelAllowedIPsByInbound(
+  attachedIds: number[],
+  wireguardIds: Set<number>,
+  amneziawgIds: Set<number>,
+  wireguardAllowedIPs: unknown,
+  amneziawgAllowedIPs: unknown,
+): Record<number, string[]> {
+  const result: Record<number, string[]> = {};
+  const wireguardId = attachedIds.find((id) => wireguardIds.has(id));
+  const amneziawgId = attachedIds.find((id) => amneziawgIds.has(id));
+  if (wireguardId !== undefined) result[wireguardId] = parseAllowedIPsList(wireguardAllowedIPs);
+  if (amneziawgId !== undefined) result[amneziawgId] = parseAllowedIPsList(amneziawgAllowedIPs);
+  return result;
 }
 
 export default function ClientFormModal({
@@ -186,6 +232,18 @@ export default function ClientFormModal({
         comment: client.comment || '',
         enable: !!client.enable,
         inboundIds: Array.isArray(attachedIds) ? [...attachedIds] : [],
+        privateKey: client.privateKey || '',
+        publicKey: client.publicKey || '',
+        preSharedKey: client.preSharedKey || '',
+        allowedIPs: parseAllowedIPsList(client.allowedIPs).join(', '),
+        allowedIPsByInbound: Object.fromEntries(
+          Object.entries(client.allowedIPsByInbound || {}).map(([id, value]) => [
+            id,
+            parseAllowedIPsList(value).join(', '),
+          ]),
+        ),
+        keepAlive: Number(client.keepAlive) || 0,
+        forwardedPorts: client.forwardedPorts || '',
       };
       if (et < 0) {
         next.delayedStart = true;
@@ -300,6 +358,18 @@ export default function ClientFormModal({
     [inbounds],
   );
 
+  const tunnelInbounds = useMemo(
+    () => (inbounds || []).filter((ib) =>
+      (ib.protocol || '') === 'wireguard' || (ib.protocol || '') === 'amneziawg',
+    ),
+    [inbounds],
+  );
+  const selectedTunnelInbounds = useMemo(
+    () => tunnelInbounds.filter((ib) => (form.inboundIds || []).includes(ib.id)),
+    [tunnelInbounds, form.inboundIds],
+  );
+  const showTunnelSettings = selectedTunnelInbounds.length > 0;
+
   async function loadIps() {
     if (!isEdit || !client?.email) return;
     setIpsLoading(true);
@@ -398,6 +468,24 @@ export default function ClientFormModal({
     const reverseTag = showReverseTag ? (form.reverseTag || '').trim() : '';
     if (reverseTag) {
       clientPayload.reverse = { tag: reverseTag };
+    }
+
+    if (showTunnelSettings) {
+      clientPayload.privateKey = form.privateKey.trim();
+      clientPayload.publicKey = form.publicKey.trim();
+      clientPayload.preSharedKey = form.preSharedKey.trim();
+      clientPayload.allowedIPs = parseAllowedIPsList(form.allowedIPs);
+      clientPayload.keepAlive = Number(form.keepAlive) || 0;
+      clientPayload.forwardedPorts = form.forwardedPorts.trim();
+      const perInbound: Record<number, string[]> = {};
+      for (const inbound of selectedTunnelInbounds) {
+        const value = form.allowedIPsByInbound[String(inbound.id)] ?? '';
+        const entries = parseAllowedIPsList(value);
+        if (entries.length > 0) perInbound[inbound.id] = entries;
+      }
+      if (Object.keys(perInbound).length > 0) {
+        clientPayload.allowedIPsByInbound = perInbound;
+      }
     }
 
     setSubmitting(true);
@@ -689,6 +777,90 @@ export default function ClientFormModal({
                         </Col>
                       )}
                     </Row>
+
+                    {showTunnelSettings && (
+                      <>
+                        <Tag color="gold" style={{ marginBottom: 12 }}>
+                          WireGuard / AmneziaWG peer credentials
+                        </Tag>
+                        <Row gutter={16}>
+                          <Col xs={24} md={12}>
+                            <Form.Item label="Peer private key">
+                              <Input.Password
+                                value={form.privateKey}
+                                onChange={(e) => update('privateKey', e.target.value)}
+                              />
+                            </Form.Item>
+                          </Col>
+                          <Col xs={24} md={12}>
+                            <Form.Item label="Peer public key">
+                              <Input
+                                value={form.publicKey}
+                                onChange={(e) => update('publicKey', e.target.value)}
+                              />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+                        <Row gutter={16}>
+                          <Col xs={24} md={12}>
+                            <Form.Item label="Preshared key">
+                              <Input.Password
+                                value={form.preSharedKey}
+                                onChange={(e) => update('preSharedKey', e.target.value)}
+                              />
+                            </Form.Item>
+                          </Col>
+                          <Col xs={24} md={12}>
+                            <Form.Item label="Persistent keepalive">
+                              <InputNumber
+                                min={0}
+                                value={form.keepAlive}
+                                style={{ width: '100%' }}
+                                onChange={(v) => update('keepAlive', Number(v) || 0)}
+                              />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+                        <Form.Item label="Shared Allowed IPs">
+                          <Input
+                            value={form.allowedIPs}
+                            placeholder="10.8.1.2/32"
+                            onChange={(e) => update('allowedIPs', e.target.value)}
+                          />
+                        </Form.Item>
+                        {selectedTunnelInbounds.map((inbound) => (
+                          <Form.Item
+                            key={inbound.id}
+                            label={`Allowed IPs — ${formatInboundLabel(inbound.tag, inbound.remark)}`}
+                            extra="Use a comma-separated list; blank keeps the existing peer address or lets the server allocate one."
+                          >
+                            <Input
+                              value={form.allowedIPsByInbound[String(inbound.id)] ?? ''}
+                              placeholder={form.allowedIPs || 'auto'}
+                              onChange={(e) => setForm((previous) => ({
+                                ...previous,
+                                allowedIPsByInbound: {
+                                  ...previous.allowedIPsByInbound,
+                                  [String(inbound.id)]: e.target.value,
+                                },
+                              }))}
+                            />
+                          </Form.Item>
+                        ))}
+                        {selectedTunnelInbounds.some((inbound) => inbound.protocol === 'amneziawg') && (
+                          <Form.Item
+                            label="Forwarded ports"
+                            extra="Optional AmneziaWG port forwarding, for example 80,443 or 8000-8100."
+                          >
+                            <Input
+                              value={form.forwardedPorts}
+                              placeholder="80,443"
+                              onChange={(e) => update('forwardedPorts', e.target.value)}
+                            />
+                          </Form.Item>
+                        )}
+                      </>
+                    )}
                   </>
                 ),
               },

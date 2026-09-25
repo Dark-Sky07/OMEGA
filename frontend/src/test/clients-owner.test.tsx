@@ -101,20 +101,21 @@ describe('clients page owner tags (admin)', () => {
     const directRow = rowFor('direct@example.com');
     expect(directRow.textContent).toContain('Ali');
 
-    // Ownership via the attached inbound.
+    // Inbound ownership does not implicitly own every attached client.
     const inboundRow = rowFor('via-inbound@example.com');
-    expect(inboundRow.textContent).toContain('Ali');
+    expect(inboundRow.textContent).not.toContain('Ali');
+    expect(inboundRow.textContent).toContain('Admin');
 
     // Admin-created clients are labelled as the admin's.
     const adminRow = rowFor('admin@example.com');
     expect(adminRow.textContent).toContain('Admin');
 
-    // Exactly two reseller (blue) tags in the table body.
+    // Only the explicitly assigned client receives the reseller tag.
     const tags = Array.from(document.querySelectorAll('.ant-table-tbody .ant-tag'));
     const aliTags = tags.filter((tag) => tag.textContent === 'Ali');
     const adminTags = tags.filter((tag) => tag.textContent === 'Admin');
-    expect(aliTags.length).toBe(2);
-    expect(adminTags.length).toBe(1);
+    expect(aliTags.length).toBe(1);
+    expect(adminTags.length).toBe(2);
     expect(aliTags[0].className).toContain('ant-tag-blue');
   });
 

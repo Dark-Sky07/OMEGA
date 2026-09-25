@@ -93,29 +93,29 @@ is_port_in_use() {
 install_base() {
     case "${release}" in
         ubuntu | debian | armbian)
-            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl
+            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl unzip
             ;;
         fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl
+            dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl unzip
             ;;
         centos)
             if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum -y update && yum install -y cronie curl tar tzdata socat ca-certificates openssl
+                yum -y update && yum install -y cronie curl tar tzdata socat ca-certificates openssl unzip
             else
-                dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl
+                dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl unzip
             fi
             ;;
         arch | manjaro | parch)
-            pacman -Syu && pacman -Syu --noconfirm cronie curl tar tzdata socat ca-certificates openssl
+            pacman -Syu && pacman -Syu --noconfirm cronie curl tar tzdata socat ca-certificates openssl unzip
             ;;
         opensuse-tumbleweed | opensuse-leap)
-            zypper refresh && zypper -q install -y cron curl tar timezone socat ca-certificates openssl
+            zypper refresh && zypper -q install -y cron curl tar timezone socat ca-certificates openssl unzip
             ;;
         alpine)
-            apk update && apk add dcron curl tar tzdata socat ca-certificates openssl
+            apk update && apk add dcron curl tar tzdata socat ca-certificates openssl unzip
             ;;
         *)
-            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl
+            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl unzip
             ;;
     esac
 }
@@ -1302,21 +1302,100 @@ EOF
     ${xui_folder}/x-ui migrate
 }
 
-# Panel-side assets (x-ui.sh, systemd units, x-ui.rc) are fetched from the OMEGA
-# repository at the ref being installed — the release tag — so a given panel
-# version always installs the matching management script and units. Set
-# OMEGA_REF to force a specific ref instead (e.g. OMEGA_REF=main to track the
-# branch); "main" is used as the fallback when a tag lacks a file.
-omega_ref="${OMEGA_REF:-${1:-${tag_version:-main}}}"
-omega_ref_fallback="main"
-[[ -n "${OMEGA_REF:-}" ]] && omega_ref_fallback="${OMEGA_REF}"
+# Panel-side assets (x-ui.sh, systemd units, x-ui.rc) are fetched from the
+# exact OMEGA release tag selected by the dynamic launcher. Never fall back to
+# a branch or an older tag: mixing files from different releases can pair an
+# incompatible management script with the panel binary.
+omega_latest_tag() {
+    curl -4fsSL "https://api.github.com/repos/${OMEGA_REPO}/releases/latest" \
+        | grep -m1 '"tag_name":' \
+        | sed -E 's/.*"([^"]+)".*/\1/'
+}
+omega_ref="${OMEGA_REF:-${1:-${tag_version:-}}}"
+if [[ -z "${omega_ref}" ]]; then
+    omega_ref="$(omega_latest_tag)"
+fi
+if [[ -z "${omega_ref}" ]]; then
+    echo -e "${red}Could not resolve the latest OMEGA release tag; installation aborted.${plain}"
+    exit 1
+fi
 omega_raw_fetch() {
     local out="$1" path="$2"
-    curl -fLRo "$out" "https://raw.githubusercontent.com/${OMEGA_REPO}/${omega_ref}/${path}" > /dev/null 2>&1
-    if [[ $? -ne 0 && "${omega_ref}" != "${omega_ref_fallback}" ]]; then
-        echo -e "${yellow}Ref '${omega_ref}' has no ${path}, trying ${omega_ref_fallback}...${plain}"
-        curl -fLRo "$out" "https://raw.githubusercontent.com/${OMEGA_REPO}/${omega_ref_fallback}/${path}" > /dev/null 2>&1
+    if ! curl -fLRo "$out" "https://raw.githubusercontent.com/${OMEGA_REPO}/${omega_ref}/${path}" > /dev/null 2>&1; then
+        echo -e "${red}Release '${omega_ref}' does not contain ${path}; installation aborted.${plain}"
+        rm -f "$out"
+        return 1
     fi
+}
+
+# The panel archive may contain an older bundled core. Resolve and stage the
+# current Xray release before stopping or replacing an existing installation,
+# then install it over the archive copy after extraction.
+XRAY_VERSION=""
+xray_install_archive=""
+
+resolve_latest_xray_version() {
+    local releases version
+    releases="$(curl -4fsSL --retry 3 --connect-timeout 10 "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=20")" || return 1
+    version="$(printf '%s\n' "$releases" \
+        | grep -oE '"tag_name"[[:space:]]*:[[:space:]]*"v[0-9]+\.[0-9]+\.[0-9]+"' \
+        | sed -E 's/.*"(v[0-9]+\.[0-9]+\.[0-9]+)"/\1/' \
+        | sort -V \
+        | tail -n 1)"
+    [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || return 1
+    printf '%s\n' "$version"
+}
+
+stage_latest_xray() {
+    local xray_arch archive_url
+    XRAY_VERSION="${OMEGA_XRAY_VERSION:-$(resolve_latest_xray_version)}" || {
+        echo -e "${red}Failed to resolve the latest Xray-core release; installation aborted before changing the current panel.${plain}"
+        exit 1
+    }
+    case "$(arch)" in
+        amd64) xray_arch="64" ;;
+        386) xray_arch="32" ;;
+        arm64) xray_arch="arm64-v8a" ;;
+        armv7) xray_arch="arm32-v7a" ;;
+        armv6) xray_arch="arm32-v6" ;;
+        armv5) xray_arch="arm32-v5" ;;
+        s390x) xray_arch="s390x" ;;
+        *) echo -e "${red}Unsupported architecture for Xray-core: $(arch)${plain}"; exit 1 ;;
+    esac
+    archive_url="https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/Xray-linux-${xray_arch}.zip"
+    xray_install_archive="$(mktemp "/tmp/xray-${XRAY_VERSION#v}.XXXXXX.zip")" || exit 1
+    if ! curl -4fsSL --retry 3 -o "$xray_install_archive" "$archive_url" || ! unzip -tq "$xray_install_archive" > /dev/null 2>&1; then
+        rm -f "$xray_install_archive"
+        xray_install_archive=""
+        echo -e "${red}Failed to stage latest Xray-core ${XRAY_VERSION}; installation aborted before changing the current panel.${plain}"
+        exit 1
+    fi
+    echo -e "${green}Staged latest Xray-core ${XRAY_VERSION}${plain}"
+}
+
+install_staged_xray() {
+    local extract_dir target
+    if [[ -z "$xray_install_archive" ]]; then
+        echo -e "${red}No staged Xray-core archive is available.${plain}"
+        exit 1
+    fi
+    extract_dir="$(mktemp -d "/tmp/xray-extract.XXXXXX")" || exit 1
+    if ! unzip -q "$xray_install_archive" -d "$extract_dir" || [[ ! -f "$extract_dir/xray" ]]; then
+        rm -rf "$extract_dir" "$xray_install_archive"
+        xray_install_archive=""
+        echo -e "${red}Failed to extract latest Xray-core ${XRAY_VERSION}; installation aborted.${plain}"
+        exit 1
+    fi
+    target="bin/xray-linux-$(arch)"
+    if ! install -m 0755 "$extract_dir/xray" "$target"; then
+        rm -rf "$extract_dir" "$xray_install_archive"
+        xray_install_archive=""
+        echo -e "${red}Failed to install latest Xray-core ${XRAY_VERSION}; installation aborted.${plain}"
+        exit 1
+    fi
+    rm -rf "$extract_dir" "$xray_install_archive"
+    xray_install_archive=""
+    echo -e "${green}Installed latest Xray-core ${XRAY_VERSION}${plain}"
 }
 
 install_x-ui() {
@@ -1324,10 +1403,10 @@ install_x-ui() {
 
     # Download resources
     if [ $# == 0 ]; then
-        tag_version="${OMEGA_TAG:-$(curl -Ls "https://api.github.com/repos/${OMEGA_REPO}/releases" | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}"
+        tag_version="${OMEGA_TAG:-$(curl -4fsSL "https://api.github.com/repos/${OMEGA_REPO}/releases/latest" | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}"
         if [[ ! -n "$tag_version" ]]; then
             echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
-            tag_version="${OMEGA_TAG:-$(curl -4 -Ls "https://api.github.com/repos/${OMEGA_REPO}/releases" | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}"
+            tag_version="${OMEGA_TAG:-$(curl -4fsSL "https://api.github.com/repos/${OMEGA_REPO}/releases/latest" | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}"
             if [[ ! -n "$tag_version" ]]; then
                 echo -e "${red}Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later${plain}"
                 exit 1
@@ -1357,6 +1436,9 @@ install_x-ui() {
             exit 1
         fi
     fi
+
+    # Stage the current core before any service stop or directory replacement.
+    stage_latest_xray
     omega_raw_fetch /usr/bin/x-ui-temp x-ui.sh
     if [[ ! -s /usr/bin/x-ui-temp ]]; then
         echo -e "${red}Failed to download x-ui.sh${plain}"
@@ -1383,19 +1465,25 @@ install_x-ui() {
     rm x-ui-linux-$(arch).tar.gz -f
 
     cd x-ui
+    # Replace any stale core bundled in the panel archive.
+    install_staged_xray
     chmod +x x-ui
     chmod +x x-ui.sh
 
     # Check the system's architecture and rename the file accordingly
     if [[ $(arch) == "armv5" || $(arch) == "armv6" || $(arch) == "armv7" ]]; then
-        mv bin/xray-linux-$(arch) bin/xray-linux-arm
-        chmod +x bin/xray-linux-arm
+        mv bin/xray-linux-$(arch) bin/xray-linux-arm32
+        chmod +x bin/xray-linux-arm32
         if [[ -f bin/mtg-linux-$(arch) ]]; then
             mv bin/mtg-linux-$(arch) bin/mtg-linux-arm
             chmod +x bin/mtg-linux-arm
         fi
     fi
-    chmod +x x-ui bin/xray-linux-$(arch)
+    if [[ $(arch) == "armv5" || $(arch) == "armv6" || $(arch) == "armv7" ]]; then
+        chmod +x x-ui bin/xray-linux-arm32
+    else
+        chmod +x x-ui bin/xray-linux-$(arch)
+    fi
     if [[ -f bin/mtg-linux-arm ]]; then
         chmod +x bin/mtg-linux-arm
     elif [[ -f bin/mtg-linux-$(arch) ]]; then

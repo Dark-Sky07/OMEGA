@@ -24,7 +24,10 @@ type AuthController struct {
 
 // NewAuthController registers the session-identity endpoint.
 func NewAuthController(g *gin.RouterGroup, users panel.UserService) *AuthController {
-	a := &AuthController{userService: users}
+	a := &AuthController{
+		resellerService: service.ResellerService{},
+		userService:     users,
+	}
 	g.GET("/me", a.me)
 	return a
 }

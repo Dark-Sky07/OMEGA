@@ -26,9 +26,9 @@ type NetworkManager struct {
 }
 
 type networkState struct {
-	poolCIDR        string   `json:"poolCIDR"`
-	interfaceName   string   `json:"interfaceName"`
-	fixedInputPorts []int    `json:"fixedInputPorts"`
+	poolCIDR        string `json:"poolCIDR"`
+	interfaceName   string `json:"interfaceName"`
+	fixedInputPorts []int  `json:"fixedInputPorts"`
 }
 
 func networkStatePath(id int) string {
@@ -68,9 +68,9 @@ func GetNetworkManager() *NetworkManager {
 			rules:      make(map[int]networkState),
 			sysctlPath: "/proc/sys/net/ipv4/ip_forward",
 			runner: func(name string, args ...string) ([]byte, error) {
-			return exec.Command(name, args...).CombinedOutput()
-		},
-	}
+				return exec.Command(name, args...).CombinedOutput()
+			},
+		}
 	})
 	return networkMgr
 }

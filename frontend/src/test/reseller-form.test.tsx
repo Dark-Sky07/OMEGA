@@ -168,10 +168,10 @@ describe('reseller form (admin)', () => {
     );
     await waitFor(() =>
       expect(HttpUtil.post).toHaveBeenCalledWith(
-        '/panel/api/resellers/assignInbound',
+        '/panel/api/resellers/setInbounds',
         {
           resellerId: 2,
-          inboundId: 2,
+          inboundIds: [2],
         },
         expect.objectContaining({ headers: expect.objectContaining({ 'Content-Type': 'application/json' }) }),
       ),
@@ -209,20 +209,10 @@ describe('reseller form (admin)', () => {
     );
     await waitFor(() =>
       expect(HttpUtil.post).toHaveBeenCalledWith(
-        '/panel/api/resellers/unassignInbound',
+        '/panel/api/resellers/setInbounds',
         {
           resellerId: 1,
-          inboundId: 1,
-        },
-        expect.objectContaining({ headers: expect.objectContaining({ 'Content-Type': 'application/json' }) }),
-      ),
-    );
-    await waitFor(() =>
-      expect(HttpUtil.post).toHaveBeenCalledWith(
-        '/panel/api/resellers/assignInbound',
-        {
-          resellerId: 1,
-          inboundId: 2,
+          inboundIds: [2],
         },
         expect.objectContaining({ headers: expect.objectContaining({ 'Content-Type': 'application/json' }) }),
       ),

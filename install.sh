@@ -88,29 +88,29 @@ is_port_in_use() {
 install_base() {
     case "${release}" in
         ubuntu | debian | armbian)
-            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl
+            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl unzip
             ;;
         fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl
+            dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl unzip
             ;;
         centos)
             if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum -y update && yum install -y cronie curl tar tzdata socat ca-certificates openssl
+                yum -y update && yum install -y cronie curl tar tzdata socat ca-certificates openssl unzip
             else
-                dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl
+                dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl unzip
             fi
             ;;
         arch | manjaro | parch)
-            pacman -Syu && pacman -Syu --noconfirm cronie curl tar tzdata socat ca-certificates openssl
+            pacman -Syu && pacman -Syu --noconfirm cronie curl tar tzdata socat ca-certificates openssl unzip
             ;;
         opensuse-tumbleweed | opensuse-leap)
-            zypper refresh && zypper -q install -y cron curl tar timezone socat ca-certificates openssl
+            zypper refresh && zypper -q install -y cron curl tar timezone socat ca-certificates openssl unzip
             ;;
         alpine)
-            apk update && apk add dcron curl tar tzdata socat ca-certificates openssl
+            apk update && apk add dcron curl tar tzdata socat ca-certificates openssl unzip
             ;;
         *)
-            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl
+            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl unzip
             ;;
     esac
 }
@@ -1209,22 +1209,92 @@ EOF
     ${xui_folder}/x-ui migrate
 }
 
+# The panel archive may contain an older bundled core. Resolve and stage the
+# current Xray release before stopping or replacing an existing installation,
+# then install it over the archive copy after extraction.
+XRAY_VERSION=""
+xray_install_archive=""
+
+resolve_latest_xray_version() {
+    local releases version
+    releases="$(curl -4fsSL --retry 3 --connect-timeout 10 "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=20")" || return 1
+    version="$(printf '%s\n' "$releases" \
+        | grep -oE '"tag_name"[[:space:]]*:[[:space:]]*"v[0-9]+\.[0-9]+\.[0-9]+"' \
+        | sed -E 's/.*"(v[0-9]+\.[0-9]+\.[0-9]+)"/\1/' \
+        | sort -V \
+        | tail -n 1)"
+    [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || return 1
+    printf '%s\n' "$version"
+}
+
+stage_latest_xray() {
+    local xray_arch archive_url
+    XRAY_VERSION="${OMEGA_XRAY_VERSION:-$(resolve_latest_xray_version)}" || {
+        echo -e "${red}Failed to resolve the latest Xray-core release; installation aborted before changing the current panel.${plain}"
+        exit 1
+    }
+    case "$(arch)" in
+        amd64) xray_arch="64" ;;
+        386) xray_arch="32" ;;
+        arm64) xray_arch="arm64-v8a" ;;
+        armv7) xray_arch="arm32-v7a" ;;
+        armv6) xray_arch="arm32-v6" ;;
+        armv5) xray_arch="arm32-v5" ;;
+        s390x) xray_arch="s390x" ;;
+        *) echo -e "${red}Unsupported architecture for Xray-core: $(arch)${plain}"; exit 1 ;;
+    esac
+    archive_url="https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/Xray-linux-${xray_arch}.zip"
+    xray_install_archive="$(mktemp "/tmp/xray-${XRAY_VERSION#v}.XXXXXX.zip")" || exit 1
+    if ! curl -4fsSL --retry 3 -o "$xray_install_archive" "$archive_url" || ! unzip -tq "$xray_install_archive" > /dev/null 2>&1; then
+        rm -f "$xray_install_archive"
+        xray_install_archive=""
+        echo -e "${red}Failed to stage latest Xray-core ${XRAY_VERSION}; installation aborted before changing the current panel.${plain}"
+        exit 1
+    fi
+    echo -e "${green}Staged latest Xray-core ${XRAY_VERSION}${plain}"
+}
+
+install_staged_xray() {
+    local extract_dir target
+    if [[ -z "$xray_install_archive" ]]; then
+        echo -e "${red}No staged Xray-core archive is available.${plain}"
+        exit 1
+    fi
+    extract_dir="$(mktemp -d "/tmp/xray-extract.XXXXXX")" || exit 1
+    if ! unzip -q "$xray_install_archive" -d "$extract_dir" || [[ ! -f "$extract_dir/xray" ]]; then
+        rm -rf "$extract_dir" "$xray_install_archive"
+        xray_install_archive=""
+        echo -e "${red}Failed to extract latest Xray-core ${XRAY_VERSION}; installation aborted.${plain}"
+        exit 1
+    fi
+    target="bin/xray-linux-$(arch)"
+    if ! install -m 0755 "$extract_dir/xray" "$target"; then
+        rm -rf "$extract_dir" "$xray_install_archive"
+        xray_install_archive=""
+        echo -e "${red}Failed to install latest Xray-core ${XRAY_VERSION}; installation aborted.${plain}"
+        exit 1
+    fi
+    rm -rf "$extract_dir" "$xray_install_archive"
+    xray_install_archive=""
+    echo -e "${green}Installed latest Xray-core ${XRAY_VERSION}${plain}"
+}
+
 install_x-ui() {
     cd ${xui_folder%/x-ui}/
 
     # Download resources
     if [ $# == 0 ]; then
-        tag_version=$(curl -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        tag_version=$(curl -Ls "https://api.github.com/repos/Dark-Sky07/OMEGA/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ ! -n "$tag_version" ]]; then
             echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
-            tag_version=$(curl -4 -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+            tag_version=$(curl -4 -Ls "https://api.github.com/repos/Dark-Sky07/OMEGA/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
             if [[ ! -n "$tag_version" ]]; then
                 echo -e "${red}Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later${plain}"
                 exit 1
             fi
         fi
         echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
-        curl -4fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz
+        curl -4fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/Dark-Sky07/OMEGA/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Downloading x-ui failed, please be sure that your server can access GitHub ${plain}"
             exit 1
@@ -1239,7 +1309,7 @@ install_x-ui() {
             exit 1
         fi
 
-        url="https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz"
+        url="https://github.com/Dark-Sky07/OMEGA/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz"
         echo -e "Beginning to install x-ui $1"
         curl -4fLRo ${xui_folder}-linux-$(arch).tar.gz ${url}
         if [[ $? -ne 0 ]]; then
@@ -1247,7 +1317,10 @@ install_x-ui() {
             exit 1
         fi
     fi
-    curl -4fLRo /usr/bin/x-ui-temp https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
+
+    # Stage the current core before any service stop or directory replacement.
+    stage_latest_xray
+    curl -4fLRo /usr/bin/x-ui-temp https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.sh
     if [[ $? -ne 0 ]]; then
         echo -e "${red}Failed to download x-ui.sh${plain}"
         exit 1
@@ -1273,19 +1346,25 @@ install_x-ui() {
     rm x-ui-linux-$(arch).tar.gz -f
 
     cd x-ui
+    # Replace any stale core bundled in the panel archive.
+    install_staged_xray
     chmod +x x-ui
     chmod +x x-ui.sh
 
     # Check the system's architecture and rename the file accordingly
     if [[ $(arch) == "armv5" || $(arch) == "armv6" || $(arch) == "armv7" ]]; then
-        mv bin/xray-linux-$(arch) bin/xray-linux-arm
-        chmod +x bin/xray-linux-arm
+        mv bin/xray-linux-$(arch) bin/xray-linux-arm32
+        chmod +x bin/xray-linux-arm32
         if [[ -f bin/mtg-linux-$(arch) ]]; then
             mv bin/mtg-linux-$(arch) bin/mtg-linux-arm
             chmod +x bin/mtg-linux-arm
         fi
     fi
-    chmod +x x-ui bin/xray-linux-$(arch)
+    if [[ $(arch) == "armv5" || $(arch) == "armv6" || $(arch) == "armv7" ]]; then
+        chmod +x x-ui bin/xray-linux-arm32
+    else
+        chmod +x x-ui bin/xray-linux-$(arch)
+    fi
     if [[ -f bin/mtg-linux-arm ]]; then
         chmod +x bin/mtg-linux-arm
     elif [[ -f bin/mtg-linux-$(arch) ]]; then
@@ -1313,7 +1392,7 @@ install_x-ui() {
     fi
 
     if [[ $release == "alpine" ]]; then
-        curl -4fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc
+        curl -4fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.rc
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Failed to download x-ui.rc${plain}"
             exit 1
@@ -1370,13 +1449,13 @@ install_x-ui() {
             echo -e "${yellow}Service files not found in tar.gz, downloading from GitHub...${plain}"
             case "${release}" in
                 ubuntu | debian | armbian)
-                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.debian > /dev/null 2>&1
+                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.service.debian > /dev/null 2>&1
                     ;;
                 arch | manjaro | parch)
-                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.arch > /dev/null 2>&1
+                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.service.arch > /dev/null 2>&1
                     ;;
                 *)
-                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.rhel > /dev/null 2>&1
+                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.service.rhel > /dev/null 2>&1
                     ;;
             esac
 

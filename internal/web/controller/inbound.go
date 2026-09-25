@@ -172,7 +172,12 @@ func (a *InboundController) getInbound(c *gin.Context) {
 			return
 		}
 	}
-	inbound, err := a.inboundService.GetInboundDetail(id)
+	var inbound *model.Inbound
+	if reseller := resellerSession(c); reseller != nil {
+		inbound, err = a.inboundService.GetInboundDetailForReseller(reseller.Id, id)
+	} else {
+		inbound, err = a.inboundService.GetInboundDetail(id)
+	}
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
@@ -434,9 +439,32 @@ func (a *InboundController) importInbound(c *gin.Context) {
 	if !rejectResellerInboundWrite(c) {
 		return
 	}
+	rawData := c.PostForm("data")
+	if rawData == "" {
+		body, readErr := c.GetRawData()
+		if readErr != nil {
+			jsonMsg(c, I18nWeb(c, "somethingWentWrong"), readErr)
+			return
+		}
+		// Accept both the documented form field and the JSON shape emitted by
+		// older frontend builds ({"data":"<json>"}). A raw JSON inbound is
+		// accepted as well so API clients do not have to double-encode it.
+		var wrapper struct {
+			Data json.RawMessage `json:"data"`
+		}
+		if err := json.Unmarshal(body, &wrapper); err == nil && len(wrapper.Data) > 0 && string(wrapper.Data) != "null" {
+			var encoded string
+			if json.Unmarshal(wrapper.Data, &encoded) == nil {
+				rawData = encoded
+			} else {
+				rawData = string(wrapper.Data)
+			}
+		} else {
+			rawData = string(body)
+		}
+	}
 	inbound := &model.Inbound{}
-	err := json.Unmarshal([]byte(c.PostForm("data")), inbound)
-	if err != nil {
+	if err := json.Unmarshal([]byte(rawData), inbound); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
@@ -456,13 +484,14 @@ func (a *InboundController) importInbound(c *gin.Context) {
 			inbound.NodeID = nil
 		}
 	}
-
 	for index := range inbound.ClientStats {
 		inbound.ClientStats[index].Id = 0
-		inbound.ClientStats[index].Enable = true
+		// Preserve the exported enabled/disabled state. AddInbound resets only
+		// panel-local identity fields (id and inboundId), not client settings or
+		// traffic counters.
 	}
 
-	inbound, needRestart, err := a.inboundService.AddInbound(inbound)
+	inbound, needRestart, err := a.inboundService.AddInboundPreservingExistingClients(inbound)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
@@ -512,7 +541,12 @@ func (a *InboundController) getFallbacks(c *gin.Context) {
 			return
 		}
 	}
-	rows, err := a.fallbackService.GetByMaster(id)
+	var rows []model.InboundFallback
+	if reseller := resellerSession(c); reseller != nil {
+		rows, err = a.fallbackService.GetByMasterForOwnedChildren(id, reseller.Id)
+	} else {
+		rows, err = a.fallbackService.GetByMaster(id)
+	}
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "get"), err)
 		return

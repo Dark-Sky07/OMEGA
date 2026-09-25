@@ -10,6 +10,17 @@ import (
 )
 
 func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.Client) error {
+	return s.syncInbound(tx, inboundId, clients, false)
+}
+
+// SyncInboundPreservingExisting rebuilds only the association rows for an
+// imported inbound. Existing ClientRecord rows remain authoritative; clients
+// absent from the canonical table are created from the imported payload.
+func (s *ClientService) SyncInboundPreservingExisting(tx *gorm.DB, inboundId int, clients []model.Client) error {
+	return s.syncInbound(tx, inboundId, clients, true)
+}
+
+func (s *ClientService) syncInbound(tx *gorm.DB, inboundId int, clients []model.Client, preserveExisting bool) error {
 	if tx == nil {
 		tx = database.GetDB()
 	}
@@ -25,10 +36,12 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 		if email == "" {
 			continue
 		}
-		if _, ok := seen[email]; ok {
+		clients[i].Email = email
+		key := strings.ToLower(email)
+		if _, ok := seen[key]; ok {
 			continue
 		}
-		seen[email] = struct{}{}
+		seen[key] = struct{}{}
 		emails = append(emails, email)
 	}
 
@@ -37,12 +50,15 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 	for start := 0; start < len(emails); start += selectChunk {
 		end := min(start+selectChunk, len(emails))
 		var rows []model.ClientRecord
-		if err := tx.Where("email IN ?", emails[start:end]).Find(&rows).Error; err != nil {
+		keys := make([]string, 0, end-start)
+		for _, email := range emails[start:end] {
+			keys = append(keys, strings.ToLower(email))
+		}
+		if err := tx.Where("LOWER(TRIM(email)) IN ?", keys).Find(&rows).Error; err != nil {
 			return err
 		}
 		for i := range rows {
-			r := rows[i]
-			existing[r.Email] = &r
+			existing[strings.ToLower(strings.TrimSpace(rows[i].Email))] = &rows[i]
 		}
 	}
 
@@ -55,13 +71,19 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 			continue
 		}
 
+		key := strings.ToLower(email)
 		incoming := clients[i].ToRecord()
-		row, ok := existing[email]
+		row, ok := existing[key]
 		if !ok {
-			if _, dup := pending[email]; !dup {
-				pending[email] = incoming
+			if _, dup := pending[key]; !dup {
+				pending[key] = incoming
 				toCreate = append(toCreate, incoming)
 			}
+			continue
+		}
+
+		idByEmail[key] = row.Id
+		if preserveExisting {
 			continue
 		}
 
@@ -78,6 +100,30 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 		row.Flow = incoming.Flow
 		if incoming.Security != "" {
 			row.Security = incoming.Security
+		}
+		// WireGuard-family credentials are stored in the canonical client row
+		// as well as in each inbound settings blob. Preserve an existing
+		// identity's first address when it is attached to multiple tunnel
+		// inbounds; the hydrate endpoint exposes the authoritative per-inbound
+		// address map, so a later AmneziaWG sync must not overwrite a native
+		// WireGuard address (or vice versa).
+		if incoming.PrivateKey != "" {
+			row.PrivateKey = incoming.PrivateKey
+		}
+		if incoming.PublicKey != "" {
+			row.PublicKey = incoming.PublicKey
+		}
+		if row.AllowedIPs == "" && incoming.AllowedIPs != "" {
+			row.AllowedIPs = incoming.AllowedIPs
+		}
+		if incoming.PreSharedKey != "" {
+			row.PreSharedKey = incoming.PreSharedKey
+		}
+		if incoming.KeepAlive > 0 {
+			row.KeepAlive = incoming.KeepAlive
+		}
+		if incoming.ForwardedPorts != "" {
+			row.ForwardedPorts = incoming.ForwardedPorts
 		}
 		if incoming.Reverse != "" {
 			row.Reverse = incoming.Reverse
@@ -99,8 +145,6 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 		preservedUpdatedAt := max(incoming.UpdatedAt, row.UpdatedAt)
 		row.UpdatedAt = preservedUpdatedAt
 
-		idByEmail[email] = row.Id
-
 		if *row == before {
 			continue
 		}
@@ -119,7 +163,7 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 			return err
 		}
 		for _, rec := range toCreate {
-			idByEmail[rec.Email] = rec.Id
+			idByEmail[strings.ToLower(strings.TrimSpace(rec.Email))] = rec.Id
 		}
 	}
 
@@ -130,7 +174,7 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 		if email == "" {
 			continue
 		}
-		id, ok := idByEmail[email]
+		id, ok := idByEmail[strings.ToLower(email)]
 		if !ok {
 			continue
 		}

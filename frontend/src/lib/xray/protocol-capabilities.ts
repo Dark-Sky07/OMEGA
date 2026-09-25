@@ -71,7 +71,7 @@ export function canEnableStream(values: { protocol: string }): boolean {
 // so the Xray sniffing block does not apply to them. Every other inbound
 // supports sniffing.
 export function canEnableSniffing(values: { protocol: string }): boolean {
-  return values.protocol !== 'mtproto' && values.protocol !== 'openvpn' && values.protocol !== 'l2tp';
+  return values.protocol !== 'mtproto' && values.protocol !== 'openvpn' && values.protocol !== 'l2tp' && values.protocol !== 'amneziawg';
 }
 
 // Vision seed applies only when XTLS Vision (TCP/TLS) flow is selected

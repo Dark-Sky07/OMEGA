@@ -25,12 +25,58 @@ func (s *ClientService) ResetTrafficByEmail(inboundSvc *InboundService, email st
 	if err != nil {
 		return false, err
 	}
+	return s.resetTrafficForInboundIDs(inboundSvc, rec, email, inboundIds, false)
+}
 
+// ResetTrafficByEmailForInbounds scopes the runtime/stat reset to a client's
+// complete association set. Because the traffic row is shared by canonical
+// email, a client with any out-of-scope association is rejected as a no-op.
+func (s *ClientService) ResetTrafficByEmailForInbounds(inboundSvc *InboundService, email string, inboundIDs []int) (bool, error) {
+	if email == "" {
+		return false, common.NewError("client email is required")
+	}
+	rec, err := s.GetRecordByEmail(nil, email)
+	if err != nil {
+		return false, err
+	}
+	currentIDs, err := s.GetInboundIdsForRecord(rec.Id)
+	if err != nil {
+		return false, err
+	}
+	allowed := make(map[int]struct{}, len(inboundIDs))
+	for _, id := range inboundIDs {
+		if id > 0 {
+			allowed[id] = struct{}{}
+		}
+	}
+	scoped := make([]int, 0, len(currentIDs))
+	for _, id := range currentIDs {
+		if _, ok := allowed[id]; ok {
+			scoped = append(scoped, id)
+		}
+	}
+	if len(scoped) == 0 || len(scoped) != len(currentIDs) {
+		// ClientTraffic is an email-level aggregate. Refuse a scoped reset
+		// when the same canonical client is attached outside the supplied
+		// tenant scope; otherwise resetting one tenant would erase another
+		// tenant's usage too.
+		return false, nil
+	}
+	return s.resetTrafficForInboundIDs(inboundSvc, rec, email, scoped, true)
+}
+
+func (s *ClientService) resetTrafficForInboundIDs(inboundSvc *InboundService, rec *model.ClientRecord, email string, inboundIDs []int, scoped bool) (bool, error) {
 	needRestart := false
 	if !rec.Enable {
 		updated := rec.ToClient()
 		updated.Enable = true
-		nr, uErr := s.Update(inboundSvc, rec.Id, *updated)
+		var nr bool
+		var uErr error
+		if scoped {
+			nr, uErr = s.UpdateByEmailForInbounds(inboundSvc, email, *updated, inboundIDs)
+		} else {
+			nr, uErr = s.Update(inboundSvc, rec.Id, *updated)
+		}
 		if uErr != nil {
 			logger.Warning("Failed to auto-enable client during traffic reset:", uErr)
 		}
@@ -39,14 +85,13 @@ func (s *ClientService) ResetTrafficByEmail(inboundSvc *InboundService, email st
 		}
 	}
 
-	if len(inboundIds) == 0 {
+	if len(inboundIDs) == 0 {
 		if rErr := inboundSvc.ResetClientTrafficByEmail(email); rErr != nil {
 			return false, rErr
 		}
 		return needRestart, nil
 	}
-
-	for _, ibId := range inboundIds {
+	for _, ibId := range inboundIDs {
 		nr, rErr := inboundSvc.ResetClientTraffic(ibId, email)
 		if rErr != nil {
 			return needRestart, rErr
@@ -56,6 +101,62 @@ func (s *ClientService) ResetTrafficByEmail(inboundSvc *InboundService, email st
 		}
 	}
 	return needRestart, nil
+}
+
+// BulkResetTrafficForInbounds resets only clients whose complete association
+// set belongs to the supplied inbound scope. The aggregate traffic row is
+// keyed by email in the legacy schema, so shared clients are deliberately
+// skipped instead of allowing a reseller reset to erase another tenant's
+// usage.
+func (s *ClientService) BulkResetTrafficForInbounds(inboundSvc *InboundService, emails []string, inboundIDs []int) (int, bool, error) {
+	if len(emails) == 0 || len(inboundIDs) == 0 {
+		return 0, false, nil
+	}
+	seen := make(map[string]struct{}, len(emails))
+	affected := 0
+	needRestart := false
+	for _, raw := range emails {
+		email := transferEmailKey(raw)
+		if email == "" {
+			continue
+		}
+		if _, duplicate := seen[email]; duplicate {
+			continue
+		}
+		seen[email] = struct{}{}
+		nr, err := s.ResetTrafficByEmailForInbounds(inboundSvc, email, inboundIDs)
+		if err != nil {
+			return affected, needRestart, err
+		}
+		if nr {
+			needRestart = true
+		}
+		// The scoped reset method is association-aware and is intentionally a
+		// no-op for mapped clients that have no attachment in the scope.
+		if rec, recErr := s.GetRecordByEmail(nil, email); recErr == nil && rec != nil {
+			ids, idsErr := s.GetInboundIdsForRecord(rec.Id)
+			if idsErr == nil && allInboundIDsInScope(ids, inboundIDs) {
+				affected++
+			}
+		}
+	}
+	return affected, needRestart, nil
+}
+
+func allInboundIDsInScope(current, allowed []int) bool {
+	if len(current) == 0 {
+		return false
+	}
+	set := make(map[int]struct{}, len(allowed))
+	for _, id := range allowed {
+		set[id] = struct{}{}
+	}
+	for _, id := range current {
+		if _, ok := set[id]; !ok {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []string) (int, error) {
@@ -69,10 +170,11 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 		if e == "" {
 			continue
 		}
-		if _, ok := seen[e]; ok {
+		key := strings.ToLower(e)
+		if _, ok := seen[key]; ok {
 			continue
 		}
-		seen[e] = struct{}{}
+		seen[key] = struct{}{}
 		cleanEmails = append(cleanEmails, e)
 	}
 	if len(cleanEmails) == 0 {
@@ -94,7 +196,7 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 		return db.Transaction(func(tx *gorm.DB) error {
 			for _, batch := range chunkStrings(cleanEmails, sqlInChunk) {
 				res := tx.Model(xray.ClientTraffic{}).
-					Where("email IN ?", batch).
+					Where("LOWER(TRIM(email)) IN ?", batch).
 					Updates(map[string]any{"enable": true, "up": 0, "down": 0})
 				if res.Error != nil {
 					return res.Error
