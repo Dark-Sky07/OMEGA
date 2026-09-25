@@ -117,8 +117,11 @@ export function buildAmneziaWGClientConfig(
 }
 
 // AmneziaVPN imports the same text through its vpn:// base64url share scheme.
-// Keep this builder beside the config emitter so the downloaded profile and
-// QR/link payload can never disagree about obfuscation parameters.
+// Keep this builder beside the config emitter so callers that explicitly need
+// an AmneziaVPN URI can use the same profile data. The native AmneziaWG
+// Android app is different: its QR scanner expects the plain [Interface]/[Peer]
+// .conf text, not a vpn:// URI (a vpn:// payload is reported as "Unknown
+// section in Config"). Use buildAmneziaWGClientQrPayload for that app.
 export function buildAmneziaWGClientLink(
   client: ClientRecord,
   inbound: InboundOption | undefined,
@@ -133,4 +136,17 @@ export function buildAmneziaWGClientLink(
   for (const byte of bytes) binary += String.fromCharCode(byte);
   const encoded = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   return `vpn://${encoded}`;
+}
+
+// QR payload for the standalone AmneziaWG app. Do not wrap this in vpn://:
+// that URI belongs to AmneziaVPN's import format, while AmneziaWG's Android
+// scanner parses the QR contents directly as a WireGuard/AmneziaWG config.
+export function buildAmneziaWGClientQrPayload(
+  client: ClientRecord,
+  inbound: InboundOption | undefined,
+  host = window.location.hostname,
+  publicHost = '',
+  addressOverride = '',
+): string {
+  return buildAmneziaWGClientConfig(client, inbound, host, publicHost, addressOverride);
 }

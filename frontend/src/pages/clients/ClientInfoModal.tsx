@@ -8,7 +8,7 @@ import { formatInboundLabel } from '@/lib/inbounds/label';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
-import { buildAmneziaWGClientConfig, buildAmneziaWGClientLink } from './amneziawgConfig';
+import { buildAmneziaWGClientConfig, buildAmneziaWGClientQrPayload } from './amneziawgConfig';
 import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
 import './ClientInfoModal.css';
@@ -219,7 +219,9 @@ export default function ClientInfoModal({
         return {
           inbound: ib,
           config: client ? buildAmneziaWGClientConfig(client, ib, window.location.hostname, '', addressOverride) : '',
-          link: client ? buildAmneziaWGClientLink(client, ib, window.location.hostname, '', addressOverride) : '',
+          // The standalone AmneziaWG app scans a plain .conf payload. Do not
+          // use the AmneziaVPN-only vpn:// subscription URI for this QR code.
+          link: client ? buildAmneziaWGClientQrPayload(client, ib, window.location.hostname, '', addressOverride) : '',
         };
       })
       .filter((profile) => profile.config || profile.link),

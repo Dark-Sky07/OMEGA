@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { genAmneziaWGConfig } from '@/lib/xray/inbound-link';
-import { buildAmneziaWGClientConfig } from '@/pages/clients/amneziawgConfig';
+import {
+  buildAmneziaWGClientConfig,
+  buildAmneziaWGClientQrPayload,
+} from '@/pages/clients/amneziawgConfig';
 import type { AmneziawgInboundSettings } from '@/schemas/protocols/inbound/amneziawg';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 
@@ -88,5 +91,10 @@ describe('AmneziaWG .conf newline-injection guard', () => {
     expect(
       buildAmneziaWGClientConfig(client({ comment: INJECTED }), inbound({}), 'awg.example.test'),
     ).toBe('');
+
+    const qrPayload = buildAmneziaWGClientQrPayload(client({}), inbound({}), 'awg.example.test');
+    expect(qrPayload).toMatch(/^\[Interface\]\n/);
+    expect(qrPayload).toContain('\n[Peer]\n');
+    expect(qrPayload).not.toMatch(/^vpn:\/\//);
   });
 });
