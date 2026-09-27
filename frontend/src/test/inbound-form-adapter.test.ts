@@ -229,23 +229,26 @@ describe('formValuesToWirePayload', () => {
     expect(settings.redirectGateway).toBe(false);
     expect(settings.pushDNS).toBe(false);
     // Rows stored before the relay existed have no routeThroughXray key; the
-    // backend treats that as on, so the form must show (and re-save) it as on.
-    expect(settings.routeThroughXray).toBe(true);
+    // relay is opt-in (backend treats that as off), so the form must show
+    // (and re-save) it as off.
+    expect(settings.routeThroughXray).toBe(false);
   });
 
-  it('keeps an explicit routeThroughXray opt-out for openvpn and l2tp', () => {
+  it('keeps an explicit routeThroughXray choice for openvpn and l2tp', () => {
     for (const [protocol, base] of [
       ['openvpn', { proto: 'udp' }],
       ['l2tp', { psk: 'secret' }],
     ] as const) {
-      const values = rawInboundToFormValues({
-        ...vlessRow,
-        protocol,
-        settings: { ...base, routeThroughXray: false },
-      });
-      const payload = formValuesToWirePayload(values);
-      const settings = JSON.parse(payload.settings) as Record<string, unknown>;
-      expect(settings.routeThroughXray).toBe(false);
+      for (const choice of [true, false]) {
+        const values = rawInboundToFormValues({
+          ...vlessRow,
+          protocol,
+          settings: { ...base, routeThroughXray: choice },
+        });
+        const payload = formValuesToWirePayload(values);
+        const settings = JSON.parse(payload.settings) as Record<string, unknown>;
+        expect(settings.routeThroughXray).toBe(choice);
+      }
     }
   });
 

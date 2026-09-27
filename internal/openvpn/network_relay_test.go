@@ -18,8 +18,10 @@ type fakeFirewall struct {
 	present   map[string]bool
 	calls     []string
 	failMatch string // an -I whose rule contains this substring fails
-	ipRule    bool
-	firewalld bool // systemctl is-active firewalld reports "active"
+	ipRule    bool   // fwmark -> table 2601 rule present
+	// reverseRule mirrors the "iif lo" guard rule that must precede ipRule.
+	reverseRule bool
+	firewalld   bool // systemctl is-active firewalld reports "active"
 }
 
 func newFakeFirewall() *fakeFirewall {
@@ -43,11 +45,13 @@ func (f *fakeFirewall) run(name string, args ...string) ([]byte, error) {
 		switch {
 		case strings.HasPrefix(cmd, "ip -4 rule show"):
 			if f.ipRule {
-				return []byte("2601:\tfrom all fwmark 0x2e01 lookup 2601\n"), nil
+				return []byte("2600:\tfrom all iif lo fwmark 0x2e01 lookup main\n2601:\tfrom all fwmark 0x2e01 lookup 2601\n"), nil
 			}
 			return []byte("32766:\tfrom all lookup main\n"), nil
-		case strings.HasPrefix(cmd, "ip -4 rule add"):
+		case strings.HasPrefix(cmd, "ip -4 rule add pref 2601"):
 			f.ipRule = true
+		case strings.HasPrefix(cmd, "ip -4 rule add pref 2600"):
+			f.reverseRule = true
 		case strings.HasPrefix(cmd, "ip -4 rule del"):
 			if !f.ipRule {
 				return []byte("RTNETLINK answers: No such file or directory"), errors.New("exit status 2")
@@ -157,6 +161,30 @@ func TestNetworkManagerRelayLifecycle(t *testing.T) {
 	}
 	if !f.ipRule {
 		t.Fatal("policy routing rule was not installed")
+	}
+	if !f.reverseRule {
+		t.Fatal("reverse-path guard rule (src_valid_mark hosts) was not installed")
+	}
+	var guard, deliver, throwRoute, divert int
+	for i, c := range f.calls {
+		switch {
+		case strings.HasPrefix(c, "ip -4 rule add pref 2600"):
+			guard = i + 1
+		case strings.HasPrefix(c, "ip -4 rule add pref 2601"):
+			deliver = i + 1
+		case c == "ip -4 route replace throw 10.7.0.0/24 table 2601":
+			throwRoute = i + 1
+		case strings.Contains(c, "-j TPROXY") && !strings.Contains(c, " -C "):
+			if divert == 0 {
+				divert = i + 1
+			}
+		}
+	}
+	if guard == 0 || deliver == 0 || throwRoute == 0 || divert == 0 {
+		t.Fatalf("missing policy-routing steps: guard=%d deliver=%d throw=%d divert=%d", guard, deliver, throwRoute, divert)
+	}
+	if !(guard < deliver && throwRoute < deliver && deliver < divert) {
+		t.Fatalf("policy routing must be installed guard -> throw -> deliver -> divert, got guard=%d throw=%d deliver=%d divert=%d", guard, throwRoute, deliver, divert)
 	}
 	if st := readState(t, 7); st.XrayRelayPort != 63907 || st.PoolCIDR != "10.7.0.0/24" {
 		t.Fatalf("persisted state = %+v", st)

@@ -270,7 +270,7 @@ func (m *NetworkManager) applyRelay(iptables string, id int, previous networkSta
 
 	// The routing entries must exist before the first divert rule does,
 	// otherwise a diverted packet would be forwarded instead of delivered.
-	if err := tproxy.Acquire(relayOwner(id), tproxy.Runner(m.runner)); err != nil {
+	if err := tproxy.Acquire(relayOwner(id), wanted.PoolCIDR, tproxy.Runner(m.runner)); err != nil {
 		m.warnRelay(id, err.Error())
 		return 0
 	}
