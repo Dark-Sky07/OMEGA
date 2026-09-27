@@ -30,6 +30,9 @@ func forceRelaySupported(t *testing.T, supported bool) {
 	t.Cleanup(func() { daemonRelaySupported = prev })
 }
 
+// relayOptIn is the settings blob of an inbound that switched the relay on.
+const relayOptIn = `{"routeThroughXray":true}`
+
 func TestDaemonRelayRoutesThroughXray(t *testing.T) {
 	node := 3
 	cases := []struct {
@@ -38,11 +41,13 @@ func TestDaemonRelayRoutesThroughXray(t *testing.T) {
 		want bool
 	}{
 		{"nil", nil, false},
-		{"openvpn default on", &model.Inbound{Protocol: model.OpenVPN, Settings: `{"proto":"udp"}`}, true},
-		{"openvpn empty settings", &model.Inbound{Protocol: model.OpenVPN}, true},
+		{"openvpn default off", &model.Inbound{Protocol: model.OpenVPN, Settings: `{"proto":"udp"}`}, false},
+		{"openvpn empty settings", &model.Inbound{Protocol: model.OpenVPN}, false},
+		{"openvpn broken settings", &model.Inbound{Protocol: model.OpenVPN, Settings: `{"routeThroughXray":`}, false},
 		{"openvpn explicit true", &model.Inbound{Protocol: model.OpenVPN, Settings: `{"routeThroughXray":true}`}, true},
 		{"openvpn explicit false", &model.Inbound{Protocol: model.OpenVPN, Settings: `{"routeThroughXray":false}`}, false},
-		{"l2tp default on", &model.Inbound{Protocol: model.L2TP, Settings: `{"psk":"x"}`}, true},
+		{"l2tp default off", &model.Inbound{Protocol: model.L2TP, Settings: `{"psk":"x"}`}, false},
+		{"l2tp explicit true", &model.Inbound{Protocol: model.L2TP, Settings: `{"psk":"x","routeThroughXray":true}`}, true},
 		{"l2tp explicit false", &model.Inbound{Protocol: model.L2TP, Settings: `{"psk":"x","routeThroughXray":false}`}, false},
 		{"remote node never", &model.Inbound{Protocol: model.OpenVPN, NodeID: &node}, false},
 		{"other protocol never", &model.Inbound{Protocol: model.VLESS, Settings: `{"routeThroughXray":true}`}, false},
@@ -61,9 +66,10 @@ func TestInjectDaemonRelays(t *testing.T) {
 	cfg := relayTestConfig()
 	node := 9
 	inbounds := []*model.Inbound{
-		{Id: 7, Tag: "ovpn-7", Protocol: model.OpenVPN, Enable: true, Settings: `{"proto":"udp"}`},
-		{Id: 8, Tag: "l2tp-8", Protocol: model.L2TP, Enable: true, Settings: `{"psk":"secret"}`},
+		{Id: 7, Tag: "ovpn-7", Protocol: model.OpenVPN, Enable: true, Settings: `{"proto":"udp","routeThroughXray":true}`},
+		{Id: 8, Tag: "l2tp-8", Protocol: model.L2TP, Enable: true, Settings: `{"psk":"secret","routeThroughXray":true}`},
 		{Id: 9, Tag: "ovpn-off", Protocol: model.OpenVPN, Enable: true, Settings: `{"routeThroughXray":false}`},
+		{Id: 13, Tag: "ovpn-legacy", Protocol: model.OpenVPN, Enable: true, Settings: `{"proto":"udp"}`},
 		{Id: 10, Tag: "ovpn-disabled", Protocol: model.OpenVPN, Enable: false},
 		{Id: 11, Tag: "ovpn-remote", Protocol: model.OpenVPN, Enable: true, NodeID: &node},
 		{Id: 12, Tag: "vless-443", Protocol: model.VLESS, Enable: true},
@@ -121,7 +127,7 @@ func TestInjectDaemonRelays(t *testing.T) {
 }
 
 func TestInjectDaemonRelays_SkipsWhenUnsupportedOrSuspended(t *testing.T) {
-	inbounds := []*model.Inbound{{Id: 7, Tag: "ovpn-7", Protocol: model.OpenVPN, Enable: true}}
+	inbounds := []*model.Inbound{{Id: 7, Tag: "ovpn-7", Protocol: model.OpenVPN, Enable: true, Settings: relayOptIn}}
 
 	forceRelaySupported(t, false)
 	cfg := relayTestConfig()
@@ -146,7 +152,7 @@ func TestInjectDaemonRelays_TagAndPortCollisions(t *testing.T) {
 
 	// Tag already used by a native inbound: skipped rather than duplicated.
 	cfg := relayTestConfig()
-	injectDaemonRelays(cfg, []*model.Inbound{{Id: 7, Tag: "vless-443", Protocol: model.OpenVPN, Enable: true}})
+	injectDaemonRelays(cfg, []*model.Inbound{{Id: 7, Tag: "vless-443", Protocol: model.OpenVPN, Enable: true, Settings: relayOptIn}})
 	if len(cfg.InboundConfigs) != 1 {
 		t.Fatalf("tag collision must skip the relay, got %+v", cfg.InboundConfigs)
 	}
@@ -154,7 +160,7 @@ func TestInjectDaemonRelays_TagAndPortCollisions(t *testing.T) {
 	// Port already used by another generated inbound: bumped to the next one.
 	cfg = relayTestConfig()
 	cfg.InboundConfigs = append(cfg.InboundConfigs, xray.InboundConfig{Port: daemonRelayBasePort + 7, Protocol: "socks", Tag: "other"})
-	injectDaemonRelays(cfg, []*model.Inbound{{Id: 7, Tag: "ovpn-7", Protocol: model.OpenVPN, Enable: true}})
+	injectDaemonRelays(cfg, []*model.Inbound{{Id: 7, Tag: "ovpn-7", Protocol: model.OpenVPN, Enable: true, Settings: relayOptIn}})
 	if got := cfg.InboundConfigs[len(cfg.InboundConfigs)-1]; got.Tag != "ovpn-7" || got.Port != daemonRelayBasePort+8 {
 		t.Fatalf("port collision must pick the next free port, got %+v", got)
 	}
@@ -166,7 +172,7 @@ func TestInjectDaemonRelays_TagAndPortCollisions(t *testing.T) {
 	}
 	defer ln.Close()
 	cfg = relayTestConfig()
-	injectDaemonRelays(cfg, []*model.Inbound{{Id: 21, Tag: "ovpn-21", Protocol: model.OpenVPN, Enable: true}})
+	injectDaemonRelays(cfg, []*model.Inbound{{Id: 21, Tag: "ovpn-21", Protocol: model.OpenVPN, Enable: true, Settings: relayOptIn}})
 	if len(cfg.InboundConfigs) != 1 {
 		t.Fatalf("a busy loopback port must skip the relay, got %+v", cfg.InboundConfigs)
 	}

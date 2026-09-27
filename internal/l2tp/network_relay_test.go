@@ -17,8 +17,10 @@ type fakeFirewall struct {
 	present   map[string]bool
 	calls     []string
 	failMatch string
-	ipRule    bool
-	firewalld bool // systemctl is-active firewalld reports "active"
+	ipRule    bool // fwmark -> table 2601 rule present
+	// reverseRule mirrors the "iif lo" guard rule that must precede ipRule.
+	reverseRule bool
+	firewalld   bool // systemctl is-active firewalld reports "active"
 }
 
 func newFakeFirewall() *fakeFirewall {
@@ -42,11 +44,13 @@ func (f *fakeFirewall) run(name string, args ...string) ([]byte, error) {
 		switch {
 		case strings.HasPrefix(cmd, "ip -4 rule show"):
 			if f.ipRule {
-				return []byte("2601:\tfrom all fwmark 0x2e01 lookup 2601\n"), nil
+				return []byte("2600:\tfrom all iif lo fwmark 0x2e01 lookup main\n2601:\tfrom all fwmark 0x2e01 lookup 2601\n"), nil
 			}
 			return []byte("32766:\tfrom all lookup main\n"), nil
-		case strings.HasPrefix(cmd, "ip -4 rule add"):
+		case strings.HasPrefix(cmd, "ip -4 rule add pref 2601"):
 			f.ipRule = true
+		case strings.HasPrefix(cmd, "ip -4 rule add pref 2600"):
+			f.reverseRule = true
 		case strings.HasPrefix(cmd, "ip -4 rule del"):
 			if !f.ipRule {
 				return []byte("RTNETLINK answers: No such file or directory"), errors.New("exit status 2")

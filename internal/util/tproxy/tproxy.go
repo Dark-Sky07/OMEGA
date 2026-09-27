@@ -36,6 +36,10 @@ const (
 	Mark         = 0x2e01
 	RouteTable   = 2601
 	RulePriority = 2601
+	// ReversePriority is the slot of the companion rule that keeps the
+	// kernel's reverse-path check away from RouteTable (see
+	// ensurePolicyRouting).
+	ReversePriority = 2600
 
 	// ListenIP is the loopback address the Xray relay listener binds.
 	ListenIP = "127.0.0.1"
@@ -110,24 +114,29 @@ func FirewalldActive(run Runner) bool {
 const FirewalldWarning = "firewalld is active on this host; the Xray relay is not installed because firewalld's INPUT policy would drop the diverted packets, so this inbound stays on the direct path and routing rules do not apply to it (stop firewalld to enable the relay, or turn the inbound's \"Route through Xray\" switch off to silence this warning)"
 
 var (
-	mu     sync.Mutex
-	owners = map[string]struct{}{}
+	mu sync.Mutex
+	// owners maps each registered owner to the client pool it diverts.
+	owners = map[string]string{}
 )
 
 // Acquire registers owner as a user of the shared policy-routing entries and
-// makes sure they are installed. It is idempotent and cheap, so managers call
-// it on every reconcile round before (re)installing their divert rules — an
+// makes sure they are installed, including the "throw" route for owner's
+// client pool. It is idempotent and cheap, so managers call it on every
+// reconcile round before (re)installing their divert rules — an
 // administrator flushing "ip rule" is healed on the next tick.
-func Acquire(owner string, run Runner) error {
+func Acquire(owner, pool string, run Runner) error {
 	if run == nil {
 		return errors.New("tproxy: no command runner")
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	if err := ensurePolicyRouting(run); err != nil {
+	if err := ensurePolicyRouting(pool, run); err != nil {
 		return err
 	}
-	owners[owner] = struct{}{}
+	if prev, ok := owners[owner]; ok && prev != pool && prev != "" && !poolInUse(prev, owner) {
+		removeThrow(prev, run)
+	}
+	owners[owner] = pool
 	return nil
 }
 
@@ -141,10 +150,26 @@ func Release(owner string, run Runner) {
 	}
 	mu.Lock()
 	defer mu.Unlock()
+	pool, had := owners[owner]
 	delete(owners, owner)
 	if len(owners) == 0 {
 		removePolicyRouting(run)
+		return
 	}
+	if had && pool != "" && !poolInUse(pool, owner) {
+		removeThrow(pool, run)
+	}
+}
+
+// poolInUse reports whether any owner other than except still diverts pool.
+// Must be called with mu held.
+func poolInUse(pool, except string) bool {
+	for o, p := range owners {
+		if o != except && p == pool {
+			return true
+		}
+	}
+	return false
 }
 
 // ActiveOwners reports how many owners currently hold the policy routing.
@@ -154,36 +179,103 @@ func ActiveOwners() int {
 	return len(owners)
 }
 
-func ensurePolicyRouting(run Runner) error {
-	prio := strconv.Itoa(RulePriority)
+// ensurePolicyRouting installs the routing entries diverted packets need:
+//
+//	ip rule  pref 2600  iif lo fwmark 0x2e01 lookup main
+//	ip rule  pref 2601         fwmark 0x2e01 lookup 2601
+//	ip route table 2601: local default dev lo; throw <pool> (per owner)
+//
+// The second rule and the local route are the textbook TPROXY setup: a
+// marked packet is delivered to the local listener whatever its destination.
+// The other two entries exist because of the kernel's source validation.
+// Before delivering locally it looks the packet's *source* up in reverse,
+// and on hosts where net.ipv4.conf.all.src_valid_mark=1 (wg-quick sets that
+// for any WireGuard/WARP tunnel with a default route and never clears it)
+// that reverse lookup carries the packet's fwmark. Without protection it
+// would land in table 2601, find "local default", and the kernel would drop
+// the packet as a martian — every diverted connection dead while the tunnel
+// itself looks fine. The reverse lookup is keyed on iif lo, so the 2600 rule
+// sends it to the main table; the throw route makes table 2601 itself fall
+// through for the pool as a second, kernel-version-independent guard. Both
+// are no-ops for the forward lookup (iif = tun/ppp, destination outside the
+// pool).
+func ensurePolicyRouting(pool string, run Runner) error {
 	table := strconv.Itoa(RouteTable)
+	mark := fmt.Sprintf("0x%x", Mark)
 	out, err := run("ip", "-4", "rule", "show")
 	if err != nil {
 		return fmt.Errorf("ip -4 rule show: %s: %w", strings.TrimSpace(string(out)), err)
 	}
-	if !HasMarkRule(string(out)) {
-		if out, err := run("ip", "-4", "rule", "add", "pref", prio, "fwmark", fmt.Sprintf("0x%x", Mark), "lookup", table); err != nil {
-			return fmt.Errorf("ip -4 rule add: %s: %w", strings.TrimSpace(string(out)), err)
+	rules := string(out)
+	// Order matters on a live host: the guard rule must be in place before
+	// the delivering rule, and both before any divert rule.
+	if !HasReverseRule(rules) {
+		if out, err := run("ip", "-4", "rule", "add", "pref", strconv.Itoa(ReversePriority), "iif", "lo", "fwmark", mark, "lookup", "main"); err != nil {
+			return fmt.Errorf("ip -4 rule add (reverse-path guard): %s: %w", strings.TrimSpace(string(out)), err)
 		}
 	}
 	// "replace" is idempotent, so no need to inspect the table first.
 	if out, err := run("ip", "-4", "route", "replace", "local", "0.0.0.0/0", "dev", "lo", "table", table); err != nil {
 		return fmt.Errorf("ip -4 route replace: %s: %w", strings.TrimSpace(string(out)), err)
 	}
+	if pool != "" {
+		if out, err := run("ip", "-4", "route", "replace", "throw", pool, "table", table); err != nil {
+			return fmt.Errorf("ip -4 route replace throw %s: %s: %w", pool, strings.TrimSpace(string(out)), err)
+		}
+	}
+	if !HasMarkRule(rules) {
+		if out, err := run("ip", "-4", "rule", "add", "pref", strconv.Itoa(RulePriority), "fwmark", mark, "lookup", table); err != nil {
+			return fmt.Errorf("ip -4 rule add: %s: %w", strings.TrimSpace(string(out)), err)
+		}
+	}
 	return nil
 }
 
+func removeThrow(pool string, run Runner) {
+	_, _ = run("ip", "-4", "route", "del", "throw", pool, "table", strconv.Itoa(RouteTable))
+}
+
 func removePolicyRouting(run Runner) {
-	prio := strconv.Itoa(RulePriority)
 	table := strconv.Itoa(RouteTable)
+	mark := fmt.Sprintf("0x%x", Mark)
 	// Duplicate rules are possible when an older iproute2 allowed them; loop
-	// until the kernel reports there is nothing left to delete.
+	// until the kernel reports there is nothing left to delete. The
+	// delivering rule goes first so no packet is ever routed to table 2601
+	// without the guard.
 	for i := 0; i < 8; i++ {
-		if _, err := run("ip", "-4", "rule", "del", "pref", prio, "fwmark", fmt.Sprintf("0x%x", Mark), "lookup", table); err != nil {
+		if _, err := run("ip", "-4", "rule", "del", "pref", strconv.Itoa(RulePriority), "fwmark", mark, "lookup", table); err != nil {
+			break
+		}
+	}
+	for i := 0; i < 8; i++ {
+		if _, err := run("ip", "-4", "rule", "del", "pref", strconv.Itoa(ReversePriority), "iif", "lo", "fwmark", mark, "lookup", "main"); err != nil {
 			break
 		}
 	}
 	_, _ = run("ip", "-4", "route", "flush", "table", table)
+}
+
+// HasReverseRule reports whether the "ip -4 rule show" output contains the
+// reverse-path guard rule (iif lo + fwmark Mark -> main).
+func HasReverseRule(rulesOutput string) bool {
+	for _, line := range strings.Split(rulesOutput, "\n") {
+		fields := strings.Fields(line)
+		var markOK, iifOK, mainOK bool
+		for i := 0; i+1 < len(fields); i++ {
+			switch fields[i] {
+			case "fwmark":
+				markOK = markTokenMatches(fields[i+1])
+			case "iif":
+				iifOK = fields[i+1] == "lo"
+			case "lookup", "table":
+				mainOK = fields[i+1] == "main" || fields[i+1] == "254"
+			}
+		}
+		if markOK && iifOK && mainOK {
+			return true
+		}
+	}
+	return false
 }
 
 // HasMarkRule reports whether the "ip -4 rule show" output already contains

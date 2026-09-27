@@ -252,7 +252,7 @@ export function createDefaultOpenvpnInboundSettings(): OpenvpnInboundSettings {
     pushDNS: true,
     dns1: '1.1.1.1',
     dns2: '8.8.8.8',
-    routeThroughXray: true,
+    routeThroughXray: false,
   };
 }
 
@@ -269,7 +269,7 @@ export function createDefaultL2tpInboundSettings(): L2tpInboundSettings {
     dns2: '8.8.8.8',
     outboundInterface: '',
     redirectGateway: true,
-    routeThroughXray: true,
+    routeThroughXray: false,
   };
 }
 

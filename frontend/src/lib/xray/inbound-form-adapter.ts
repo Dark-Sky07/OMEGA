@@ -152,13 +152,13 @@ function stripTlsCertUseFile(stream: Record<string, unknown>): void {
 }
 
 // OpenVPN and L2TP rows saved before the Xray relay existed carry no
-// routeThroughXray key. The backend treats a missing key as "on", so the
-// edit form must show it (and re-save it) as on rather than as an
-// unchecked switch that silently disagrees with what the server does.
+// routeThroughXray key. The relay is opt-in — the backend treats a missing
+// key as "off" — so the edit form shows (and re-saves) it as off, matching
+// exactly what the server does for that row.
 function healDaemonRouteThroughXray(protocol: string, settings: Record<string, unknown>): void {
   if (protocol !== 'openvpn' && protocol !== 'l2tp') return;
   if (typeof settings.routeThroughXray !== 'boolean') {
-    settings.routeThroughXray = true;
+    settings.routeThroughXray = false;
   }
 }
 

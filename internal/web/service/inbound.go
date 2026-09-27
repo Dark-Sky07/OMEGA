@@ -665,10 +665,12 @@ func mtprotoRoutesThroughXray(inbound *model.Inbound) bool {
 
 // daemonRelayRoutesThroughXray reports whether a local OpenVPN or L2TP/IPsec
 // inbound wants its clients' traffic diverted through the core's router (the
-// loopback TPROXY relay injected in §xray.go, see injectDaemonRelays). Unlike
-// the mtproto bridge this defaults to on — the whole point of the relay is
-// that the Routing page applies to these inbounds like to any other — and
-// only an explicit "routeThroughXray": false in the settings opts one out.
+// loopback TPROXY relay injected in §xray.go, see injectDaemonRelays). This
+// is opt-in: only an explicit "routeThroughXray": true in the settings turns
+// the relay on. The data path depends on host details the panel cannot fully
+// verify (netfilter modules, policy routing, other tunnels on the box), so an
+// operator switches it on per inbound and checks the result, instead of an
+// update silently changing how live tunnels are routed.
 func daemonRelayRoutesThroughXray(inbound *model.Inbound) bool {
 	if inbound == nil || inbound.NodeID != nil {
 		return false
@@ -679,12 +681,13 @@ func daemonRelayRoutesThroughXray(inbound *model.Inbound) bool {
 	var parsed struct {
 		RouteThroughXray *bool `json:"routeThroughXray"`
 	}
-	if strings.TrimSpace(inbound.Settings) != "" {
-		if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil {
-			return true
-		}
+	if strings.TrimSpace(inbound.Settings) == "" {
+		return false
 	}
-	return parsed.RouteThroughXray == nil || *parsed.RouteThroughXray
+	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil {
+		return false
+	}
+	return parsed.RouteThroughXray != nil && *parsed.RouteThroughXray
 }
 
 func settingsRouteXrayPort(parsed map[string]any) int {
