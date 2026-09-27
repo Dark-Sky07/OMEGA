@@ -186,15 +186,18 @@ func rulesForState(state networkState) []managedRule {
 	}
 }
 
-// relayRulesForState returns the TPROXY divert rules for a state whose
-// XrayRelayPort is set, or nil when the pool is on the direct path.
+// relayRulesForState returns the relay rules for a state whose XrayRelayPort
+// is set, in installation order (the INPUT exception first, then the TPROXY
+// divert rules), or nil when the pool is on the direct path.
 func relayRulesForState(state networkState) []managedRule {
 	if state.XrayRelayPort <= 0 {
 		return nil
 	}
-	specs := tproxy.DivertRules(state.InterfaceName, state.PoolCIDR, state.XrayRelayPort)
-	rules := make([]managedRule, 0, len(specs))
-	for _, spec := range specs {
+	rules := make([]managedRule, 0, 4)
+	for _, spec := range tproxy.AcceptRules(state.InterfaceName, state.PoolCIDR) {
+		rules = append(rules, managedRule{table: "filter", rule: spec})
+	}
+	for _, spec := range tproxy.DivertRules(state.InterfaceName, state.PoolCIDR, state.XrayRelayPort) {
 		rules = append(rules, managedRule{table: "mangle", rule: spec})
 	}
 	return rules
@@ -210,9 +213,12 @@ func (m *NetworkManager) removeStateRules(iptables string, state networkState) {
 	}
 }
 
+// removeRelayRules tears the relay rules down in reverse installation order,
+// so the divert rules are gone before the INPUT exception they rely on.
 func (m *NetworkManager) removeRelayRules(iptables string, state networkState) {
-	for _, rule := range relayRulesForState(state) {
-		m.removeRule(iptables, rule)
+	rules := relayRulesForState(state)
+	for i := len(rules) - 1; i >= 0; i-- {
+		m.removeRule(iptables, rules[i])
 	}
 }
 

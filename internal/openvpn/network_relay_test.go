@@ -146,6 +146,9 @@ func TestNetworkManagerRelayLifecycle(t *testing.T) {
 	if !f.has("-t mangle PREROUTING -i tun7 -s 10.7.0.0/24 -p tcp ! --syn -m socket --transparent") {
 		t.Fatalf("socket divert rule missing: %v", f.mangleRules())
 	}
+	if !f.has("-t filter INPUT -i tun7 -s 10.7.0.0/24 -m mark --mark 0x2e01/0xffffffff -j ACCEPT") {
+		t.Fatal("INPUT exception for diverted packets missing")
+	}
 	if !f.ipRule {
 		t.Fatal("policy routing rule was not installed")
 	}
@@ -186,6 +189,9 @@ func TestNetworkManagerRelayLifecycle(t *testing.T) {
 	}
 	if got := len(f.mangleRules()); got != 0 {
 		t.Fatalf("divert rules must be removed on fallback, got %v", f.mangleRules())
+	}
+	if f.has("-m mark --mark 0x2e01/0xffffffff -j ACCEPT") {
+		t.Fatal("INPUT exception must go away with the divert rules")
 	}
 	if f.ipRule {
 		t.Fatal("policy routing must be released once no relay is active")
@@ -229,6 +235,9 @@ func TestNetworkManagerRelayFailsOpen(t *testing.T) {
 	}
 	if got := len(f.mangleRules()); got != 0 {
 		t.Fatalf("partial divert rules must be rolled back, got %v", f.mangleRules())
+	}
+	if f.has("-m mark --mark 0x2e01/0xffffffff -j ACCEPT") {
+		t.Fatal("the INPUT exception installed before the failing rule must be rolled back too")
 	}
 	if f.ipRule {
 		t.Fatal("policy routing must be released when the divert rules fail")
