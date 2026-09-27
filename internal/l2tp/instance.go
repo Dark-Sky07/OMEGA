@@ -58,6 +58,14 @@ type Instance struct {
 	OutboundInterface string
 	RedirectGateway   bool
 	Credentials       []Credential
+
+	// XrayRelayPort is the loopback TPROXY listener Xray currently exposes
+	// for this inbound (0 = none). When set, the network manager diverts
+	// the pool's TCP/UDP traffic into Xray so the panel's routing rules apply
+	// to it. Deliberately excluded from fingerprint(): it only changes
+	// iptables rules, never the daemon configs, so it must never restart the
+	// daemons under live sessions.
+	XrayRelayPort int
 }
 
 // fingerprint covers every value emitted into the daemon or firewall

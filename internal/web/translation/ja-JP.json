@@ -508,6 +508,8 @@
         "mtgDebug": "デバッグログ",
         "mtgRouteThroughXray": "Xray 経由でルーティング",
         "mtgRouteThroughXrayHint": "このプロキシの Telegram トラフィックを Xray 経由にして、ルーティングルールに従わせます。mtg サイドカーは、この受信のタグを付けたループバック SOCKS ブリッジ経由で接続します。高度なルールでは、ルーティングタブでそのタグを参照してください。",
+        "daemonRouteThroughXray": "Xray 経由でルーティング",
+        "daemonRouteThroughXrayHint": "このインバウンドのクライアント通信（TCP と UDP）を Xray のルーターに通し、Xray 自身のインバウンドと同じようにルーティングルールを適用します。通信はこのインバウンドのタグが付いたループバックリスナーからコアに入ります。カスタムルールではルーティングタブでそのタグを参照してください。Xray が動作していないときは自動的に無効（直接経路）になります。",
         "mtgRouteOutbound": "アウトバウンド",
         "mtgRouteOutboundHint": "任意。Telegram トラフィックをこのアウトバウンド（またはバランサー）から強制的に送出します。空欄にするとルーティングルールに従います。",
         "mtgRouteOutboundPlaceholder": "ルーティングルールを使用",

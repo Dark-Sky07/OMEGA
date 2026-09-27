@@ -91,6 +91,15 @@ ss -lunp | grep -E ':(500|4500|1701)\\b'
 
 For Docker, the container needs `NET_ADMIN`, `NET_RAW`, `/dev/ppp`, `/dev/net/tun`, IPv4 forwarding, and published UDP 500, 4500, and 1701. The repository `docker-compose.yml` contains these settings. The host kernel must provide PPP and XFRM/IPsec; a Docker container cannot load a missing host kernel module.
 
+### Routing rules for OpenVPN and L2TP/IPsec clients
+
+OpenVPN and L2TP/IPsec are served by host daemons, so their clients' packets used to be forwarded and NATed by the kernel without ever passing through Xray — nothing on the **Xray → Routing** page applied to them. OMEGA now relays that traffic into the core: every enabled local OpenVPN/L2TP inbound gets a loopback `dokodemo-door` TPROXY listener in the generated Xray config, tagged with the inbound's own tag, and the daemons' network managers add `mangle PREROUTING` TPROXY rules (`-i tun<id>` / `-i ppp+`, matched on the pool subnet) that hand new TCP connections and all UDP datagrams to it. Xray sniffs the destination like it does for its native inbounds, so basic and custom rules (domain, IP, port, protocol, `inboundTag` = the inbound's tag, balancers) apply exactly as they do for Xray inbounds. AmneziaWG already enters Xray through its embedded relay and is unaffected.
+
+- **Default on, per inbound.** The OpenVPN/L2TP inbound forms have a *Route through Xray* switch; existing inbounds are treated as on. Turning it off restores the direct `FORWARD`/`MASQUERADE` path; the switch only changes iptables rules and the generated Xray config, never the daemon config, so it does not restart a daemon.
+- **Fail-open.** The divert rules exist only while the running core actually listens on the relay port; when Xray is stopped, restarting, or cannot start transparent sockets, the pool falls back to the direct path within one reconcile round (~10 s) and a warning is logged. Should Xray die right after starting twice in a row with relay listeners configured, they are suspended until the next forced restart.
+- **Host requirements.** Linux with `iptables`, `iproute2`, `CAP_NET_ADMIN`, and the `xt_TPROXY`/`xt_socket` netfilter modules (standard on host installs; a Docker container relies on the host kernel providing them). Policy routing uses fwmark `0x2e01` and table `2601`.
+- **Scope.** TCP and UDP only — ICMP (ping) still takes the direct path. Connections that were already established before the relay activated keep the direct path until they close. Traffic keeps being accounted by the daemons; the core's counters for the relay tags are discarded so nothing is counted twice.
+
 ### L2TP/IPsec feature highlights
 
 - **One global listener:** the panel accepts only one L2TP/IPsec inbound per local host. UDP 500 and 4500 are used by IKE/NAT-T and UDP 1701 by L2TP.

@@ -534,6 +534,8 @@
         "mtgDebug": "Debug logging",
         "mtgRouteThroughXray": "Route through Xray",
         "mtgRouteThroughXrayHint": "Send this proxy's Telegram traffic through Xray so it follows your routing rules. The mtg sidecar dials out via a loopback SOCKS bridge tagged with this inbound's tag; reference that tag in the Routing tab for advanced rules.",
+        "daemonRouteThroughXray": "Route through Xray",
+        "daemonRouteThroughXrayHint": "Divert this inbound's client traffic (TCP and UDP) through the Xray router so the Routing rules apply to it exactly like to Xray's own inbounds. The traffic enters the core via a loopback listener tagged with this inbound's tag; reference that tag in the Routing tab for custom rules. Turns off automatically (direct path) whenever Xray is not running.",
         "mtgRouteOutbound": "Outbound",
         "mtgRouteOutboundHint": "Optional. Force Telegram traffic out through this outbound (or balancer). Leave empty to let your routing rules decide.",
         "mtgRouteOutboundPlaceholder": "Use routing rules",

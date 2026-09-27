@@ -663,6 +663,30 @@ func mtprotoRoutesThroughXray(inbound *model.Inbound) bool {
 	return parsed.RouteThroughXray
 }
 
+// daemonRelayRoutesThroughXray reports whether a local OpenVPN or L2TP/IPsec
+// inbound wants its clients' traffic diverted through the core's router (the
+// loopback TPROXY relay injected in §xray.go, see injectDaemonRelays). Unlike
+// the mtproto bridge this defaults to on — the whole point of the relay is
+// that the Routing page applies to these inbounds like to any other — and
+// only an explicit "routeThroughXray": false in the settings opts one out.
+func daemonRelayRoutesThroughXray(inbound *model.Inbound) bool {
+	if inbound == nil || inbound.NodeID != nil {
+		return false
+	}
+	if inbound.Protocol != model.OpenVPN && inbound.Protocol != model.L2TP {
+		return false
+	}
+	var parsed struct {
+		RouteThroughXray *bool `json:"routeThroughXray"`
+	}
+	if strings.TrimSpace(inbound.Settings) != "" {
+		if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil {
+			return true
+		}
+	}
+	return parsed.RouteThroughXray == nil || *parsed.RouteThroughXray
+}
+
 func settingsRouteXrayPort(parsed map[string]any) int {
 	switch v := parsed["routeXrayPort"].(type) {
 	case float64:
@@ -1002,8 +1026,9 @@ func (s *InboundService) addInbound(inbound *model.Inbound, preserveExistingClie
 
 	// A routed mtproto inbound is not an Xray inbound itself, so the runtime
 	// push above only (re)starts the mtg sidecar. The egress SOCKS bridge lives
-	// in the generated config, so force a regen to wire it in.
-	if mtprotoRoutesThroughXray(inbound) {
+	// in the generated config, so force a regen to wire it in. The same goes
+	// for the TPROXY relay of OpenVPN/L2TP inbounds.
+	if mtprotoRoutesThroughXray(inbound) || daemonRelayRoutesThroughXray(inbound) {
 		needRestart = true
 	}
 
@@ -1074,8 +1099,9 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 			}
 		}
 	}
-	// Drop the egress SOCKS bridge a routed mtproto inbound left in the config.
-	if mtprotoRoutesThroughXray(&ib) {
+	// Drop the egress SOCKS bridge a routed mtproto inbound left in the
+	// config, or the TPROXY relay of an OpenVPN/L2TP inbound.
+	if mtprotoRoutesThroughXray(&ib) || daemonRelayRoutesThroughXray(&ib) {
 		needRestart = true
 	}
 	return needRestart, nil
@@ -1183,6 +1209,12 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 		return true, nil
 	}
 
+	// The daemons' TPROXY relay listener lives in the generated Xray config,
+	// so an enable/disable flip must regenerate it too (hot-applied).
+	if daemonRelayRoutesThroughXray(inbound) {
+		needRestart = true
+	}
+
 	if err := rt.DelInbound(context.Background(), inbound); err != nil &&
 		!strings.Contains(err.Error(), "not found") {
 		logger.Debug("SetInboundEnable: DelInbound on", rt.Name(), "failed:", err)
@@ -1261,6 +1293,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	// with the new settings further down, then ensure a routed inbound keeps a
 	// stable egress port (reusing the one already stored).
 	oldRoutedMtproto := mtprotoRoutesThroughXray(oldInbound)
+	oldRoutedDaemon := daemonRelayRoutesThroughXray(oldInbound)
 	if err := s.normalizeMtprotoXrayPort(inbound, oldInbound.Settings); err != nil {
 		return inbound, false, err
 	}
@@ -1447,8 +1480,10 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		return inbound, false, err
 	}
 	// (Re)generate the Xray config whenever routing was or is now enabled, so the
-	// egress SOCKS bridge is added, moved, or dropped to match the new settings.
-	if mtprotoRoutesThroughXray(inbound) || oldRoutedMtproto {
+	// egress SOCKS bridge (mtproto) or the TPROXY relay (OpenVPN/L2TP) is
+	// added, moved, or dropped to match the new settings.
+	if mtprotoRoutesThroughXray(inbound) || oldRoutedMtproto ||
+		daemonRelayRoutesThroughXray(inbound) || oldRoutedDaemon {
 		needRestart = true
 	}
 	return inbound, needRestart, nil

@@ -508,6 +508,8 @@
         "mtgDebug": "Nhật ký gỡ lỗi",
         "mtgRouteThroughXray": "Định tuyến qua Xray",
         "mtgRouteThroughXrayHint": "Gửi lưu lượng Telegram của proxy này qua Xray để tuân theo các quy tắc định tuyến của bạn. Tiến trình phụ mtg đi ra qua một cầu SOCKS loopback mang thẻ của inbound này; tham chiếu thẻ đó trong tab Định tuyến cho các quy tắc nâng cao.",
+        "daemonRouteThroughXray": "Định tuyến qua Xray",
+        "daemonRouteThroughXrayHint": "Chuyển lưu lượng của các client thuộc inbound này (TCP và UDP) qua bộ định tuyến của Xray để các quy tắc định tuyến áp dụng cho nó giống hệt như với các inbound của chính Xray. Lưu lượng đi vào core qua một listener loopback được gắn tag của inbound này; hãy tham chiếu tag đó trong tab Định tuyến cho các quy tắc tùy chỉnh. Tự động tắt (đường trực tiếp) khi Xray không chạy.",
         "mtgRouteOutbound": "Outbound",
         "mtgRouteOutboundHint": "Tùy chọn. Buộc lưu lượng Telegram đi ra qua outbound (hoặc bộ cân bằng) này. Để trống để các quy tắc định tuyến của bạn quyết định.",
         "mtgRouteOutboundPlaceholder": "Dùng quy tắc định tuyến",

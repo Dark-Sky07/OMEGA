@@ -508,6 +508,8 @@
         "mtgDebug": "Registro de depuración",
         "mtgRouteThroughXray": "Enrutar a través de Xray",
         "mtgRouteThroughXrayHint": "Envía el tráfico de Telegram de este proxy a través de Xray para que siga tus reglas de enrutamiento. El sidecar mtg sale por un puente SOCKS local con la etiqueta de esta entrada; usa esa etiqueta en la pestaña Enrutamiento para reglas avanzadas.",
+        "daemonRouteThroughXray": "Enrutar a través de Xray",
+        "daemonRouteThroughXrayHint": "Desvía el tráfico de los clientes de esta entrada (TCP y UDP) a través del enrutador de Xray para que las reglas de enrutamiento se le apliquen igual que a las entradas propias de Xray. El tráfico entra al núcleo por un oyente local etiquetado con la etiqueta de esta entrada; usa esa etiqueta en la pestaña Enrutamiento para reglas personalizadas. Se desactiva automáticamente (ruta directa) cuando Xray no está en ejecución.",
         "mtgRouteOutbound": "Salida",
         "mtgRouteOutboundHint": "Opcional. Fuerza el tráfico de Telegram a salir por esta salida (o balanceador). Déjalo vacío para que decidan tus reglas de enrutamiento.",
         "mtgRouteOutboundPlaceholder": "Usar reglas de enrutamiento",

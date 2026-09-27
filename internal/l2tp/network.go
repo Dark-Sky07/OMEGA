@@ -8,10 +8,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/tproxy"
 )
 
 // NetworkManager owns the firewall rules required by the L2TP pool. Rules are
@@ -23,13 +25,28 @@ type NetworkManager struct {
 	rules      map[int]networkState
 	sysctlPath string
 	runner     commandRunner
+	lookPath   func(file string) (string, error)
+	// relayWarned remembers the last relay failure logged per inbound so a
+	// host without TPROXY support does not repeat the warning every tick.
+	relayWarned map[int]string
 }
 
+// networkState is persisted as network.json below the inbound directory so a
+// later panel process can remove exactly the rules an earlier one installed.
+// Fields must stay exported for encoding/json to round-trip them.
 type networkState struct {
-	poolCIDR        string `json:"poolCIDR"`
-	interfaceName   string `json:"interfaceName"`
-	fixedInputPorts []int  `json:"fixedInputPorts"`
+	PoolCIDR        string `json:"poolCIDR"`
+	InterfaceName   string `json:"interfaceName"`
+	FixedInputPorts []int  `json:"fixedInputPorts"`
+	// XrayRelayPort is the loopback TPROXY listener the pool's TCP/UDP
+	// traffic is currently diverted to (see internal/util/tproxy); 0 means
+	// the pool takes the direct FORWARD/MASQUERADE path.
+	XrayRelayPort int `json:"xrayRelayPort,omitempty"`
 }
+
+// clientInterfaces matches every PPP session interface pppd creates for the
+// L2TP clients; the pool source filter keeps unrelated PPP links out.
+const clientInterfaces = "ppp+"
 
 func networkStatePath(id int) string {
 	return filepath.Join(dataDirForID(id), "network.json")
@@ -41,7 +58,7 @@ func loadNetworkState(id int) (networkState, bool) {
 		return networkState{}, false
 	}
 	var state networkState
-	if err := json.Unmarshal(data, &state); err != nil || state.poolCIDR == "" {
+	if err := json.Unmarshal(data, &state); err != nil || state.PoolCIDR == "" {
 		return networkState{}, false
 	}
 	return state, true
@@ -70,14 +87,20 @@ func GetNetworkManager() *NetworkManager {
 			runner: func(name string, args ...string) ([]byte, error) {
 				return exec.Command(name, args...).CombinedOutput()
 			},
+			lookPath:    exec.LookPath,
+			relayWarned: make(map[int]string),
 		}
 	})
 	return networkMgr
 }
 
 func (m *NetworkManager) available() (string, error) {
+	lookPath := m.lookPath
+	if lookPath == nil {
+		lookPath = exec.LookPath
+	}
 	for _, candidate := range []string{"iptables", "iptables-legacy", "iptables-nft"} {
-		if path, err := exec.LookPath(candidate); err == nil {
+		if path, err := lookPath(candidate); err == nil {
 			return path, nil
 		}
 	}
@@ -202,11 +225,13 @@ func (m *NetworkManager) Apply(inst Instance) error {
 	if err := m.enableForwarding(); err != nil {
 		return fmt.Errorf("l2tp: enable IPv4 forwarding: %w", err)
 	}
+	previous, hadPrevious := m.rules[inst.Id]
+	if !hadPrevious {
+		previous, hadPrevious = loadNetworkState(inst.Id)
+	}
 	previousFixedPorts := []int(nil)
-	if previous, ok := m.rules[inst.Id]; ok {
-		previousFixedPorts = append(previousFixedPorts, previous.fixedInputPorts...)
-	} else if previous, ok := loadNetworkState(inst.Id); ok {
-		previousFixedPorts = append(previousFixedPorts, previous.fixedInputPorts...)
+	if hadPrevious {
+		previousFixedPorts = append(previousFixedPorts, previous.FixedInputPorts...)
 	}
 	newFixedPorts, espInserted, err := m.enableFixedPorts(iptables)
 	if err != nil {
@@ -265,10 +290,20 @@ func (m *NetworkManager) Apply(inst Instance) error {
 		}
 		return fmt.Errorf("l2tp: install MASQUERADE rule: %w", err)
 	}
-	state := networkState{poolCIDR: pool, interfaceName: iface, fixedInputPorts: fixedPorts}
+	state := networkState{PoolCIDR: pool, InterfaceName: iface, FixedInputPorts: fixedPorts}
+	if inst.XrayRelayPort > 0 && inst.XrayRelayPort <= 65535 {
+		state.XrayRelayPort = inst.XrayRelayPort
+	}
+	// The relay is layered on top of the direct rules and is best effort:
+	// whatever it reports as active is what gets persisted for cleanup.
+	state.XrayRelayPort = m.applyRelay(iptables, inst.Id, previous, hadPrevious, state)
 	if err := saveNetworkState(inst.Id, state); err != nil {
 		// The firewall is only considered managed once its rollback metadata is
 		// durable; otherwise a panel restart could leave unremovable rules.
+		if state.XrayRelayPort > 0 {
+			m.removeRelayRules(iptables, state)
+			tproxy.Release(relayOwner(inst.Id), tproxy.Runner(m.runner))
+		}
 		if masqInserted {
 			m.removeRule(iptables, "nat", masquerade)
 		}
@@ -304,7 +339,7 @@ func (m *NetworkManager) Remove(id int) {
 		_ = os.Remove(networkStatePath(id))
 		return
 	}
-	ports := state.fixedInputPorts
+	ports := state.FixedInputPorts
 	if len(ports) == 0 {
 		// UDP 500/4500/1701 are reserved by the global L2TP service. Remove
 		// exact managed rules even when this process has no durable state from
@@ -313,9 +348,13 @@ func (m *NetworkManager) Remove(id int) {
 	}
 	m.removeFixedPorts(iptables, ports)
 	m.removeESP(iptables)
-	if ok && state.poolCIDR != "" {
-		pool := state.poolCIDR
-		iface := state.interfaceName
+	if ok && state.XrayRelayPort > 0 {
+		m.removeRelayRules(iptables, state)
+		tproxy.Release(relayOwner(id), tproxy.Runner(m.runner))
+	}
+	if ok && state.PoolCIDR != "" {
+		pool := state.PoolCIDR
+		iface := state.InterfaceName
 		forwardOut := []string{"FORWARD", "-s", pool}
 		if iface != "" {
 			forwardOut = append(forwardOut, "-o", iface)
@@ -338,7 +377,92 @@ func (m *NetworkManager) Remove(id int) {
 		m.removeRule(iptables, "nat", masquerade)
 	}
 	delete(m.rules, id)
+	delete(m.relayWarned, id)
 	_ = os.Remove(networkStatePath(id))
+}
+
+// relayRulesForState returns the TPROXY divert rules for a state whose
+// XrayRelayPort is set, or nil when the pool is on the direct path. Sessions
+// arrive on pppd's per-client interfaces, so the interface match is the ppp+
+// wildcard and the pool filter does the actual selection.
+func relayRulesForState(state networkState) [][]string {
+	if state.XrayRelayPort <= 0 {
+		return nil
+	}
+	return tproxy.DivertRules(clientInterfaces, state.PoolCIDR, state.XrayRelayPort)
+}
+
+func relayOwner(id int) string {
+	return "l2tp:" + strconv.Itoa(id)
+}
+
+func (m *NetworkManager) removeRelayRules(iptables string, state networkState) {
+	for _, rule := range relayRulesForState(state) {
+		m.removeRule(iptables, "mangle", rule)
+	}
+}
+
+func (m *NetworkManager) warnRelay(id int, msg string) {
+	if m.relayWarned == nil {
+		m.relayWarned = make(map[int]string)
+	}
+	if m.relayWarned[id] == msg {
+		return
+	}
+	m.relayWarned[id] = msg
+	logger.Warningf("l2tp: inbound %d: cannot divert traffic through Xray, keeping the direct path: %s", id, msg)
+}
+
+// applyRelay converges the TPROXY divert rules of the pool to the relay port
+// carried by wanted and returns the port that is actually active afterwards
+// (0 = direct path). It never fails the caller: a kernel without TPROXY
+// support, or policy routing that cannot be installed, just leaves the pool
+// on the direct path with a warning, and the next reconcile round tries
+// again. Must be called with m.mu held.
+func (m *NetworkManager) applyRelay(iptables string, id int, previous networkState, hadPrevious bool, wanted networkState) int {
+	prevPort := 0
+	if hadPrevious {
+		prevPort = previous.XrayRelayPort
+	}
+	changed := prevPort != wanted.XrayRelayPort || previous.PoolCIDR != wanted.PoolCIDR
+	if prevPort > 0 && changed {
+		m.removeRelayRules(iptables, previous)
+	}
+	if wanted.XrayRelayPort <= 0 {
+		if prevPort > 0 {
+			tproxy.Release(relayOwner(id), tproxy.Runner(m.runner))
+			logger.Infof("l2tp: inbound %d: pool %s traffic is back on the direct path", id, wanted.PoolCIDR)
+		}
+		return 0
+	}
+
+	// The routing entries must exist before the first divert rule does,
+	// otherwise a diverted packet would be forwarded instead of delivered.
+	if err := tproxy.Acquire(relayOwner(id), tproxy.Runner(m.runner)); err != nil {
+		m.warnRelay(id, err.Error())
+		return 0
+	}
+	rules := relayRulesForState(wanted)
+	inserted := make([][]string, 0, len(rules))
+	for _, rule := range rules {
+		wasInserted, err := m.ensureRule(iptables, "mangle", rule)
+		if err != nil {
+			for i := len(inserted) - 1; i >= 0; i-- {
+				m.removeRule(iptables, "mangle", inserted[i])
+			}
+			tproxy.Release(relayOwner(id), tproxy.Runner(m.runner))
+			m.warnRelay(id, err.Error())
+			return 0
+		}
+		if wasInserted {
+			inserted = append(inserted, rule)
+		}
+	}
+	delete(m.relayWarned, id)
+	if prevPort != wanted.XrayRelayPort {
+		logger.Infof("l2tp: inbound %d: diverting pool %s TCP/UDP traffic through Xray (%s:%d)", id, wanted.PoolCIDR, tproxy.ListenIP, wanted.XrayRelayPort)
+	}
+	return wanted.XrayRelayPort
 }
 
 func (m *NetworkManager) RemoveAll() {

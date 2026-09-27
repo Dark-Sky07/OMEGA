@@ -59,6 +59,14 @@ export default function L2tpFields() {
       >
         <Switch />
       </Form.Item>
+      <Form.Item
+        name={['settings', 'routeThroughXray']}
+        label={t('pages.inbounds.form.daemonRouteThroughXray')}
+        tooltip={t('pages.inbounds.form.daemonRouteThroughXrayHint')}
+        valuePropName="checked"
+      >
+        <Switch />
+      </Form.Item>
     </>
   );
 }
