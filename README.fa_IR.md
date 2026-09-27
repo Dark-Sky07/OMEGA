@@ -80,6 +80,15 @@ L2TP/IPsec daemon سیستم‌عامل است و بخشی از Xray نیست. i
 
 برای Docker باید `NET_ADMIN`، `NET_RAW`، دستگاه‌های `/dev/ppp` و `/dev/net/tun`، sysctl forwarding و publish کردن UDPهای 500، 4500 و 1701 فراهم باشد؛ تنظیمات آن در `docker-compose.yml` قرار دارد. kernel میزبان باید PPP و XFRM/IPsec را پشتیبانی کند.
 
+### اعمال قوانین Routing روی کلاینت‌های OpenVPN و L2TP/IPsec
+
+OpenVPN و L2TP/IPsec توسط daemonهای سیستم‌عامل سرویس داده می‌شوند؛ پیش‌تر بسته‌های کلاینت‌های آن‌ها مستقیماً توسط kernel forward و NAT می‌شد و هیچ‌وقت از Xray عبور نمی‌کرد، بنابراین قوانین صفحهٔ **Xray → Routing** روی آن‌ها اثری نداشت. حالا OMEGA این ترافیک را به داخل هسته هدایت می‌کند: برای هر inbound محلیِ فعال OpenVPN/L2TP یک listener از نوع `dokodemo-door` (TPROXY) روی loopback با همان tag خود inbound در کانفیگ تولیدشدهٔ Xray قرار می‌گیرد و مدیر شبکهٔ daemonها ruleهای `mangle PREROUTING` TPROXY (روی `tun<id>` / `ppp+` و subnet همان pool) را اضافه می‌کند تا اتصال‌های TCP جدید و همهٔ datagramهای UDP به آن listener تحویل شوند؛ یک rule `filter INPUT` هم بسته‌های mark‌شده را می‌پذیرد تا فایروال‌های default-deny (مثل ufw) آن‌ها را drop نکنند. Xray مقصد را مثل inboundهای native خودش sniff می‌کند، پس قوانین پایه و سفارشی (domain، IP، port، protocol، `inboundTag` برابر با tag همان inbound و balancerها) دقیقاً مثل inboundهای Xray اعمال می‌شوند. AmneziaWG از قبل از طریق relay داخلی خودش وارد Xray می‌شد و تغییری نکرده است.
+
+- **پیش‌فرض روشن، برای هر inbound جداگانه.** فرم inboundهای OpenVPN/L2TP یک سوئیچ *Route through Xray* دارد؛ inboundهای قبلی روشن در نظر گرفته می‌شوند. خاموش کردن آن مسیر مستقیم `FORWARD`/`MASQUERADE` را برمی‌گرداند. این سوئیچ فقط ruleهای iptables و کانفیگ تولیدشدهٔ Xray را عوض می‌کند و به کانفیگ daemon دست نمی‌زند، بنابراین daemon را restart نمی‌کند.
+- **Fail-open.** ruleهای هدایت فقط وقتی وجود دارند که هستهٔ در حال اجرا واقعاً روی پورت relay گوش می‌دهد؛ وقتی Xray متوقف است، در حال restart است یا نمی‌تواند سوکت transparent باز کند، pool ظرف یک دور reconcile (حدود ۱۰ ثانیه) به مسیر مستقیم برمی‌گردد و یک warning لاگ می‌شود. اگر Xray دو بار پشت سر هم بلافاصله بعد از start با listenerهای relay crash کند، relay تا restart اجباری بعدی معلق می‌شود.
+- **نیازمندی‌های host.** لینوکس با `iptables`، `iproute2`، `CAP_NET_ADMIN` و ماژول‌های netfilter `xt_TPROXY`/`xt_socket` (روی نصب مستقیم استاندارد است؛ در Docker به kernel میزبان وابسته است). policy routing از fwmark `0x2e01` و جدول `2601` استفاده می‌کند. hostهایی که **firewalld** دارند عمداً مستثنا هستند: زنجیرهٔ input آن در nftables بسته‌های هدایت‌شده را reject می‌کند، بنابراین تا وقتی `firewalld` فعال است relay خاموش می‌ماند (مسیر مستقیم، یک warning در لاگ) و به‌محض متوقف شدن آن خودکار برمی‌گردد.
+- **محدودهٔ اثر.** فقط TCP و UDP؛ ICMP (ping) همچنان مسیر مستقیم را می‌رود. اتصال‌هایی که قبل از فعال شدن relay برقرار شده‌اند تا بسته شدن مسیر مستقیم را نگه می‌دارند. حساب ترافیک همچنان توسط daemonها انجام می‌شود و شمارنده‌های هسته برای tagهای relay دور ریخته می‌شوند تا چیزی دو بار شمرده نشود.
+
 ### خلاصه‌ی قابلیت‌های L2TP/IPsec
 
 - **یک listener سراسری:** در هر host محلی فقط یک inbound از نوع L2TP/IPsec مجاز است؛ UDPهای 500 و 4500 برای IKE/NAT-T و UDP 1701 برای L2TP هستند.

@@ -257,6 +257,16 @@ func (m *NetworkManager) applyRelay(iptables string, id int, previous networkSta
 		}
 		return 0
 	}
+	if tproxy.FirewalldActive(tproxy.Runner(m.runner)) {
+		if prevPort > 0 {
+			if !changed {
+				m.removeRelayRules(iptables, previous)
+			}
+			tproxy.Release(relayOwner(id), tproxy.Runner(m.runner))
+		}
+		m.warnRelay(id, tproxy.FirewalldWarning)
+		return 0
+	}
 
 	// The routing entries must exist before the first divert rule does,
 	// otherwise a diverted packet would be forwarded instead of delivered.
