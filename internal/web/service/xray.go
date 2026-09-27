@@ -319,6 +319,14 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	// the Xray-side outbound/routing-rule half.
 	injectAmneziawgV6Egress(xrayConfig, inbounds)
 
+	// Give every enabled local OpenVPN/L2TP inbound a loopback TPROXY relay
+	// (tagged with the inbound's tag) so the daemons' network managers can
+	// divert their clients' traffic into the router and the Routing page
+	// applies to them too. See daemon_relay.go. Placed after the AmneziaWG
+	// relays so its port picker sees their ports, and before the panel
+	// egress bridge so that one sees ours.
+	injectDaemonRelays(xrayConfig, inbounds)
+
 	// Wire the panel's own HTTP traffic through the configured outbound, after
 	// the subscription merge so subscription outbound tags are valid targets.
 	if egressTag, err := s.settingService.GetPanelOutbound(); err != nil {
@@ -887,6 +895,9 @@ func (s *XrayService) GetXrayTraffic() ([]*xray.Traffic, []*xray.ClientTraffic, 
 		logger.Debug("Failed to fetch Xray traffic:", err)
 		return nil, nil, err
 	}
+	// OpenVPN/L2TP relay listeners carry traffic the daemons already account
+	// for; drop the core's copy so nothing is counted twice.
+	traffic = dropDaemonRelayTraffic(p.GetConfig(), traffic)
 	return traffic, clientTraffic, nil
 }
 
@@ -1006,6 +1017,10 @@ func (s *XrayService) RestartXray(isForce bool) error {
 	lock.Lock()
 	defer lock.Unlock()
 	logger.Debug("restart Xray, force:", isForce)
+	// Evaluate the relay crash-loop guard before the config is regenerated so
+	// a suspension decided here already shapes this very config.
+	crashed := p != nil && !p.IsRunning() && !isManuallyStopped.Load()
+	noteDaemonRelayCrash(isForce, crashed)
 	isManuallyStopped.Store(false)
 
 	xrayConfig, err := s.GetXrayConfig()

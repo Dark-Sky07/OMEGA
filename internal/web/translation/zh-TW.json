@@ -508,6 +508,8 @@
         "mtgDebug": "除錯日誌",
         "mtgRouteThroughXray": "透過 Xray 路由",
         "mtgRouteThroughXrayHint": "讓此代理的 Telegram 流量經過 Xray，以套用您的路由規則。mtg 附屬程序會透過帶有此入站標籤的本機 SOCKS 橋接出站；在路由分頁中引用該標籤即可設定進階規則。",
+        "daemonRouteThroughXray": "透過 Xray 路由",
+        "daemonRouteThroughXrayHint": "將此入站的用戶端流量（TCP 與 UDP）經由 Xray 路由器轉送，使路由規則像套用於 Xray 自身入站一樣套用於它。流量透過一個帶有此入站標籤的回環監聽器進入核心；自訂規則請在路由分頁中引用該標籤。Xray 未執行時自動關閉（直連）。",
         "mtgRouteOutbound": "出站",
         "mtgRouteOutboundHint": "選填。強制 Telegram 流量經由此出站（或負載平衡器）送出。留空則由您的路由規則決定。",
         "mtgRouteOutboundPlaceholder": "使用路由規則",

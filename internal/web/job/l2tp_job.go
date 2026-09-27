@@ -16,6 +16,7 @@ import (
 type L2TPJob struct {
 	inboundService service.InboundService
 	clientService  service.ClientService
+	xrayService    service.XrayService
 }
 
 func NewL2TPJob() *L2TPJob { return new(L2TPJob) }
@@ -66,6 +67,10 @@ func (j *L2TPJob) Run() {
 			logger.Warningf("l2tp job: inbound %d has invalid settings or credentials", ib.Id)
 			continue
 		}
+		// See OpenvpnJob: follow the running core's relay listener each
+		// round; excluded from the daemon fingerprint so it never restarts
+		// the daemons.
+		inst.XrayRelayPort = j.xrayService.DaemonRelayPort(ib.Tag)
 		wanted = append(wanted, inst)
 	}
 	mgr := l2tp.GetManager()

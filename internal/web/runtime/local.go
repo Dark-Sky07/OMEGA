@@ -19,6 +19,9 @@ import (
 type LocalDeps struct {
 	APIPort        func() int
 	SetNeedRestart func()
+	// DaemonRelayPort returns the loopback TPROXY relay port the running core
+	// exposes for an OpenVPN/L2TP inbound tag (0 = none). Optional.
+	DaemonRelayPort func(tag string) int
 }
 
 type Local struct {
@@ -93,6 +96,11 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 		inst, ok := l2tp.InstanceFromInbound(ib, nil)
 		if !ok {
 			return errors.New("invalid l2tp inbound settings")
+		}
+		if l.deps.DaemonRelayPort != nil {
+			// Keep the divert rules the reconcile job installed instead of
+			// flapping them to the direct path until its next round.
+			inst.XrayRelayPort = l.deps.DaemonRelayPort(ib.Tag)
 		}
 		return l2tp.GetManager().Ensure(inst)
 	}

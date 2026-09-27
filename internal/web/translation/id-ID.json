@@ -508,6 +508,8 @@
         "mtgDebug": "Log debug",
         "mtgRouteThroughXray": "Rutekan melalui Xray",
         "mtgRouteThroughXrayHint": "Kirim lalu lintas Telegram proxy ini melalui Xray agar mengikuti aturan routing Anda. Sidecar mtg keluar lewat bridge SOCKS loopback yang diberi tag sama dengan inbound ini; rujuk tag tersebut di tab Routing untuk aturan lanjutan.",
+        "daemonRouteThroughXray": "Rutekan melalui Xray",
+        "daemonRouteThroughXrayHint": "Alihkan lalu lintas klien inbound ini (TCP dan UDP) melalui router Xray sehingga aturan Routing berlaku padanya persis seperti pada inbound milik Xray. Lalu lintas masuk ke core melalui listener loopback yang diberi tag inbound ini; rujuk tag tersebut di tab Routing untuk aturan kustom. Otomatis nonaktif (jalur langsung) saat Xray tidak berjalan.",
         "mtgRouteOutbound": "Outbound",
         "mtgRouteOutboundHint": "Opsional. Paksa lalu lintas Telegram keluar melalui outbound (atau balancer) ini. Biarkan kosong agar aturan routing yang menentukan.",
         "mtgRouteOutboundPlaceholder": "Gunakan aturan routing",

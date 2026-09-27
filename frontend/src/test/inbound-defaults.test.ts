@@ -159,6 +159,7 @@ describe('createDefault*InboundSettings factories', () => {
       pushDNS: true,
       dns1: '1.1.1.1',
       dns2: '8.8.8.8',
+      routeThroughXray: true,
     });
     expect(OpenvpnInboundSettingsSchema.parse(s)).toEqual(s);
     // The dispatch helper must know the protocol.
