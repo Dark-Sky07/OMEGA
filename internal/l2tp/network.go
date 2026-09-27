@@ -381,24 +381,41 @@ func (m *NetworkManager) Remove(id int) {
 	_ = os.Remove(networkStatePath(id))
 }
 
-// relayRulesForState returns the TPROXY divert rules for a state whose
-// XrayRelayPort is set, or nil when the pool is on the direct path. Sessions
-// arrive on pppd's per-client interfaces, so the interface match is the ppp+
+// relayRule is one relay rule together with the iptables table it lives in.
+type relayRule struct {
+	table string
+	rule  []string
+}
+
+// relayRulesForState returns the relay rules for a state whose XrayRelayPort
+// is set, in installation order (the INPUT exception first, then the TPROXY
+// divert rules), or nil when the pool is on the direct path. Sessions arrive
+// on pppd's per-client interfaces, so the interface match is the ppp+
 // wildcard and the pool filter does the actual selection.
-func relayRulesForState(state networkState) [][]string {
+func relayRulesForState(state networkState) []relayRule {
 	if state.XrayRelayPort <= 0 {
 		return nil
 	}
-	return tproxy.DivertRules(clientInterfaces, state.PoolCIDR, state.XrayRelayPort)
+	rules := make([]relayRule, 0, 4)
+	for _, spec := range tproxy.AcceptRules(clientInterfaces, state.PoolCIDR) {
+		rules = append(rules, relayRule{table: "filter", rule: spec})
+	}
+	for _, spec := range tproxy.DivertRules(clientInterfaces, state.PoolCIDR, state.XrayRelayPort) {
+		rules = append(rules, relayRule{table: "mangle", rule: spec})
+	}
+	return rules
 }
 
 func relayOwner(id int) string {
 	return "l2tp:" + strconv.Itoa(id)
 }
 
+// removeRelayRules tears the relay rules down in reverse installation order,
+// so the divert rules are gone before the INPUT exception they rely on.
 func (m *NetworkManager) removeRelayRules(iptables string, state networkState) {
-	for _, rule := range relayRulesForState(state) {
-		m.removeRule(iptables, "mangle", rule)
+	rules := relayRulesForState(state)
+	for i := len(rules) - 1; i >= 0; i-- {
+		m.removeRule(iptables, rules[i].table, rules[i].rule)
 	}
 }
 
@@ -443,12 +460,12 @@ func (m *NetworkManager) applyRelay(iptables string, id int, previous networkSta
 		return 0
 	}
 	rules := relayRulesForState(wanted)
-	inserted := make([][]string, 0, len(rules))
+	inserted := make([]relayRule, 0, len(rules))
 	for _, rule := range rules {
-		wasInserted, err := m.ensureRule(iptables, "mangle", rule)
+		wasInserted, err := m.ensureRule(iptables, rule.table, rule.rule)
 		if err != nil {
 			for i := len(inserted) - 1; i >= 0; i-- {
-				m.removeRule(iptables, "mangle", inserted[i])
+				m.removeRule(iptables, inserted[i].table, inserted[i].rule)
 			}
 			tproxy.Release(relayOwner(id), tproxy.Runner(m.runner))
 			m.warnRelay(id, err.Error())

@@ -23,6 +23,17 @@ func TestDivertRulesShape(t *testing.T) {
 	}
 }
 
+func TestAcceptRulesShape(t *testing.T) {
+	rules := AcceptRules("ppp+", "10.252.0.0/24")
+	if len(rules) != 1 {
+		t.Fatalf("expected one accept rule, got %d", len(rules))
+	}
+	want := "INPUT -i ppp+ -s 10.252.0.0/24 -m mark --mark 0x2e01/0xffffffff -j ACCEPT"
+	if got := strings.Join(rules[0], " "); got != want {
+		t.Fatalf("accept rule = %q, want %q", got, want)
+	}
+}
+
 func TestHasMarkRule(t *testing.T) {
 	cases := map[string]bool{
 		"0:\tfrom all lookup local\n2601:\tfrom all fwmark 0x2e01 lookup 2601\n32766:\tfrom all lookup main\n": true,

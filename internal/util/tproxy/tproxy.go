@@ -78,6 +78,19 @@ func DivertRules(iface, pool string, port int) [][]string {
 	}
 }
 
+// AcceptRules returns the filter-table INPUT rules that let diverted packets
+// reach the listener on hosts with a default-deny INPUT policy (ufw and the
+// like). After TPROXY the packets are delivered locally, so they traverse
+// INPUT carrying their original — non-local — destination and would be
+// dropped there by such a policy; matching on the divert mark keeps the
+// exception exactly as narrow as the divert rules themselves. Callers install
+// these before, and remove them after, the DivertRules.
+func AcceptRules(iface, pool string) [][]string {
+	return [][]string{
+		{"INPUT", "-i", iface, "-s", pool, "-m", "mark", "--mark", markArg(), "-j", "ACCEPT"},
+	}
+}
+
 var (
 	mu     sync.Mutex
 	owners = map[string]struct{}{}
