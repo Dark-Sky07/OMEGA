@@ -91,6 +91,24 @@ func AcceptRules(iface, pool string) [][]string {
 	}
 }
 
+// FirewalldActive reports whether firewalld manages this host's firewall.
+// firewalld keeps its own nftables table whose INPUT chain rejects anything
+// its zones do not allow — and it is evaluated after the iptables filter
+// table, so the INPUT exception from AcceptRules cannot protect the diverted
+// packets there. Callers treat an active firewalld as "relay unavailable"
+// (fail-open) rather than risk black-holing the clients' traffic.
+func FirewalldActive(run Runner) bool {
+	if run == nil {
+		return false
+	}
+	out, err := run("systemctl", "is-active", "firewalld")
+	return err == nil && strings.TrimSpace(string(out)) == "active"
+}
+
+// FirewalldWarning is the operator-facing explanation logged (once) when the
+// relay stays off because of FirewalldActive.
+const FirewalldWarning = "firewalld is active on this host; the Xray relay is not installed because firewalld's INPUT policy would drop the diverted packets, so this inbound stays on the direct path and routing rules do not apply to it (stop firewalld to enable the relay, or turn the inbound's \"Route through Xray\" switch off to silence this warning)"
+
 var (
 	mu     sync.Mutex
 	owners = map[string]struct{}{}

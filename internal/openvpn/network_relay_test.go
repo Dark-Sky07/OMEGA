@@ -19,6 +19,7 @@ type fakeFirewall struct {
 	calls     []string
 	failMatch string // an -I whose rule contains this substring fails
 	ipRule    bool
+	firewalld bool // systemctl is-active firewalld reports "active"
 }
 
 func newFakeFirewall() *fakeFirewall {
@@ -33,6 +34,11 @@ func (f *fakeFirewall) run(name string, args ...string) ([]byte, error) {
 	switch name {
 	case "sysctl", "sh":
 		return nil, nil
+	case "systemctl":
+		if f.firewalld {
+			return []byte("active\n"), nil
+		}
+		return []byte("inactive\n"), errors.New("exit status 3")
 	case "ip":
 		switch {
 		case strings.HasPrefix(cmd, "ip -4 rule show"):
@@ -263,6 +269,56 @@ func TestNetworkManagerRelayFailsOpen(t *testing.T) {
 	if tproxy.ActiveOwners() != 0 {
 		t.Fatalf("no tproxy owners expected, got %d", tproxy.ActiveOwners())
 	}
+}
+
+func TestNetworkManagerRelaySkipsUnderFirewalld(t *testing.T) {
+	tempBinFolder(t)
+	if err := os.MkdirAll(dataDirForID(9), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	f := newFakeFirewall()
+	m := newTestNetworkManager(f)
+	inst := Instance{Id: 9, Port: 1194, Proto: "udp", XrayRelayPort: 63909}
+
+	// Relay active, then firewalld shows up: rules are withdrawn.
+	if err := m.Apply(inst); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	if got := len(f.mangleRules()); got != 3 {
+		t.Fatalf("expected the relay to be active first, got %d mangle rules", got)
+	}
+	f.firewalld = true
+	if err := m.Apply(inst); err != nil {
+		t.Fatalf("apply under firewalld: %v", err)
+	}
+	if got := len(f.mangleRules()); got != 0 {
+		t.Fatalf("divert rules must be withdrawn under firewalld, got %v", f.mangleRules())
+	}
+	if f.has("-m mark --mark 0x2e01/0xffffffff -j ACCEPT") {
+		t.Fatal("INPUT exception must be withdrawn under firewalld")
+	}
+	if f.ipRule || tproxy.ActiveOwners() != 0 {
+		t.Fatal("policy routing must be released under firewalld")
+	}
+	if st := readState(t, 9); st.XrayRelayPort != 0 {
+		t.Fatalf("state must record the direct path, got %+v", st)
+	}
+	if m.relayWarned[9] != tproxy.FirewalldWarning {
+		t.Fatalf("operator warning expected, got %q", m.relayWarned[9])
+	}
+	if !f.has("FORWARD -i tun9 -s 10.9.0.0/24 -j ACCEPT") {
+		t.Fatal("direct-path rules must stay in place")
+	}
+
+	// firewalld gone again: the relay comes back on the next round.
+	f.firewalld = false
+	if err := m.Apply(inst); err != nil {
+		t.Fatalf("apply after firewalld stopped: %v", err)
+	}
+	if got := len(f.mangleRules()); got != 3 {
+		t.Fatalf("relay must resume once firewalld is gone, got %d mangle rules", got)
+	}
+	m.Remove(9)
 }
 
 func TestStateForInstanceIgnoresInvalidRelayPort(t *testing.T) {

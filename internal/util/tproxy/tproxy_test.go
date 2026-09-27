@@ -34,6 +34,26 @@ func TestAcceptRulesShape(t *testing.T) {
 	}
 }
 
+func TestFirewalldActive(t *testing.T) {
+	active := func(name string, args ...string) ([]byte, error) {
+		if name == "systemctl" && len(args) == 2 && args[0] == "is-active" && args[1] == "firewalld" {
+			return []byte("active\n"), nil
+		}
+		return nil, errors.New("unexpected command")
+	}
+	if !FirewalldActive(active) {
+		t.Fatal("active firewalld not detected")
+	}
+	inactive := func(string, ...string) ([]byte, error) { return []byte("inactive\n"), errors.New("exit status 3") }
+	if FirewalldActive(inactive) {
+		t.Fatal("inactive firewalld reported active")
+	}
+	missing := func(string, ...string) ([]byte, error) { return nil, errors.New("executable file not found") }
+	if FirewalldActive(missing) || FirewalldActive(nil) {
+		t.Fatal("hosts without systemctl must count as no firewalld")
+	}
+}
+
 func TestHasMarkRule(t *testing.T) {
 	cases := map[string]bool{
 		"0:\tfrom all lookup local\n2601:\tfrom all fwmark 0x2e01 lookup 2601\n32766:\tfrom all lookup main\n": true,

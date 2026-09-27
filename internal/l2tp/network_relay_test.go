@@ -18,6 +18,7 @@ type fakeFirewall struct {
 	calls     []string
 	failMatch string
 	ipRule    bool
+	firewalld bool // systemctl is-active firewalld reports "active"
 }
 
 func newFakeFirewall() *fakeFirewall {
@@ -32,6 +33,11 @@ func (f *fakeFirewall) run(name string, args ...string) ([]byte, error) {
 	switch name {
 	case "sysctl", "sh":
 		return nil, nil
+	case "systemctl":
+		if f.firewalld {
+			return []byte("active\n"), nil
+		}
+		return []byte("inactive\n"), errors.New("exit status 3")
 	case "ip":
 		switch {
 		case strings.HasPrefix(cmd, "ip -4 rule show"):
@@ -211,6 +217,45 @@ func TestNetworkManagerRelayLifecycle(t *testing.T) {
 	if tproxy.ActiveOwners() != 0 {
 		t.Fatalf("no tproxy owners expected after Remove, got %d", tproxy.ActiveOwners())
 	}
+}
+
+func TestNetworkManagerRelaySkipsUnderFirewalld(t *testing.T) {
+	useTempL2TPRoot(t)
+	inst := validInstance()
+	if err := os.MkdirAll(dataDirForID(inst.Id), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	f := newFakeFirewall()
+	f.firewalld = true
+	m := newTestNetworkManager(f)
+	inst.XrayRelayPort = 63907
+
+	if err := m.Apply(inst); err != nil {
+		t.Fatalf("apply under firewalld: %v", err)
+	}
+	if got := len(f.mangleRules()); got != 0 {
+		t.Fatalf("no divert rules expected under firewalld, got %v", f.mangleRules())
+	}
+	if f.has("-m mark --mark 0x2e01/0xffffffff -j ACCEPT") {
+		t.Fatal("no INPUT exception expected under firewalld")
+	}
+	if f.ipRule || tproxy.ActiveOwners() != 0 {
+		t.Fatal("policy routing must not be acquired under firewalld")
+	}
+	if m.relayWarned[inst.Id] != tproxy.FirewalldWarning {
+		t.Fatalf("operator warning expected, got %q", m.relayWarned[inst.Id])
+	}
+	if !f.has("FORWARD -s 10.252.0.0/24 -j ACCEPT") {
+		t.Fatal("direct-path rules must stay in place")
+	}
+	f.firewalld = false
+	if err := m.Apply(inst); err != nil {
+		t.Fatalf("apply after firewalld stopped: %v", err)
+	}
+	if got := len(f.mangleRules()); got != 3 {
+		t.Fatalf("relay must resume once firewalld is gone, got %d mangle rules", got)
+	}
+	m.Remove(inst.Id)
 }
 
 func TestNetworkManagerRelayFailsOpen(t *testing.T) {
