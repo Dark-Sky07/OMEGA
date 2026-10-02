@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Popover, Switch, Tag, Tooltip, type TableColumnType } from 'antd';
 import { TeamOutlined } from '@ant-design/icons';
 
-import { SizeFormatter, IntlUtil, ColorUtils } from '@/utils';
+import { IntlUtil, ColorUtils } from '@/utils';
 import { InfinityIcon } from '@/components/ui';
+import ClientTrafficCell from '@/components/clients/ClientTrafficCell';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
 
@@ -57,6 +58,7 @@ export function useInboundColumns({
         key: 'id',
         align: 'right',
         width: 30,
+        render: (id: number) => <span className="omega-id">#{id}</span>,
       },
       {
         title: t('pages.inbounds.operate'),
@@ -93,8 +95,9 @@ export function useInboundColumns({
         title: t('pages.inbounds.remark'),
         dataIndex: 'remark',
         key: 'remark',
-        align: 'center',
-        width: 60,
+        align: 'left',
+        width: 80,
+        render: (remark: string) => <span className="inbound-remark">{remark}</span>,
       });
     }
 
@@ -140,6 +143,7 @@ export function useInboundColumns({
         key: 'port',
         align: 'center',
         width: 40,
+        render: (port: number) => <span className="omega-mono-sm">{port}</span>,
       },
       {
         title: t('pages.inbounds.protocol'),
@@ -147,24 +151,27 @@ export function useInboundColumns({
         align: 'left',
         width: 130,
         render: (_, record) => {
-          const tags: ReactElement[] = [<Tag key="p" color="purple">{record.protocol}</Tag>];
+          const chip = (key: string, label: ReactElement | string, tone = '') => (
+            <span key={key} className={`omega-chip${tone ? ` ${tone}` : ''}`}>{label}</span>
+          );
+          const tags: ReactElement[] = [chip('p', record.protocol, 'is-protocol')];
           if (record.isWireguard || record.isHysteria) {
-            tags.push(<Tag key="n" color="green">UDP</Tag>);
+            tags.push(chip('n', 'UDP', 'is-success'));
           } else if (record.isSS) {
             const stream = readStreamHints(record.streamSettings);
-            tags.push(<Tag key="n" color="green">{shadowsocksNetworkLabel(record.settings)}</Tag>);
-            if (stream.isTls) tags.push(<Tag key="tls" color="blue">TLS</Tag>);
+            tags.push(chip('n', shadowsocksNetworkLabel(record.settings), 'is-success'));
+            if (stream.isTls) tags.push(chip('tls', 'TLS', 'is-info'));
           } else if (record.isTunnel) {
-            tags.push(<Tag key="n" color="green">{tunnelNetworkLabel(record.settings)}</Tag>);
+            tags.push(chip('n', tunnelNetworkLabel(record.settings), 'is-success'));
           } else if (record.isMixed) {
-            tags.push(<Tag key="n" color="green">{mixedNetworkLabel(record.settings)}</Tag>);
+            tags.push(chip('n', mixedNetworkLabel(record.settings), 'is-success'));
           } else if (record.isVMess || record.isVLess || record.isTrojan) {
             const stream = readStreamHints(record.streamSettings);
-            tags.push(<Tag key="n" color="green">{networkLabel(stream.network)}</Tag>);
+            tags.push(chip('n', networkLabel(stream.network), 'is-success'));
             const l4 = networkL4(stream.network);
-            if (l4) tags.push(<Tag key="l4" color="green">{l4}</Tag>);
-            if (stream.isTls) tags.push(<Tag key="tls" color="blue">TLS</Tag>);
-            if (stream.isReality) tags.push(<Tag key="reality" color="blue">Reality</Tag>);
+            if (l4) tags.push(chip('l4', l4, 'is-success'));
+            if (stream.isTls) tags.push(chip('tls', 'TLS', 'is-info'));
+            if (stream.isReality) tags.push(chip('reality', 'Reality', 'is-accent'));
           }
           return <div className="protocol-tags">{tags}</div>;
         },
@@ -238,32 +245,16 @@ export function useInboundColumns({
         title: t('pages.inbounds.traffic'),
         key: 'traffic',
         align: 'center',
-        width: 90,
+        width: 180,
         render: (_, record) => (
-          <Popover
-            content={(
-              <table cellPadding={2}>
-                <tbody>
-                  <tr>
-                    <td>↑ {SizeFormatter.sizeFormat(record.up)}</td>
-                    <td>↓ {SizeFormatter.sizeFormat(record.down)}</td>
-                  </tr>
-                  {record.total > 0 && record.up + record.down < record.total && (
-                    <tr>
-                      <td>{t('remained')}</td>
-                      <td>{SizeFormatter.sizeFormat(record.total - record.up - record.down)}</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            )}
-          >
-            <Tag color={ColorUtils.usageColor(record.up + record.down, trafficDiff, record.total)}>
-              {SizeFormatter.sizeFormat(record.up + record.down)} /
-              {' '}
-              {record.total > 0 ? SizeFormatter.sizeFormat(record.total) : <InfinityIcon />}
-            </Tag>
-          </Popover>
+          <ClientTrafficCell
+            up={record.up}
+            down={record.down}
+            total={record.total}
+            enabled={record.enable}
+            trafficDiff={trafficDiff}
+            compact
+          />
         ),
       },
       {

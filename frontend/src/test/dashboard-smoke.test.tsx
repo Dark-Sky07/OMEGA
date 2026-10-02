@@ -5,6 +5,47 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 
 import { ThemeProvider } from '@/hooks/useTheme';
 import { Status } from '@/models/status';
+import { DBInbound } from '@/models/dbinbound';
+
+const GB = 1024 ** 3;
+const mockInbounds = [
+  new DBInbound({ id: 1, remark: 'Reality-443', port: 443, protocol: 'vless', enable: true, up: 12 * GB, down: 80 * GB, total: 0, expiryTime: 0,
+    settings: JSON.stringify({ clients: [], decryption: 'none' }), streamSettings: JSON.stringify({ network: 'tcp', security: 'reality', realitySettings: {} }), sniffing: '{}', allocate: '{}' } as never),
+  new DBInbound({ id: 3, remark: 'OpenVPN-1194', port: 1194, protocol: 'openvpn', enable: true, up: 1 * GB, down: 9 * GB, total: 100 * GB, expiryTime: Date.now() + 86400000 * 20,
+    settings: JSON.stringify({ clients: [] }), streamSettings: '', sniffing: '{}', allocate: '{}' } as never),
+  new DBInbound({ id: 15, remark: 'L2TP', port: 1701, protocol: 'l2tp', enable: false, up: 0, down: 0, total: 0, expiryTime: 0,
+    settings: JSON.stringify({ clients: [] }), streamSettings: '', sniffing: '{}', allocate: '{}' } as never),
+];
+
+vi.mock('@/pages/inbounds/useInbounds', () => ({
+  useInbounds: () => ({
+    fetched: true,
+    fetchError: '',
+    dbInbounds: mockInbounds,
+    clientCount: { 1: { clients: 4, active: ['a@x', 'b@x'], deactive: ['c@x'], depleted: ['d@x'], expiring: [], online: ['a@x'] } },
+    onlineClients: ['a@x'],
+    lastOnlineMap: {},
+    statsVersion: 0,
+    totals: { up: 13 * GB, down: 89 * GB },
+    expireDiff: 0,
+    trafficDiff: 0,
+    subSettings: { enable: true },
+    remarkModel: '-ieo',
+    datepicker: 'gregorian',
+    tgBotEnable: false,
+    ipLimitEnable: false,
+    pageSize: 0,
+    refresh: async () => {},
+    hydrateInbound: async () => null,
+    applyTrafficEvent: () => {},
+    applyClientStatsEvent: () => {},
+  }),
+}));
+
+vi.mock('@/hooks/useWebSocket', () => ({ useWebSocket: () => {} }));
+vi.mock('@/api/queries/useNodesQuery', () => ({
+  useNodesQuery: () => ({ nodes: [], totals: { online: 0, offline: 0, avgLatency: 0 }, loading: false, error: null, refetch: async () => {} }),
+}));
 
 const statusObj = {
   cpu: 5.8, cpuCores: 4, logicalPro: 8, cpuSpeedMhz: 2900,
@@ -85,6 +126,20 @@ describe('smoke: redesigned dashboard + login', () => {
     expect(screen.getByText('185.92.14.37')).toBeTruthy();
     const realErrors = errors.filter((a) => !String(a[0]).includes('act(') && !String(a[0]).includes('ResizeObserver'));
     expect(realErrors, JSON.stringify(realErrors.map((a) => String(a[0]).slice(0, 200)))).toEqual([]);
+  });
+
+  it('renders the inbounds page without runtime errors', async () => {
+    const { default: InboundsPage } = await import('@/pages/inbounds/InboundsPage');
+    const { container } = wrap(<InboundsPage />);
+    await waitFor(() => expect(container.querySelector('.inbound-list-card')).toBeTruthy());
+    expect(container.querySelector('.omega-page-header')).toBeTruthy();
+    expect(container.querySelectorAll('.omega-stat').length).toBe(5);
+    expect(container.querySelectorAll('.ant-table-row').length).toBe(3);
+    expect(container.querySelectorAll('.omega-chip.is-protocol').length).toBe(3);
+    expect(container.querySelectorAll('.client-traffic-cell').length).toBe(3);
+    expect(screen.getByText('Reality-443')).toBeTruthy();
+    const realErrors = errors.filter((a) => !String(a[0]).includes('act(') && !String(a[0]).includes('ResizeObserver'));
+    expect(realErrors, JSON.stringify(realErrors.map((a) => String(a[0]).slice(0, 300)))).toEqual([]);
   });
 
   it('renders the login stage without runtime errors', async () => {

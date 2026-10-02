@@ -6,7 +6,6 @@ import {
   Checkbox,
   Dropdown,
   Select,
-  Space,
   Switch,
   Table,
   Tag,
@@ -157,49 +156,53 @@ export default function InboundList({
     onClick: ({ key }) => onGeneralAction(key as GeneralAction),
   };
 
-  return (
-    <Card
-      hoverable
-      title={(
-        <Space>
-          {!isReseller && (
-            <Button type="primary" onClick={onAddInbound} icon={<PlusOutlined />}>
-              {!isMobile && t('pages.inbounds.addInbound')}
-            </Button>
-          )}
-          <Dropdown trigger={['click']} menu={generalActionsMenu}>
-            <Button type="primary" icon={<MenuOutlined />}>
-              {!isMobile && t('pages.inbounds.generalActions')}
-            </Button>
-          </Dropdown>
-          {showNodeFilter && (
-            <Select
-              value={nodeFilter}
-              onChange={(v) => setNodeFilter(v)}
-              options={nodeFilterOptions}
-              popupMatchSelectWidth={false}
-              style={{ minWidth: isMobile ? 90 : 140 }}
-            />
-          )}
-          {!isReseller && selectedRowKeys.length > 0 && (
-            <>
-              <Tag color="blue" closable onClose={() => setSelectedRowKeys([])} style={{ marginInlineEnd: 0 }}>
-                {t('pages.inbounds.selectedCount', { count: selectedRowKeys.length })}
-              </Tag>
-              <Button danger icon={<DeleteOutlined />} onClick={handleBulkDelete}>
-                {!isMobile && t('delete')}
-              </Button>
-            </>
-          )}
-        </Space>
+  const toolbar = (
+    <div className="omega-toolbar inbound-toolbar">
+      {!isReseller && (
+        <Button type="primary" onClick={onAddInbound} icon={<PlusOutlined />}>
+          {!isMobile && t('pages.inbounds.addInbound')}
+        </Button>
       )}
-    >
-      <Space orientation="vertical" style={{ width: '100%' }}>
-        {isMobile ? (
+      <Dropdown trigger={['click']} menu={generalActionsMenu}>
+        <Button icon={<MenuOutlined />}>
+          {!isMobile && t('pages.inbounds.generalActions')}
+        </Button>
+      </Dropdown>
+      {showNodeFilter && (
+        <Select
+          value={nodeFilter}
+          onChange={(v) => setNodeFilter(v)}
+          options={nodeFilterOptions}
+          popupMatchSelectWidth={false}
+          style={{ minWidth: isMobile ? 90 : 150 }}
+        />
+      )}
+      {!isReseller && selectedRowKeys.length > 0 && (
+        <>
+          <Tag color="blue" closable onClose={() => setSelectedRowKeys([])} style={{ marginInlineEnd: 0 }}>
+            {t('pages.inbounds.selectedCount', { count: selectedRowKeys.length })}
+          </Tag>
+          <Button danger icon={<DeleteOutlined />} onClick={handleBulkDelete}>
+            {!isMobile && t('delete')}
+          </Button>
+        </>
+      )}
+      <span className="omega-toolbar-spacer" />
+      <span className="omega-muted inbound-toolbar-count">
+        {visibleInbounds.length} / {dbInbounds.length}
+      </span>
+    </div>
+  );
+
+  return (
+    <Card className="omega-table-card inbound-list-card">
+      {toolbar}
+      {isMobile ? (
+        <div className="omega-table-body">
           <div className="inbound-cards">
             {visibleInbounds.length === 0 ? (
-              <div className="card-empty">
-                <ImportOutlined style={{ fontSize: 28, opacity: 0.5 }} />
+              <div className="omega-empty">
+                <ImportOutlined />
                 <div>{t('noData')}</div>
               </div>
             ) : (
@@ -219,7 +222,7 @@ export default function InboundList({
                 </div>
               )}
               {visibleInbounds.map((record) => (
-                <div key={record.id} className={`inbound-card${selectedRowKeys.includes(record.id) ? ' is-selected' : ''}`}>
+                <div key={record.id} className={`inbound-card${selectedRowKeys.includes(record.id) ? ' is-selected' : ''}${record.enable ? '' : ' is-disabled'}`}>
                   <div className="card-head">
                     {!isReseller && (
                       <Checkbox
@@ -227,8 +230,13 @@ export default function InboundList({
                         onChange={(e) => toggleSelect(record.id, e.target.checked)}
                       />
                     )}
-                    <span className="card-id">#{record.id}</span>
-                    <span className="tag-name">{record.remark}</span>
+                    <div className="card-title">
+                      <span className="tag-name">{record.remark || `#${record.id}`}</span>
+                      <span className="card-sub">
+                        <span className="omega-chip is-protocol">{record.protocol}</span>
+                        <span className="omega-id">#{record.id} · :{record.port}</span>
+                      </span>
+                    </div>
                     <div className="card-actions" onClick={(e) => e.stopPropagation()}>
                       <Tooltip title={t('pages.inbounds.inboundInfo')}>
                         <InfoCircleOutlined className="row-action-trigger" onClick={() => setStatsRecord(record)} />
@@ -256,30 +264,30 @@ export default function InboundList({
               </>
             )}
           </div>
-        ) : (
-          <Table
-            columns={columns}
-            dataSource={visibleInbounds}
-            rowKey={(r) => r.id}
-            rowSelection={isReseller ? undefined : {
-              selectedRowKeys,
-              onChange: (keys: Key[]) => setSelectedRowKeys(keys as number[]),
-            }}
-            pagination={paginationFor(visibleInbounds)}
-            scroll={{ x: 1000 }}
-            style={{ marginTop: 10 }}
-            size="small"
-            locale={{
-              emptyText: (
-                <div className="card-empty">
-                  <ImportOutlined style={{ fontSize: 32, marginBottom: 8 }} />
-                  <div>{t('noData')}</div>
-                </div>
-              ),
-            }}
-          />
-        )}
-      </Space>
+        </div>
+      ) : (
+        <Table
+          columns={columns}
+          dataSource={visibleInbounds}
+          rowKey={(r) => r.id}
+          rowClassName={(r) => (r.enable ? '' : 'inbound-row-disabled')}
+          rowSelection={isReseller ? undefined : {
+            selectedRowKeys,
+            onChange: (keys: Key[]) => setSelectedRowKeys(keys as number[]),
+          }}
+          pagination={paginationFor(visibleInbounds)}
+          scroll={{ x: 1000 }}
+          size="middle"
+          locale={{
+            emptyText: (
+              <div className="omega-empty">
+                <ImportOutlined />
+                <div>{t('noData')}</div>
+              </div>
+            ),
+          }}
+        />
+      )}
 
       <InboundStatsModal
         open={isMobile && !!statsRecord}

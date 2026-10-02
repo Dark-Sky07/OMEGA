@@ -2,15 +2,11 @@ import { lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
-  Card,
-  Col,
   ConfigProvider,
   Layout,
   Modal,
   Result,
-  Row,
   Spin,
-  Statistic,
   message,
 } from 'antd';
 
@@ -20,7 +16,10 @@ import {
   ArrowDownOutlined,
   PieChartOutlined,
   BarsOutlined,
+  TeamOutlined,
+  WifiOutlined,
 } from '@ant-design/icons';
+import { PageHeader, StatStrip, type StatItem } from '@/components/ui';
 
 import { HttpUtil, SizeFormatter, RandomUtil } from '@/utils';
 import { createDefaultInboundSettings } from '@/lib/xray/inbound-defaults';
@@ -561,6 +560,55 @@ export default function InboundsPage() {
     }
   }, [hydrateInbound, openEdit, checkFallback, findClientIndex, exportInboundLinks, exportInboundSubs, exportInboundClipboard, confirmDelete, confirmResetTraffic, confirmDelAllClients, confirmClone, messageApi]);
 
+  const totalClients = useMemo(
+    () => Object.values(clientCount).reduce((sum, entry) => sum + (entry?.clients || 0), 0),
+    [clientCount],
+  );
+
+  const statItems = useMemo<StatItem[]>(() => [
+    {
+      key: 'updown',
+      icon: <ArrowUpOutlined />,
+      tone: 'accent',
+      label: t('pages.inbounds.totalDownUp'),
+      value: (
+        <span className="inbounds-updown">
+          <ArrowUpOutlined /> {SizeFormatter.sizeFormat(totals.up)}
+          <span className="omega-sep"> / </span>
+          <ArrowDownOutlined /> {SizeFormatter.sizeFormat(totals.down)}
+        </span>
+      ),
+    },
+    {
+      key: 'usage',
+      icon: <PieChartOutlined />,
+      tone: 'primary',
+      label: t('pages.inbounds.totalUsage'),
+      value: SizeFormatter.sizeFormat(totals.up + totals.down),
+    },
+    {
+      key: 'count',
+      icon: <BarsOutlined />,
+      tone: 'default',
+      label: t('pages.inbounds.inboundCount'),
+      value: String(dbInbounds.length),
+    },
+    {
+      key: 'clients',
+      icon: <TeamOutlined />,
+      tone: 'muted',
+      label: t('clients'),
+      value: String(totalClients),
+    },
+    {
+      key: 'online',
+      icon: <WifiOutlined />,
+      tone: 'success',
+      label: t('online'),
+      value: String(onlineClients.length),
+    },
+  ], [t, totals.up, totals.down, dbInbounds.length, totalClients, onlineClients.length]);
+
   return (
     <ConfigProvider theme={antdThemeConfig}>
       {messageContextHolder}
@@ -581,42 +629,24 @@ export default function InboundsPage() {
                   extra={<Button type="primary" onClick={refresh}>{t('refresh')}</Button>}
                 />
               ) : (
-                <Row gutter={[isMobile ? 8 : 16, 12]}>
-                  <Col span={24}>
-                    <Card size="small" hoverable className="summary-card">
-                      <Row gutter={[16, 12]}>
-                        <Col xs={12} sm={12} md={8}>
-                          <Statistic
-                            title={t('pages.inbounds.totalDownUp')}
-                            value={0}
-                            formatter={() => (
-                              <span>
-                                <ArrowUpOutlined /> {SizeFormatter.sizeFormat(totals.up)}
-                                {' / '}
-                                <ArrowDownOutlined /> {SizeFormatter.sizeFormat(totals.down)}
-                              </span>
-                            )}
-                          />
-                        </Col>
-                        <Col xs={12} sm={12} md={8}>
-                          <Statistic
-                            title={t('pages.inbounds.totalUsage')}
-                            value={SizeFormatter.sizeFormat(totals.up + totals.down)}
-                            prefix={<PieChartOutlined />}
-                          />
-                        </Col>
-                        <Col xs={24} sm={24} md={8}>
-                          <Statistic
-                            title={t('pages.inbounds.inboundCount')}
-                            value={String(dbInbounds.length)}
-                            prefix={<BarsOutlined />}
-                          />
-                        </Col>
-                      </Row>
-                    </Card>
-                  </Col>
+                <>
+                  <PageHeader
+                    eyebrow={t('menu.groupManage', 'Manage')}
+                    title={t('menu.inbounds')}
+                    subtitle={(
+                      <>
+                        <span><strong>{dbInbounds.length}</strong> {t('pages.inbounds.inboundCount')}</span>
+                        <span className="omega-sep">·</span>
+                        <span><strong>{totalClients}</strong> {t('clients')}</span>
+                        <span className="omega-sep">·</span>
+                        <span><strong>{onlineClients.length}</strong> {t('online')}</span>
+                      </>
+                    )}
+                  />
 
-                  <Col span={24}>
+                  <StatStrip items={statItems} size={isMobile ? 'compact' : 'default'} />
+
+                  <div className="omega-rise omega-rise-3">
                     <InboundList
                       dbInbounds={dbInbounds}
                       clientCount={clientCount}
@@ -634,8 +664,8 @@ export default function InboundsPage() {
                       onRowAction={({ key, dbInbound }) => onRowAction({ key, dbInbound: dbInbound as unknown as DBInbound })}
                       onBulkDelete={confirmBulkDelete}
                     />
-                  </Col>
-                </Row>
+                  </div>
+                </>
               )}
             </Spin>
           </Layout.Content>
