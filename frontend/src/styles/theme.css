@@ -699,3 +699,167 @@ html[lang^='ja'] .ant-table-wrapper .ant-table-thead > tr > th {
     padding: 18px 16px;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   List-page primitives: toolbar row, table card, id/mono helpers, empty state
+   --------------------------------------------------------------------------- */
+.omega-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--omega-border);
+}
+
+.omega-toolbar .omega-toolbar-spacer {
+  flex: 1 1 auto;
+}
+
+.omega-toolbar .ant-select,
+.omega-toolbar .ant-input-affix-wrapper {
+  min-height: 32px;
+}
+
+.omega-table-card.ant-card > .ant-card-body {
+  padding: 0;
+}
+
+.omega-table-card .ant-table-wrapper {
+  padding: 0 8px 8px;
+}
+
+.omega-table-card .ant-table-wrapper .ant-table {
+  background: transparent;
+}
+
+.omega-table-card .ant-table-wrapper .ant-table-container {
+  border: 0;
+  border-radius: 0;
+}
+
+.omega-table-card .ant-table-wrapper .ant-table-thead > tr > th,
+.omega-table-card .ant-table-wrapper .ant-table-thead > tr > td {
+  background: transparent;
+  border-bottom: 1px solid var(--omega-border);
+}
+
+.omega-table-card .ant-table-wrapper .ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--omega-border);
+}
+
+.omega-table-card .ant-table-wrapper .ant-table-tbody > tr:last-child > td {
+  border-bottom: 0;
+}
+
+.omega-table-card .ant-table-wrapper .ant-table-tbody > tr.ant-table-row:hover > td {
+  background: var(--omega-surface-hover);
+}
+
+.omega-table-card .ant-table-wrapper .ant-pagination {
+  padding: 0 10px;
+}
+
+.omega-table-card .omega-table-body {
+  padding: 8px 12px 12px;
+}
+
+.omega-id {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--omega-text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.omega-mono-sm {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.omega-muted {
+  color: var(--omega-text-3);
+}
+
+.omega-strong {
+  font-weight: 650;
+  color: var(--omega-text);
+}
+
+.omega-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 44px 16px;
+  text-align: center;
+  color: var(--omega-text-3);
+}
+
+.omega-empty .anticon {
+  font-size: 30px;
+  opacity: 0.55;
+}
+
+/* Protocol / transport chips used in inbound + client tables */
+.omega-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  background: var(--omega-surface-muted);
+  color: var(--omega-text-2);
+}
+
+.omega-chip.is-protocol {
+  background: var(--omega-gradient-soft);
+  color: var(--omega-primary);
+  border-color: color-mix(in srgb, var(--omega-primary) 24%, transparent);
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.omega-chip.is-accent {
+  background: color-mix(in srgb, var(--omega-accent) 12%, transparent);
+  color: var(--omega-accent);
+}
+
+.omega-chip.is-success {
+  background: color-mix(in srgb, var(--omega-success) 12%, transparent);
+  color: var(--omega-success);
+}
+
+.omega-chip.is-warning {
+  background: color-mix(in srgb, var(--omega-warning) 14%, transparent);
+  color: var(--omega-warning);
+}
+
+.omega-chip.is-danger {
+  background: color-mix(in srgb, var(--omega-error) 12%, transparent);
+  color: var(--omega-error);
+}
+
+.omega-chip.is-info {
+  background: color-mix(in srgb, var(--omega-info) 12%, transparent);
+  color: var(--omega-info);
+}
+
+body.dark .omega-chip.is-protocol {
+  color: #c4b5fd;
+}
+
+@media (max-width: 768px) {
+  .omega-toolbar {
+    padding: 10px 12px;
+    gap: 6px;
+  }
+}
