@@ -43,6 +43,35 @@ vi.mock('@/pages/inbounds/useInbounds', () => ({
 }));
 
 vi.mock('@/hooks/useWebSocket', () => ({ useWebSocket: () => {} }));
+
+const noop = async () => ({ success: true, msg: '', obj: null });
+const mockClients = [
+  { id: 1, email: 'ali@omega', subId: 'sub-ali', uuid: 'u1', totalGB: 50 * GB, expiryTime: Date.now() + 10 * 86400000, enable: true, inboundIds: [1, 3], group: 'vip', comment: 'tg:@ali',
+    traffic: { up: 2 * GB, down: 20 * GB, total: 50 * GB, enable: true, lastOnline: Date.now() - 60000 } },
+  { id: 2, email: 'sara@omega', subId: 'sub-sara', uuid: 'u2', totalGB: 0, expiryTime: 0, enable: true, inboundIds: [1], traffic: { up: GB, down: 3 * GB, total: 0, enable: true } },
+  { id: 3, email: 'reza@omega', subId: 'sub-reza', uuid: 'u3', totalGB: 10 * GB, expiryTime: Date.now() - 86400000, enable: false, inboundIds: [15], traffic: { up: 5 * GB, down: 5 * GB, total: 10 * GB, enable: false } },
+];
+vi.mock('@/hooks/useClients', () => ({
+  useClients: () => ({
+    clients: mockClients, total: 3, filtered: 3,
+    summary: { total: 3, active: 2, online: ['ali@omega'], depleted: ['reza@omega'], expiring: ['ali@omega'], deactive: ['reza@omega'] },
+    allGroups: ['vip'],
+    hydrate: async () => null,
+    ownerOf: () => undefined,
+    query: {}, setQuery: () => {},
+    inbounds: [
+      { id: 1, remark: 'Reality-443', tag: 'inbound-443', protocol: 'vless', port: 443 },
+      { id: 3, remark: 'OpenVPN-1194', tag: 'inbound-1194', protocol: 'openvpn', port: 1194 },
+      { id: 15, remark: 'L2TP', tag: 'inbound-1701', protocol: 'l2tp', port: 1701 },
+    ],
+    onlines: ['ali@omega'], loading: false, fetched: true, fetchError: '',
+    subSettings: { enable: true }, ipLimitEnable: false, tgBotEnable: false, expireDiff: 0, trafficDiff: 0, pageSize: 0,
+    refresh: async () => {}, create: noop, bulkCreate: noop, update: noop, remove: noop, bulkDelete: noop, bulkAdjust: noop,
+    bulkAddToGroup: noop, bulkRemoveFromGroup: noop, attach: noop, bulkAttach: noop, detach: noop, bulkDetach: noop,
+    resetTraffic: noop, resetAllTraffics: noop, delDepleted: noop, setEnable: noop,
+    applyTrafficEvent: () => {}, applyClientStatsEvent: () => {},
+  }),
+}));
 vi.mock('@/api/queries/useNodesQuery', () => ({
   useNodesQuery: () => ({ nodes: [], totals: { online: 0, offline: 0, avgLatency: 0 }, loading: false, error: null, refetch: async () => {} }),
 }));
@@ -138,6 +167,19 @@ describe('smoke: redesigned dashboard + login', () => {
     expect(container.querySelectorAll('.omega-chip.is-protocol').length).toBe(3);
     expect(container.querySelectorAll('.client-traffic-cell').length).toBe(3);
     expect(screen.getByText('Reality-443')).toBeTruthy();
+    const realErrors = errors.filter((a) => !String(a[0]).includes('act(') && !String(a[0]).includes('ResizeObserver'));
+    expect(realErrors, JSON.stringify(realErrors.map((a) => String(a[0]).slice(0, 300)))).toEqual([]);
+  });
+
+  it('renders the clients page without runtime errors', async () => {
+    const { default: ClientsPage } = await import('@/pages/clients/ClientsPage');
+    const { container } = wrap(<ClientsPage />);
+    await waitFor(() => expect(container.querySelector('.clients-card')).toBeTruthy());
+    expect(container.querySelector('.omega-page-header')).toBeTruthy();
+    expect(container.querySelectorAll('.omega-stat').length).toBe(6);
+    expect(container.querySelectorAll('.ant-table-row').length).toBe(3);
+    expect(container.querySelectorAll('.ant-table-row .omega-pill').length).toBe(3);
+    expect(screen.getByText('ali@omega')).toBeTruthy();
     const realErrors = errors.filter((a) => !String(a[0]).includes('act(') && !String(a[0]).includes('ResizeObserver'));
     expect(realErrors, JSON.stringify(realErrors.map((a) => String(a[0]).slice(0, 300)))).toEqual([]);
   });
