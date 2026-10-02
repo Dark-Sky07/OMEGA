@@ -5,7 +5,6 @@ import {
   Button,
   Card,
   Checkbox,
-  Col,
   ConfigProvider,
   Dropdown,
   Input,
@@ -14,11 +13,9 @@ import {
   Pagination,
   Popover,
   Result,
-  Row,
   Select,
   Space,
   Spin,
-  Statistic,
   Switch,
   Table,
   Tag,
@@ -62,6 +59,7 @@ import { useSession } from '@/api/queries/useSession';
 import { FileManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
 import { LazyMount } from '@/components/utility';
+import { PageHeader, StatStrip, type StatItem } from '@/components/ui';
 const ClientFormModal = lazy(() => import('./ClientFormModal'));
 const ClientInfoModal = lazy(() => import('./ClientInfoModal'));
 const ClientQrModal = lazy(() => import('./ClientQrModal'));
@@ -623,6 +621,31 @@ export default function ClientsPage() {
     return classes.join(' ');
   }, [isDark, isUltra]);
 
+  const emailList = (list: string[]) => (
+    <div className="client-email-list">{list.map((e) => <div key={e}>{e}</div>)}</div>
+  );
+
+  const statItems = useMemo<StatItem[]>(() => [
+    { key: 'total', icon: <TeamOutlined />, tone: 'primary', label: t('clients'), value: String(summary.total) },
+    {
+      key: 'online', tone: 'accent', icon: <span className="omega-dot-icon is-online" />, label: t('online'), value: String(summary.online.length),
+      popover: summary.online.length ? { title: t('online'), content: emailList(summary.online) } : undefined,
+    },
+    { key: 'active', tone: 'success', icon: <span className="omega-dot-icon is-active" />, label: t('subscription.active'), value: String(summary.active) },
+    {
+      key: 'expiring', tone: 'warning', icon: <span className="omega-dot-icon is-expiring" />, label: t('depletingSoon'), value: String(summary.expiring.length),
+      popover: summary.expiring.length ? { title: t('depletingSoon'), content: emailList(summary.expiring) } : undefined,
+    },
+    {
+      key: 'depleted', tone: 'danger', icon: <span className="omega-dot-icon is-depleted" />, label: t('depleted'), value: String(summary.depleted.length),
+      popover: summary.depleted.length ? { title: t('depleted'), content: emailList(summary.depleted) } : undefined,
+    },
+    {
+      key: 'disabled', tone: 'muted', icon: <span className="omega-dot-icon is-disabled" />, label: t('disabled'), value: String(summary.deactive.length),
+      popover: summary.deactive.length ? { title: t('disabled'), content: emailList(summary.deactive) } : undefined,
+    },
+  ], [t, summary]);
+
   const onTableChange: NonNullable<TableProps<ClientRecord>['onChange']> = (pag) => {
     if (pag?.current) setCurrentPage(pag.current);
     if (pag?.pageSize) setTablePageSize(pag.pageSize);
@@ -676,17 +699,17 @@ export default function ClientsPage() {
         const lastOnlineTitle = `${t('lastOnline')}: ${lastOnline > 0 ? IntlUtil.formatDate(lastOnline, datepicker) : '-'}`;
         if (bucket === 'depleted') return (
           <Tooltip title={lastOnlineTitle}>
-            <Tag color="red">{t('depleted')}</Tag>
+            <span className="omega-pill is-error"><span className="omega-dot" />{t('depleted')}</span>
           </Tooltip>
         );
         if (record.enable && isOnline(record.email)) return (
-          <Tag color="green"><span className="online-dot" />{t('pages.clients.online')}</Tag>
+          <span className="omega-pill is-running"><span className="omega-dot" />{t('pages.clients.online')}</span>
         );
-        if (!record.enable) return <Tag>{t('disabled')}</Tag>;
-        if (bucket === 'expiring') return <Tag color="orange">{t('depletingSoon')}</Tag>;
+        if (!record.enable) return <span className="omega-pill is-muted"><span className="omega-dot" />{t('disabled')}</span>;
+        if (bucket === 'expiring') return <span className="omega-pill is-stop"><span className="omega-dot" />{t('depletingSoon')}</span>;
         return (
           <Tooltip title={lastOnlineTitle}>
-            <Tag>{t('pages.clients.offline')}</Tag>
+            <span className="omega-pill is-muted"><span className="omega-dot" />{t('pages.clients.offline')}</span>
           </Tooltip>
         );
       },
@@ -722,7 +745,7 @@ export default function ClientsPage() {
       width: 130,
       hidden: allGroups.length === 0,
       render: (_v, record) => {
-        if (!record.group) return <span style={{ color: 'rgba(0,0,0,0.45)' }}>—</span>;
+        if (!record.group) return <span className="omega-muted">—</span>;
         const isActive = filters.groups.includes(record.group);
         return (
           <Tag
@@ -746,7 +769,7 @@ export default function ClientsPage() {
       width: 170,
       render: (_v, record) => {
         const ids = record.inboundIds || [];
-        if (ids.length === 0) return <span style={{ color: 'rgba(0,0,0,0.45)' }}>—</span>;
+        if (ids.length === 0) return <span className="omega-muted">—</span>;
         const visible = ids.slice(0, INBOUND_CHIP_LIMIT);
         const overflow = ids.slice(INBOUND_CHIP_LIMIT);
         const chip = (id: number, compact: boolean) => {
@@ -879,62 +902,26 @@ export default function ClientsPage() {
                   extra={<Button type="primary" loading={loading} onClick={refresh}>{t('refresh')}</Button>}
                 />
               ) : (
-                <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 12]}>
-                  <Col span={24}>
-                    <Card size="small" hoverable className="summary-card">
-                      <Row gutter={[16, 12]}>
-                        <Col xs={12} sm={8} md={4}>
-                          <Statistic title={t('clients')} value={String(summary.total)} prefix={<TeamOutlined />} />
-                        </Col>
-                        <Col xs={12} sm={8} md={4}>
-                          <Popover
-                            title={t('online')}
-                            open={summary.online.length ? undefined : false}
-                            content={<div className="client-email-list">{summary.online.map((e) => <div key={e}>{e}</div>)}</div>}
-                          >
-                            <Statistic title={t('online')} value={String(summary.online.length)} prefix={<span className="dot dot-blue" />} />
-                          </Popover>
-                        </Col>
-                        <Col xs={12} sm={8} md={4}>
-                          <Popover
-                            title={t('depleted')}
-                            open={summary.depleted.length ? undefined : false}
-                            content={<div className="client-email-list">{summary.depleted.map((e) => <div key={e}>{e}</div>)}</div>}
-                          >
-                            <Statistic title={t('depleted')} value={String(summary.depleted.length)} prefix={<span className="dot dot-red" />} />
-                          </Popover>
-                        </Col>
-                        <Col xs={12} sm={8} md={4}>
-                          <Popover
-                            title={t('depletingSoon')}
-                            open={summary.expiring.length ? undefined : false}
-                            content={<div className="client-email-list">{summary.expiring.map((e) => <div key={e}>{e}</div>)}</div>}
-                          >
-                            <Statistic title={t('depletingSoon')} value={String(summary.expiring.length)} prefix={<span className="dot dot-orange" />} />
-                          </Popover>
-                        </Col>
-                        <Col xs={12} sm={8} md={4}>
-                          <Popover
-                            title={t('disabled')}
-                            open={summary.deactive.length ? undefined : false}
-                            content={<div className="client-email-list">{summary.deactive.map((e) => <div key={e}>{e}</div>)}</div>}
-                          >
-                            <Statistic title={t('disabled')} value={String(summary.deactive.length)} prefix={<span className="dot dot-gray" />} />
-                          </Popover>
-                        </Col>
-                        <Col xs={12} sm={8} md={4}>
-                          <Statistic title={t('subscription.active')} value={String(summary.active)} prefix={<span className="dot dot-green" />} />
-                        </Col>
-                      </Row>
-                    </Card>
-                  </Col>
+                <>
+                  <PageHeader
+                    eyebrow={t('menu.groupManage', 'Manage')}
+                    title={t('menu.clients')}
+                    subtitle={(
+                      <>
+                        <span><strong>{summary.total}</strong> {t('clients')}</span>
+                        <span className="omega-sep">·</span>
+                        <span><strong>{summary.online.length}</strong> {t('online')}</span>
+                        <span className="omega-sep">·</span>
+                        <span><strong>{summary.active}</strong> {t('subscription.active')}</span>
+                      </>
+                    )}
+                  />
 
-                  <Col span={24}>
-                    <Card
-                      size="small"
-                      hoverable
-                      title={
-                        <div className="card-toolbar">
+                  <StatStrip items={statItems} size={isMobile ? 'compact' : 'default'} className="clients-stats" />
+
+                  <div className="omega-rise omega-rise-3">
+                    <Card className="omega-table-card clients-card">
+                        <div className="omega-toolbar card-toolbar">
                           {selectedRowKeys.length === 0 ? (
                             <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
                               {!isMobile && t('pages.clients.addClients')}
@@ -1030,8 +1017,7 @@ export default function ClientsPage() {
                             </Button>
                           )}
                         </div>
-                      }
-                    >
+                      <div className="omega-table-body clients-filters">
                       <div className={isMobile ? 'filter-bar mobile' : 'filter-bar'}>
                         <Input
                           value={searchKey}
@@ -1150,6 +1136,8 @@ export default function ClientsPage() {
                         </div>
                       )}
 
+                      </div>
+
                       {!isMobile ? (
                         <Table<ClientRecord>
                           columns={columns}
@@ -1158,13 +1146,14 @@ export default function ClientsPage() {
                           rowKey="email"
                           rowSelection={rowSelection}
                           pagination={tablePagination}
-                          size="small"
+                          rowClassName={(r) => (r.enable ? '' : 'client-row-disabled')}
+                          size="middle"
                           scroll={{ x: 1200 }}
                           onChange={onTableChange}
                           locale={{
                             emptyText: (
-                              <div className="clients-empty">
-                                <TeamOutlined style={{ fontSize: 32, marginBottom: 8 }} />
+                              <div className="omega-empty">
+                                <TeamOutlined />
                                 <div>{t('noData')}</div>
                               </div>
                             ),
@@ -1172,7 +1161,7 @@ export default function ClientsPage() {
                         />
                       ) : (
                         <Spin spinning={loading}>
-                          <div className="client-cards">
+                          <div className="client-cards omega-table-body">
                             {filteredClients.length > 0 && (
                               <div className="card-bulk-bar">
                                 <Checkbox
@@ -1284,8 +1273,8 @@ export default function ClientsPage() {
                         </Spin>
                       )}
                     </Card>
-                  </Col>
-                </Row>
+                  </div>
+                </>
               )}
             </Spin>
           </Layout.Content>
