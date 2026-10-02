@@ -129,5 +129,21 @@ previewWebSocket.CLOSING = 2;
 previewWebSocket.CLOSED = 3;
 window.WebSocket = previewWebSocket as unknown as typeof WebSocket;
 
+// Raw-file CDNs have no directory index or SPA fallback. When the build asks
+// for it, a tiny service worker maps <base>/ and <base>/panel/* onto the two
+// HTML documents, and file-style entry URLs are normalised so the router sees
+// the real route (the SW is registered before the first navigation away).
+if (import.meta.env.VITE_PREVIEW_SW === '1') {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register(`${basePath}sw.js`, { scope: basePath }).catch((err) => {
+      console.warn('[omega-preview] service worker registration failed', err);
+    });
+  }
+  const here = window.location.pathname;
+  if (here === `${basePath}panel/index.html`) {
+    window.history.replaceState(window.history.state, '', `${basePath}panel/${window.location.search}${window.location.hash}`);
+  }
+}
+
 // Make the preview obvious in dev tools without touching the UI itself.
 console.info('[omega-preview] static design preview — all data is simulated, nothing is saved.');
