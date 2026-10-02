@@ -3,6 +3,8 @@
 # without touching a real panel. Runs only for the redesign branch.
 #
 # Published at: https://dark-sky07.github.io/OMEGA/  (login)  and  …/OMEGA/panel/
+# Requires: Settings → Pages → Source = GitHub Actions, and the github-pages
+# environment allowing deployments from this branch.
 name: Design preview (Pages)
 
 on:
