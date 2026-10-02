@@ -1,0 +1,1 @@
+import{Fr as e,Rr as t}from"./vendor-D_H4KWf5.js";var n=e({username:t().min(1,`username`),password:t().min(1,`password`),twoFactorCode:t().optional()});t().min(1,`twoFactorCode`);var r=t().regex(/^\d{6}$/,`pages.settings.security.twoFactorModalError`);export{r as n,n as t};
