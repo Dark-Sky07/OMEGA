@@ -12,13 +12,13 @@ import {
   Progress,
   Row,
   Space,
-  Statistic,
   Table,
   Tag,
   Typography,
   message,
 } from 'antd';
-import { ShopOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { ApiOutlined, DatabaseOutlined, ShopOutlined, ThunderboltOutlined, WifiOutlined } from '@ant-design/icons';
+import { PageHeader, StatStrip, type StatItem } from '@/components/ui';
 
 import AppSidebar from '@/layouts/AppSidebar';
 import { HttpUtil } from '@/utils';
@@ -61,6 +61,13 @@ export default function ResellerReportPage() {
     ? Math.min(100, Math.round((stat.usedTraffic / stat.reseller.trafficLimit) * 100))
     : 0;
 
+  const reportStats = useMemo<StatItem[]>(() => [
+    { key: 'used', icon: <ThunderboltOutlined />, tone: 'primary', label: t('resellers.usedTraffic'), value: SizeFormatter.sizeFormat(stat?.usedTraffic || 0) },
+    { key: 'allocated', icon: <DatabaseOutlined />, tone: 'default', label: t('resellers.allocatedTraffic'), value: SizeFormatter.sizeFormat(stat?.allocatedTraffic || 0) },
+    { key: 'inbounds', icon: <ApiOutlined />, tone: 'accent', label: t('resellers.table.inbounds'), value: String(stat?.inboundCount || 0) },
+    { key: 'online', icon: <WifiOutlined />, tone: (stat?.onlineCount || 0) > 0 ? 'success' : 'muted', label: t('resellers.online'), value: String(stat?.onlineCount || 0) },
+  ], [t, stat]);
+
   return (
     <ConfigProvider theme={antdThemeConfig}>
       {messageContextHolder}
@@ -71,47 +78,33 @@ export default function ResellerReportPage() {
             {reportQuery.isError ? (
               <Alert type="error" showIcon message={t('somethingWentWrong')} />
             ) : (
+              <>
+              <PageHeader
+                eyebrow={t('menu.groupOverview', 'Overview')}
+                title={t('menu.report', 'Report')}
+                subtitle={stat ? <span><strong>{stat.reseller.name || stat.reseller.username}</strong></span> : undefined}
+              />
+
+              <StatStrip size={isMobile ? 'compact' : 'default'} items={reportStats} />
+
               <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 12]}>
-                <Col span={24}>
-                  <Card size="small" hoverable className="summary-card">
-                    <Row gutter={[16, 12]}>
-                      <Col xs={12} md={6}>
-                        <Statistic
-                          title={t('resellers.usedTraffic')}
-                          value={SizeFormatter.sizeFormat(stat?.usedTraffic || 0)}
-                          prefix={<ThunderboltOutlined />}
-                        />
-                      </Col>
-                      <Col xs={12} md={6}>
-                        <Statistic
-                          title={t('resellers.allocatedTraffic')}
-                          value={SizeFormatter.sizeFormat(stat?.allocatedTraffic || 0)}
-                        />
-                      </Col>
-                      <Col xs={12} md={6}>
-                        <Statistic title={t('resellers.table.inbounds')} value={stat?.inboundCount || 0} />
-                      </Col>
-                      <Col xs={12} md={6}>
-                        <Statistic title={t('resellers.online')} value={stat?.onlineCount || 0} />
-                      </Col>
-                    </Row>
-                    {stat && (
-                      <div style={{ marginTop: 12 }}>
-                        <Typography.Text type="secondary">
-                          {t('resellers.usedTraffic')}: {SizeFormatter.sizeFormat(stat.usedTraffic)}
-                          {stat.reseller.trafficLimit
-                            ? ` / ${SizeFormatter.sizeFormat(stat.reseller.trafficLimit)}`
-                            : ` / ${t('resellers.unlimited')}`}
-                        </Typography.Text>
-                        <Progress
-                          percent={stat.reseller.trafficLimit ? trafficPercent : 0}
-                          showInfo={false}
-                          status={stat.overQuota ? 'exception' : 'normal'}
-                        />
-                      </div>
-                    )}
-                  </Card>
-                </Col>
+                {stat && (
+                  <Col span={24}>
+                    <Card className="omega-rise omega-rise-2">
+                      <Typography.Text type="secondary">
+                        {t('resellers.usedTraffic')}: {SizeFormatter.sizeFormat(stat.usedTraffic)}
+                        {stat.reseller.trafficLimit
+                          ? ` / ${SizeFormatter.sizeFormat(stat.reseller.trafficLimit)}`
+                          : ` / ${t('resellers.unlimited')}`}
+                      </Typography.Text>
+                      <Progress
+                        percent={stat.reseller.trafficLimit ? trafficPercent : 0}
+                        showInfo={false}
+                        status={stat.overQuota ? 'exception' : 'normal'}
+                      />
+                    </Card>
+                  </Col>
+                )}
 
                 {stat && (
                   <Col span={24}>
@@ -176,6 +169,7 @@ export default function ResellerReportPage() {
                   </Card>
                 </Col>
               </Row>
+              </>
             )}
           </Layout.Content>
         </Layout>

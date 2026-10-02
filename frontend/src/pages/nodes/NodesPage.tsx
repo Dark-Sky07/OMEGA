@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Card, Col, ConfigProvider, Layout, Modal, Result, Row, Spin, Statistic, message } from 'antd';
+import { Button, ConfigProvider, Layout, Modal, Result, Spin, message } from 'antd';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -15,6 +15,7 @@ import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
 import { useNodeMutations } from '@/api/queries/useNodeMutations';
 import AppSidebar from '@/layouts/AppSidebar';
+import { PageHeader, StatStrip, type StatItem } from '@/components/ui';
 import NodeList from './NodeList';
 import NodeFormModal from './NodeFormModal';
 import { setMessageInstance } from '@/utils/messageBus';
@@ -150,6 +151,13 @@ export default function NodesPage() {
     return classes.join(' ');
   }, [isDark, isUltra]);
 
+  const nodeStats = useMemo<StatItem[]>(() => [
+    { key: 'total', icon: <CloudServerOutlined />, tone: 'primary', label: t('pages.nodes.totalNodes'), value: String(totals.total) },
+    { key: 'online', icon: <CheckCircleOutlined />, tone: 'success', label: t('pages.nodes.onlineNodes'), value: String(totals.online) },
+    { key: 'offline', icon: <CloseCircleOutlined />, tone: totals.offline > 0 ? 'danger' : 'muted', label: t('pages.nodes.offlineNodes'), value: String(totals.offline) },
+    { key: 'latency', icon: <ThunderboltOutlined />, tone: 'accent', label: t('pages.nodes.avgLatency'), value: totals.avgLatency > 0 ? `${totals.avgLatency} ms` : '-' },
+  ], [t, totals.total, totals.online, totals.offline, totals.avgLatency]);
+
   return (
     <ConfigProvider theme={antdThemeConfig}>
       {messageContextHolder}
@@ -170,43 +178,22 @@ export default function NodesPage() {
                   extra={<Button type="primary" loading={loading} onClick={() => refetch()}>{t('refresh')}</Button>}
                 />
               ) : (
-                <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 12]}>
-                  <Col span={24}>
-                    <Card size="small" hoverable className="summary-card">
-                      <Row gutter={[16, isMobile ? 16 : 12]}>
-                        <Col xs={12} sm={12} md={6}>
-                          <Statistic
-                            title={t('pages.nodes.totalNodes')}
-                            value={String(totals.total)}
-                            prefix={<CloudServerOutlined />}
-                          />
-                        </Col>
-                        <Col xs={12} sm={12} md={6}>
-                          <Statistic
-                            title={t('pages.nodes.onlineNodes')}
-                            value={String(totals.online)}
-                            prefix={<CheckCircleOutlined style={{ color: 'var(--ant-color-success)' }} />}
-                          />
-                        </Col>
-                        <Col xs={12} sm={12} md={6}>
-                          <Statistic
-                            title={t('pages.nodes.offlineNodes')}
-                            value={String(totals.offline)}
-                            prefix={<CloseCircleOutlined style={{ color: 'var(--ant-color-error)' }} />}
-                          />
-                        </Col>
-                        <Col xs={12} sm={12} md={6}>
-                          <Statistic
-                            title={t('pages.nodes.avgLatency')}
-                            value={totals.avgLatency > 0 ? `${totals.avgLatency} ms` : '-'}
-                            prefix={<ThunderboltOutlined />}
-                          />
-                        </Col>
-                      </Row>
-                    </Card>
-                  </Col>
+                <>
+                  <PageHeader
+                    eyebrow={t('menu.groupManage', 'Manage')}
+                    title={t('menu.nodes', 'Nodes')}
+                    subtitle={(
+                      <>
+                        <span><strong>{totals.total}</strong> {t('pages.nodes.totalNodes')}</span>
+                        <span className="omega-sep">·</span>
+                        <span><strong>{totals.online}</strong> {t('pages.nodes.onlineNodes')}</span>
+                      </>
+                    )}
+                  />
 
-                  <Col span={24}>
+                  <StatStrip size={isMobile ? 'compact' : 'default'} items={nodeStats} />
+
+                  <div className="omega-rise omega-rise-3">
                     <NodeList
                       nodes={nodes}
                       loading={loading}
@@ -222,8 +209,8 @@ export default function NodesPage() {
                       onUpdateNode={onUpdateNode}
                       onUpdateSelected={onUpdateSelected}
                     />
-                  </Col>
-                </Row>
+                  </div>
+                </>
               )}
             </Spin>
           </Layout.Content>

@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import {
   Button,
   Card,
-  Col,
   ConfigProvider,
   Dropdown,
   Form,
@@ -11,10 +10,8 @@ import {
   Layout,
   Modal,
   Result,
-  Row,
   Space,
   Spin,
-  Statistic,
   Table,
   Tag,
   Tooltip,
@@ -37,6 +34,7 @@ import {
   UsergroupAddOutlined,
   UsergroupDeleteOutlined,
 } from '@ant-design/icons';
+import { PageHeader, StatStrip, type StatItem } from '@/components/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 
@@ -458,6 +456,22 @@ export default function GroupsPage() {
     return classes.join(' ');
   }, [isDark, isUltra]);
 
+  const groupStats = useMemo<StatItem[]>(() => [
+    { key: 'groups', icon: <TagsOutlined />, tone: 'primary', label: t('pages.groups.totalGroups'), value: String(totalGroups) },
+    { key: 'clients', icon: <TeamOutlined />, tone: 'accent', label: t('pages.groups.totalGroupedClients'), value: String(totalClients) },
+    {
+      key: 'updown', icon: <ArrowUpOutlined />, tone: 'default', label: t('pages.groups.totalUpDown'),
+      value: (
+        <span className="inbounds-updown">
+          <ArrowUpOutlined /> {SizeFormatter.sizeFormat(totalUpload)}
+          <span className="omega-sep"> / </span>
+          <ArrowDownOutlined /> {SizeFormatter.sizeFormat(totalDownload)}
+        </span>
+      ),
+    },
+    { key: 'traffic', icon: <PieChartOutlined />, tone: 'success', label: t('pages.groups.totalTraffic'), value: SizeFormatter.sizeFormat(totalTraffic) },
+  ], [t, totalGroups, totalClients, totalUpload, totalDownload, totalTraffic]);
+
   return (
     <ConfigProvider theme={antdThemeConfig}>
       {messageContextHolder}
@@ -477,79 +491,45 @@ export default function GroupsPage() {
                   extra={<Button type="primary" loading={loading} onClick={() => groupsQuery.refetch()}>{t('refresh')}</Button>}
                 />
               ) : (
-                <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 12]}>
-                  <Col span={24}>
-                    <Card size="small" hoverable className="summary-card">
-                      <Row gutter={[16, isMobile ? 16 : 12]}>
-                        <Col xs={12} sm={12} md={6}>
-                          <Statistic
-                            title={t('pages.groups.totalGroups')}
-                            value={String(totalGroups)}
-                            prefix={<TagsOutlined />}
-                          />
-                        </Col>
-                        <Col xs={12} sm={12} md={6}>
-                          <Statistic
-                            title={t('pages.groups.totalGroupedClients')}
-                            value={String(totalClients)}
-                            prefix={<TeamOutlined />}
-                          />
-                        </Col>
-                        <Col xs={12} sm={12} md={6}>
-                          <Statistic
-                            title={t('pages.groups.totalUpDown')}
-                            value={0}
-                            formatter={() => (
-                              <span>
-                                <ArrowUpOutlined /> {SizeFormatter.sizeFormat(totalUpload)}
-                                {' / '}
-                                <ArrowDownOutlined /> {SizeFormatter.sizeFormat(totalDownload)}
-                              </span>
-                            )}
-                          />
-                        </Col>
-                        <Col xs={12} sm={12} md={6}>
-                          <Statistic
-                            title={t('pages.groups.totalTraffic')}
-                            value={SizeFormatter.sizeFormat(totalTraffic)}
-                            prefix={<PieChartOutlined />}
-                          />
-                        </Col>
-                      </Row>
-                    </Card>
-                  </Col>
+                <>
+                  <PageHeader
+                    eyebrow={t('menu.groupManage', 'Manage')}
+                    title={t('menu.groups', 'Groups')}
+                    subtitle={(
+                      <>
+                        <span><strong>{totalGroups}</strong> {t('pages.groups.totalGroups')}</span>
+                        <span className="omega-sep">·</span>
+                        <span><strong>{totalClients}</strong> {t('pages.groups.totalGroupedClients')}</span>
+                      </>
+                    )}
+                    actions={(
+                      <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                        {t('pages.groups.addGroup')}
+                      </Button>
+                    )}
+                  />
 
-                  <Col span={24}>
-                    <Card
-                      size="small"
-                      hoverable
-                      title={
-                        <div className="card-toolbar">
-                          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-                            {!isMobile && t('pages.groups.addGroup')}
-                          </Button>
-                        </div>
-                      }
-                    >
-                      <Table<GroupSummary>
-                        dataSource={groups}
-                        columns={columns}
-                        rowKey="name"
-                        size="small"
-                        pagination={false}
-                        loading={loading}
-                        locale={{
-                          emptyText: (
-                            <div className="card-empty">
-                              <TagsOutlined style={{ fontSize: 32, marginBottom: 8 }} />
-                              <div>{t('noData')}</div>
-                            </div>
-                          ),
-                        }}
-                      />
-                    </Card>
-                  </Col>
-                </Row>
+                  <StatStrip size={isMobile ? 'compact' : 'default'} items={groupStats} />
+
+                  <Card className="omega-table-card omega-rise omega-rise-3">
+                    <Table<GroupSummary>
+                      dataSource={groups}
+                      columns={columns}
+                      rowKey="name"
+                      size="middle"
+                      pagination={false}
+                      loading={loading}
+                      locale={{
+                        emptyText: (
+                          <div className="omega-empty">
+                            <TagsOutlined />
+                            <div>{t('noData')}</div>
+                          </div>
+                        ),
+                      }}
+                    />
+                  </Card>
+                </>
               )}
             </Spin>
           </Layout.Content>
