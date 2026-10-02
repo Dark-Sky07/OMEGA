@@ -5,7 +5,7 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
 const outDir = path.resolve(__dirname, '../internal/web/dist');
-const BACKEND_TARGET = 'http://localhost:2053';
+const BACKEND_TARGET = process.env.VITE_BACKEND_TARGET || 'http://localhost:2053';
 
 function resolveDBPath() {
   const envFolder = process.env.XUI_DB_FOLDER;
@@ -197,6 +197,13 @@ export default defineConfig({
           runtime: `((window.X_UI_BASE_PATH||'/')+${JSON.stringify(filename)})`,
         };
       }
+      // Assets referenced from CSS (the self-hosted Vazirmatn / Inter /
+      // JetBrains Mono font files) must resolve under any webBasePath. The Go
+      // side only rewrites `/assets/` URLs inside the HTML, so emit them
+      // relative to the stylesheet (both live in `dist/assets/`).
+      if (hostType === 'css') {
+        return { relative: true };
+      }
       return undefined;
     },
   },
@@ -264,12 +271,16 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    // Opt-in knobs for remote previews (e.g. a cloud sandbox that proxies the
+    // dev server under its own hostname). Unset = Vite defaults (localhost only).
+    host: process.env.VITE_DEV_HOST || undefined,
+    allowedHosts: process.env.VITE_DEV_ALLOW_ALL_HOSTS === '1' ? true : undefined,
     proxy: {
       '^/(?:[^/]+/)?(login|logout|getTwoFactorEnable|csrf-token|panel|server)(?:/|$)': makeBackendProxy(BACKEND_TARGET),
       '^/$': makeBackendProxy(BACKEND_TARGET),
       '^/[^/]+/$': makeBackendProxy(BACKEND_TARGET),
       '^/(?:[^/]+/)?ws$': {
-        target: 'ws://localhost:2053',
+        target: BACKEND_TARGET.replace(/^http/, 'ws'),
         ws: true,
         changeOrigin: true,
         rewrite: rewriteToBackend,

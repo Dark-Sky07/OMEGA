@@ -177,74 +177,97 @@ export default function LoginPage() {
                 <Spin size="large" />
               </div>
             ) : (
-              <div className="login-card">
-                <div className="brand">
-                  <span className="brand-name">OMEGA</span>
-                  <span className="brand-accent" aria-hidden="true" />
-                </div>
-                <h2 className="welcome">
-                  <b key={headlineIndex}>{headlineWords[headlineIndex]}</b>
-                </h2>
+              <div className="login-stage">
+                <aside className="login-aside" aria-hidden="true">
+                  <div className="login-aside-brand">
+                    <span className="login-mark"><span>Ω</span></span>
+                    <span className="login-wordmark">OMEGA</span>
+                  </div>
+                  <h1 className="login-aside-title">
+                    {t('pages.login.asideTitle', 'One panel for every tunnel.')}
+                  </h1>
+                  <p className="login-aside-text">
+                    {t('pages.login.asideText', 'Xray, OpenVPN, L2TP/IPsec and AmneziaWG — managed, routed and measured from a single place.')}
+                  </p>
+                  <ul className="login-aside-list">
+                    <li><span className="login-aside-dot" />Xray-core</li>
+                    <li><span className="login-aside-dot" />OpenVPN</li>
+                    <li><span className="login-aside-dot" />L2TP / IPsec</li>
+                    <li><span className="login-aside-dot" />AmneziaWG</li>
+                  </ul>
+                  <div className="login-aside-orb login-aside-orb-a" />
+                  <div className="login-aside-orb login-aside-orb-b" />
+                </aside>
 
-                <Form
-                  layout="vertical"
-                  className="login-form"
-                  onFinish={onSubmit}
-                  initialValues={{ username: '', password: '', twoFactorCode: '' }}
-                >
-                  <Form.Item
-                    label={t('username')}
-                    name="username"
-                    rules={[antdRule(LoginFormSchema.shape.username, t)]}
+                <div className="login-card">
+                  <div className="brand">
+                    <span className="brand-name">OMEGA</span>
+                    <span className="brand-accent" aria-hidden="true" />
+                  </div>
+                  <h2 className="welcome">
+                    <b key={headlineIndex}>{headlineWords[headlineIndex]}</b>
+                  </h2>
+
+                  <Form
+                    layout="vertical"
+                    className="login-form"
+                    onFinish={onSubmit}
+                    initialValues={{ username: '', password: '', twoFactorCode: '' }}
                   >
-                    <Input
-                      prefix={<UserOutlined />}
-                      autoComplete="username"
-                      size="large"
-                      placeholder={t('username')}
-                      autoFocus
-                    />
-                  </Form.Item>
-
-                  <Form.Item
-                    label={t('password')}
-                    name="password"
-                    rules={[antdRule(LoginFormSchema.shape.password, t)]}
-                  >
-                    <Input.Password
-                      prefix={<LockOutlined />}
-                      autoComplete="current-password"
-                      size="large"
-                      placeholder={t('password')}
-                    />
-                  </Form.Item>
-
-                  {twoFactorEnable && (
-                    // Optional on purpose: reseller (نمایندگی) accounts have no
-                    // second factor, so an empty code must be submittable — the
-                    // server still enforces a valid TOTP for the panel admin.
-                    <Form.Item label={t('twoFactorCode')} name="twoFactorCode">
+                    <Form.Item
+                      label={t('username')}
+                      name="username"
+                      rules={[antdRule(LoginFormSchema.shape.username, t)]}
+                    >
                       <Input
-                        prefix={<KeyOutlined />}
-                        autoComplete="one-time-code"
+                        prefix={<UserOutlined />}
+                        autoComplete="username"
                         size="large"
-                        placeholder={t('twoFactorCode')}
+                        placeholder={t('username')}
+                        autoFocus
                       />
                     </Form.Item>
-                  )}
 
-                  <Form.Item className="submit-row">
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      loading={submitting}
-                      size="large"
-                      block
+                    <Form.Item
+                      label={t('password')}
+                      name="password"
+                      rules={[antdRule(LoginFormSchema.shape.password, t)]}
                     >
-                      {t('login')}
-                    </Button>
-                  </Form.Item>
-                </Form>
+                      <Input.Password
+                        prefix={<LockOutlined />}
+                        autoComplete="current-password"
+                        size="large"
+                        placeholder={t('password')}
+                      />
+                    </Form.Item>
+
+                    {twoFactorEnable && (
+                      // Optional on purpose: reseller (نمایندگی) accounts have no
+                      // second factor, so an empty code must be submittable — the
+                      // server still enforces a valid TOTP for the panel admin.
+                      <Form.Item label={t('twoFactorCode')} name="twoFactorCode">
+                        <Input
+                          prefix={<KeyOutlined />}
+                          autoComplete="one-time-code"
+                          size="large"
+                          placeholder={t('twoFactorCode')}
+                        />
+                      </Form.Item>
+                    )}
+
+                    <Form.Item className="submit-row">
+                      <Button
+                        type="primary"
+                        htmlType="submit"
+                        loading={submitting}
+                        size="large"
+                        block
+                      >
+                        {t('login')}
+                      </Button>
+                    </Form.Item>
+                  </Form>
+                </div>
               </div>
             )}
           </div>

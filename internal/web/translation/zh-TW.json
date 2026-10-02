@@ -113,7 +113,12 @@
     "apiDocs": "API 文件",
     "logout": "退出登入",
     "link": "管理",
-    "donate": "捐贈"
+    "donate": "捐贈",
+    "groupOverview": "總覽",
+    "groupManage": "管理",
+    "groupSystem": "系統",
+    "collapse": "收合側邊欄",
+    "expand": "展開側邊欄"
   },
   "pages": {
     "login": {
@@ -126,7 +131,9 @@
         "emptyPassword": "請輸入密碼",
         "wrongUsernameOrPassword": "用戶名、密碼或雙重驗證碼無效。",
         "successLogin": "您已成功登入您的帳戶。"
-      }
+      },
+      "asideTitle": "一個面板，管理所有通道。",
+      "asideText": "Xray、OpenVPN、L2TP/IPsec 與 AmneziaWG——在同一處完成管理、路由與統計。"
     },
     "index": {
       "title": "系統狀態",
@@ -253,7 +260,12 @@
       "importDatabasePgDesc": "點擊選擇並上傳 .dump 檔案以還原您的 PostgreSQL 資料庫。此操作將取代所有目前的資料。",
       "migrationDownload": "下載遷移檔案",
       "migrationDownloadDesc": "點擊下載目前 SQLite 資料庫的可攜式 .dump（SQL 文字）匯出檔。",
-      "migrationDownloadPgDesc": "點擊下載由 PostgreSQL 資料建立的 .db SQLite 資料庫，可用於在 SQLite 上執行本面板。"
+      "migrationDownloadPgDesc": "點擊下載由 PostgreSQL 資料建立的 .db SQLite 資料庫，可用於在 SQLite 上執行本面板。",
+      "heroSubtitle": "此伺服器及其所有通道的即時狀態。",
+      "services": "服務",
+      "network": "網路",
+      "resources": "資源",
+      "panelProcess": "面板程序"
     },
     "inbounds": {
       "title": "入站",

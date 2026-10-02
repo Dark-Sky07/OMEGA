@@ -113,7 +113,12 @@
     "apiDocs": "Tài liệu API",
     "logout": "Đăng xuất",
     "link": "Quản lý",
-    "donate": "Quyên góp"
+    "donate": "Quyên góp",
+    "groupOverview": "Tổng quan",
+    "groupManage": "Quản lý",
+    "groupSystem": "Hệ thống",
+    "collapse": "Thu gọn thanh bên",
+    "expand": "Mở rộng thanh bên"
   },
   "pages": {
     "login": {
@@ -126,7 +131,9 @@
         "emptyPassword": "Vui lòng nhập mật khẩu.",
         "wrongUsernameOrPassword": "Tên người dùng, mật khẩu hoặc mã xác thực hai yếu tố không hợp lệ.",
         "successLogin": "Bạn đã đăng nhập vào tài khoản thành công."
-      }
+      },
+      "asideTitle": "Một bảng điều khiển cho mọi đường hầm.",
+      "asideText": "Xray, OpenVPN, L2TP/IPsec và AmneziaWG — quản lý, định tuyến và đo lường từ một nơi."
     },
     "index": {
       "title": "Trạng thái hệ thống",
@@ -253,7 +260,12 @@
       "importDatabasePgDesc": "Nhấn để chọn và tải lên một tệp .dump nhằm khôi phục cơ sở dữ liệu PostgreSQL của bạn. Thao tác này sẽ thay thế toàn bộ dữ liệu hiện tại.",
       "migrationDownload": "Tải tệp di trú",
       "migrationDownloadDesc": "Nhấp để tải xuống bản xuất .dump (văn bản SQL) di động của cơ sở dữ liệu SQLite của bạn.",
-      "migrationDownloadPgDesc": "Nhấp để tải xuống cơ sở dữ liệu SQLite .db được tạo từ dữ liệu PostgreSQL của bạn, sẵn sàng chạy bảng điều khiển này trên SQLite."
+      "migrationDownloadPgDesc": "Nhấp để tải xuống cơ sở dữ liệu SQLite .db được tạo từ dữ liệu PostgreSQL của bạn, sẵn sàng chạy bảng điều khiển này trên SQLite.",
+      "heroSubtitle": "Tình trạng trực tiếp của máy chủ này và mọi đường hầm nó đang chạy.",
+      "services": "Dịch vụ",
+      "network": "Mạng",
+      "resources": "Tài nguyên",
+      "panelProcess": "Tiến trình bảng điều khiển"
     },
     "inbounds": {
       "title": "Inbound",

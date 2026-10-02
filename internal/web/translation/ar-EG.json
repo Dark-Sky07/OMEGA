@@ -113,7 +113,12 @@
     "apiDocs": "توثيق API",
     "logout": "تسجيل خروج",
     "link": "إدارة",
-    "donate": "تبرع"
+    "donate": "تبرع",
+    "groupOverview": "نظرة عامة",
+    "groupManage": "الإدارة",
+    "groupSystem": "النظام",
+    "collapse": "طيّ الشريط الجانبي",
+    "expand": "توسيع الشريط الجانبي"
   },
   "pages": {
     "login": {
@@ -126,7 +131,9 @@
         "emptyPassword": "الباسورد مطلوب",
         "wrongUsernameOrPassword": "اسم المستخدم أو كلمة المرور أو كود المصادقة الثنائية غير صحيح.",
         "successLogin": "لقد تم تسجيل الدخول إلى حسابك بنجاح."
-      }
+      },
+      "asideTitle": "لوحة واحدة لكل الأنفاق.",
+      "asideText": "Xray وOpenVPN وL2TP/IPsec وAmneziaWG — إدارة وتوجيه وقياس من مكان واحد."
     },
     "index": {
       "title": "نظرة عامة",
@@ -253,7 +260,12 @@
       "importDatabasePgDesc": "انقر لاختيار ورفع ملف .dump لاستعادة قاعدة بيانات PostgreSQL. سيؤدي هذا إلى استبدال جميع البيانات الحالية.",
       "migrationDownload": "تنزيل ملف الترحيل",
       "migrationDownloadDesc": "انقر لتنزيل تصدير .dump محمول (نص SQL) لقاعدة بيانات SQLite الخاصة بك.",
-      "migrationDownloadPgDesc": "انقر لتنزيل قاعدة بيانات SQLite بامتداد .db مبنية من بيانات PostgreSQL الخاصة بك، جاهزة لتشغيل هذه اللوحة على SQLite."
+      "migrationDownloadPgDesc": "انقر لتنزيل قاعدة بيانات SQLite بامتداد .db مبنية من بيانات PostgreSQL الخاصة بك، جاهزة لتشغيل هذه اللوحة على SQLite.",
+      "heroSubtitle": "الحالة الحيّة لهذا الخادم ولكل نفق يشغّله.",
+      "services": "الخدمات",
+      "network": "الشبكة",
+      "resources": "الموارد",
+      "panelProcess": "عملية اللوحة"
     },
     "inbounds": {
       "title": "الواردات",
