@@ -35,7 +35,7 @@ const RESELLERS = [
   reseller(4, 'demo', 'Demo (disabled)', false, 0, 0, 0, { clientCount: 3, onlineCount: 0, usedTraffic: 12 * GB, allocatedTraffic: 50 * GB, remainingTraffic: 0 }),
 ];
 const NODES = [
-  { id: 1, name: 'fin-1', remark: 'Helsinki edge', scheme: 'https', address: 'fin1.example.net', port: 2053, basePath: '/', enable: true, status: 'online', latencyMs: 24, cpuPct: 31, memPct: 58, xrayVersion: '25.9.11', panelVersion: '3.3.37-omega', uptimeSecs: 86400 * 12, inboundCount: 3, clientCount: 140, onlineCount: 37, depletedCount: 4, lastHeartbeat: Math.floor(START / 1000), xrayState: 'running', inboundSyncMode: 'all', inboundTags: [], guid: 'n-fin-1' },
+  { id: 1, name: 'fin-1', remark: 'Helsinki edge', scheme: 'https', address: 'fin1.example.net', port: 2053, basePath: '/', enable: true, status: 'online', latencyMs: 24, cpuPct: 31, memPct: 58, xrayVersion: '25.9.11', panelVersion: '4.0.0-omega', uptimeSecs: 86400 * 12, inboundCount: 3, clientCount: 140, onlineCount: 37, depletedCount: 4, lastHeartbeat: Math.floor(START / 1000), xrayState: 'running', inboundSyncMode: 'all', inboundTags: [], guid: 'n-fin-1' },
   { id: 2, name: 'de-1', remark: 'Frankfurt', scheme: 'https', address: 'de1.example.net', port: 2053, basePath: '/', enable: true, status: 'online', latencyMs: 41, cpuPct: 72, memPct: 81, xrayVersion: '25.9.11', panelVersion: '3.3.36-omega', uptimeSecs: 86400 * 3, inboundCount: 2, clientCount: 96, onlineCount: 22, depletedCount: 1, lastHeartbeat: Math.floor(START / 1000), xrayState: 'running', inboundSyncMode: 'selected', inboundTags: ['inbound-443'], guid: 'n-de-1' },
   { id: 3, name: 'tr-1', remark: 'Istanbul relay', scheme: 'http', address: '10.20.0.7', port: 2053, basePath: '/', enable: true, status: 'offline', latencyMs: 0, cpuPct: 0, memPct: 0, xrayVersion: '', panelVersion: '', uptimeSecs: 0, inboundCount: 0, clientCount: 0, onlineCount: 0, depletedCount: 0, lastHeartbeat: Math.floor((START - 2 * 3600 * 1000) / 1000), lastError: 'dial tcp 10.20.0.7:2053: i/o timeout', xrayState: 'stop', allowPrivateAddress: true, inboundSyncMode: 'all', inboundTags: [], guid: 'n-tr-1' },
 ];
@@ -270,7 +270,7 @@ export function route(method, path, query) {
   if (p === '/getTwoFactorEnable') return ok(false);
   if (p === '/panel/api/auth/me') return ok({ role: 'admin', username: 'admin', name: 'Administrator' });
   if (p === '/panel/api/server/status') return ok(status());
-  if (p === '/panel/api/server/getPanelUpdateInfo') return ok({ currentVersion: '3.3.37-omega', latestVersion: '3.3.38-omega', updateAvailable: true });
+  if (p === '/panel/api/server/getPanelUpdateInfo') return ok({ currentVersion: '4.0.0-omega', latestVersion: '4.0.0-omega', updateAvailable: false });
   if (p === '/panel/api/server/getXrayVersion') return ok(['25.9.11', '25.8.3', '25.6.8', '25.3.6']);
   if (p === '/panel/api/server/getConfigJson') return ok(XRAY_TEMPLATE);
   if (p.startsWith('/panel/api/server/logs/')) return ok(LOG_LINES);
