@@ -22,6 +22,7 @@ import {
 import { ShopOutlined, UserOutlined } from '@ant-design/icons';
 
 import AppSidebar from '@/layouts/AppSidebar';
+import { PageHeader } from '@/components/ui';
 import { HttpUtil } from '@/utils';
 import { SizeFormatter } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
@@ -102,11 +103,23 @@ export default function ResellerProfilePage() {
             {profileQuery.isError ? (
               <Alert type="error" showIcon message={t('somethingWentWrong')} />
             ) : (
+              <>
+              <PageHeader
+                eyebrow={t('menu.groupOverview', 'Overview')}
+                title={t('menu.profile', 'Profile')}
+                subtitle={stat ? <span><strong>{stat.reseller.name || stat.reseller.username}</strong></span> : undefined}
+                badge={stat && (
+                  <span className={`omega-pill ${stat.reseller.enable ? 'is-running' : 'is-error'}`}>
+                    <span className="omega-dot" />
+                    {stat.reseller.enable ? t('enable') : t('disabled')}
+                  </span>
+                )}
+              />
               <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 12]}>
                 <Col xs={24} lg={16}>
                   <Card
                     size="small"
-                    hoverable
+                    className="omega-rise omega-rise-2"
                     title={
                       <Space>
                         <ShopOutlined />
@@ -225,6 +238,7 @@ export default function ResellerProfilePage() {
                   </Card>
                 </Col>
               </Row>
+              </>
             )}
           </Layout.Content>
         </Layout>

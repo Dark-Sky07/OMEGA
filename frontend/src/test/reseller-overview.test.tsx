@@ -124,11 +124,18 @@ function renderPage(node: ReactNode) {
   );
 }
 
+/** Click a view option in the header Segmented (the page eyebrow also says "Manage"). */
+function switchView(label: string) {
+  const option = screen.getAllByText(label).find((el) => el.closest('.ant-segmented-item'));
+  expect(option, `segmented option ${label} not found`).toBeTruthy();
+  fireEvent.click(option as HTMLElement);
+}
+
 function statText(title: string): string {
-  const titleEl = screen.getAllByText(title).find((el) => el.closest('.ant-statistic'));
-  expect(titleEl, `statistic titled ${title} not found`).toBeTruthy();
-  const stat = (titleEl as HTMLElement).closest('.ant-statistic') as HTMLElement;
-  return (stat.querySelector('.ant-statistic-content') as HTMLElement).textContent || '';
+  const titleEl = screen.getAllByText(title).find((el) => el.closest('.omega-stat'));
+  expect(titleEl, `stat chip titled ${title} not found`).toBeTruthy();
+  const stat = (titleEl as HTMLElement).closest('.omega-stat') as HTMLElement;
+  return (stat.querySelector('.omega-stat-value') as HTMLElement).textContent || '';
 }
 
 describe('resellers overview (admin)', () => {
@@ -143,7 +150,7 @@ describe('resellers overview (admin)', () => {
     // Manage view is the default: the management table actions are visible.
     await waitFor(() => expect(screen.getByText('Ali')).toBeTruthy());
 
-    fireEvent.click(screen.getByText('Overview'));
+    switchView('Overview');
 
     await waitFor(() => expect(statText('Traffic used')).toBe('7.00 GB'));
     expect(statText('Traffic allocated')).toBe('120.00 GB');
@@ -166,7 +173,7 @@ describe('resellers overview (admin)', () => {
   it('filters the overview table by search', async () => {
     renderPage(<ResellersPage />);
     await waitFor(() => expect(screen.getByText('Ali')).toBeTruthy());
-    fireEvent.click(screen.getByText('Overview'));
+    switchView('Overview');
     await waitFor(() => expect(screen.getByText('Reza')).toBeTruthy());
 
     const input = screen.getByPlaceholderText('Search name, username or note');
@@ -183,9 +190,9 @@ describe('resellers overview (admin)', () => {
     renderPage(<ResellersPage />);
     await waitFor(() => expect(screen.getByText('Ali')).toBeTruthy());
 
-    fireEvent.click(screen.getByText('Overview'));
+    switchView('Overview');
     await waitFor(() => expect(statText('Traffic used')).toBe('7.00 GB'));
-    fireEvent.click(screen.getByText('Manage'));
+    switchView('Manage');
 
     await waitFor(() => expect(screen.queryByText('Traffic used')).toBeNull());
     // The management table row for Ali is back, with its manage-only columns
