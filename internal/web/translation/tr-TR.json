@@ -985,6 +985,7 @@
     },
     "settings": {
       "title": "Panel Ayarları",
+      "unsaved": "Kaydedilmemiş değişiklikler",
       "save": "Kaydet",
       "infoDesc": "Burada yapılan her değişikliğin kaydedilmesi gerekir. Değişikliklerin uygulanması için paneli yeniden başlatın.",
       "restartPanel": "Paneli Yeniden Başlat",

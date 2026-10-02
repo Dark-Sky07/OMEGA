@@ -986,6 +986,7 @@
     },
     "settings": {
       "title": "Configuraciones",
+      "unsaved": "Cambios sin guardar",
       "save": "Guardar",
       "infoDesc": "Cada cambio realizado aquí debe ser guardado. Por favor, reinicie el panel para aplicar los cambios.",
       "restartPanel": "Reiniciar panel",
