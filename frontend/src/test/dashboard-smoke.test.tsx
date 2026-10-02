@@ -44,6 +44,46 @@ vi.mock('@/pages/inbounds/useInbounds', () => ({
 
 vi.mock('@/hooks/useWebSocket', () => ({ useWebSocket: () => {} }));
 
+vi.mock('@/api/queries/useAllSettings', async () => {
+  const { AllSetting } = await import('@/models/setting');
+  const allSetting = new AllSetting({ webPort: 2053, webBasePath: '/', subEnable: true, subJsonEnable: true });
+  return {
+    useAllSettings: () => ({
+      allSetting,
+      updateSetting: () => {},
+      fetched: true,
+      spinning: false,
+      setSpinning: () => {},
+      saveDisabled: false,
+      saveAll: async () => {},
+    }),
+  };
+});
+
+const xrayTemplate = {
+  log: { loglevel: 'warning' },
+  inbounds: [],
+  outbounds: [
+    { tag: 'direct', protocol: 'freedom', settings: {} },
+    { tag: 'blocked', protocol: 'blackhole', settings: {} },
+  ],
+  routing: { domainStrategy: 'AsIs', rules: [{ type: 'field', outboundTag: 'blocked', ip: ['geoip:private'] }], balancers: [] },
+  dns: { servers: ['1.1.1.1'] },
+};
+vi.mock('@/hooks/useXraySetting', () => ({
+  useXraySetting: () => ({
+    fetched: true, spinning: false, saveDisabled: false, fetchError: '',
+    xraySetting: JSON.stringify(xrayTemplate), setXraySetting: () => {},
+    templateSettings: xrayTemplate, setTemplateSettings: () => {},
+    outboundTestUrl: 'https://www.google.com/generate_204', setOutboundTestUrl: () => {},
+    inboundTags: ['inbound-443'], clientReverseTags: [], subscriptionOutbounds: [], subscriptionOutboundTags: [],
+    outboundsTraffic: [], outboundTestStates: {}, subscriptionTestStates: {}, testingAll: false,
+    fetchAll: async () => {}, fetchOutboundsTraffic: async () => {}, resetOutboundsTraffic: async () => {},
+    testOutbound: async () => null, testSubscriptionOutbound: async () => null, testAllOutbounds: async () => {},
+    saveAll: async () => {}, resetToDefault: async () => {},
+  }),
+}));
+
 const noop = async () => ({ success: true, msg: '', obj: null });
 const mockClients = [
   { id: 1, email: 'ali@omega', subId: 'sub-ali', uuid: 'u1', totalGB: 50 * GB, expiryTime: Date.now() + 10 * 86400000, enable: true, inboundIds: [1, 3], group: 'vip', comment: 'tg:@ali',
@@ -99,10 +139,6 @@ vi.mock('@/api/queries/useSession', () => ({
   }),
 }));
 
-vi.mock('@/api/queries/useAllSettings', () => ({
-  useAllSettings: () => ({ allSetting: { subJsonEnable: false, subClashEnable: false } }),
-}));
-
 vi.mock('@/api/queries/useStatusQuery', () => ({
   useStatusQuery: () => ({
     status: new Status(statusObj as never),
@@ -135,7 +171,13 @@ function wrap(ui: React.ReactNode) {
   );
 }
 
-describe('smoke: redesigned dashboard + login', () => {
+/** Ignore React act() noise, jsdom gaps and antd deprecation notices from pre-existing code. */
+function isRealError(args: unknown[]): boolean {
+  const text = String(args[0]);
+  return !text.includes('act(') && !text.includes('ResizeObserver') && !text.includes('is deprecated');
+}
+
+describe('smoke: redesigned pages', () => {
   const errors: unknown[][] = [];
   beforeEach(() => {
     errors.length = 0;
@@ -153,7 +195,7 @@ describe('smoke: redesigned dashboard + login', () => {
     expect(screen.getAllByText('OpenVPN').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/L2TP/).length).toBeGreaterThan(0);
     expect(screen.getByText('185.92.14.37')).toBeTruthy();
-    const realErrors = errors.filter((a) => !String(a[0]).includes('act(') && !String(a[0]).includes('ResizeObserver'));
+    const realErrors = errors.filter(isRealError);
     expect(realErrors, JSON.stringify(realErrors.map((a) => String(a[0]).slice(0, 200)))).toEqual([]);
   });
 
@@ -167,7 +209,7 @@ describe('smoke: redesigned dashboard + login', () => {
     expect(container.querySelectorAll('.omega-chip.is-protocol').length).toBe(3);
     expect(container.querySelectorAll('.client-traffic-cell').length).toBe(3);
     expect(screen.getByText('Reality-443')).toBeTruthy();
-    const realErrors = errors.filter((a) => !String(a[0]).includes('act(') && !String(a[0]).includes('ResizeObserver'));
+    const realErrors = errors.filter(isRealError);
     expect(realErrors, JSON.stringify(realErrors.map((a) => String(a[0]).slice(0, 300)))).toEqual([]);
   });
 
@@ -180,7 +222,28 @@ describe('smoke: redesigned dashboard + login', () => {
     expect(container.querySelectorAll('.ant-table-row').length).toBe(3);
     expect(container.querySelectorAll('.ant-table-row .omega-pill').length).toBe(3);
     expect(screen.getByText('ali@omega')).toBeTruthy();
-    const realErrors = errors.filter((a) => !String(a[0]).includes('act(') && !String(a[0]).includes('ResizeObserver'));
+    const realErrors = errors.filter(isRealError);
+    expect(realErrors, JSON.stringify(realErrors.map((a) => String(a[0]).slice(0, 300)))).toEqual([]);
+  });
+
+  it('renders the settings page without runtime errors', async () => {
+    const { default: SettingsPage } = await import('@/pages/settings/SettingsPage');
+    const { container } = wrap(<SettingsPage />);
+    await waitFor(() => expect(container.querySelector('.omega-section-card')).toBeTruthy());
+    expect(container.querySelectorAll('.omega-subnav-item').length).toBe(5);
+    expect(container.querySelector('.omega-subnav-item.is-active')).toBeTruthy();
+    expect(container.querySelector('.omega-dirty')).toBeTruthy();
+    expect(container.querySelectorAll('.setting-list-item').length).toBeGreaterThan(3);
+    const realErrors = errors.filter(isRealError);
+    expect(realErrors, JSON.stringify(realErrors.map((a) => String(a[0]).slice(0, 300)))).toEqual([]);
+  });
+
+  it('renders the xray page without runtime errors', async () => {
+    const { default: XrayPage } = await import('@/pages/xray/XrayPage');
+    const { container } = wrap(<XrayPage />);
+    await waitFor(() => expect(container.querySelector('.xray-card')).toBeTruthy());
+    expect(container.querySelectorAll('.omega-subnav-item').length).toBe(6);
+    const realErrors = errors.filter(isRealError);
     expect(realErrors, JSON.stringify(realErrors.map((a) => String(a[0]).slice(0, 300)))).toEqual([]);
   });
 
@@ -190,7 +253,7 @@ describe('smoke: redesigned dashboard + login', () => {
     await waitFor(() => expect(container.querySelector('.login-stage')).toBeTruthy());
     expect(container.querySelector('.login-aside')).toBeTruthy();
     expect(container.querySelector('form')).toBeTruthy();
-    const realErrors = errors.filter((a) => !String(a[0]).includes('act('));
+    const realErrors = errors.filter(isRealError);
     expect(realErrors, JSON.stringify(realErrors.map((a) => String(a[0]).slice(0, 200)))).toEqual([]);
   });
 });

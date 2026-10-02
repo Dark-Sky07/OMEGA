@@ -904,3 +904,121 @@ body.dark .omega-chip.is-protocol {
     gap: 6px;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Section pages (Settings / Xray): sub-navigation pills, note, section card
+   --------------------------------------------------------------------------- */
+.omega-note {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--omega-text-3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.omega-dirty {
+  animation: omega-rise 240ms ease both;
+}
+
+.omega-subnav {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--omega-surface);
+  border: 1px solid var(--omega-border);
+  backdrop-filter: blur(var(--omega-blur));
+  -webkit-backdrop-filter: blur(var(--omega-blur));
+}
+
+.omega-subnav-item {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--omega-text-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.omega-subnav-item .anticon {
+  font-size: 15px;
+}
+
+.omega-subnav-item:hover {
+  color: var(--omega-text);
+  background: var(--omega-surface-hover);
+}
+
+.omega-subnav-item.is-active {
+  color: #fff;
+  background: var(--omega-gradient);
+  box-shadow: 0 8px 18px -10px rgba(106, 77, 246, 0.8);
+}
+
+.omega-section-card.ant-card > .ant-card-body {
+  padding: 8px 20px 16px;
+}
+
+/* Inner section tabs rendered as soft pills */
+.omega-section-card .ant-tabs > .ant-tabs-nav {
+  margin-bottom: 6px;
+}
+
+.omega-section-card .ant-tabs > .ant-tabs-nav::before {
+  display: none;
+}
+
+.omega-section-card .ant-tabs > .ant-tabs-nav .ant-tabs-tab {
+  padding: 9px 14px;
+  margin: 0 2px 0 0;
+  border-radius: 12px;
+  font-weight: 600;
+  color: var(--omega-text-2);
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.omega-section-card .ant-tabs > .ant-tabs-nav .ant-tabs-tab:hover {
+  background: var(--omega-surface-hover);
+}
+
+.omega-section-card .ant-tabs > .ant-tabs-nav .ant-tabs-tab.ant-tabs-tab-active {
+  background: color-mix(in srgb, var(--omega-primary) 12%, transparent);
+}
+
+.omega-section-card .ant-tabs > .ant-tabs-nav .ant-tabs-ink-bar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .omega-section-card.ant-card > .ant-card-body {
+    padding: 4px 10px 10px;
+  }
+
+  .omega-subnav {
+    width: 100%;
+    justify-content: space-between;
+    border-radius: 16px;
+  }
+
+  .omega-subnav-item {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding: 0 10px;
+  }
+
+  .omega-note {
+    display: none;
+  }
+}

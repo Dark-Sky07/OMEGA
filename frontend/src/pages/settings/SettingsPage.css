@@ -1,9 +1,10 @@
+/* Settings — Aurora (shared sub-nav / section-card styles live in theme.css) */
 .settings-page .conf-alert {
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 
 .ldap-no-inbounds {
   margin-top: 6px;
-  color: var(--ant-color-text-tertiary);
+  color: var(--omega-text-3);
   font-size: 12px;
 }
