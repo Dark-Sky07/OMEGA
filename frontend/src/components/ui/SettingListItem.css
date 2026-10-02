@@ -2,7 +2,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--ant-color-border-secondary);
+  border-bottom: 1px solid var(--omega-border);
+  border-radius: var(--omega-radius-xs);
+  transition: background 140ms ease;
+}
+
+.setting-list-item:hover {
+  background: var(--omega-surface-muted);
 }
 
 .setting-list-item:last-child {
@@ -12,17 +18,18 @@
 .setting-list-meta {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
+  padding-inline-end: 12px;
 }
 
 .setting-list-title {
-  font-size: 14px;
-  color: var(--ant-color-text);
-  font-weight: 500;
+  font-size: 13.5px;
+  color: var(--omega-text);
+  font-weight: 600;
 }
 
 .setting-list-description {
-  font-size: 14px;
-  color: var(--ant-color-text-tertiary);
-  line-height: 1.5715;
+  font-size: 12.5px;
+  color: var(--omega-text-3);
+  line-height: 1.55;
 }

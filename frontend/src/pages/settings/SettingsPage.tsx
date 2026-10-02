@@ -1,20 +1,27 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Alert,
   Button,
   Card,
-  Col,
   ConfigProvider,
   FloatButton,
   Layout,
   Modal,
-  Row,
-  Space,
   Spin,
   message,
 } from 'antd';
+import {
+  CloudServerOutlined,
+  CodeOutlined,
+  InfoCircleOutlined,
+  MessageOutlined,
+  ReloadOutlined,
+  SafetyOutlined,
+  SaveOutlined,
+  SettingOutlined,
+} from '@ant-design/icons';
 
 import { HttpUtil, PromiseUtil } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
@@ -23,6 +30,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useAllSettings } from '@/api/queries/useAllSettings';
 import { AllSettingSchema } from '@/schemas/setting';
 import AppSidebar from '@/layouts/AppSidebar';
+import { PageHeader } from '@/components/ui';
 import GeneralTab from './GeneralTab';
 import SecurityTab from './SecurityTab';
 import TelegramTab from './TelegramTab';
@@ -92,8 +100,24 @@ export default function SettingsPage() {
 
   const [alertVisible, setAlertVisible] = useState(true);
   const location = useLocation();
+  const navigate = useNavigate();
   const slug = location.hash.replace(/^#/, '');
   const activeSlug = tabSlugs.includes(slug) ? slug : 'general';
+
+  const categories = useMemo(() => {
+    const list = [
+      { slug: 'general', icon: <SettingOutlined />, label: t('pages.settings.panelSettings') },
+      { slug: 'security', icon: <SafetyOutlined />, label: t('pages.settings.securitySettings') },
+      { slug: 'telegram', icon: <MessageOutlined />, label: t('pages.settings.TGBotSettings') },
+      { slug: 'subscription', icon: <CloudServerOutlined />, label: t('pages.settings.subSettings') },
+    ];
+    if (allSetting.subJsonEnable || allSetting.subClashEnable || activeSlug === 'subscription-formats') {
+      list.push({ slug: 'subscription-formats', icon: <CodeOutlined />, label: 'Sub Formats' });
+    }
+    return list;
+  }, [t, allSetting.subJsonEnable, allSetting.subClashEnable, activeSlug]);
+
+  const activeCategory = categories.find((c) => c.slug === activeSlug) ?? categories[0];
 
   function rebuildUrlAfterRestart(): string {
     const { webDomain, webPort, webBasePath, webCertFile, webKeyFile } = allSetting;
@@ -235,34 +259,48 @@ export default function SettingsPage() {
                     />
                   )}
 
-                  <Row gutter={[isMobile ? 8 : 16, isMobile ? 0 : 12]}>
-                    <Col span={24}>
-                      <Card hoverable>
-                        <Row className="header-row">
-                          <Col xs={24} sm={10} className="header-actions">
-                            <Space>
-                              <Button type="primary" disabled={saveDisabled} onClick={onSave}>
-                                {t('pages.settings.save')}
-                              </Button>
-                              <Button type="primary" danger disabled={!saveDisabled} onClick={restartPanel}>
-                                {t('pages.settings.restartPanel')}
-                              </Button>
-                            </Space>
-                          </Col>
-                          <Col xs={24} sm={14} className="header-info">
-                            <FloatButton.BackTop target={scrollTarget} visibilityHeight={200} />
-                            <Alert type="warning" showIcon title={t('pages.settings.infoDesc')} />
-                          </Col>
-                        </Row>
-                      </Card>
-                    </Col>
+                  <PageHeader
+                    eyebrow={t('menu.groupSystem', 'System')}
+                    title={t('menu.settings')}
+                    subtitle={<span>{activeCategory.icon} {activeCategory.label}</span>}
+                    actions={(
+                      <>
+                        {!saveDisabled && (
+                          <span className="omega-pill is-stop omega-dirty">
+                            <span className="omega-dot" />
+                            {t('pages.settings.unsaved', 'Unsaved changes')}
+                          </span>
+                        )}
+                        <Button type="primary" icon={<SaveOutlined />} disabled={saveDisabled} onClick={onSave}>
+                          {t('pages.settings.save')}
+                        </Button>
+                        <Button danger icon={<ReloadOutlined />} disabled={!saveDisabled} onClick={restartPanel}>
+                          {t('pages.settings.restartPanel')}
+                        </Button>
+                      </>
+                    )}
+                  >
+                    <p className="omega-note"><InfoCircleOutlined /> {t('pages.settings.infoDesc')}</p>
+                    <nav className="omega-subnav" aria-label={t('menu.settings')}>
+                      {categories.map((c) => (
+                        <button
+                          key={c.slug}
+                          type="button"
+                          className={`omega-subnav-item${c.slug === activeSlug ? ' is-active' : ''}`}
+                          onClick={() => navigate(`/settings#${c.slug}`)}
+                        >
+                          {c.icon}
+                          {!isMobile && <span>{c.label}</span>}
+                        </button>
+                      ))}
+                    </nav>
+                  </PageHeader>
 
-                    <Col span={24}>
-                      <Card hoverable>
-                        {categoryBody}
-                      </Card>
-                    </Col>
-                  </Row>
+                  <FloatButton.BackTop target={scrollTarget} visibilityHeight={200} />
+
+                  <Card className="omega-section-card omega-rise omega-rise-2" key={activeSlug}>
+                    {categoryBody}
+                  </Card>
                 </>
               )}
             </Spin>
