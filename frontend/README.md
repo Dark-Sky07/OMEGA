@@ -32,6 +32,7 @@ production-style links work without round-tripping through Go.
 | `npm run dev` | Vite dev server with API + WS proxy to Go |
 | `npm run dev:mock` | Same, but proxied to `scripts/mock-api.mjs` — a dev-only fake panel API (any login works, canned inbounds/clients/status). Nothing is shipped; handy for UI work without a real server |
 | `npm run mock-api` | Run only the mock API on `127.0.0.1:2053` (`MOCK_PORT` to override) |
+| `npm run build:preview` | Static design preview: the UI plus the in-browser mock (`src/preview/mock-bootstrap.ts`) in `preview-dist/`, laid out for a static host (`/` login, `/panel/` app). `VITE_PREVIEW_BASE=/OMEGA/` sets the base path; `.github/workflows/preview-pages.yml` publishes it to GitHub Pages. Never part of the production build |
 | `npm run build` | Regenerates OpenAPI + Zod, then builds into `../internal/web/dist/` |
 | `npm run preview` | Serve the built bundle locally |
 | `npm run typecheck` | `tsc --noEmit` (strict, no emit) |
