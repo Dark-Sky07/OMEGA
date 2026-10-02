@@ -113,7 +113,10 @@ vi.mock('@/hooks/useClients', () => ({
   }),
 }));
 vi.mock('@/api/queries/useNodesQuery', () => ({
-  useNodesQuery: () => ({ nodes: [], totals: { online: 0, offline: 0, avgLatency: 0 }, loading: false, error: null, refetch: async () => {} }),
+  useNodesQuery: () => ({
+    nodes: [], totals: { total: 0, online: 0, offline: 0, avgLatency: 0 },
+    loading: false, fetched: true, fetchError: '', error: null, refetch: async () => {},
+  }),
 }));
 
 const statusObj = {
@@ -154,7 +157,15 @@ vi.mock('@/utils', async (importOriginal) => {
     ...mod,
     HttpUtil: {
       ...mod.HttpUtil,
-      get: vi.fn(async () => ({ success: true, msg: '', obj: {} })),
+      get: vi.fn(async (url: string) => {
+        if (url === '/panel/api/clients/groups') {
+          return { success: true, msg: '', obj: [
+            { name: 'vip', clientCount: 2, trafficUsed: 2147483648, up: 1073741824, down: 1073741824 },
+            { name: 'trial', clientCount: 1, trafficUsed: 0, up: 0, down: 0 },
+          ] };
+        }
+        return { success: true, msg: '', obj: {} };
+      }),
       post: vi.fn(async () => ({ success: true, msg: '', obj: {} })),
     },
   };
@@ -243,6 +254,28 @@ describe('smoke: redesigned pages', () => {
     const { container } = wrap(<XrayPage />);
     await waitFor(() => expect(container.querySelector('.xray-card')).toBeTruthy());
     expect(container.querySelectorAll('.omega-subnav-item').length).toBe(6);
+    const realErrors = errors.filter(isRealError);
+    expect(realErrors, JSON.stringify(realErrors.map((a) => String(a[0]).slice(0, 300)))).toEqual([]);
+  });
+
+  it('renders the groups page without runtime errors', async () => {
+    const { default: GroupsPage } = await import('@/pages/groups/GroupsPage');
+    const { container } = wrap(<GroupsPage />);
+    await waitFor(() => expect(screen.getByText('vip')).toBeTruthy());
+    expect(container.querySelector('.omega-page-header')).toBeTruthy();
+    expect(container.querySelectorAll('.omega-stat').length).toBeGreaterThanOrEqual(2);
+    expect(container.querySelector('.omega-table-card')).toBeTruthy();
+    expect(container.querySelectorAll('.ant-table-row').length).toBe(2);
+    const realErrors = errors.filter(isRealError);
+    expect(realErrors, JSON.stringify(realErrors.map((a) => String(a[0]).slice(0, 300)))).toEqual([]);
+  });
+
+  it('renders the nodes page without runtime errors', async () => {
+    const { default: NodesPage } = await import('@/pages/nodes/NodesPage');
+    const { container } = wrap(<NodesPage />);
+    await waitFor(() => expect(container.querySelector('.node-list-card')).toBeTruthy());
+    expect(container.querySelector('.omega-page-header')).toBeTruthy();
+    expect(container.querySelectorAll('.omega-stat').length).toBe(4);
     const realErrors = errors.filter(isRealError);
     expect(realErrors, JSON.stringify(realErrors.map((a) => String(a[0]).slice(0, 300)))).toEqual([]);
   });
