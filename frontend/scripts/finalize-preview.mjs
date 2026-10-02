@@ -11,6 +11,7 @@
  *   404.html              ← panel SPA             (deep links: <base>/panel/inbounds …)
  *   panel/api/openapi.json← spec for the API docs page
  *   .nojekyll             ← keep Pages from mangling asset folders
+ *   sw.js                 ← (VITE_PREVIEW_SW=1) navigation fallback for raw-file CDNs
  *
  * All asset URLs are absolute under the configured base, so moving the HTML
  * files around is safe.
@@ -38,5 +39,11 @@ if (existsSync(join(dist, 'openapi.json'))) {
   copyFileSync(join(dist, 'openapi.json'), join(dist, 'panel', 'api', 'openapi.json'));
 }
 writeFileSync(join(dist, '.nojekyll'), '');
+
+// Raw-file CDN variant (VITE_PREVIEW_SW=1): ship the navigation service worker
+// that stands in for the missing directory index / SPA fallback.
+if (process.env.VITE_PREVIEW_SW === '1') {
+  copyFileSync(join(__dirname, 'preview-sw.js'), join(dist, 'sw.js'));
+}
 
 console.log(`[preview] static preview ready in ${dist}`);
