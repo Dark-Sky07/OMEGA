@@ -113,7 +113,12 @@
     "apiDocs": "API 文档",
     "logout": "退出登录",
     "link": "管理",
-    "donate": "捐赠"
+    "donate": "捐赠",
+    "groupOverview": "概览",
+    "groupManage": "管理",
+    "groupSystem": "系统",
+    "collapse": "收起侧边栏",
+    "expand": "展开侧边栏"
   },
   "pages": {
     "login": {
@@ -126,7 +131,9 @@
         "emptyPassword": "请输入密码",
         "wrongUsernameOrPassword": "用户名、密码或双重验证码无效。",
         "successLogin": "您已成功登录您的账户。"
-      }
+      },
+      "asideTitle": "一个面板，管理所有隧道。",
+      "asideText": "Xray、OpenVPN、L2TP/IPsec 与 AmneziaWG——在一处完成管理、路由与统计。"
     },
     "index": {
       "title": "系统状态",
@@ -253,7 +260,12 @@
       "importDatabasePgDesc": "点击选择并上传 .dump 文件以恢复您的 PostgreSQL 数据库。此操作将替换所有当前数据。",
       "migrationDownload": "下载迁移文件",
       "migrationDownloadDesc": "点击下载当前 SQLite 数据库的可移植 .dump（SQL 文本）导出文件。",
-      "migrationDownloadPgDesc": "点击下载由 PostgreSQL 数据构建的 .db SQLite 数据库，可用于在 SQLite 上运行本面板。"
+      "migrationDownloadPgDesc": "点击下载由 PostgreSQL 数据构建的 .db SQLite 数据库，可用于在 SQLite 上运行本面板。",
+      "heroSubtitle": "此服务器及其所有隧道的实时状态。",
+      "services": "服务",
+      "network": "网络",
+      "resources": "资源",
+      "panelProcess": "面板进程"
     },
     "inbounds": {
       "title": "入站",
@@ -508,6 +520,8 @@
         "mtgDebug": "调试日志",
         "mtgRouteThroughXray": "通过 Xray 路由",
         "mtgRouteThroughXrayHint": "让此代理的 Telegram 流量经过 Xray，以应用您的路由规则。mtg 附属进程会通过带有此入站标签的本地 SOCKS 桥接出站；在路由选项卡中引用该标签即可设置高级规则。",
+        "daemonRouteThroughXray": "通过 Xray 路由",
+        "daemonRouteThroughXrayHint": "将此入站的客户端流量（TCP 和 UDP）经由 Xray 路由器转发，使路由规则像作用于 Xray 自身入站一样作用于它。流量通过一个带有此入站标签的回环监听器进入核心；自定义规则请在路由标签页中引用该标签。Xray 未运行时自动关闭（直连）。",
         "mtgRouteOutbound": "出站",
         "mtgRouteOutboundHint": "可选。强制 Telegram 流量经由此出站（或负载均衡器）发出。留空则由您的路由规则决定。",
         "mtgRouteOutboundPlaceholder": "使用路由规则",
@@ -972,6 +986,7 @@
     },
     "settings": {
       "title": "面板设置",
+      "unsaved": "未保存的更改",
       "save": "保存",
       "infoDesc": "此处的所有更改都需要保存并重启面板才能生效",
       "restartPanel": "重启面板",

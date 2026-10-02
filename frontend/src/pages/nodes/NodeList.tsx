@@ -412,8 +412,8 @@ export default function NodeList({
   ], [t, showAddress, relativeTime, latestVersion, onToggleEnable, onProbe, onEdit, onDelete, onUpdateNode, nameByGuid]);
 
   return (
-    <Card size="small" hoverable>
-      <div className="toolbar">
+    <Card className="omega-table-card node-list-card">
+      <div className="omega-toolbar">
         <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
           {t('pages.nodes.addNode')}
         </Button>
@@ -426,10 +426,10 @@ export default function NodeList({
 
       {isMobile ? (
         <>
-          <div className="node-cards">
+          <div className="node-cards omega-table-body">
             {dataSource.length === 0 ? (
-              <div className="card-empty">
-                <ClusterOutlined style={{ fontSize: 28, opacity: 0.5 }} />
+              <div className="omega-empty">
+                <ClusterOutlined />
                 <div>{t('noData')}</div>
               </div>
             ) : (

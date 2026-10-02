@@ -113,7 +113,12 @@
     "apiDocs": "Dokumentasi API",
     "logout": "Keluar",
     "link": "Kelola",
-    "donate": "Donasi"
+    "donate": "Donasi",
+    "groupOverview": "Ringkasan",
+    "groupManage": "Kelola",
+    "groupSystem": "Sistem",
+    "collapse": "Ciutkan bilah sisi",
+    "expand": "Perluas bilah sisi"
   },
   "pages": {
     "login": {
@@ -126,7 +131,9 @@
         "emptyPassword": "Kata Sandi diperlukan",
         "wrongUsernameOrPassword": "Username, kata sandi, atau kode dua faktor tidak valid.",
         "successLogin": "Anda telah berhasil masuk ke akun Anda."
-      }
+      },
+      "asideTitle": "Satu panel untuk semua tunnel.",
+      "asideText": "Xray, OpenVPN, L2TP/IPsec, dan AmneziaWG — dikelola, dirutekan, dan diukur dari satu tempat."
     },
     "index": {
       "title": "Ikhtisar",
@@ -253,7 +260,12 @@
       "importDatabasePgDesc": "Klik untuk memilih dan mengunggah berkas .dump guna memulihkan basis data PostgreSQL Anda. Ini menggantikan semua data saat ini.",
       "migrationDownload": "Unduh migrasi",
       "migrationDownloadDesc": "Klik untuk mengunduh ekspor .dump (teks SQL) portabel dari basis data SQLite Anda.",
-      "migrationDownloadPgDesc": "Klik untuk mengunduh basis data SQLite .db yang dibuat dari data PostgreSQL Anda, siap menjalankan panel ini di SQLite."
+      "migrationDownloadPgDesc": "Klik untuk mengunduh basis data SQLite .db yang dibuat dari data PostgreSQL Anda, siap menjalankan panel ini di SQLite.",
+      "heroSubtitle": "Status langsung server ini dan semua tunnel yang dijalankannya.",
+      "services": "Layanan",
+      "network": "Jaringan",
+      "resources": "Sumber daya",
+      "panelProcess": "Proses panel"
     },
     "inbounds": {
       "title": "Inbound",
@@ -508,6 +520,8 @@
         "mtgDebug": "Log debug",
         "mtgRouteThroughXray": "Rutekan melalui Xray",
         "mtgRouteThroughXrayHint": "Kirim lalu lintas Telegram proxy ini melalui Xray agar mengikuti aturan routing Anda. Sidecar mtg keluar lewat bridge SOCKS loopback yang diberi tag sama dengan inbound ini; rujuk tag tersebut di tab Routing untuk aturan lanjutan.",
+        "daemonRouteThroughXray": "Rutekan melalui Xray",
+        "daemonRouteThroughXrayHint": "Alihkan lalu lintas klien inbound ini (TCP dan UDP) melalui router Xray sehingga aturan Routing berlaku padanya persis seperti pada inbound milik Xray. Lalu lintas masuk ke core melalui listener loopback yang diberi tag inbound ini; rujuk tag tersebut di tab Routing untuk aturan kustom. Otomatis nonaktif (jalur langsung) saat Xray tidak berjalan.",
         "mtgRouteOutbound": "Outbound",
         "mtgRouteOutboundHint": "Opsional. Paksa lalu lintas Telegram keluar melalui outbound (atau balancer) ini. Biarkan kosong agar aturan routing yang menentukan.",
         "mtgRouteOutboundPlaceholder": "Gunakan aturan routing",
@@ -972,6 +986,7 @@
     },
     "settings": {
       "title": "Pengaturan Panel",
+      "unsaved": "Perubahan belum disimpan",
       "save": "Simpan",
       "infoDesc": "Setiap perubahan yang dibuat di sini perlu disimpan. Harap restart panel untuk menerapkan perubahan.",
       "restartPanel": "Mulai ulang panel",

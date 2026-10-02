@@ -17,6 +17,10 @@ export const L2tpInboundSettingsSchema = z.object({
   // or server-side route-push extension; clients enable full tunnel in their
   // native L2TP settings. The server always enables forwarding/NAT rules.
   redirectGateway: z.boolean().default(true),
+  // Divert the clients' TCP/UDP traffic through the Xray router (loopback
+  // TPROXY relay tagged with the inbound tag) so the Routing page applies to
+  // it. Default on; the backend treats a missing key as on as well.
+  routeThroughXray: z.boolean().default(false),
   clients: z.array(z.any()).optional(),
 });
 export type L2tpInboundSettings = z.infer<typeof L2tpInboundSettingsSchema>;

@@ -20,7 +20,16 @@ if (active !== FALLBACK && !Object.prototype.hasOwnProperty.call(lazyModules, mo
   active = FALLBACK;
 }
 
+function applyDocumentLanguage(code: string) {
+  if (typeof document === 'undefined') return;
+  // Lets the stylesheet pick the right font stack (Vazirmatn-first for
+  // Persian/Arabic) and keeps assistive tech informed. Direction is left
+  // untouched on purpose: the panel's layouts are LTR-only today.
+  document.documentElement.setAttribute('lang', code);
+}
+
 export async function readyI18n() {
+  applyDocumentLanguage(active);
   await i18next.use(initReactI18next).init({
     lng: active,
     fallbackLng: FALLBACK,

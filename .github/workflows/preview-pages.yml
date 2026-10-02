@@ -1,0 +1,62 @@
+# Publishes the Aurora design preview (frontend only, in-browser mock data,
+# no backend) to GitHub Pages so the redesign can be reviewed on any device
+# without touching a real panel. Runs only for the redesign branch.
+#
+# Published at: https://dark-sky07.github.io/OMEGA/  (login)  and  …/OMEGA/panel/
+# Requires: Settings → Pages → Source = GitHub Actions, and the github-pages
+# environment allowing deployments from this branch.
+name: Design preview (Pages)
+
+on:
+  push:
+    branches:
+      - arena/01a0e3d1-omega
+    paths:
+      - "frontend/**"
+      - "internal/web/translation/**"
+      - ".github/workflows/preview-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: design-preview-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - name: Build static preview
+        run: npm run build:preview
+        working-directory: frontend
+        env:
+          # Project site: https://<owner>.github.io/<repo>/
+          VITE_PREVIEW_BASE: /${{ github.event.repository.name }}/
+      - uses: actions/configure-pages@v6
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: frontend/preview-dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

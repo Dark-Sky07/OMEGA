@@ -113,7 +113,12 @@
     "apiDocs": "Documentação da API",
     "logout": "Sair",
     "link": "Gerenciar",
-    "donate": "Doar"
+    "donate": "Doar",
+    "groupOverview": "Visão geral",
+    "groupManage": "Gerenciar",
+    "groupSystem": "Sistema",
+    "collapse": "Recolher barra lateral",
+    "expand": "Expandir barra lateral"
   },
   "pages": {
     "login": {
@@ -126,7 +131,9 @@
         "emptyPassword": "Senha é obrigatória",
         "wrongUsernameOrPassword": "Nome de usuário, senha ou código de dois fatores inválido.",
         "successLogin": "Você entrou na sua conta com sucesso."
-      }
+      },
+      "asideTitle": "Um painel para todos os túneis.",
+      "asideText": "Xray, OpenVPN, L2TP/IPsec e AmneziaWG — gerenciados, roteados e medidos em um só lugar."
     },
     "index": {
       "title": "Visão Geral",
@@ -253,7 +260,12 @@
       "importDatabasePgDesc": "Clique para selecionar e enviar um arquivo .dump para restaurar seu banco de dados PostgreSQL. Isso substitui todos os dados atuais.",
       "migrationDownload": "Baixar migração",
       "migrationDownloadDesc": "Clique para baixar uma exportação portátil .dump (texto SQL) do seu banco de dados SQLite.",
-      "migrationDownloadPgDesc": "Clique para baixar um banco de dados SQLite .db criado a partir dos seus dados do PostgreSQL, pronto para executar este painel no SQLite."
+      "migrationDownloadPgDesc": "Clique para baixar um banco de dados SQLite .db criado a partir dos seus dados do PostgreSQL, pronto para executar este painel no SQLite.",
+      "heroSubtitle": "Estado ao vivo deste servidor e de todos os túneis que ele executa.",
+      "services": "Serviços",
+      "network": "Rede",
+      "resources": "Recursos",
+      "panelProcess": "Processo do painel"
     },
     "inbounds": {
       "title": "Entradas",
@@ -508,6 +520,8 @@
         "mtgDebug": "Log de depuração",
         "mtgRouteThroughXray": "Rotear pelo Xray",
         "mtgRouteThroughXrayHint": "Envie o tráfego do Telegram deste proxy pelo Xray para que ele siga suas regras de roteamento. O sidecar mtg sai por uma ponte SOCKS loopback com a tag deste inbound; use essa tag na aba Roteamento para regras avançadas.",
+        "daemonRouteThroughXray": "Rotear pelo Xray",
+        "daemonRouteThroughXrayHint": "Desvia o tráfego dos clientes desta entrada (TCP e UDP) pelo roteador do Xray para que as regras de roteamento se apliquem a ele exatamente como às entradas do próprio Xray. O tráfego entra no núcleo por um listener local marcado com a tag desta entrada; use essa tag na aba Roteamento para regras personalizadas. Desliga automaticamente (caminho direto) sempre que o Xray não estiver em execução.",
         "mtgRouteOutbound": "Saída",
         "mtgRouteOutboundHint": "Opcional. Force o tráfego do Telegram a sair por esta saída (ou balanceador). Deixe vazio para que suas regras de roteamento decidam.",
         "mtgRouteOutboundPlaceholder": "Usar regras de roteamento",
@@ -972,6 +986,7 @@
     },
     "settings": {
       "title": "Configurações do Painel",
+      "unsaved": "Alterações não salvas",
       "save": "Salvar",
       "infoDesc": "Toda alteração feita aqui precisa ser salva. Reinicie o painel para aplicar as alterações.",
       "restartPanel": "Reiniciar painel",

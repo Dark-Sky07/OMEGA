@@ -162,7 +162,7 @@ describe('reseller read-only inbounds', () => {
     renderList();
     await waitFor(() => expect(screen.getByText('res-inb')).toBeTruthy());
 
-    const trigger = Array.from(document.querySelectorAll('.ant-card-head button')).find((b) =>
+    const trigger = Array.from(document.querySelectorAll('.omega-toolbar button')).find((b) =>
       b.querySelector('.anticon-menu'),
     ) as HTMLElement;
     fireEvent.click(trigger);
@@ -176,7 +176,7 @@ describe('reseller read-only inbounds', () => {
     renderList();
     await waitFor(() => expect(screen.getByText('res-inb')).toBeTruthy());
 
-    const trigger = Array.from(document.querySelectorAll('.ant-card-head button')).find((b) =>
+    const trigger = Array.from(document.querySelectorAll('.omega-toolbar button')).find((b) =>
       b.querySelector('.anticon-menu'),
     ) as HTMLElement;
     fireEvent.click(trigger);

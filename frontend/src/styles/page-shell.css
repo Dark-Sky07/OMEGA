@@ -1,3 +1,6 @@
+/* Page shells. The ambient background is painted once on <body> (see
+   theme.css), so every page wrapper stays transparent and simply lays out the
+   sidebar + content column. */
 .index-page,
 .clients-page,
 .inbounds-page,
@@ -6,34 +9,10 @@
 .nodes-page,
 .groups-page,
 .api-docs-page {
-  --bg-page: #e6e8ec;
-  --bg-card: #ffffff;
+  --bg-page: transparent;
+  --bg-card: var(--omega-surface);
   min-height: 100vh;
-  background: var(--bg-page);
-}
-
-.index-page.is-dark,
-.clients-page.is-dark,
-.inbounds-page.is-dark,
-.xray-page.is-dark,
-.settings-page.is-dark,
-.nodes-page.is-dark,
-.groups-page.is-dark,
-.api-docs-page.is-dark {
-  --bg-page: #1a1b1f;
-  --bg-card: #23252b;
-}
-
-.index-page.is-dark.is-ultra,
-.clients-page.is-dark.is-ultra,
-.inbounds-page.is-dark.is-ultra,
-.xray-page.is-dark.is-ultra,
-.settings-page.is-dark.is-ultra,
-.nodes-page.is-dark.is-ultra,
-.groups-page.is-dark.is-ultra,
-.api-docs-page.is-dark.is-ultra {
-  --bg-page: #000;
-  --bg-card: #101013;
+  background: transparent;
 }
 
 .index-page .ant-layout,
@@ -51,10 +30,7 @@
 .groups-page .ant-layout,
 .groups-page .ant-layout-content,
 .api-docs-page .ant-layout,
-.api-docs-page .ant-layout-content {
-  background: transparent;
-}
-
+.api-docs-page .ant-layout-content,
 .index-page .content-shell,
 .clients-page .content-shell,
 .inbounds-page .content-shell,
@@ -73,15 +49,34 @@
 .settings-page .content-area,
 .nodes-page .content-area,
 .groups-page .content-area {
-  padding: 24px;
+  width: 100%;
+  max-width: 1520px;
+  margin: 0 auto;
+  padding: 28px 28px 40px;
+}
+
+@media (max-width: 1024px) {
+  .index-page .content-area,
+  .clients-page .content-area,
+  .inbounds-page .content-area,
+  .xray-page .content-area,
+  .settings-page .content-area,
+  .nodes-page .content-area,
+  .groups-page .content-area {
+    padding: 20px 16px 32px;
+  }
 }
 
 @media (max-width: 768px) {
+  .index-page .content-area,
   .clients-page .content-area,
   .inbounds-page .content-area,
+  .xray-page .content-area,
+  .settings-page .content-area,
   .nodes-page .content-area,
   .groups-page .content-area {
-    padding: 8px;
+    padding: 12px 10px 28px;
+    padding-top: 64px;
   }
 }
 

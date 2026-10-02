@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/tproxy"
 )
 
 // networkState records the firewall rules installed for one OpenVPN inbound.
@@ -22,6 +23,10 @@ type networkState struct {
 	InterfaceName string `json:"interfaceName"`
 	Protocol      string `json:"protocol"`
 	Port          int    `json:"port"`
+	// XrayRelayPort is the loopback TPROXY listener the pool's TCP/UDP
+	// traffic is currently diverted to (see internal/util/tproxy); 0 means
+	// the pool takes the direct FORWARD/MASQUERADE path.
+	XrayRelayPort int `json:"xrayRelayPort,omitempty"`
 }
 
 type managedRule struct {
@@ -32,9 +37,13 @@ type managedRule struct {
 type networkCommandRunner func(name string, args ...string) ([]byte, error)
 
 type NetworkManager struct {
-	mu     sync.Mutex
-	rules  map[int]networkState
-	runner networkCommandRunner
+	mu       sync.Mutex
+	rules    map[int]networkState
+	runner   networkCommandRunner
+	lookPath func(file string) (string, error)
+	// relayWarned remembers the last relay failure logged per inbound so a
+	// host without TPROXY support does not repeat the warning every tick.
+	relayWarned map[int]string
 }
 
 var (
@@ -74,14 +83,20 @@ func GetNetworkManager() *NetworkManager {
 			runner: func(name string, args ...string) ([]byte, error) {
 				return exec.Command(name, args...).CombinedOutput()
 			},
+			lookPath:    exec.LookPath,
+			relayWarned: make(map[int]string),
 		}
 	})
 	return networkMgr
 }
 
 func (m *NetworkManager) available() (string, error) {
+	lookPath := m.lookPath
+	if lookPath == nil {
+		lookPath = exec.LookPath
+	}
 	for _, candidate := range []string{"iptables", "iptables-legacy", "iptables-nft"} {
-		if path, err := exec.LookPath(candidate); err == nil {
+		if path, err := lookPath(candidate); err == nil {
 			return path, nil
 		}
 	}
@@ -140,14 +155,20 @@ func protocolForState(inst Instance) string {
 }
 
 func stateForInstance(inst Instance) networkState {
-	return networkState{
+	state := networkState{
 		PoolCIDR:      inst.serverSubnetCIDR(),
 		InterfaceName: devNameForID(inst.Id),
 		Protocol:      protocolForState(inst),
 		Port:          inst.Port,
 	}
+	if inst.XrayRelayPort > 0 && inst.XrayRelayPort <= 65535 {
+		state.XrayRelayPort = inst.XrayRelayPort
+	}
+	return state
 }
 
+// sameNetworkState compares the base (non-relay) rule set; the relay rules
+// are converged separately by applyRelay.
 func sameNetworkState(a, b networkState) bool {
 	return a.PoolCIDR == b.PoolCIDR &&
 		a.InterfaceName == b.InterfaceName &&
@@ -165,10 +186,115 @@ func rulesForState(state networkState) []managedRule {
 	}
 }
 
+// relayRulesForState returns the relay rules for a state whose XrayRelayPort
+// is set, in installation order (the INPUT exception first, then the TPROXY
+// divert rules), or nil when the pool is on the direct path.
+func relayRulesForState(state networkState) []managedRule {
+	if state.XrayRelayPort <= 0 {
+		return nil
+	}
+	rules := make([]managedRule, 0, 4)
+	for _, spec := range tproxy.AcceptRules(state.InterfaceName, state.PoolCIDR) {
+		rules = append(rules, managedRule{table: "filter", rule: spec})
+	}
+	for _, spec := range tproxy.DivertRules(state.InterfaceName, state.PoolCIDR, state.XrayRelayPort) {
+		rules = append(rules, managedRule{table: "mangle", rule: spec})
+	}
+	return rules
+}
+
+func relayOwner(id int) string {
+	return "openvpn:" + strconv.Itoa(id)
+}
+
 func (m *NetworkManager) removeStateRules(iptables string, state networkState) {
 	for _, rule := range rulesForState(state) {
 		m.removeRule(iptables, rule)
 	}
+}
+
+// removeRelayRules tears the relay rules down in reverse installation order,
+// so the divert rules are gone before the INPUT exception they rely on.
+func (m *NetworkManager) removeRelayRules(iptables string, state networkState) {
+	rules := relayRulesForState(state)
+	for i := len(rules) - 1; i >= 0; i-- {
+		m.removeRule(iptables, rules[i])
+	}
+}
+
+func (m *NetworkManager) warnRelay(id int, msg string) {
+	if m.relayWarned == nil {
+		m.relayWarned = make(map[int]string)
+	}
+	if m.relayWarned[id] == msg {
+		return
+	}
+	m.relayWarned[id] = msg
+	logger.Warningf("openvpn: inbound %d: cannot divert traffic through Xray, keeping the direct path: %s", id, msg)
+}
+
+// applyRelay converges the TPROXY divert rules of one inbound to the relay
+// port carried by wanted and returns the port that is actually active
+// afterwards (0 = direct path). It never fails the caller: a kernel without
+// TPROXY support, or policy routing that cannot be installed, just leaves the
+// inbound on the direct path with a warning, and the next reconcile round
+// tries again. Must be called with m.mu held.
+func (m *NetworkManager) applyRelay(iptables string, id int, previous networkState, hadPrevious bool, wanted networkState) int {
+	prevPort := 0
+	if hadPrevious {
+		prevPort = previous.XrayRelayPort
+	}
+	changed := prevPort != wanted.XrayRelayPort ||
+		previous.PoolCIDR != wanted.PoolCIDR ||
+		previous.InterfaceName != wanted.InterfaceName
+	if prevPort > 0 && changed {
+		m.removeRelayRules(iptables, previous)
+	}
+	if wanted.XrayRelayPort <= 0 {
+		if prevPort > 0 {
+			tproxy.Release(relayOwner(id), tproxy.Runner(m.runner))
+			logger.Infof("openvpn: inbound %d: pool %s traffic is back on the direct path", id, wanted.PoolCIDR)
+		}
+		return 0
+	}
+	if tproxy.FirewalldActive(tproxy.Runner(m.runner)) {
+		if prevPort > 0 {
+			if !changed {
+				m.removeRelayRules(iptables, previous)
+			}
+			tproxy.Release(relayOwner(id), tproxy.Runner(m.runner))
+		}
+		m.warnRelay(id, tproxy.FirewalldWarning)
+		return 0
+	}
+
+	// The routing entries must exist before the first divert rule does,
+	// otherwise a diverted packet would be forwarded instead of delivered.
+	if err := tproxy.Acquire(relayOwner(id), wanted.PoolCIDR, tproxy.Runner(m.runner)); err != nil {
+		m.warnRelay(id, err.Error())
+		return 0
+	}
+	rules := relayRulesForState(wanted)
+	inserted := make([]managedRule, 0, len(rules))
+	for _, rule := range rules {
+		wasInserted, err := m.ensureRule(iptables, rule)
+		if err != nil {
+			for i := len(inserted) - 1; i >= 0; i-- {
+				m.removeRule(iptables, inserted[i])
+			}
+			tproxy.Release(relayOwner(id), tproxy.Runner(m.runner))
+			m.warnRelay(id, err.Error())
+			return 0
+		}
+		if wasInserted {
+			inserted = append(inserted, rule)
+		}
+	}
+	delete(m.relayWarned, id)
+	if prevPort != wanted.XrayRelayPort {
+		logger.Infof("openvpn: inbound %d: diverting pool %s TCP/UDP traffic through Xray (%s:%d)", id, wanted.PoolCIDR, tproxy.ListenIP, wanted.XrayRelayPort)
+	}
+	return wanted.XrayRelayPort
 }
 
 // Apply enables forwarding and installs the input, forwarding and
@@ -208,7 +334,14 @@ func (m *NetworkManager) Apply(inst Instance) error {
 			inserted = append(inserted, rule)
 		}
 	}
+	// The relay is layered on top of the direct rules and is best effort:
+	// whatever it reports as active is what gets persisted for cleanup.
+	state.XrayRelayPort = m.applyRelay(iptables, inst.Id, previous, hadPrevious, state)
 	if err := saveNetworkState(inst.Id, state); err != nil {
+		if state.XrayRelayPort > 0 {
+			m.removeRelayRules(iptables, state)
+			tproxy.Release(relayOwner(inst.Id), tproxy.Runner(m.runner))
+		}
 		for i := len(inserted) - 1; i >= 0; i-- {
 			m.removeRule(iptables, inserted[i])
 		}
@@ -238,8 +371,13 @@ func (m *NetworkManager) Remove(id int) {
 		logger.Debug("openvpn: cannot remove firewall rules:", err)
 		return
 	}
+	if state.XrayRelayPort > 0 {
+		m.removeRelayRules(iptables, state)
+		tproxy.Release(relayOwner(id), tproxy.Runner(m.runner))
+	}
 	m.removeStateRules(iptables, state)
 	delete(m.rules, id)
+	delete(m.relayWarned, id)
 	_ = os.Remove(networkStatePath(id))
 }
 

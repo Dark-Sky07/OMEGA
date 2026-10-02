@@ -51,6 +51,7 @@ import { keys } from '@/api/queryKeys';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useTheme } from '@/hooks/useTheme';
 import type { ResellerReport, ResellerStat } from '@/api/queries/useSession';
+import { PageHeader } from '@/components/ui';
 import ResellersOverview from './ResellersOverview';
 import './ResellersPage.css';
 
@@ -502,61 +503,51 @@ export default function ResellersPage() {
         <AppSidebar />
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
-            <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 12]}>
-              <Col span={24}>
-                <Card size="small" hoverable className="summary-card">
-                  <Row gutter={[16, 12]} align="middle">
-                    <Col xs={24} md={8}>
-                      <Statistic
-                        title={t('resellers.total')}
-                        value={String(rows.length)}
-                        prefix={<ShopOutlined />}
-                      />
-                    </Col>
-                    <Col xs={24} md={16}>
-                      <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
-                        <Segmented
-                          value={view}
-                          onChange={(value) => setView(value as 'manage' | 'overview')}
-                          options={[
-                            { label: t('resellers.manage'), value: 'manage' },
-                            { label: t('resellers.overview'), value: 'overview' },
-                          ]}
-                        />
-                        <Button icon={<ReloadOutlined />} onClick={() => refreshAll()} loading={listQuery.isFetching}>
-                          {t('refresh')}
-                        </Button>
-                        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-                          {t('resellers.add')}
-                        </Button>
-                      </Space>
-                    </Col>
-                  </Row>
-                </Card>
-              </Col>
+            <PageHeader
+              eyebrow={t('menu.groupManage', 'Manage')}
+              title={t('menu.resellers', 'Resellers')}
+              subtitle={<span><strong>{rows.length}</strong> {t('resellers.total')}</span>}
+              actions={(
+                <>
+                  <Segmented
+                    value={view}
+                    onChange={(value) => setView(value as 'manage' | 'overview')}
+                    options={[
+                      { label: t('resellers.manage'), value: 'manage' },
+                      { label: t('resellers.overview'), value: 'overview' },
+                    ]}
+                  />
+                  <Button icon={<ReloadOutlined />} onClick={() => refreshAll()} loading={listQuery.isFetching}>
+                    {!isMobile && t('refresh')}
+                  </Button>
+                  <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                    {t('resellers.add')}
+                  </Button>
+                </>
+              )}
+            />
 
-              <Col span={24}>
-                <Card size="small" hoverable>
-                  {listQuery.isError && (
-                    <Alert type="error" showIcon message={t('somethingWentWrong')} style={{ marginBottom: 12 }} />
-                  )}
-                  {view === 'overview' ? (
-                    <ResellersOverview stats={rows} loading={listQuery.isLoading} />
-                  ) : (
-                    <Table<ResellerStat>
-                      rowKey={(stat) => String(stat.reseller.id)}
-                      size="small"
-                      loading={listQuery.isLoading}
-                      columns={columns}
-                      dataSource={rows}
-                      pagination={rows.length > 20 ? { pageSize: 20 } : false}
-                      scroll={{ x: 'max-content' }}
-                      locale={{ emptyText: <Empty description={t('resellers.empty')} /> }}
-                    />
-                  )}
-                </Card>
-              </Col>
-            </Row>
+            {listQuery.isError && (
+              <Alert type="error" showIcon message={t('somethingWentWrong')} style={{ marginBottom: 12 }} />
+            )}
+            {view === 'overview' ? (
+              <div className="omega-rise omega-rise-2">
+                <ResellersOverview stats={rows} loading={listQuery.isLoading} />
+              </div>
+            ) : (
+              <Card className="omega-table-card omega-rise omega-rise-2">
+                <Table<ResellerStat>
+                  rowKey={(stat) => String(stat.reseller.id)}
+                  size="middle"
+                  loading={listQuery.isLoading}
+                  columns={columns}
+                  dataSource={rows}
+                  pagination={rows.length > 20 ? { pageSize: 20 } : false}
+                  scroll={{ x: 'max-content' }}
+                  locale={{ emptyText: <Empty description={t('resellers.empty')} /> }}
+                />
+              </Card>
+            )}
 
             <Modal
               open={formOpen}

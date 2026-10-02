@@ -1,3 +1,5 @@
+/* Inbound list — Aurora. Table chrome comes from theme.css (.omega-table-card);
+   this file only styles the cells and the mobile card list. */
 .action-buttons {
   display: flex;
   align-items: center;
@@ -11,6 +13,30 @@
   gap: 4px;
 }
 
+.inbound-remark {
+  font-weight: 650;
+  color: var(--omega-text);
+}
+
+.inbound-row-disabled > td {
+  opacity: 0.55;
+}
+
+.inbound-row-disabled > td.ant-table-selection-column,
+.inbound-row-disabled > td:nth-child(3) {
+  opacity: 1;
+}
+
+.inbound-toolbar-count {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.inbounds-updown .anticon {
+  font-size: 0.7em;
+  vertical-align: 0.1em;
+}
+
 .client-count-tag {
   font-variant-numeric: tabular-nums;
 }
@@ -18,6 +44,7 @@
 .row-action-trigger {
   font-size: 20px;
   cursor: pointer;
+  color: var(--omega-text-2);
 }
 
 .client-email-list {
@@ -28,69 +55,48 @@
 
 .client-email-list > div {
   padding: 2px 0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
 }
 
-.inbounds-page .ant-table {
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.inbounds-page .ant-table-container {
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.inbounds-page .ant-table-thead > tr:first-child > *:first-child {
-  border-start-start-radius: 8px;
-}
-
-.inbounds-page .ant-table-thead > tr:first-child > *:last-child {
-  border-start-end-radius: 8px;
-}
-
-.inbounds-page .ant-table-tbody > tr:last-child > *:first-child {
-  border-end-start-radius: 8px;
-}
-
-.inbounds-page .ant-table-tbody > tr:last-child > *:last-child {
-  border-end-end-radius: 8px;
-}
-
+/* ---- mobile cards ------------------------------------------------------- */
 .inbound-cards {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 4px;
+  gap: 10px;
 }
 
 .inbound-card {
-  border: 1px solid var(--ant-color-border-secondary);
-  border-radius: 10px;
-  padding: 12px;
-  background: var(--ant-color-fill-quaternary);
+  border: 1px solid var(--omega-border);
+  border-radius: var(--omega-radius-sm);
+  padding: 12px 14px;
+  background: var(--omega-surface-muted);
   display: flex;
   flex-direction: column;
   gap: 8px;
+  transition: border-color 160ms ease, background 160ms ease;
 }
 
 .inbound-card.is-selected {
-  border-color: var(--ant-color-primary);
-  background: color-mix(in srgb, var(--ant-color-primary) 6%, transparent);
+  border-color: color-mix(in srgb, var(--omega-primary) 55%, transparent);
+  background: color-mix(in srgb, var(--omega-primary) 8%, transparent);
+}
+
+.inbound-card.is-disabled .card-title {
+  opacity: 0.55;
 }
 
 .card-bulk-bar {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 4px 8px;
+  padding: 2px 4px 6px;
 }
 
 .bulk-count {
   font-size: 12px;
-  background: color-mix(in srgb, var(--ant-color-primary) 12%, transparent);
-  color: var(--ant-color-primary);
+  background: color-mix(in srgb, var(--omega-primary) 14%, transparent);
+  color: var(--omega-primary);
   padding: 1px 8px;
   border-radius: 10px;
 }
@@ -98,19 +104,26 @@
 .card-head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  cursor: pointer;
+  gap: 10px;
   user-select: none;
 }
 
-.card-id {
-  font-size: 11px;
-  opacity: 0.6;
+.card-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.card-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .tag-name {
-  font-weight: 600;
-  flex: 1;
+  font-weight: 650;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -120,7 +133,7 @@
 .card-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
 }
 
@@ -152,7 +165,7 @@
 
 .card-empty {
   text-align: center;
-  color: var(--ant-color-text-secondary);
+  color: var(--omega-text-3);
   padding: 24px 12px;
   display: flex;
   flex-direction: column;
@@ -161,20 +174,6 @@
 }
 
 @media (max-width: 768px) {
-  .inbounds-page .ant-card-head {
-    padding: 0 12px;
-    min-height: 44px;
-  }
-
-  .inbounds-page .ant-card-head-title,
-  .inbounds-page .ant-card-extra {
-    padding: 8px 0;
-  }
-
-  .inbounds-page .ant-card-body {
-    padding: 8px;
-  }
-
   .inbounds-page .row-action-trigger {
     font-size: 22px;
     padding: 4px;

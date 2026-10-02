@@ -37,6 +37,14 @@ export default function OpenvpnFields() {
         <Switch />
       </Form.Item>
       <Form.Item
+        name={['settings', 'routeThroughXray']}
+        label={t('pages.inbounds.form.daemonRouteThroughXray')}
+        tooltip={t('pages.inbounds.form.daemonRouteThroughXrayHint')}
+        valuePropName="checked"
+      >
+        <Switch />
+      </Form.Item>
+      <Form.Item
         name={['settings', 'pushDNS']}
         label={t('pages.inbounds.form.openvpnPushDNS')}
         valuePropName="checked"

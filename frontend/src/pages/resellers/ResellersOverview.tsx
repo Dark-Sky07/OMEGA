@@ -1,21 +1,19 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  Card,
   Empty,
   Input,
   Progress,
-  Row,
-  Col,
   Select,
   Space,
-  Statistic,
   Table,
   Tag,
-  Tooltip,
   Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { AlertOutlined, ShopOutlined, TeamOutlined, WifiOutlined } from '@ant-design/icons';
+import { AlertOutlined, ApiOutlined, CloudDownloadOutlined, DatabaseOutlined, ShopOutlined, TeamOutlined, WifiOutlined } from '@ant-design/icons';
+import { StatStrip, type StatItem } from '@/components/ui';
 
 import { SizeFormatter } from '@/utils';
 import type { ResellerStat } from '@/api/queries/useSession';
@@ -200,85 +198,61 @@ export default function ResellersOverview({ stats, loading }: ResellersOverviewP
     },
   ];
 
+  const statItems: StatItem[] = [
+    {
+      key: 'total', icon: <ShopOutlined />, tone: 'primary', label: t('resellers.total'), value: summary.total,
+      hint: `${summary.active} ${t('resellers.statusActive')} / ${summary.disabled} ${t('resellers.statusDisabled')}`,
+    },
+    { key: 'inbounds', icon: <ApiOutlined />, tone: 'default', label: t('resellers.assignedInbounds'), value: summary.inbounds },
+    { key: 'clients', icon: <TeamOutlined />, tone: 'accent', label: t('resellers.totalClients'), value: summary.clients },
+    { key: 'online', icon: <WifiOutlined />, tone: summary.online > 0 ? 'success' : 'muted', label: t('resellers.onlineNow'), value: summary.online },
+    { key: 'used', icon: <CloudDownloadOutlined />, tone: 'default', label: t('resellers.totalUsedTraffic'), value: SizeFormatter.sizeFormat(summary.used) },
+    { key: 'allocated', icon: <DatabaseOutlined />, tone: 'muted', label: t('resellers.totalAllocatedTraffic'), value: SizeFormatter.sizeFormat(summary.allocated) },
+    {
+      key: 'attention', icon: <AlertOutlined />, tone: summary.attention > 0 ? 'warning' : 'muted', label: t('resellers.needsAttention'), value: summary.attention,
+      popover: { content: t('resellers.needsAttentionHint') },
+    },
+  ];
+
   return (
-    <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-      <Row gutter={[8, 12]}>
-        <Col xs={12} md={6} xl={4}>
-          <Statistic
-            title={t('resellers.total')}
-            value={summary.total}
-            prefix={<ShopOutlined />}
-            suffix={
-              <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-                {summary.active} {t('resellers.statusActive')} / {summary.disabled} {t('resellers.statusDisabled')}
-              </Typography.Text>
-            }
-          />
-        </Col>
-        <Col xs={12} md={6} xl={4}>
-          <Statistic title={t('resellers.assignedInbounds')} value={summary.inbounds} />
-        </Col>
-        <Col xs={12} md={6} xl={4}>
-          <Statistic title={t('resellers.totalClients')} value={summary.clients} prefix={<TeamOutlined />} />
-        </Col>
-        <Col xs={12} md={6} xl={4}>
-          <Statistic
-            title={t('resellers.onlineNow')}
-            value={summary.online}
-            prefix={<WifiOutlined />}
-            valueStyle={summary.online > 0 ? { color: '#52c41a' } : undefined}
-          />
-        </Col>
-        <Col xs={12} md={6} xl={4}>
-          <Statistic title={t('resellers.totalUsedTraffic')} value={SizeFormatter.sizeFormat(summary.used)} />
-        </Col>
-        <Col xs={12} md={6} xl={4}>
-          <Statistic title={t('resellers.totalAllocatedTraffic')} value={SizeFormatter.sizeFormat(summary.allocated)} />
-        </Col>
-        <Col xs={12} md={12} xl={4}>
-          <Tooltip title={t('resellers.needsAttentionHint')}>
-            <Statistic
-              title={t('resellers.needsAttention')}
-              value={summary.attention}
-              prefix={<AlertOutlined />}
-              valueStyle={summary.attention > 0 ? { color: '#fa8c16' } : undefined}
-            />
-          </Tooltip>
-        </Col>
-      </Row>
+    <>
+      <StatStrip items={statItems} size="compact" className="resellers-stats" />
 
-      <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
-        <Input
-          allowClear
-          placeholder={t('resellers.searchPlaceholder')}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ maxWidth: 320 }}
-        />
-        <Select<StatusFilter>
-          value={statusFilter}
-          onChange={setStatusFilter}
-          style={{ width: 180 }}
-          options={[
-            { value: 'all', label: t('resellers.allStatuses') },
-            { value: 'active', label: t('resellers.statusActive') },
-            { value: 'disabled', label: t('resellers.statusDisabled') },
-            { value: 'expired', label: t('resellers.expired') },
-            { value: 'overQuota', label: t('resellers.overQuota') },
-          ]}
-        />
-      </Space>
+      <Card className="omega-table-card">
+        <div className="omega-toolbar">
+          <Input
+            allowClear
+            placeholder={t('resellers.searchPlaceholder')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ maxWidth: 320 }}
+          />
+          <span className="omega-toolbar-spacer" />
+          <Select<StatusFilter>
+            value={statusFilter}
+            onChange={setStatusFilter}
+            style={{ width: 180 }}
+            options={[
+              { value: 'all', label: t('resellers.allStatuses') },
+              { value: 'active', label: t('resellers.statusActive') },
+              { value: 'disabled', label: t('resellers.statusDisabled') },
+              { value: 'expired', label: t('resellers.expired') },
+              { value: 'overQuota', label: t('resellers.overQuota') },
+            ]}
+          />
+        </div>
 
-      <Table<ResellerStat>
-        rowKey={(stat) => String(stat.reseller.id)}
-        size="small"
-        loading={loading}
-        columns={columns}
-        dataSource={filtered}
-        pagination={filtered.length > 20 ? { pageSize: 20 } : false}
-        scroll={{ x: 'max-content' }}
-        locale={{ emptyText: <Empty description={t('resellers.noDataForFilter')} /> }}
-      />
-    </Space>
+        <Table<ResellerStat>
+          rowKey={(stat) => String(stat.reseller.id)}
+          size="middle"
+          loading={loading}
+          columns={columns}
+          dataSource={filtered}
+          pagination={filtered.length > 20 ? { pageSize: 20 } : false}
+          scroll={{ x: 'max-content' }}
+          locale={{ emptyText: <Empty description={t('resellers.noDataForFilter')} /> }}
+        />
+      </Card>
+    </>
   );
 }

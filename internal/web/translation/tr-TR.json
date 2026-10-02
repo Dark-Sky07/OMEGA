@@ -113,7 +113,12 @@
     "apiDocs": "API Belgeleri",
     "logout": "Çıkış Yap",
     "link": "Yönet",
-    "donate": "Bağış Yap"
+    "donate": "Bağış Yap",
+    "groupOverview": "Genel Bakış",
+    "groupManage": "Yönetim",
+    "groupSystem": "Sistem",
+    "collapse": "Kenar çubuğunu daralt",
+    "expand": "Kenar çubuğunu genişlet"
   },
   "pages": {
     "login": {
@@ -126,7 +131,9 @@
         "emptyPassword": "Şifre zorunludur",
         "wrongUsernameOrPassword": "Geçersiz kullanıcı adı, şifre veya iki adımlı doğrulama kodu.",
         "successLogin": "Hesabınıza başarıyla giriş yaptınız."
-      }
+      },
+      "asideTitle": "Tüm tüneller için tek panel.",
+      "asideText": "Xray, OpenVPN, L2TP/IPsec ve AmneziaWG — tek bir yerden yönetin, yönlendirin ve ölçün."
     },
     "index": {
       "title": "Genel Bakış",
@@ -253,7 +260,12 @@
       "importDatabasePgDesc": "PostgreSQL veritabanınızı geri yüklemek için bir .dump dosyası seçip yüklemek üzere tıklayın. Bu, tüm mevcut verilerin yerini alır.",
       "migrationDownload": "Geçiş Dosyasını İndir",
       "migrationDownloadDesc": "SQLite veritabanınızın taşınabilir .dump (SQL metni) yedeğini indirmek için tıklayın.",
-      "migrationDownloadPgDesc": "PostgreSQL verilerinizden oluşturulan ve bu paneli SQLite üzerinde çalıştırmaya hazır bir .db SQLite veritabanı indirmek için tıklayın."
+      "migrationDownloadPgDesc": "PostgreSQL verilerinizden oluşturulan ve bu paneli SQLite üzerinde çalıştırmaya hazır bir .db SQLite veritabanı indirmek için tıklayın.",
+      "heroSubtitle": "Bu sunucunun ve çalıştırdığı tüm tünellerin canlı durumu.",
+      "services": "Servisler",
+      "network": "Ağ",
+      "resources": "Kaynaklar",
+      "panelProcess": "Panel süreci"
     },
     "inbounds": {
       "title": "Gelen Bağlantılar",
@@ -509,6 +521,8 @@
         "mtgDebug": "Hata ayıklama günlüğü",
         "mtgRouteThroughXray": "Xray üzerinden yönlendir",
         "mtgRouteThroughXrayHint": "Bu proxy'nin Telegram trafiğini Xray üzerinden geçirerek yönlendirme kurallarınıza uymasını sağlayın. mtg yardımcı süreci, bu gelen bağlantının etiketini taşıyan bir loopback SOCKS köprüsü üzerinden çıkış yapar; gelişmiş kurallar için Yönlendirme sekmesinde bu etiketi kullanın.",
+        "daemonRouteThroughXray": "Xray üzerinden yönlendir",
+        "daemonRouteThroughXrayHint": "Bu gelen bağlantının istemci trafiğini (TCP ve UDP) Xray yönlendiricisinden geçirir; böylece yönlendirme kuralları, Xray'in kendi gelen bağlantılarında olduğu gibi buna da uygulanır. Trafik, bu gelen bağlantının etiketini taşıyan bir loopback dinleyicisi üzerinden çekirdeğe girer; özel kurallar için Yönlendirme sekmesinde bu etikete başvurun. Xray çalışmadığında otomatik olarak kapanır (doğrudan yol).",
         "mtgRouteOutbound": "Giden",
         "mtgRouteOutboundHint": "İsteğe bağlı. Telegram trafiğini bu giden bağlantı (veya dengeleyici) üzerinden çıkmaya zorlar. Yönlendirme kurallarınızın karar vermesi için boş bırakın.",
         "mtgRouteOutboundPlaceholder": "Yönlendirme kurallarını kullan",
@@ -971,6 +985,7 @@
     },
     "settings": {
       "title": "Panel Ayarları",
+      "unsaved": "Kaydedilmemiş değişiklikler",
       "save": "Kaydet",
       "infoDesc": "Burada yapılan her değişikliğin kaydedilmesi gerekir. Değişikliklerin uygulanması için paneli yeniden başlatın.",
       "restartPanel": "Paneli Yeniden Başlat",
