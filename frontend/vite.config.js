@@ -53,12 +53,14 @@ function refreshBasePath() {
 }
 
 function readPanelVersion() {
-  try {
-    const versionFile = path.resolve(__dirname, '..', 'config', 'version');
-    return fs.readFileSync(versionFile, 'utf8').trim();
-  } catch (_e) {
-    return '';
+  for (const rel of [['..', 'config', 'version'], ['..', 'internal', 'config', 'version']]) {
+    try {
+      return fs.readFileSync(path.resolve(__dirname, ...rel), 'utf8').trim();
+    } catch (_e) {
+      // try the next location
+    }
   }
+  return '';
 }
 
 // `apply: 'serve'` keeps the injection out of `vite build` — dist.go
@@ -178,113 +180,158 @@ function makeBackendProxy(target) {
   };
 }
 
-export default defineConfig({
-  plugins: [esToolkitCompatEsmResolver(), react(), injectBasePathPlugin()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'src'),
-    },
-  },
-  optimizeDeps: {
-    rolldownOptions: {
-      plugins: [esToolkitCompatEsmResolver()],
-    },
-  },
-  experimental: {
-    renderBuiltUrl(filename, { hostType }) {
-      if (hostType === 'js') {
+
+// `vite build --mode preview` produces the static Aurora design preview that is
+// published to GitHub Pages from the redesign branch. It is a plain static
+// site with no Go backend, so the HTML gets a fixed base path plus the
+// in-browser mock bootstrap (see src/preview/mock-bootstrap.ts) injected ahead
+// of the real entry. Production builds (`vite build`) never see this plugin.
+const PREVIEW_BASE = (() => {
+  let value = process.env.VITE_PREVIEW_BASE || '/';
+  if (!value.startsWith('/')) value = '/' + value;
+  if (!value.endsWith('/')) value += '/';
+  return value;
+})();
+
+function previewMockPlugin() {
+  return {
+    name: 'omega-preview-mock',
+    transformIndexHtml: {
+      order: 'pre',
+      handler(html) {
+        const escaped = PREVIEW_BASE.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        const version = `${readPanelVersion() || 'dev'} (preview)`;
         return {
-          runtime: `((window.X_UI_BASE_PATH||'/')+${JSON.stringify(filename)})`,
+          html,
+          tags: [
+            {
+              tag: 'script',
+              injectTo: 'head-prepend',
+              children: `window.X_UI_BASE_PATH="${escaped}";window.X_UI_CUR_VER="${version}";`,
+            },
+            {
+              tag: 'script',
+              attrs: { type: 'module', src: '/src/preview/mock-bootstrap.ts' },
+              injectTo: 'head',
+            },
+          ],
         };
-      }
-      // Assets referenced from CSS (the self-hosted Vazirmatn / Inter /
-      // JetBrains Mono font files) must resolve under any webBasePath. The Go
-      // side only rewrites `/assets/` URLs inside the HTML, so emit them
-      // relative to the stylesheet (both live in `dist/assets/`).
-      if (hostType === 'css') {
-        return { relative: true };
-      }
-      return undefined;
-    },
-  },
-  build: {
-    outDir,
-    emptyOutDir: true,
-    sourcemap: true,
-    target: 'es2020',
-    chunkSizeWarningLimit: 1500,
-    rollupOptions: {
-      input: {
-        index: path.resolve(__dirname, 'index.html'),
-        login: path.resolve(__dirname, 'login.html'),
-        subpage: path.resolve(__dirname, 'subpage.html'),
       },
-      output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return undefined;
-          if (id.includes('/node_modules/antd/')) return 'vendor-antd';
-          if (id.includes('/@ant-design/icons/') || id.includes('/@ant-design/icons-svg/')) return 'vendor-icons';
-          if (
-            id.includes('/node_modules/@rc-component/')
-            || id.includes('/node_modules/rc-')
-            || id.includes('/@ant-design/cssinjs')
-            || id.includes('/@ant-design/colors')
-            || id.includes('/@ant-design/fast-color')
-            || id.includes('/@ant-design/react-slick')
-            || id.includes('/@ctrl/tinycolor')
-          ) return 'vendor-antd';
-          if (
-            id.includes('/node_modules/react-i18next/')
-            || id.includes('/node_modules/i18next/')
-          ) return 'vendor-i18next';
-          if (
-            id.includes('/node_modules/react/')
-            || id.includes('/node_modules/react-dom/')
-            || id.includes('/node_modules/scheduler/')
-          ) return 'vendor-react';
-          if (
-            id.includes('/node_modules/codemirror/')
-            || id.includes('/node_modules/@codemirror/')
-            || id.includes('/node_modules/@lezer/')
-          ) return 'vendor-codemirror';
-          if (id.includes('/node_modules/persian-calendar-suite/')) return 'vendor-jalali';
-          if (id.includes('/node_modules/otpauth/')) return 'vendor-otpauth';
-          if (id.includes('/node_modules/@tanstack/')) return 'vendor-tanstack';
-          if (id.includes('/node_modules/react-router')) return 'vendor-router';
-          if (
-            id.includes('/node_modules/swagger-ui-react/')
-            || id.includes('/node_modules/swagger-ui/')
-            || id.includes('/node_modules/swagger-client/')
-          ) return 'vendor-swagger';
-          if (
-            id.includes('/node_modules/recharts/')
-            || id.includes('/node_modules/victory-vendor/')
-            || id.includes('/node_modules/d3-')
-          ) return 'vendor-recharts';
-          if (id.includes('dayjs')) return 'vendor-dayjs';
-          if (id.includes('axios')) return 'vendor-axios';
-          return 'vendor';
+    },
+  };
+}
+
+export default defineConfig(({ mode }) => {
+  const isPreview = mode === 'preview';
+  return {
+    plugins: [esToolkitCompatEsmResolver(), react(), isPreview ? previewMockPlugin() : injectBasePathPlugin()],
+    base: isPreview ? PREVIEW_BASE : '/',
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, 'src'),
+      },
+    },
+    optimizeDeps: {
+      rolldownOptions: {
+        plugins: [esToolkitCompatEsmResolver()],
+      },
+    },
+    experimental: {
+      renderBuiltUrl(filename, { hostType }) {
+        if (hostType === 'js') {
+          return {
+            runtime: `((window.X_UI_BASE_PATH||'/')+${JSON.stringify(filename)})`,
+          };
+        }
+        // Assets referenced from CSS (the self-hosted Vazirmatn / Inter /
+        // JetBrains Mono font files) must resolve under any webBasePath. The Go
+        // side only rewrites `/assets/` URLs inside the HTML, so emit them
+        // relative to the stylesheet (both live in `dist/assets/`).
+        if (hostType === 'css') {
+          return { relative: true };
+        }
+        return undefined;
+      },
+    },
+    build: {
+      outDir: isPreview ? path.resolve(__dirname, 'preview-dist') : outDir,
+      emptyOutDir: true,
+      sourcemap: !isPreview,
+      target: 'es2020',
+      chunkSizeWarningLimit: 1500,
+      rollupOptions: {
+        input: {
+          index: path.resolve(__dirname, 'index.html'),
+          login: path.resolve(__dirname, 'login.html'),
+          subpage: path.resolve(__dirname, 'subpage.html'),
+        },
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return undefined;
+            if (id.includes('/node_modules/antd/')) return 'vendor-antd';
+            if (id.includes('/@ant-design/icons/') || id.includes('/@ant-design/icons-svg/')) return 'vendor-icons';
+            if (
+              id.includes('/node_modules/@rc-component/')
+              || id.includes('/node_modules/rc-')
+              || id.includes('/@ant-design/cssinjs')
+              || id.includes('/@ant-design/colors')
+              || id.includes('/@ant-design/fast-color')
+              || id.includes('/@ant-design/react-slick')
+              || id.includes('/@ctrl/tinycolor')
+            ) return 'vendor-antd';
+            if (
+              id.includes('/node_modules/react-i18next/')
+              || id.includes('/node_modules/i18next/')
+            ) return 'vendor-i18next';
+            if (
+              id.includes('/node_modules/react/')
+              || id.includes('/node_modules/react-dom/')
+              || id.includes('/node_modules/scheduler/')
+            ) return 'vendor-react';
+            if (
+              id.includes('/node_modules/codemirror/')
+              || id.includes('/node_modules/@codemirror/')
+              || id.includes('/node_modules/@lezer/')
+            ) return 'vendor-codemirror';
+            if (id.includes('/node_modules/persian-calendar-suite/')) return 'vendor-jalali';
+            if (id.includes('/node_modules/otpauth/')) return 'vendor-otpauth';
+            if (id.includes('/node_modules/@tanstack/')) return 'vendor-tanstack';
+            if (id.includes('/node_modules/react-router')) return 'vendor-router';
+            if (
+              id.includes('/node_modules/swagger-ui-react/')
+              || id.includes('/node_modules/swagger-ui/')
+              || id.includes('/node_modules/swagger-client/')
+            ) return 'vendor-swagger';
+            if (
+              id.includes('/node_modules/recharts/')
+              || id.includes('/node_modules/victory-vendor/')
+              || id.includes('/node_modules/d3-')
+            ) return 'vendor-recharts';
+            if (id.includes('dayjs')) return 'vendor-dayjs';
+            if (id.includes('axios')) return 'vendor-axios';
+            return 'vendor';
+          },
         },
       },
     },
-  },
-  server: {
-    port: 5173,
-    strictPort: true,
-    // Opt-in knobs for remote previews (e.g. a cloud sandbox that proxies the
-    // dev server under its own hostname). Unset = Vite defaults (localhost only).
-    host: process.env.VITE_DEV_HOST || undefined,
-    allowedHosts: process.env.VITE_DEV_ALLOW_ALL_HOSTS === '1' ? true : undefined,
-    proxy: {
-      '^/(?:[^/]+/)?(login|logout|getTwoFactorEnable|csrf-token|panel|server)(?:/|$)': makeBackendProxy(BACKEND_TARGET),
-      '^/$': makeBackendProxy(BACKEND_TARGET),
-      '^/[^/]+/$': makeBackendProxy(BACKEND_TARGET),
-      '^/(?:[^/]+/)?ws$': {
-        target: BACKEND_TARGET.replace(/^http/, 'ws'),
-        ws: true,
-        changeOrigin: true,
-        rewrite: rewriteToBackend,
+    server: {
+      port: 5173,
+      strictPort: true,
+      // Opt-in knobs for remote previews (e.g. a cloud sandbox that proxies the
+      // dev server under its own hostname). Unset = Vite defaults (localhost only).
+      host: process.env.VITE_DEV_HOST || undefined,
+      allowedHosts: process.env.VITE_DEV_ALLOW_ALL_HOSTS === '1' ? true : undefined,
+      proxy: {
+        '^/(?:[^/]+/)?(login|logout|getTwoFactorEnable|csrf-token|panel|server)(?:/|$)': makeBackendProxy(BACKEND_TARGET),
+        '^/$': makeBackendProxy(BACKEND_TARGET),
+        '^/[^/]+/$': makeBackendProxy(BACKEND_TARGET),
+        '^/(?:[^/]+/)?ws$': {
+          target: BACKEND_TARGET.replace(/^http/, 'ws'),
+          ws: true,
+          changeOrigin: true,
+          rewrite: rewriteToBackend,
+        },
       },
     },
-  },
+  };
 });

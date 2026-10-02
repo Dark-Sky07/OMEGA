@@ -13,6 +13,7 @@
     "dev:mock": "node scripts/mock-api.mjs & VITE_BACKEND_TARGET=http://127.0.0.1:2053 vite",
     "mock-api": "node scripts/mock-api.mjs",
     "build": "npm run gen:api && vite build",
+    "build:preview": "npm run gen:api && vite build --mode preview && node scripts/finalize-preview.mjs",
     "preview": "vite preview",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
