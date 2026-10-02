@@ -116,7 +116,12 @@
     "donate": "Donate",
     "resellers": "Resellers",
     "report": "Report",
-    "profile": "Profile"
+    "profile": "Profile",
+    "groupOverview": "Overview",
+    "groupManage": "Manage",
+    "groupSystem": "System",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar"
   },
   "pages": {
     "login": {
@@ -129,7 +134,9 @@
         "emptyPassword": "Password is required",
         "wrongUsernameOrPassword": "Invalid username or password or two-factor code.",
         "successLogin": "You have successfully logged into your account."
-      }
+      },
+      "asideTitle": "One panel for every tunnel.",
+      "asideText": "Xray, OpenVPN, L2TP/IPsec and AmneziaWG — managed, routed and measured from a single place."
     },
     "index": {
       "title": "Overview",
@@ -270,7 +277,12 @@
       "importDatabasePgDesc": "Click to select and upload a .dump file to restore your PostgreSQL database. This replaces all current data.",
       "migrationDownload": "Download Migration",
       "migrationDownloadDesc": "Click to download a portable .dump (SQL text) export of your SQLite database.",
-      "migrationDownloadPgDesc": "Click to download a .db SQLite database built from your PostgreSQL data, ready to run this panel on SQLite."
+      "migrationDownloadPgDesc": "Click to download a .db SQLite database built from your PostgreSQL data, ready to run this panel on SQLite.",
+      "heroSubtitle": "Live health of this server and every tunnel it runs.",
+      "services": "Services",
+      "network": "Network",
+      "resources": "Resources",
+      "panelProcess": "Panel process"
     },
     "inbounds": {
       "title": "Inbounds",
@@ -786,7 +798,7 @@
       "noSubId": "This client has no subId, no shareable link.",
       "noLinks": "No shareable links — attach this client to a protocol-capable inbound first.",
       "openvpnConfig": "OpenVPN config (.ovpn)",
-      "openvpnConfigHint": "Ready-to-import OpenVPN profile with this client\u2019s embedded certificate",
+      "openvpnConfigHint": "Ready-to-import OpenVPN profile with this client’s embedded certificate",
       "openvpnFetch": "Generate",
       "openvpnDownload": "Download .ovpn",
       "link": "Link",
@@ -1935,11 +1947,11 @@
     "deleteConfirm": "Delete this reseller? Their inbounds and clients are kept and returned to the admin.",
     "table": {
       "reseller": "Reseller",
-    "status": "Status",
-    "remaining": "Remaining",
-    "expiry": "Expiry",
-    "created": "Created",
-    "updated": "Updated",
+      "status": "Status",
+      "remaining": "Remaining",
+      "expiry": "Expiry",
+      "created": "Created",
+      "updated": "Updated",
       "enable": "Active",
       "inbounds": "Inbounds",
       "clients": "Clients",

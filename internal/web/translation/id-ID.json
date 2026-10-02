@@ -113,7 +113,12 @@
     "apiDocs": "Dokumentasi API",
     "logout": "Keluar",
     "link": "Kelola",
-    "donate": "Donasi"
+    "donate": "Donasi",
+    "groupOverview": "Ringkasan",
+    "groupManage": "Kelola",
+    "groupSystem": "Sistem",
+    "collapse": "Ciutkan bilah sisi",
+    "expand": "Perluas bilah sisi"
   },
   "pages": {
     "login": {
@@ -126,7 +131,9 @@
         "emptyPassword": "Kata Sandi diperlukan",
         "wrongUsernameOrPassword": "Username, kata sandi, atau kode dua faktor tidak valid.",
         "successLogin": "Anda telah berhasil masuk ke akun Anda."
-      }
+      },
+      "asideTitle": "Satu panel untuk semua tunnel.",
+      "asideText": "Xray, OpenVPN, L2TP/IPsec, dan AmneziaWG — dikelola, dirutekan, dan diukur dari satu tempat."
     },
     "index": {
       "title": "Ikhtisar",
@@ -253,7 +260,12 @@
       "importDatabasePgDesc": "Klik untuk memilih dan mengunggah berkas .dump guna memulihkan basis data PostgreSQL Anda. Ini menggantikan semua data saat ini.",
       "migrationDownload": "Unduh migrasi",
       "migrationDownloadDesc": "Klik untuk mengunduh ekspor .dump (teks SQL) portabel dari basis data SQLite Anda.",
-      "migrationDownloadPgDesc": "Klik untuk mengunduh basis data SQLite .db yang dibuat dari data PostgreSQL Anda, siap menjalankan panel ini di SQLite."
+      "migrationDownloadPgDesc": "Klik untuk mengunduh basis data SQLite .db yang dibuat dari data PostgreSQL Anda, siap menjalankan panel ini di SQLite.",
+      "heroSubtitle": "Status langsung server ini dan semua tunnel yang dijalankannya.",
+      "services": "Layanan",
+      "network": "Jaringan",
+      "resources": "Sumber daya",
+      "panelProcess": "Proses panel"
     },
     "inbounds": {
       "title": "Inbound",

@@ -113,7 +113,12 @@
     "apiDocs": "Documentação da API",
     "logout": "Sair",
     "link": "Gerenciar",
-    "donate": "Doar"
+    "donate": "Doar",
+    "groupOverview": "Visão geral",
+    "groupManage": "Gerenciar",
+    "groupSystem": "Sistema",
+    "collapse": "Recolher barra lateral",
+    "expand": "Expandir barra lateral"
   },
   "pages": {
     "login": {
@@ -126,7 +131,9 @@
         "emptyPassword": "Senha é obrigatória",
         "wrongUsernameOrPassword": "Nome de usuário, senha ou código de dois fatores inválido.",
         "successLogin": "Você entrou na sua conta com sucesso."
-      }
+      },
+      "asideTitle": "Um painel para todos os túneis.",
+      "asideText": "Xray, OpenVPN, L2TP/IPsec e AmneziaWG — gerenciados, roteados e medidos em um só lugar."
     },
     "index": {
       "title": "Visão Geral",
@@ -253,7 +260,12 @@
       "importDatabasePgDesc": "Clique para selecionar e enviar um arquivo .dump para restaurar seu banco de dados PostgreSQL. Isso substitui todos os dados atuais.",
       "migrationDownload": "Baixar migração",
       "migrationDownloadDesc": "Clique para baixar uma exportação portátil .dump (texto SQL) do seu banco de dados SQLite.",
-      "migrationDownloadPgDesc": "Clique para baixar um banco de dados SQLite .db criado a partir dos seus dados do PostgreSQL, pronto para executar este painel no SQLite."
+      "migrationDownloadPgDesc": "Clique para baixar um banco de dados SQLite .db criado a partir dos seus dados do PostgreSQL, pronto para executar este painel no SQLite.",
+      "heroSubtitle": "Estado ao vivo deste servidor e de todos os túneis que ele executa.",
+      "services": "Serviços",
+      "network": "Rede",
+      "resources": "Recursos",
+      "panelProcess": "Processo do painel"
     },
     "inbounds": {
       "title": "Entradas",

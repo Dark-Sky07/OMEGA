@@ -116,7 +116,12 @@
     "donate": "حمایت مالی",
     "resellers": "نمایندگی‌ها",
     "report": "گزارش فروش",
-    "profile": "پروفایل"
+    "profile": "پروفایل",
+    "groupOverview": "نمای کلی",
+    "groupManage": "مدیریت",
+    "groupSystem": "سیستم",
+    "collapse": "جمع‌کردن منو",
+    "expand": "بازکردن منو"
   },
   "pages": {
     "login": {
@@ -129,7 +134,9 @@
         "emptyPassword": "لطفا یک رمزعبور وارد کنید",
         "wrongUsernameOrPassword": "نام کاربری، رمز عبور یا کد دو مرحله‌ای نامعتبر است.",
         "successLogin": "شما با موفقیت به حساب کاربری خود وارد شدید."
-      }
+      },
+      "asideTitle": "یک پنل برای همه‌ی تونل‌ها.",
+      "asideText": "Xray، OpenVPN، L2TP/IPsec و AmneziaWG — مدیریت، مسیریابی و اندازه‌گیری، همه از یک‌جا."
     },
     "index": {
       "title": "نمای کلی",
@@ -269,7 +276,12 @@
       "importDatabasePgDesc": "برای انتخاب و بارگذاری یک فایل .dump جهت بازیابی پایگاه داده PostgreSQL کلیک کنید. این کار همه داده‌های فعلی را جایگزین می‌کند.",
       "migrationDownload": "دانلود فایل مهاجرت",
       "migrationDownloadDesc": "برای دانلود یک خروجی قابل‌حمل ‎.dump (متن SQL) از پایگاه‌دادهٔ SQLite خود کلیک کنید.",
-      "migrationDownloadPgDesc": "برای دانلود یک پایگاه‌دادهٔ SQLite با پسوند ‎.db که از داده‌های PostgreSQL شما ساخته می‌شود کلیک کنید؛ آمادهٔ اجرای این پنل روی SQLite."
+      "migrationDownloadPgDesc": "برای دانلود یک پایگاه‌دادهٔ SQLite با پسوند ‎.db که از داده‌های PostgreSQL شما ساخته می‌شود کلیک کنید؛ آمادهٔ اجرای این پنل روی SQLite.",
+      "heroSubtitle": "وضعیت زنده‌ی این سرور و همه‌ی تونل‌هایی که اجرا می‌کند.",
+      "services": "سرویس‌ها",
+      "network": "شبکه",
+      "resources": "منابع",
+      "panelProcess": "پروسه‌ی پنل"
     },
     "inbounds": {
       "title": "ورودی‌ها",
@@ -1882,11 +1894,11 @@
     "deleteConfirm": "این نمایندگی حذف شود؟ ورودی‌ها و کلاینت‌های او حفظ شده و به مدیر بازمی‌گردند.",
     "table": {
       "reseller": "نمایندگی",
-    "status": "وضعیت",
-    "remaining": "باقی‌مانده",
-    "expiry": "انقضا",
-    "created": "تاریخ ساخت",
-    "updated": "اخرین تغییر",
+      "status": "وضعیت",
+      "remaining": "باقی‌مانده",
+      "expiry": "انقضا",
+      "created": "تاریخ ساخت",
+      "updated": "اخرین تغییر",
       "enable": "فعال",
       "inbounds": "ورودی‌ها",
       "clients": "کلاینت‌ها",

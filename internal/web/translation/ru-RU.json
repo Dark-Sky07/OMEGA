@@ -113,7 +113,12 @@
     "apiDocs": "Документация API",
     "logout": "Выход",
     "link": "Управление",
-    "donate": "Поддержать"
+    "donate": "Поддержать",
+    "groupOverview": "Обзор",
+    "groupManage": "Управление",
+    "groupSystem": "Система",
+    "collapse": "Свернуть меню",
+    "expand": "Развернуть меню"
   },
   "pages": {
     "login": {
@@ -126,7 +131,9 @@
         "emptyPassword": "Введите пароль",
         "wrongUsernameOrPassword": "Неверные данные учетной записи.",
         "successLogin": "Вход выполнен успешно"
-      }
+      },
+      "asideTitle": "Одна панель для всех туннелей.",
+      "asideText": "Xray, OpenVPN, L2TP/IPsec и AmneziaWG — управление, маршрутизация и учёт из одного места."
     },
     "index": {
       "title": "Дашборд",
@@ -253,7 +260,12 @@
       "importDatabasePgDesc": "Нажмите, чтобы выбрать и загрузить файл .dump для восстановления базы данных PostgreSQL. Это заменит все текущие данные.",
       "migrationDownload": "Скачать файл миграции",
       "migrationDownloadDesc": "Нажмите, чтобы скачать переносимый экспорт .dump (текст SQL) вашей базы данных SQLite.",
-      "migrationDownloadPgDesc": "Нажмите, чтобы скачать базу данных SQLite (.db), собранную из ваших данных PostgreSQL и готовую для запуска панели на SQLite."
+      "migrationDownloadPgDesc": "Нажмите, чтобы скачать базу данных SQLite (.db), собранную из ваших данных PostgreSQL и готовую для запуска панели на SQLite.",
+      "heroSubtitle": "Состояние этого сервера и всех его туннелей в реальном времени.",
+      "services": "Сервисы",
+      "network": "Сеть",
+      "resources": "Ресурсы",
+      "panelProcess": "Процесс панели"
     },
     "inbounds": {
       "title": "Входящие",

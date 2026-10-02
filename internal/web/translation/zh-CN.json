@@ -113,7 +113,12 @@
     "apiDocs": "API 文档",
     "logout": "退出登录",
     "link": "管理",
-    "donate": "捐赠"
+    "donate": "捐赠",
+    "groupOverview": "概览",
+    "groupManage": "管理",
+    "groupSystem": "系统",
+    "collapse": "收起侧边栏",
+    "expand": "展开侧边栏"
   },
   "pages": {
     "login": {
@@ -126,7 +131,9 @@
         "emptyPassword": "请输入密码",
         "wrongUsernameOrPassword": "用户名、密码或双重验证码无效。",
         "successLogin": "您已成功登录您的账户。"
-      }
+      },
+      "asideTitle": "一个面板，管理所有隧道。",
+      "asideText": "Xray、OpenVPN、L2TP/IPsec 与 AmneziaWG——在一处完成管理、路由与统计。"
     },
     "index": {
       "title": "系统状态",
@@ -253,7 +260,12 @@
       "importDatabasePgDesc": "点击选择并上传 .dump 文件以恢复您的 PostgreSQL 数据库。此操作将替换所有当前数据。",
       "migrationDownload": "下载迁移文件",
       "migrationDownloadDesc": "点击下载当前 SQLite 数据库的可移植 .dump（SQL 文本）导出文件。",
-      "migrationDownloadPgDesc": "点击下载由 PostgreSQL 数据构建的 .db SQLite 数据库，可用于在 SQLite 上运行本面板。"
+      "migrationDownloadPgDesc": "点击下载由 PostgreSQL 数据构建的 .db SQLite 数据库，可用于在 SQLite 上运行本面板。",
+      "heroSubtitle": "此服务器及其所有隧道的实时状态。",
+      "services": "服务",
+      "network": "网络",
+      "resources": "资源",
+      "panelProcess": "面板进程"
     },
     "inbounds": {
       "title": "入站",
