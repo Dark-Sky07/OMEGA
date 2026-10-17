@@ -41,6 +41,7 @@ type ClientController struct {
 	xrayService     service.XrayService
 	settingService  service.SettingService
 	resellerService service.ResellerService
+	deviceService   service.ClientDeviceService
 }
 
 func NewClientController(g *gin.RouterGroup) *ClientController {
@@ -132,6 +133,8 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/updateTraffic/:email", a.updateTrafficByEmail)
 	g.POST("/ips/:email", a.getIps)
 	g.POST("/clearIps/:email", a.clearIps)
+	g.GET("/devices/:email", a.getClientDevices)
+	g.POST("/devices/:email/del", a.removeClientDevice)
 	g.POST("/onlines", a.onlines)
 	g.POST("/onlinesByGuid", a.onlinesByGuid)
 	g.POST("/activeInbounds", a.activeInbounds)
@@ -1062,6 +1065,47 @@ func (a *ClientController) clearIps(c *gin.Context) {
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.logCleanSuccess"), nil)
+}
+
+// getClientDevices lists the HWID-registered devices of a client so admins
+// can audit and free up device slots.
+func (a *ClientController) getClientDevices(c *gin.Context) {
+	email := c.Param("email")
+	if reseller := resellerSession(c); reseller != nil {
+		if !ensureClientOwned(c, reseller, email) {
+			return
+		}
+	}
+	devices, err := a.deviceService.GetDevices(email)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+		return
+	}
+	jsonObj(c, devices, nil)
+}
+
+// removeClientDevice unregisters one HWID of a client (body: {"hwid": "..."}).
+// Removing a device frees a slot so the user can register another one.
+func (a *ClientController) removeClientDevice(c *gin.Context) {
+	email := c.Param("email")
+	if reseller := resellerSession(c); reseller != nil {
+		if !ensureClientOwned(c, reseller, email) {
+			return
+		}
+	}
+	var req struct {
+		Hwid string `json:"hwid"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	removed, err := a.deviceService.RemoveDevice(email, req.Hwid)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.updateSuccess"), err)
+		return
+	}
+	jsonObj(c, gin.H{"removed": removed}, nil)
 }
 
 func (a *ClientController) onlines(c *gin.Context) {

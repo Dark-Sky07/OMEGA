@@ -187,6 +187,44 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                 </SettingListItem>
               </>
             )}
+            {allSetting.subSingboxEnable && (
+              <>
+                <SettingListItem paddings="small" title={<>Sing-box {t('pages.settings.subPath')}</>} description={t('pages.settings.subPathDesc')}>
+                  <Input
+                    value={allSetting.subSingboxPath}
+                    placeholder="/singbox/"
+                    onChange={(e) => updateSetting({ subSingboxPath: sanitizePath(e.target.value) })}
+                    onBlur={() => updateSetting({ subSingboxPath: normalizePath(allSetting.subSingboxPath) })}
+                  />
+                </SettingListItem>
+                <SettingListItem paddings="small" title={<>Sing-box {t('pages.settings.subURI')}</>} description={t('pages.settings.subURIDesc')}>
+                  <Input
+                    value={allSetting.subSingboxURI}
+                    placeholder="(http|https)://domain[:port]/path/"
+                    onChange={(e) => updateSetting({ subSingboxURI: e.target.value })}
+                  />
+                </SettingListItem>
+              </>
+            )}
+            {allSetting.subOutlineEnable && (
+              <>
+                <SettingListItem paddings="small" title={<>Outline {t('pages.settings.subPath')}</>} description={t('pages.settings.subPathDesc')}>
+                  <Input
+                    value={allSetting.subOutlinePath}
+                    placeholder="/outline/"
+                    onChange={(e) => updateSetting({ subOutlinePath: sanitizePath(e.target.value) })}
+                    onBlur={() => updateSetting({ subOutlinePath: normalizePath(allSetting.subOutlinePath) })}
+                  />
+                </SettingListItem>
+                <SettingListItem paddings="small" title={<>Outline {t('pages.settings.subURI')}</>} description={t('pages.settings.subURIDesc')}>
+                  <Input
+                    value={allSetting.subOutlineURI}
+                    placeholder="(http|https)://domain[:port]/path/"
+                    onChange={(e) => updateSetting({ subOutlineURI: e.target.value })}
+                  />
+                </SettingListItem>
+              </>
+            )}
           </>
         ),
       },

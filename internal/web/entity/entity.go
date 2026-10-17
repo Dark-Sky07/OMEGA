@@ -83,6 +83,12 @@ type AllSetting struct {
 	SubClashEnable              bool   `json:"subClashEnable" form:"subClashEnable"`                           // Enable Clash/Mihomo subscription endpoint
 	SubClashPath                string `json:"subClashPath" form:"subClashPath"`                               // Path for Clash/Mihomo subscription endpoint
 	SubClashURI                 string `json:"subClashURI" form:"subClashURI"`                                 // Clash/Mihomo subscription server URI
+	SubSingboxEnable            bool   `json:"subSingboxEnable" form:"subSingboxEnable"`                       // Enable sing-box subscription endpoint
+	SubSingboxPath              string `json:"subSingboxPath" form:"subSingboxPath"`                           // Path for sing-box subscription endpoint
+	SubSingboxURI               string `json:"subSingboxURI" form:"subSingboxURI"`                             // sing-box subscription server URI
+	SubOutlineEnable            bool   `json:"subOutlineEnable" form:"subOutlineEnable"`                       // Enable Outline (SIP002 ss://) subscription endpoint
+	SubOutlinePath              string `json:"subOutlinePath" form:"subOutlinePath"`                           // Path for Outline subscription endpoint
+	SubOutlineURI               string `json:"subOutlineURI" form:"subOutlineURI"`                             // Outline subscription server URI
 	SubClashEnableRouting       bool   `json:"subClashEnableRouting" form:"subClashEnableRouting"`             // Enable global routing rules for Clash/Mihomo
 	SubClashRules               string `json:"subClashRules" form:"subClashRules"`                             // Clash/Mihomo global routing rules
 	SubJsonMux                  string `json:"subJsonMux" form:"subJsonMux"`                                   // JSON subscription mux configuration
@@ -191,6 +197,8 @@ func (s *AllSetting) CheckValid() error {
 		{"subscription path", s.SubPath},
 		{"subscription JSON path", s.SubJsonPath},
 		{"subscription Clash path", s.SubClashPath},
+		{"subscription sing-box path", s.SubSingboxPath},
+		{"subscription Outline path", s.SubOutlinePath},
 	} {
 		if pathHasForbiddenChar(p.value) {
 			return common.NewError("URI path contains an invalid character:", p.name)
@@ -222,6 +230,20 @@ func (s *AllSetting) CheckValid() error {
 	}
 	if !strings.HasSuffix(s.SubClashPath, "/") {
 		s.SubClashPath += "/"
+	}
+
+	if !strings.HasPrefix(s.SubSingboxPath, "/") {
+		s.SubSingboxPath = "/" + s.SubSingboxPath
+	}
+	if !strings.HasSuffix(s.SubSingboxPath, "/") {
+		s.SubSingboxPath += "/"
+	}
+
+	if !strings.HasPrefix(s.SubOutlinePath, "/") {
+		s.SubOutlinePath = "/" + s.SubOutlinePath
+	}
+	if !strings.HasSuffix(s.SubOutlinePath, "/") {
+		s.SubOutlinePath += "/"
 	}
 
 	for cidr := range strings.SplitSeq(s.TrustedProxyCIDRs, ",") {

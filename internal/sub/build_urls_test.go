@@ -27,7 +27,7 @@ func TestBuildURLs_NormalizesListenIP(t *testing.T) {
 	s := &SubService{}
 	s.PrepareForRequest("127.0.0.1")
 
-	subURL, _, _ := s.BuildURLs("/sub/", "/json/", "/clash/", "ABC")
+	subURL, _, _, _, _ := s.BuildURLs("/sub/", "/json/", "/clash/", "/singbox/", "/outline/", "ABC")
 
 	if strings.Contains(subURL, "127.0.0.1") {
 		t.Fatalf("listen IP leaked into Copy URL: %q", subURL)
@@ -47,7 +47,7 @@ func TestBuildURLs_UsesSubscriberDomain(t *testing.T) {
 	s := &SubService{}
 	s.PrepareForRequest("sub.example.com")
 
-	subURL, jsonURL, clashURL := s.BuildURLs("/sub/", "/json/", "/clash/", "ABC")
+	subURL, jsonURL, clashURL, singboxURL, outlineURL := s.BuildURLs("/sub/", "/json/", "/clash/", "/singbox/", "/outline/", "ABC")
 
 	if subURL != "http://sub.example.com:2096/sub/ABC" {
 		t.Fatalf("subURL = %q", subURL)
@@ -58,15 +58,21 @@ func TestBuildURLs_UsesSubscriberDomain(t *testing.T) {
 	if clashURL != "http://sub.example.com:2096/clash/ABC" {
 		t.Fatalf("clashURL = %q", clashURL)
 	}
+	if singboxURL != "http://sub.example.com:2096/singbox/ABC" {
+		t.Fatalf("singboxURL = %q", singboxURL)
+	}
+	if outlineURL != "http://sub.example.com:2096/outline/ABC" {
+		t.Fatalf("outlineURL = %q", outlineURL)
+	}
 }
 
 func TestBuildURLs_EmptySubId(t *testing.T) {
 	initSubDB(t)
 	s := &SubService{}
 	s.PrepareForRequest("sub.example.com")
-	a, b, c := s.BuildURLs("/sub/", "/json/", "/clash/", "")
-	if a != "" || b != "" || c != "" {
-		t.Fatalf("empty subId must yield empty URLs, got %q %q %q", a, b, c)
+	a, b, c, d, e := s.BuildURLs("/sub/", "/json/", "/clash/", "/singbox/", "/outline/", "")
+	if a != "" || b != "" || c != "" || d != "" || e != "" {
+		t.Fatalf("empty subId must yield empty URLs, got %q %q %q %q %q", a, b, c, d, e)
 	}
 }
 
@@ -83,7 +89,7 @@ func TestBuildURLs_DerivesJsonFromConfiguredSubURI(t *testing.T) {
 		"INSERT INTO settings (key, value) VALUES (?, ?)",
 		"subURI", "https://example.com/sub-xxx/")
 
-	subURL, jsonURL, clashURL := s.BuildURLs("/sub-xxx/", "/json/", "/clash/", "ABC")
+	subURL, jsonURL, clashURL, singboxURL, outlineURL := s.BuildURLs("/sub-xxx/", "/json/", "/clash/", "/singbox/", "/outline/", "ABC")
 
 	if subURL != "https://example.com/sub-xxx/ABC" {
 		t.Fatalf("subURL = %q", subURL)
@@ -93,6 +99,12 @@ func TestBuildURLs_DerivesJsonFromConfiguredSubURI(t *testing.T) {
 	}
 	if clashURL != "https://example.com/clash/ABC" {
 		t.Fatalf("clashURL = %q (should derive scheme+host from subURI), want %q", clashURL, "https://example.com/clash/ABC")
+	}
+	if singboxURL != "https://example.com/singbox/ABC" {
+		t.Fatalf("singboxURL = %q (should derive scheme+host from subURI), want %q", singboxURL, "https://example.com/singbox/ABC")
+	}
+	if outlineURL != "https://example.com/outline/ABC" {
+		t.Fatalf("outlineURL = %q (should derive scheme+host from subURI), want %q", outlineURL, "https://example.com/outline/ABC")
 	}
 }
 
@@ -108,12 +120,18 @@ func TestBuildURLs_MalformedSubURIFallsBackToRequestBase(t *testing.T) {
 		"INSERT INTO settings (key, value) VALUES (?, ?)",
 		"subURI", "example.com/sub-xxx/")
 
-	_, jsonURL, clashURL := s.BuildURLs("/sub-xxx/", "/json/", "/clash/", "ABC")
+	_, jsonURL, clashURL, singboxURL, outlineURL := s.BuildURLs("/sub-xxx/", "/json/", "/clash/", "/singbox/", "/outline/", "ABC")
 
 	if jsonURL != "http://sub.example.com:2096/json/ABC" {
 		t.Fatalf("jsonURL = %q, want fallback to request base %q", jsonURL, "http://sub.example.com:2096/json/ABC")
 	}
 	if clashURL != "http://sub.example.com:2096/clash/ABC" {
 		t.Fatalf("clashURL = %q, want fallback to request base %q", clashURL, "http://sub.example.com:2096/clash/ABC")
+	}
+	if singboxURL != "http://sub.example.com:2096/singbox/ABC" {
+		t.Fatalf("singboxURL = %q, want fallback to request base %q", singboxURL, "http://sub.example.com:2096/singbox/ABC")
+	}
+	if outlineURL != "http://sub.example.com:2096/outline/ABC" {
+		t.Fatalf("outlineURL = %q, want fallback to request base %q", outlineURL, "http://sub.example.com:2096/outline/ABC")
 	}
 }

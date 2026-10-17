@@ -327,6 +327,8 @@ func (s *Server) startTask(restartXray bool) {
 	s.cron.AddJob("@weekly", job.NewPeriodicTrafficResetJob("weekly"))
 	// Run once a month, midnight, first of month
 	s.cron.AddJob("@monthly", job.NewPeriodicTrafficResetJob("monthly"))
+	// Expire delayed-start clients that never activated before their deadline
+	s.cron.AddJob("@every 1m", job.NewActivateBeforeJob())
 
 	// LDAP sync scheduling
 	if ldapEnabled, _ := s.settingService.GetLdapEnable(); ldapEnabled {

@@ -314,8 +314,15 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 	now := time.Now().Unix() * 1000
 	var err, err1 error
 
+	// Renewal fires for legacy rolling clients (traffic-row reset > 0) and for
+	// clients that opted into a calendar renewal schedule (renewal_mode > 0 on
+	// the canonical clients row), so a weekly/monthly client with reset = 0
+	// still renews on its anchor day.
+	calendarEmails := tx.Model(&model.ClientRecord{}).
+		Select("LOWER(TRIM(email))").
+		Where("renewal_mode > 0")
 	err = tx.Model(xray.ClientTraffic{}).
-		Where("reset > 0 and expiry_time > 0 and expiry_time <= ?", now).
+		Where("(reset > 0 OR LOWER(TRIM(email)) IN (?)) AND expiry_time > 0 AND expiry_time <= ?", calendarEmails, now).
 		Where("inbound_id NOT IN (?)", tx.Model(&model.Inbound{}).Select("id").Where("node_id IS NOT NULL")).
 		Find(&traffics).Error
 	if err != nil {
@@ -325,6 +332,8 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 	if len(traffics) == 0 {
 		return false, 0, nil
 	}
+
+	renewalSchedules := loadCalendarRenewalSchedules(tx, traffics)
 
 	var inbound_ids []int
 	var inbounds []*model.Inbound
@@ -375,9 +384,17 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 			c := clients[client_index].(map[string]any)
 			for traffic_index, traffic := range traffics {
 				if transferEmailKey(traffic.Email) == transferEmailKey(c["email"].(string)) {
-					newExpiryTime := traffic.ExpiryTime
-					for newExpiryTime < now {
-						newExpiryTime += (int64(traffic.Reset) * 86400000)
+					sched := renewalSchedule{mode: RenewalModeRolling, rollingDays: traffic.Reset}
+					if rs, ok := renewalSchedules[transferEmailKey(traffic.Email)]; ok {
+						sched.mode, sched.day = rs.mode, rs.day
+					}
+					newExpiryTime := nextRenewalExpiry(traffic.ExpiryTime, now, sched)
+					if newExpiryTime <= 0 {
+						// A schedule that cannot produce a future anchor
+						// (invalid weekday, corrupt timestamps) leaves the
+						// client untouched instead of looping or writing a
+						// past expiry.
+						break
 					}
 					c["expiryTime"] = newExpiryTime
 					traffics[traffic_index].ExpiryTime = newExpiryTime

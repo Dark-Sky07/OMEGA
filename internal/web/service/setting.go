@@ -84,6 +84,12 @@ var defaultValueMap = map[string]string{
 	"subClashURI":                 "",
 	"subClashEnableRouting":       "false",
 	"subClashRules":               "",
+	"subSingboxEnable":            "false",
+	"subSingboxPath":              "/singbox/",
+	"subSingboxURI":               "",
+	"subOutlineEnable":            "false",
+	"subOutlinePath":              "/outline/",
+	"subOutlineURI":               "",
 	"subJsonMux":                  "",
 	"subJsonRules":                "",
 	"subJsonFinalMask":            "",
@@ -730,6 +736,30 @@ func (s *SettingService) GetSubClashURI() (string, error) {
 	return s.getString("subClashURI")
 }
 
+func (s *SettingService) GetSubSingboxEnable() (bool, error) {
+	return s.getBool("subSingboxEnable")
+}
+
+func (s *SettingService) GetSubSingboxPath() (string, error) {
+	return s.getString("subSingboxPath")
+}
+
+func (s *SettingService) GetSubSingboxURI() (string, error) {
+	return s.getString("subSingboxURI")
+}
+
+func (s *SettingService) GetSubOutlineEnable() (bool, error) {
+	return s.getBool("subOutlineEnable")
+}
+
+func (s *SettingService) GetSubOutlinePath() (string, error) {
+	return s.getString("subOutlinePath")
+}
+
+func (s *SettingService) GetSubOutlineURI() (string, error) {
+	return s.getString("subOutlineURI")
+}
+
 func (s *SettingService) GetSubClashEnableRouting() (bool, error) {
 	return s.getBool("subClashEnableRouting")
 }
@@ -1043,10 +1073,14 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 		"subEnable":       func() (any, error) { return s.GetSubEnable() },
 		"subJsonEnable":   func() (any, error) { return s.GetSubJsonEnable() },
 		"subClashEnable":  func() (any, error) { return s.GetSubClashEnable() },
+		"subSingboxEnable": func() (any, error) { return s.GetSubSingboxEnable() },
+		"subOutlineEnable": func() (any, error) { return s.GetSubOutlineEnable() },
 		"subTitle":        func() (any, error) { return s.GetSubTitle() },
 		"subURI":          func() (any, error) { return s.GetSubURI() },
 		"subJsonURI":      func() (any, error) { return s.GetSubJsonURI() },
 		"subClashURI":     func() (any, error) { return s.GetSubClashURI() },
+		"subSingboxURI":   func() (any, error) { return s.GetSubSingboxURI() },
+		"subOutlineURI":   func() (any, error) { return s.GetSubOutlineURI() },
 		"remarkModel":     func() (any, error) { return s.GetRemarkModel() },
 		"datepicker":      func() (any, error) { return s.GetDatepicker() },
 		"ipLimitEnable":   func() (any, error) { return s.GetIpLimitEnable() },
@@ -1078,12 +1112,27 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 			subClashEnable = b
 		}
 	}
-	if (subEnable && result["subURI"].(string) == "") || (subJsonEnable && result["subJsonURI"].(string) == "") || (subClashEnable && result["subClashURI"].(string) == "") {
+	subSingboxEnable := false
+	if v, ok := result["subSingboxEnable"]; ok {
+		if b, ok2 := v.(bool); ok2 {
+			subSingboxEnable = b
+		}
+	}
+	subOutlineEnable := false
+	if v, ok := result["subOutlineEnable"]; ok {
+		if b, ok2 := v.(bool); ok2 {
+			subOutlineEnable = b
+		}
+	}
+	if (subEnable && result["subURI"].(string) == "") || (subJsonEnable && result["subJsonURI"].(string) == "") || (subClashEnable && result["subClashURI"].(string) == "") ||
+		(subSingboxEnable && result["subSingboxURI"].(string) == "") || (subOutlineEnable && result["subOutlineURI"].(string) == "") {
 		subURI := s.BuildSubURIBase(host)
 		subTitle, _ := s.GetSubTitle()
 		subPath, _ := s.GetSubPath()
 		subJsonPath, _ := s.GetSubJsonPath()
 		subClashPath, _ := s.GetSubClashPath()
+		subSingboxPath, _ := s.GetSubSingboxPath()
+		subOutlinePath, _ := s.GetSubOutlinePath()
 		if subEnable && result["subURI"].(string) == "" {
 			result["subURI"] = subURI + subPath
 		}
@@ -1095,6 +1144,12 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 		}
 		if subClashEnable && result["subClashURI"].(string) == "" {
 			result["subClashURI"] = subURI + subClashPath
+		}
+		if subSingboxEnable && result["subSingboxURI"].(string) == "" {
+			result["subSingboxURI"] = subURI + subSingboxPath
+		}
+		if subOutlineEnable && result["subOutlineURI"].(string) == "" {
+			result["subOutlineURI"] = subURI + subOutlinePath
 		}
 	}
 

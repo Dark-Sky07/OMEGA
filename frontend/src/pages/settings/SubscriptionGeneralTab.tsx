@@ -61,6 +61,12 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
             <SettingListItem paddings="small" title={t('pages.settings.subClashEnableTitle')}>
               <Switch checked={allSetting.subClashEnable} onChange={(v) => updateSetting({ subClashEnable: v })} />
             </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.subSingboxEnableTitle')} description={t('pages.settings.subSingboxEnableDesc')}>
+              <Switch checked={allSetting.subSingboxEnable} onChange={(v) => updateSetting({ subSingboxEnable: v })} />
+            </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.subOutlineEnableTitle')} description={t('pages.settings.subOutlineEnableDesc')}>
+              <Switch checked={allSetting.subOutlineEnable} onChange={(v) => updateSetting({ subOutlineEnable: v })} />
+            </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.subListen')} description={t('pages.settings.subListenDesc')}>
               <Input value={allSetting.subListen} onChange={(e) => updateSetting({ subListen: e.target.value })} />
             </SettingListItem>

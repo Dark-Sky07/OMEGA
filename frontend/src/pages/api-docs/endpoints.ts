@@ -785,6 +785,25 @@ export const sections: readonly Section[] = [
         ],
       },
       {
+        method: 'GET',
+        path: '/panel/api/clients/devices/:email',
+        summary: 'List HWID-registered devices for a client (device limit feature). Each entry carries hwid, ip, userAgent, createdAt and lastSeenAt. Only clients with a device limit register devices.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
+        ],
+        response: '{\n  "success": true,\n  "obj": [\n    {\n      "email": "user1",\n      "hwid": "d4f1...",\n      "ip": "203.0.113.7",\n      "userAgent": "v2rayNG/1.9.16",\n      "createdAt": 1700000000000,\n      "lastSeenAt": 1700000500000\n    }\n  ]\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/devices/:email/del',
+        summary: 'Unregister one device (HWID) of a client, freeing a device slot so the user can register another device.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
+        ],
+        body: '{\n  "hwid": "d4f1..."\n}',
+        response: '{\n  "success": true,\n  "obj": { "removed": true }\n}',
+      },
+      {
         method: 'POST',
         path: '/panel/api/clients/onlines',
         summary: 'List the emails of currently connected clients (last seen within the heartbeat window), deduped across every node.',
