@@ -574,10 +574,26 @@ type Client struct {
 	TgID                int64            `json:"tgId" form:"tgId"`             // Telegram user ID for notifications
 	SubID               string           `json:"subId" form:"subId"`           // Subscription identifier
 	Group               string           `json:"group,omitempty" form:"group"` // Logical grouping label
-	Comment             string           `json:"comment" form:"comment"`       // Client comment
-	Reset               int              `json:"reset" form:"reset"`           // Reset period in days
-	CreatedAt           int64            `json:"created_at,omitempty"`         // Creation timestamp
-	UpdatedAt           int64            `json:"updated_at,omitempty"`         // Last update timestamp
+	Comment               string           `json:"comment" form:"comment"`       // Client comment
+	Reset                 int              `json:"reset" form:"reset"`           // Reset period in days
+	// LimitDevice caps how many distinct HWID-identified devices may fetch
+	// this client's subscription. 0 (the default) disables both tracking and
+	// enforcement, so existing clients are unaffected.
+	LimitDevice int `json:"limitDevice" form:"limitDevice"`
+	// RenewalMode selects the auto-renew schedule used when a renewal fires:
+	// 0 = rolling whole Reset-day steps (legacy behavior), 1 = whole calendar
+	// months, 2 = a fixed weekday (RenewalDay).
+	RenewalMode int `json:"renewalMode" form:"renewalMode"`
+	// RenewalDay: for RenewalMode=2 the weekday (0=Sunday .. 6=Saturday);
+	// for RenewalMode=1 an optional day-of-month (1-28). 0 means "inherit
+	// the anchor from the current expiry".
+	RenewalDay int `json:"renewalDay" form:"renewalDay"`
+	// ActivateBefore is the delayed-start activation deadline (ms). While the
+	// client is still un-activated (negative expiryTime) past this timestamp,
+	// the client is treated as expired. 0 disables the deadline.
+	ActivateBefore int64 `json:"activateBefore" form:"activateBefore"`
+	CreatedAt      int64 `json:"created_at,omitempty"` // Creation timestamp
+	UpdatedAt      int64 `json:"updated_at,omitempty"` // Last update timestamp
 }
 
 type ClientRecord struct {
@@ -604,6 +620,10 @@ type ClientRecord struct {
 	Group          string `json:"group" gorm:"column:group_name;default:''"`
 	Comment        string `json:"comment"`
 	Reset          int    `json:"reset" gorm:"default:0"`
+	LimitDevice    int    `json:"limitDevice" gorm:"column:limit_device;default:0"`
+	RenewalMode    int    `json:"renewalMode" gorm:"column:renewal_mode;default:0"`
+	RenewalDay     int    `json:"renewalDay" gorm:"column:renewal_day;default:0"`
+	ActivateBefore int64  `json:"activateBefore" gorm:"column:activate_before;default:0"`
 	CreatedAt      int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
 	UpdatedAt      int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
 }
@@ -712,6 +732,10 @@ func (c *Client) ToRecord() *ClientRecord {
 		Group:          c.Group,
 		Comment:        c.Comment,
 		Reset:          c.Reset,
+		LimitDevice:    c.LimitDevice,
+		RenewalMode:    c.RenewalMode,
+		RenewalDay:     c.RenewalDay,
+		ActivateBefore: c.ActivateBefore,
 		CreatedAt:      c.CreatedAt,
 		UpdatedAt:      c.UpdatedAt,
 	}
@@ -746,6 +770,10 @@ func (r *ClientRecord) ToClient() *Client {
 		Group:          r.Group,
 		Comment:        r.Comment,
 		Reset:          r.Reset,
+		LimitDevice:    r.LimitDevice,
+		RenewalMode:    r.RenewalMode,
+		RenewalDay:     r.RenewalDay,
+		ActivateBefore: r.ActivateBefore,
 		CreatedAt:      r.CreatedAt,
 		UpdatedAt:      r.UpdatedAt,
 	}
@@ -873,6 +901,30 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 		if incomingNewer || existing.Reset == 0 {
 			keep("reset", existing.Reset, incoming.Reset, incoming.Reset)
 			existing.Reset = incoming.Reset
+		}
+	}
+	if existing.LimitDevice != incoming.LimitDevice && incoming.LimitDevice != 0 {
+		if incomingNewer || existing.LimitDevice == 0 {
+			keep("limitDevice", existing.LimitDevice, incoming.LimitDevice, incoming.LimitDevice)
+			existing.LimitDevice = incoming.LimitDevice
+		}
+	}
+	if existing.RenewalMode != incoming.RenewalMode && incoming.RenewalMode != 0 {
+		if incomingNewer || existing.RenewalMode == 0 {
+			keep("renewalMode", existing.RenewalMode, incoming.RenewalMode, incoming.RenewalMode)
+			existing.RenewalMode = incoming.RenewalMode
+		}
+	}
+	if existing.RenewalDay != incoming.RenewalDay && incoming.RenewalDay != 0 {
+		if incomingNewer || existing.RenewalDay == 0 {
+			keep("renewalDay", existing.RenewalDay, incoming.RenewalDay, incoming.RenewalDay)
+			existing.RenewalDay = incoming.RenewalDay
+		}
+	}
+	if existing.ActivateBefore != incoming.ActivateBefore && incoming.ActivateBefore != 0 {
+		if incomingNewer || existing.ActivateBefore == 0 {
+			keep("activateBefore", existing.ActivateBefore, incoming.ActivateBefore, incoming.ActivateBefore)
+			existing.ActivateBefore = incoming.ActivateBefore
 		}
 	}
 	if existing.Reverse != incoming.Reverse && incoming.Reverse != "" {

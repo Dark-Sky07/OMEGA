@@ -93,6 +93,10 @@ interface FormState {
   delayedDays: number;
   reset: number;
   limitIp: number;
+  limitDevice: number;
+  renewalMode: number;
+  renewalDay: number;
+  activateBefore: Dayjs | null;
   tgId: number;
   group: string;
   comment: string;
@@ -123,6 +127,10 @@ function emptyForm(): FormState {
     delayedDays: 0,
     reset: 0,
     limitIp: 0,
+    limitDevice: 0,
+    renewalMode: 0,
+    renewalDay: 0,
+    activateBefore: null,
     tgId: 0,
     group: '',
     comment: '',
@@ -227,6 +235,10 @@ export default function ClientFormModal({
         totalGB: bytesToGB(client.totalGB || 0),
         reset: Number(client.reset) || 0,
         limitIp: client.limitIp || 0,
+        limitDevice: client.limitDevice || 0,
+        renewalMode: client.renewalMode || 0,
+        renewalDay: client.renewalDay || 0,
+        activateBefore: client.activateBefore && client.activateBefore > 0 ? dayjs(client.activateBefore) : null,
         tgId: Number(client.tgId) || 0,
         group: client.group || '',
         comment: client.comment || '',
@@ -434,6 +446,9 @@ export default function ClientFormModal({
       delayedDays: form.delayedDays,
       reset: form.reset,
       limitIp: form.limitIp,
+      limitDevice: form.limitDevice,
+      renewalMode: form.renewalMode,
+      renewalDay: form.renewalMode > 0 ? form.renewalDay : 0,
       tgId: form.tgId,
       group: form.group,
       comment: form.comment,
@@ -460,6 +475,13 @@ export default function ClientFormModal({
       expiryTime,
       reset: Number(form.reset) || 0,
       limitIp: Number(form.limitIp) || 0,
+      limitDevice: Number(form.limitDevice) || 0,
+      renewalMode: Number(form.renewalMode) || 0,
+      renewalDay: form.renewalMode > 0 ? Number(form.renewalDay) || 0 : 0,
+      // Activation deadline only applies to delayed-start clients. Cleared
+      // (0) otherwise so a stale value can never expire a running client.
+      activateBefore:
+        form.delayedStart && form.activateBefore ? form.activateBefore.valueOf() : 0,
       tgId: Number(form.tgId) || 0,
       group: form.group,
       comment: form.comment,
@@ -597,6 +619,12 @@ export default function ClientFormModal({
                           </Space.Compact>
                         </Form.Item>
                       </Col>
+                      <Col xs={24} md={6}>
+                        <Form.Item label={t('pages.clients.limitDevice')} tooltip={t('pages.clients.limitDeviceDesc')}>
+                          <InputNumber value={form.limitDevice} min={0} style={{ width: '100%' }}
+                            onChange={(v) => update('limitDevice', Number(v) || 0)} />
+                        </Form.Item>
+                      </Col>
                     </Row>
 
                     <Row gutter={16}>
@@ -636,6 +664,57 @@ export default function ClientFormModal({
                             onChange={(v) => update('reset', Number(v) || 0)} />
                         </Form.Item>
                       </Col>
+                    </Row>
+
+                    <Row gutter={16}>
+                      <Col xs={24} md={8}>
+                        <Form.Item label={t('pages.clients.renewalMode')} tooltip={t('pages.clients.renewalModeDesc')}>
+                          <Select
+                            value={form.renewalMode}
+                            onChange={(v: number) => {
+                              update('renewalMode', v);
+                              update('renewalDay', 0);
+                            }}
+                            options={[
+                              { value: 0, label: t('pages.clients.renewalRolling') },
+                              { value: 1, label: t('pages.clients.renewalMonthly') },
+                              { value: 2, label: t('pages.clients.renewalWeekly') },
+                            ]}
+                          />
+                        </Form.Item>
+                      </Col>
+                      {form.renewalMode === 1 && (
+                        <Col xs={24} md={8}>
+                          <Form.Item label={t('pages.clients.renewalDay')} tooltip={t('pages.clients.renewalDayDesc')}>
+                            <InputNumber value={form.renewalDay} min={0} max={28} style={{ width: '100%' }}
+                              onChange={(v) => update('renewalDay', Number(v) || 0)} />
+                          </Form.Item>
+                        </Col>
+                      )}
+                      {form.renewalMode === 2 && (
+                        <Col xs={24} md={8}>
+                          <Form.Item label={t('pages.clients.renewalWeekday')} tooltip={t('pages.clients.renewalWeekdayDesc')}>
+                            <Select
+                              value={form.renewalDay}
+                              onChange={(v: number) => update('renewalDay', v)}
+                              options={[0, 1, 2, 3, 4, 5, 6].map((d) => ({
+                                value: d,
+                                label: t(`pages.clients.weekday${d}`),
+                              }))}
+                            />
+                          </Form.Item>
+                        </Col>
+                      )}
+                      {form.delayedStart && (
+                        <Col xs={24} md={8}>
+                          <Form.Item label={t('pages.clients.activateBefore')} tooltip={t('pages.clients.activateBeforeDesc')}>
+                            <DateTimePicker
+                              value={form.activateBefore}
+                              onChange={(d) => update('activateBefore', d || null)}
+                            />
+                          </Form.Item>
+                        </Col>
+                      )}
                     </Row>
 
                     <Row gutter={16}>

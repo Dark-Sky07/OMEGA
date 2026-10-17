@@ -42,6 +42,10 @@ export class AllSetting {
   subJsonPath = '/json/';
   subClashEnable = false;
   subClashPath = '/clash/';
+  subSingboxEnable = false;
+  subSingboxPath = '/singbox/';
+  subOutlineEnable = false;
+  subOutlinePath = '/outline/';
   subDomain = '';
   externalTrafficInformEnable = false;
   externalTrafficInformURI = '';
@@ -55,6 +59,8 @@ export class AllSetting {
   subURI = '';
   subJsonURI = '';
   subClashURI = '';
+  subSingboxURI = '';
+  subOutlineURI = '';
   subClashEnableRouting = false;
   subClashRules = '';
   subJsonMux = '';

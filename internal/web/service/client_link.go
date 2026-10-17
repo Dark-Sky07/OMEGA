@@ -139,6 +139,10 @@ func (s *ClientService) syncInbound(tx *gorm.DB, inboundId int, clients []model.
 		}
 		row.Comment = incoming.Comment
 		row.Reset = incoming.Reset
+		row.LimitDevice = incoming.LimitDevice
+		row.RenewalMode = incoming.RenewalMode
+		row.RenewalDay = incoming.RenewalDay
+		row.ActivateBefore = incoming.ActivateBefore
 		if incoming.CreatedAt > 0 && (row.CreatedAt == 0 || incoming.CreatedAt < row.CreatedAt) {
 			row.CreatedAt = incoming.CreatedAt
 		}

@@ -191,6 +191,18 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Subscription server listen IP",
         "type": "string"
       },
+      "subOutlineEnable": {
+        "description": "Enable Outline (SIP002 ss://) subscription endpoint",
+        "type": "boolean"
+      },
+      "subOutlinePath": {
+        "description": "Path for Outline subscription endpoint",
+        "type": "string"
+      },
+      "subOutlineURI": {
+        "description": "Outline subscription server URI",
+        "type": "string"
+      },
       "subPath": {
         "description": "Base path for subscription URLs",
         "type": "string"
@@ -212,6 +224,18 @@ export const SCHEMAS: Record<string, unknown> = {
       "subShowInfo": {
         "description": "Show client information in subscriptions",
         "type": "boolean"
+      },
+      "subSingboxEnable": {
+        "description": "Enable sing-box subscription endpoint",
+        "type": "boolean"
+      },
+      "subSingboxPath": {
+        "description": "Path for sing-box subscription endpoint",
+        "type": "string"
+      },
+      "subSingboxURI": {
+        "description": "sing-box subscription server URI",
+        "type": "string"
       },
       "subSupportUrl": {
         "description": "Subscription support URL",
@@ -381,11 +405,17 @@ export const SCHEMAS: Record<string, unknown> = {
       "subJsonURI",
       "subKeyFile",
       "subListen",
+      "subOutlineEnable",
+      "subOutlinePath",
+      "subOutlineURI",
       "subPath",
       "subPort",
       "subProfileUrl",
       "subRoutingRules",
       "subShowInfo",
+      "subSingboxEnable",
+      "subSingboxPath",
+      "subSingboxURI",
       "subSupportUrl",
       "subThemeDir",
       "subTitle",
@@ -625,6 +655,18 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Subscription server listen IP",
         "type": "string"
       },
+      "subOutlineEnable": {
+        "description": "Enable Outline (SIP002 ss://) subscription endpoint",
+        "type": "boolean"
+      },
+      "subOutlinePath": {
+        "description": "Path for Outline subscription endpoint",
+        "type": "string"
+      },
+      "subOutlineURI": {
+        "description": "Outline subscription server URI",
+        "type": "string"
+      },
       "subPath": {
         "description": "Base path for subscription URLs",
         "type": "string"
@@ -646,6 +688,18 @@ export const SCHEMAS: Record<string, unknown> = {
       "subShowInfo": {
         "description": "Show client information in subscriptions",
         "type": "boolean"
+      },
+      "subSingboxEnable": {
+        "description": "Enable sing-box subscription endpoint",
+        "type": "boolean"
+      },
+      "subSingboxPath": {
+        "description": "Path for sing-box subscription endpoint",
+        "type": "string"
+      },
+      "subSingboxURI": {
+        "description": "sing-box subscription server URI",
+        "type": "string"
       },
       "subSupportUrl": {
         "description": "Subscription support URL",
@@ -821,11 +875,17 @@ export const SCHEMAS: Record<string, unknown> = {
       "subJsonURI",
       "subKeyFile",
       "subListen",
+      "subOutlineEnable",
+      "subOutlinePath",
+      "subOutlineURI",
       "subPath",
       "subPort",
       "subProfileUrl",
       "subRoutingRules",
       "subShowInfo",
+      "subSingboxEnable",
+      "subSingboxPath",
+      "subSingboxURI",
       "subSupportUrl",
       "subThemeDir",
       "subTitle",
@@ -948,6 +1008,10 @@ export const SCHEMAS: Record<string, unknown> = {
   "Client": {
     "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
     "properties": {
+      "activateBefore": {
+        "description": "ActivateBefore is the delayed-start activation deadline (ms). While the\nclient is still un-activated (negative expiryTime) past this timestamp,\nthe client is treated as expired. 0 disables the deadline.",
+        "type": "integer"
+      },
       "allowedIPs": {
         "items": {
           "type": "string"
@@ -1005,6 +1069,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "keepAlive": {
         "type": "integer"
       },
+      "limitDevice": {
+        "description": "LimitDevice caps how many distinct HWID-identified devices may fetch\nthis client's subscription. 0 (the default) disables both tracking and\nenforcement, so existing clients are unaffected.",
+        "type": "integer"
+      },
       "limitIp": {
         "description": "IP limit for this client",
         "type": "integer"
@@ -1022,6 +1090,14 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "publicKey": {
         "type": "string"
+      },
+      "renewalDay": {
+        "description": "RenewalDay: for RenewalMode=2 the weekday (0=Sunday .. 6=Saturday);\nfor RenewalMode=1 an optional day-of-month (1-28). 0 means \"inherit\nthe anchor from the current expiry\".",
+        "type": "integer"
+      },
+      "renewalMode": {
+        "description": "RenewalMode selects the auto-renew schedule used when a renewal fires:\n0 = rolling whole Reset-day steps (legacy behavior), 1 = whole calendar\nmonths, 2 = a fixed weekday (RenewalDay).",
+        "type": "integer"
       },
       "reset": {
         "description": "Reset period in days",
@@ -1058,11 +1134,15 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "activateBefore",
       "comment",
       "email",
       "enable",
       "expiryTime",
+      "limitDevice",
       "limitIp",
+      "renewalDay",
+      "renewalMode",
       "reset",
       "security",
       "subId",
@@ -1096,6 +1176,9 @@ export const SCHEMAS: Record<string, unknown> = {
   },
   "ClientRecord": {
     "properties": {
+      "activateBefore": {
+        "type": "integer"
+      },
       "allowedIPs": {
         "type": "string"
       },
@@ -1132,6 +1215,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "keepAlive": {
         "type": "integer"
       },
+      "limitDevice": {
+        "type": "integer"
+      },
       "limitIp": {
         "type": "integer"
       },
@@ -1146,6 +1232,12 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "publicKey": {
         "type": "string"
+      },
+      "renewalDay": {
+        "type": "integer"
+      },
+      "renewalMode": {
+        "type": "integer"
       },
       "reset": {
         "type": "integer"
@@ -1171,6 +1263,7 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "activateBefore",
       "allowedIPs",
       "auth",
       "comment",
@@ -1183,11 +1276,14 @@ export const SCHEMAS: Record<string, unknown> = {
       "group",
       "id",
       "keepAlive",
+      "limitDevice",
       "limitIp",
       "password",
       "preSharedKey",
       "privateKey",
       "publicKey",
+      "renewalDay",
+      "renewalMode",
       "reset",
       "reverse",
       "security",

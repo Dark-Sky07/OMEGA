@@ -55,6 +55,17 @@ interface ApiMsg<T = unknown> {
   obj?: T;
 }
 
+// ClientDeviceRow mirrors the client_devices registry rows returned by
+// GET /panel/api/clients/devices/:email (HWID device-limit feature).
+interface ClientDeviceRow {
+  email: string;
+  hwid: string;
+  ip?: string;
+  userAgent?: string;
+  createdAt?: number;
+  lastSeenAt?: number;
+}
+
 const DEFAULT_SUB: SubSettings = {
   enable: false,
   subURI: '',
@@ -131,12 +142,18 @@ export default function ClientInfoModal({
   const [ipsLoading, setIpsLoading] = useState(false);
   const [ipsClearing, setIpsClearing] = useState(false);
   const [ipsModalOpen, setIpsModalOpen] = useState(false);
+  const [clientDevices, setClientDevices] = useState<ClientDeviceRow[]>([]);
+  const [devicesLoading, setDevicesLoading] = useState(false);
+  const [devicesModalOpen, setDevicesModalOpen] = useState(false);
+  const [deviceRemoving, setDeviceRemoving] = useState('');
 
   useEffect(() => {
     if (!open) {
       setLinks([]);
       setClientIps([]);
       setIpsModalOpen(false);
+      setClientDevices([]);
+      setDevicesModalOpen(false);
       return;
     }
     if (!client?.subId) return;
@@ -358,6 +375,40 @@ export default function ClientInfoModal({
     if (clientIps.length === 0) void loadIps();
   }
 
+  async function loadDevices() {
+    if (!client?.email) return;
+    setDevicesLoading(true);
+    try {
+      const msg = await HttpUtil.get(`/panel/api/clients/devices/${encodeURIComponent(client.email)}`) as ApiMsg<ClientDeviceRow[]>;
+      if (!msg?.success) { setClientDevices([]); return; }
+      setClientDevices(Array.isArray(msg.obj) ? msg.obj : []);
+    } finally {
+      setDevicesLoading(false);
+    }
+  }
+
+  async function removeDevice(hwid: string) {
+    if (!client?.email || !hwid) return;
+    setDeviceRemoving(hwid);
+    try {
+      const msg = await HttpUtil.post(
+        `/panel/api/clients/devices/${encodeURIComponent(client.email)}/del`,
+        { hwid },
+      ) as ApiMsg;
+      if (msg?.success) {
+        setClientDevices((rows) => rows.filter((d) => d.hwid !== hwid));
+        messageApi.success(t('pages.clients.deviceRemoved'));
+      }
+    } finally {
+      setDeviceRemoving('');
+    }
+  }
+
+  function openDevicesModal() {
+    setDevicesModalOpen(true);
+    void loadDevices();
+  }
+
   return (
     <>
       {messageContextHolder}
@@ -479,6 +530,15 @@ export default function ClientInfoModal({
                   <td>
                     <Button size="small" icon={<EyeOutlined />} loading={ipsLoading} onClick={openIpsModal}>
                       {clientIps.length > 0 ? clientIps.length : ''}
+                    </Button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>{t('pages.clients.devices')}</td>
+                  <td>
+                    {!client.limitDevice ? <Tag>∞</Tag> : <Tag>{client.limitDevice}</Tag>}
+                    <Button size="small" icon={<EyeOutlined />} loading={devicesLoading} onClick={openDevicesModal}>
+                      {clientDevices.length > 0 ? clientDevices.length : ''}
                     </Button>
                   </td>
                 </tr>
@@ -864,6 +924,68 @@ export default function ClientInfoModal({
           </div>
         ) : (
           <Tag>{t('tgbot.noIpRecord')}</Tag>
+        )}
+      </Modal>
+
+      <Modal
+        open={devicesModalOpen}
+        title={`${t('pages.clients.devices')}${client?.email ? ` — ${client.email}` : ''}`}
+        width={520}
+        onCancel={() => setDevicesModalOpen(false)}
+        footer={[
+          <Button key="refresh" icon={<ReloadOutlined />} loading={devicesLoading} onClick={loadDevices}>
+            {t('refresh')}
+          </Button>,
+          <Button key="close" type="primary" onClick={() => setDevicesModalOpen(false)}>
+            {t('close')}
+          </Button>,
+        ]}
+      >
+        {clientDevices.length > 0 ? (
+          <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+            {clientDevices.map((d) => (
+              <div
+                key={d.hwid}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8,
+                  padding: '6px 0',
+                  borderBottom: '1px solid rgba(128,128,128,0.15)',
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <Tag
+                    color="blue"
+                    style={{
+                      display: 'block',
+                      width: 'fit-content',
+                      maxWidth: '100%',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                    }}
+                  >
+                    {d.hwid}
+                  </Tag>
+                  <span className="hint">
+                    {[d.ip, d.userAgent, d.lastSeenAt ? dateLabel(d.lastSeenAt) : ''].filter(Boolean).join(' · ')}
+                  </span>
+                </div>
+                <Button
+                  size="small"
+                  danger
+                  loading={deviceRemoving === d.hwid}
+                  onClick={() => removeDevice(d.hwid)}
+                >
+                  {t('delete')}
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Tag>{t('pages.clients.noDevices')}</Tag>
         )}
       </Modal>
     </>

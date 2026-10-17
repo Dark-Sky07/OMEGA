@@ -2259,6 +2259,8 @@ type PageData struct {
 	SubUrl        string
 	SubJsonUrl    string
 	SubClashUrl   string
+	SubSingboxUrl string
+	SubOutlineUrl string
 	SubTitle      string
 	SubSupportUrl string
 	Result        []string
@@ -2311,14 +2313,16 @@ func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string,
 
 // BuildURLs constructs absolute subscription and JSON subscription URLs for a given subscription ID.
 // It prioritizes configured URIs, then individual settings, and finally falls back to request-derived components.
-func (s *SubService) BuildURLs(subPath, subJsonPath, subClashPath, subId string) (subURL, subJsonURL, subClashURL string) {
+func (s *SubService) BuildURLs(subPath, subJsonPath, subClashPath, subSingboxPath, subOutlinePath, subId string) (subURL, subJsonURL, subClashURL, subSingboxURL, subOutlineURL string) {
 	if subId == "" {
-		return "", "", ""
+		return "", "", "", "", ""
 	}
 
 	configuredSubURI, _ := s.settingService.GetSubURI()
 	configuredSubJsonURI, _ := s.settingService.GetSubJsonURI()
 	configuredSubClashURI, _ := s.settingService.GetSubClashURI()
+	configuredSubSingboxURI, _ := s.settingService.GetSubSingboxURI()
+	configuredSubOutlineURI, _ := s.settingService.GetSubOutlineURI()
 
 	// Same base as the panel's Client Information page; s.address is the
 	// subscriber's host already normalized away from any loopback/bind IP.
@@ -2340,8 +2344,10 @@ func (s *SubService) BuildURLs(subPath, subJsonPath, subClashPath, subId string)
 
 	subJsonURL = s.buildSingleURL(configuredSubJsonURI, jsonClashBase, subJsonPath, subId)
 	subClashURL = s.buildSingleURL(configuredSubClashURI, jsonClashBase, subClashPath, subId)
+	subSingboxURL = s.buildSingleURL(configuredSubSingboxURI, jsonClashBase, subSingboxPath, subId)
+	subOutlineURL = s.buildSingleURL(configuredSubOutlineURI, jsonClashBase, subOutlinePath, subId)
 
-	return subURL, subJsonURL, subClashURL
+	return subURL, subJsonURL, subClashURL, subSingboxURL, subOutlineURL
 }
 
 // extractBaseFromURI extracts scheme://host from a configured URI.
@@ -2374,7 +2380,7 @@ func (s *SubService) joinPathWithID(basePath, subId string) string {
 
 // BuildPageData parses header and prepares the template view model.
 // BuildPageData constructs page data for rendering the subscription information page.
-func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray.ClientTraffic, lastOnline int64, subs []string, emails []string, subURL, subJsonURL, subClashURL string, basePath string, subTitle string, subSupportUrl string) PageData {
+func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray.ClientTraffic, lastOnline int64, subs []string, emails []string, subURL, subJsonURL, subClashURL, subSingboxURL, subOutlineURL string, basePath string, subTitle string, subSupportUrl string) PageData {
 	download := common.FormatTraffic(traffic.Down)
 	upload := common.FormatTraffic(traffic.Up)
 	total := "∞"
@@ -2410,6 +2416,8 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 		SubUrl:        subURL,
 		SubJsonUrl:    subJsonURL,
 		SubClashUrl:   subClashURL,
+		SubSingboxUrl: subSingboxURL,
+		SubOutlineUrl: subOutlineURL,
 		SubTitle:      subTitle,
 		SubSupportUrl: subSupportUrl,
 		Result:        subs,

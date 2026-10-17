@@ -56,11 +56,17 @@ export interface AllSetting {
   subJsonURI: string;
   subKeyFile: string;
   subListen: string;
+  subOutlineEnable: boolean;
+  subOutlinePath: string;
+  subOutlineURI: string;
   subPath: string;
   subPort: number;
   subProfileUrl: string;
   subRoutingRules: string;
   subShowInfo: boolean;
+  subSingboxEnable: boolean;
+  subSingboxPath: string;
+  subSingboxURI: string;
   subSupportUrl: string;
   subThemeDir: string;
   subTitle: string;
@@ -146,11 +152,17 @@ export interface AllSettingView {
   subJsonURI: string;
   subKeyFile: string;
   subListen: string;
+  subOutlineEnable: boolean;
+  subOutlinePath: string;
+  subOutlineURI: string;
   subPath: string;
   subPort: number;
   subProfileUrl: string;
   subRoutingRules: string;
   subShowInfo: boolean;
+  subSingboxEnable: boolean;
+  subSingboxPath: string;
+  subSingboxURI: string;
   subSupportUrl: string;
   subThemeDir: string;
   subTitle: string;
@@ -203,6 +215,7 @@ export interface ApiTokenView {
 }
 
 export interface Client {
+  activateBefore: number;
   allowedIPs?: string[];
   allowedIPsByInbound?: Record<number, string[]>;
   auth?: string;
@@ -216,11 +229,14 @@ export interface Client {
   group?: string;
   id?: string;
   keepAlive?: number;
+  limitDevice: number;
   limitIp: number;
   password?: string;
   preSharedKey?: string;
   privateKey?: string;
   publicKey?: string;
+  renewalDay: number;
+  renewalMode: number;
   reset: number;
   reverse?: ClientReverse | null;
   security: string;
@@ -238,6 +254,7 @@ export interface ClientInbound {
 }
 
 export interface ClientRecord {
+  activateBefore: number;
   allowedIPs: string;
   auth: string;
   comment: string;
@@ -250,11 +267,14 @@ export interface ClientRecord {
   group: string;
   id: number;
   keepAlive: number;
+  limitDevice: number;
   limitIp: number;
   password: string;
   preSharedKey: string;
   privateKey: string;
   publicKey: string;
+  renewalDay: number;
+  renewalMode: number;
   reset: number;
   reverse: unknown;
   security: string;
