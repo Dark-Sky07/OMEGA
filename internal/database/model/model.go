@@ -574,8 +574,8 @@ type Client struct {
 	TgID                int64            `json:"tgId" form:"tgId"`             // Telegram user ID for notifications
 	SubID               string           `json:"subId" form:"subId"`           // Subscription identifier
 	Group               string           `json:"group,omitempty" form:"group"` // Logical grouping label
-	Comment               string           `json:"comment" form:"comment"`       // Client comment
-	Reset                 int              `json:"reset" form:"reset"`           // Reset period in days
+	Comment             string           `json:"comment" form:"comment"`       // Client comment
+	Reset               int              `json:"reset" form:"reset"`           // Reset period in days
 	// LimitDevice caps how many distinct HWID-identified devices may fetch
 	// this client's subscription. 0 (the default) disables both tracking and
 	// enforcement, so existing clients are unaffected.
