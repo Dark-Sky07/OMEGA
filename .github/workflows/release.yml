@@ -290,32 +290,42 @@ jobs:
 
           # Keep Windows bundles on the same current core as every Linux and
           # Docker path. Select the highest numeric release tag, including
-          # prereleases, so a newer core is never silently skipped.
-          $xrayReleases = Invoke-RestMethod -Uri "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=20"
-          $xrayVersion = $xrayReleases |
-            Where-Object { !$_.draft -and $_.tag_name -match '^v\d+\.\d+\.\d+$' } |
-            Sort-Object { [version]($_.tag_name.Substring(1)) } |
-            Select-Object -Last 1 -ExpandProperty tag_name
+          # prereleases, so a newer core is never silently skipped. The query
+          # is retried because api.github.com intermittently rate-limits the
+          # shared runners (the Linux script retries for the same reason).
+          $xrayVersion = ""
+          for ($attempt = 1; $attempt -le 6 -and [string]::IsNullOrWhiteSpace($xrayVersion); $attempt++) {
+            try {
+              $xrayReleases = Invoke-RestMethod -Uri "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=20"
+              $xrayVersion = $xrayReleases |
+                Where-Object { !$_.draft -and $_.tag_name -match '^v\d+\.\d+\.\d+$' } |
+                Sort-Object { [version]($_.tag_name.Substring(1)) } |
+                Select-Object -Last 1 -ExpandProperty tag_name
+            } catch {
+              Write-Host "Xray-core release query failed (attempt $attempt): $($_.Exception.Message)"
+            }
+            if ([string]::IsNullOrWhiteSpace($xrayVersion)) { Start-Sleep -Seconds (5 * $attempt) }
+          }
           if ([string]::IsNullOrWhiteSpace($xrayVersion)) {
             throw "Could not resolve the latest Xray-core version"
           }
           $Xray_URL = "https://github.com/XTLS/Xray-core/releases/download/$xrayVersion/"
           Write-Host "Using latest Xray-core $xrayVersion"
-          Invoke-WebRequest -Uri "${Xray_URL}Xray-windows-64.zip" -OutFile "Xray-windows-64.zip"
+          Invoke-WebRequest -Uri "${Xray_URL}Xray-windows-64.zip" -OutFile "Xray-windows-64.zip" -MaximumRetryCount 5 -RetryIntervalSec 5
           Expand-Archive -Path "Xray-windows-64.zip" -DestinationPath .
           Remove-Item "Xray-windows-64.zip"
           Remove-Item geoip.dat, geosite.dat -ErrorAction SilentlyContinue
-          Invoke-WebRequest -Uri "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat" -OutFile "geoip.dat"
-          Invoke-WebRequest -Uri "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat" -OutFile "geosite.dat"
-          Invoke-WebRequest -Uri "https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat" -OutFile "geoip_IR.dat"
-          Invoke-WebRequest -Uri "https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat" -OutFile "geosite_IR.dat"
-          Invoke-WebRequest -Uri "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat" -OutFile "geoip_RU.dat"
-          Invoke-WebRequest -Uri "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat" -OutFile "geosite_RU.dat"
+          Invoke-WebRequest -Uri "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat" -OutFile "geoip.dat" -MaximumRetryCount 5 -RetryIntervalSec 5
+          Invoke-WebRequest -Uri "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat" -OutFile "geosite.dat" -MaximumRetryCount 5 -RetryIntervalSec 5
+          Invoke-WebRequest -Uri "https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat" -OutFile "geoip_IR.dat" -MaximumRetryCount 5 -RetryIntervalSec 5
+          Invoke-WebRequest -Uri "https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat" -OutFile "geosite_IR.dat" -MaximumRetryCount 5 -RetryIntervalSec 5
+          Invoke-WebRequest -Uri "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat" -OutFile "geoip_RU.dat" -MaximumRetryCount 5 -RetryIntervalSec 5
+          Invoke-WebRequest -Uri "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat" -OutFile "geosite_RU.dat" -MaximumRetryCount 5 -RetryIntervalSec 5
           Rename-Item xray.exe xray-windows-amd64.exe
 
           # Download mtg (MTProto sidecar) for Windows
           $MTG_VER = "2.2.8"
-          Invoke-WebRequest -Uri "https://github.com/9seconds/mtg/releases/download/v$MTG_VER/mtg-$MTG_VER-windows-amd64.zip" -OutFile "mtg-windows-amd64.zip"
+          Invoke-WebRequest -Uri "https://github.com/9seconds/mtg/releases/download/v$MTG_VER/mtg-$MTG_VER-windows-amd64.zip" -OutFile "mtg-windows-amd64.zip" -MaximumRetryCount 5 -RetryIntervalSec 5
           Expand-Archive -Path "mtg-windows-amd64.zip" -DestinationPath "mtg-tmp"
           $mtgExe = Get-ChildItem -Path "mtg-tmp" -Recurse -Filter "mtg.exe" | Select-Object -First 1
           Move-Item $mtgExe.FullName "mtg-windows-amd64.exe"
