@@ -5,6 +5,7 @@ import { InboxOutlined, SaveOutlined } from '@ant-design/icons';
 
 import {
   parseWindscribeConfig,
+  uniqueWindscribeTag,
   type ParsedWindscribeConfig,
 } from './windscribe';
 
@@ -15,7 +16,7 @@ interface WindscribeModalProps {
   templateSettings: { outbounds?: { tag?: string }[] } | null;
   onClose: () => void;
   onAddOutbound: (outbound: Record<string, unknown>) => void;
-  onResetOutbound: (payload: { index: number; outbound: Record<string, unknown>; oldTag?: string; newTag: string }) => void;
+  onResetOutbound?: (payload: { index: number; outbound: Record<string, unknown>; oldTag?: string; newTag: string }) => void;
 }
 
 export default function WindscribeModal({
@@ -23,17 +24,19 @@ export default function WindscribeModal({
   templateSettings,
   onClose,
   onAddOutbound,
-  onResetOutbound,
 }: WindscribeModalProps) {
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [parsed, setParsed] = useState<ParsedWindscribeConfig | null>(null);
   const [tag, setTag] = useState('');
   const [error, setError] = useState('');
 
-  const existingIndex = useMemo(() => {
-    const list = templateSettings?.outbounds || [];
-    return list.findIndex((item) => item?.tag?.startsWith?.('windscribe-'));
-  }, [templateSettings?.outbounds]);
+  const existingTags = useMemo(
+    () =>
+      (templateSettings?.outbounds || [])
+        .map((item) => (typeof item?.tag === 'string' ? item.tag.trim() : ''))
+        .filter(Boolean),
+    [templateSettings?.outbounds],
+  );
 
   function resetFile() {
     setFileList([]);
@@ -47,7 +50,7 @@ export default function WindscribeModal({
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const next = parseWindscribeConfig(String(reader.result || ''), file.name);
+        const next = parseWindscribeConfig(String(reader.result || ''), file.name, existingTags);
         setParsed(next);
         setTag(next.tag);
       } catch (cause) {
@@ -65,17 +68,13 @@ export default function WindscribeModal({
       setError('Choose a valid Windscribe profile and enter an outbound tag');
       return;
     }
+    const finalTag = uniqueWindscribeTag(tag.trim(), existingTags);
     const outbound = {
-      tag: tag.trim(),
+      tag: finalTag,
       protocol: parsed.protocol,
       settings: parsed.settings,
     } as Record<string, unknown>;
-    if (existingIndex >= 0) {
-      const oldTag = templateSettings?.outbounds?.[existingIndex]?.tag;
-      onResetOutbound({ index: existingIndex, outbound, oldTag, newTag: tag.trim() });
-    } else {
-      onAddOutbound(outbound);
-    }
+    onAddOutbound(outbound);
     resetFile();
     onClose();
   }
@@ -88,7 +87,7 @@ export default function WindscribeModal({
       footer={[
         <Button key="cancel" onClick={() => { resetFile(); onClose(); }}>Cancel</Button>,
         <Button key="save" type="primary" icon={<SaveOutlined />} disabled={!parsed} onClick={save}>
-          {existingIndex >= 0 ? 'Update outbound' : 'Add outbound'}
+          Add outbound
         </Button>,
       ]}
       destroyOnClose
