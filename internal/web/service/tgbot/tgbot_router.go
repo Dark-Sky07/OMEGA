@@ -205,6 +205,11 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		msg += t.I18nBot("tgbot.commands.help")
 		msg += t.I18nBot("tgbot.commands.pleaseChoose")
 	case "start":
+		if len(commandArgs) > 0 && strings.HasPrefix(commandArgs[0], inviteStartPrefix) {
+			onlyMessage = true
+			t.redeemInviteStart(chatId, message.From, strings.TrimPrefix(commandArgs[0], inviteStartPrefix))
+			return
+		}
 		msg += t.I18nBot("tgbot.commands.start", "Firstname=="+html.EscapeString(message.From.FirstName))
 		if isAdmin {
 			msg += t.I18nBot("tgbot.commands.welcome", "Hostname=="+hostname)
@@ -987,6 +992,9 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			case "tg_user":
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.getUserInfo", "Email=="+email))
 				t.clientTelegramUserInfo(chatId, email)
+			case "invite_gen":
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.invite"))
+				t.sendClientInvite(chatId, email)
 			case "tgid_remove":
 				inlineKeyboard := tu.InlineKeyboard(
 					tu.InlineKeyboardRow(

@@ -1737,7 +1737,12 @@
       "broadcastCanceled": "一斉送信をキャンセルしました。",
       "broadcastRunning": "別の一斉送信が進行中です。完了までお待ちください。",
       "broadcastDone": "✅ 一斉送信が完了しました：送信成功 {{ .Sent }}、失敗 {{ .Failed }}。",
-      "broadcastNoRecipients": "Telegramアカウントが紐づくクライアントが見つかりません — 送信対象がありません。"
+      "broadcastNoRecipients": "Telegramアカウントが紐づくクライアントが見つかりません — 送信対象がありません。",
+      "inviteCreated": "🔗 {{ .Email }} の招待リンク\n（1回限り、{{ .Expires }} まで有効）:\n\n{{ .Link }}",
+      "inviteRedeemed": "✅ {{ .Firstname }} さん、Telegram アカウントが {{ .Email }} に紐づきました。下のボタンからサブスクリプションを管理できます。",
+      "inviteInvalid": "この招待リンクは無効です。提供者に新しいリンクを依頼してください。",
+      "inviteUsed": "この招待リンクは既に使用されています。提供者に新しいリンクを依頼してください。",
+      "inviteExpired": "この招待リンクの有効期限が切れています。提供者に新しいリンクを依頼してください。"
     },
     "buttons": {
       "closeKeyboard": "❌ キーボードを閉じる",
@@ -1784,7 +1789,8 @@
       "ResetAllTraffics": "すべてのトラフィックをリセット",
       "SortedTrafficUsageReport": "ソートされたトラフィック使用レポート",
       "broadcast": "📣 一斉送信",
-      "confirmBroadcast": "✅ 今すぐ送信"
+      "confirmBroadcast": "✅ 今すぐ送信",
+      "invite": "🔗 招待リンク"
     },
     "answers": {
       "successfulOperation": "✅ 成功！",

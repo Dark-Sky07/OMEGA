@@ -87,6 +87,7 @@ func initModels() error {
 		&model.ResellerClient{},
 		&model.ResellerTransaction{},
 		&model.BotNotifyState{},
+		&model.ClientInvite{},
 	}
 	for _, mdl := range models {
 		if err := db.AutoMigrate(mdl); err != nil {

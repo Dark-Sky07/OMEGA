@@ -1737,7 +1737,12 @@
       "broadcastCanceled": "Siaran dibatalkan.",
       "broadcastRunning": "Siaran lain masih dikirim. Tunggu hingga selesai.",
       "broadcastDone": "✅ Siaran selesai: {{ .Sent }} terkirim, {{ .Failed }} gagal.",
-      "broadcastNoRecipients": "Tidak ada klien dengan akun Telegram yang tertaut — tidak ada yang dikirim."
+      "broadcastNoRecipients": "Tidak ada klien dengan akun Telegram yang tertaut — tidak ada yang dikirim.",
+      "inviteCreated": "🔗 Tautan undangan untuk {{ .Email }}\n(satu kali pakai, berlaku hingga {{ .Expires }}):\n\n{{ .Link }}",
+      "inviteRedeemed": "✅ {{ .Firstname }}, Telegram Anda kini tertaut ke {{ .Email }}. Gunakan tombol di bawah untuk mengelola langganan Anda.",
+      "inviteInvalid": "Tautan undangan ini tidak valid. Minta tautan baru dari penyedia Anda.",
+      "inviteUsed": "Tautan undangan ini sudah pernah digunakan. Minta tautan baru dari penyedia Anda.",
+      "inviteExpired": "Tautan undangan ini sudah kedaluwarsa. Minta tautan baru dari penyedia Anda."
     },
     "buttons": {
       "closeKeyboard": "❌ Tutup Papan Ketik",
@@ -1784,7 +1789,8 @@
       "ResetAllTraffics": "Reset Semua Lalu Lintas",
       "SortedTrafficUsageReport": "Laporan Penggunaan Lalu Lintas yang Terurut",
       "broadcast": "📣 Siaran",
-      "confirmBroadcast": "✅ Kirim sekarang"
+      "confirmBroadcast": "✅ Kirim sekarang",
+      "invite": "🔗 Tautan undangan"
     },
     "answers": {
       "successfulOperation": "✅ Operasi berhasil!",

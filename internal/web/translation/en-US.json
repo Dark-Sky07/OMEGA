@@ -1847,7 +1847,12 @@
       "broadcastCanceled": "Broadcast canceled.",
       "broadcastRunning": "Another broadcast is still being delivered. Wait for it to finish.",
       "broadcastDone": "✅ Broadcast finished: {{ .Sent }} sent, {{ .Failed }} failed.",
-      "broadcastNoRecipients": "No client with a linked Telegram account was found — nothing to send."
+      "broadcastNoRecipients": "No client with a linked Telegram account was found — nothing to send.",
+      "inviteCreated": "🔗 Invite link for {{ .Email }}\n(single use, valid until {{ .Expires }}):\n\n{{ .Link }}",
+      "inviteRedeemed": "✅ {{ .Firstname }}, your Telegram is now linked to {{ .Email }}. Use the buttons below to manage your subscription.",
+      "inviteInvalid": "This invite link is invalid. Ask your provider for a new one.",
+      "inviteUsed": "This invite link has already been used. Ask your provider for a new one.",
+      "inviteExpired": "This invite link has expired. Ask your provider for a new one."
     },
     "buttons": {
       "closeKeyboard": "❌ Close Keyboard",
@@ -1894,7 +1899,8 @@
       "ResetAllTraffics": "Reset All Traffic",
       "SortedTrafficUsageReport": "Sorted Traffic Usage Report",
       "broadcast": "📣 Broadcast",
-      "confirmBroadcast": "✅ Send now"
+      "confirmBroadcast": "✅ Send now",
+      "invite": "🔗 Invite link"
     },
     "answers": {
       "successfulOperation": "✅ Operation successful!",
