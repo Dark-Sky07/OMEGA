@@ -123,3 +123,39 @@ func TestIsCommandForBotKeepsLegacyBehaviorWhenUsernameUnavailable(t *testing.T)
 		t.Fatal("commands must remain accepted when the current bot username is unavailable")
 	}
 }
+
+func TestApproachingLimits(t *testing.T) {
+	const (
+		msPerDay = int64(86400000)
+		giB      = int64(1073741824)
+		now      = int64(1_700_000_000_000)
+		day3     = 3 * msPerDay
+		tenGiB   = 10 * giB
+	)
+	cases := []struct {
+		name                        string
+		expiryTime, total, up, down int64
+		exDiff, trDiff              int64
+		wantExpire, wantTraffic     bool
+	}{
+		{"no limits at all", 0, 0, 0, 0, day3, tenGiB, false, false},
+		{"far from both limits", now + 30*msPerDay, 100 * giB, 1 * giB, 0, day3, tenGiB, false, false},
+		{"inside expiry window", now + 2*msPerDay, 100 * giB, 1 * giB, 0, day3, tenGiB, true, false},
+		{"inside traffic window", now + 30*msPerDay, 100 * giB, 95 * giB, 0, day3, tenGiB, false, true},
+		{"inside both windows", now + msPerDay, 100 * giB, 92 * giB, 3 * giB, day3, tenGiB, true, true},
+		{"zero threshold warns only after expiry passed", now - msPerDay, 0, 0, 0, 0, 0, true, false},
+		{"zero threshold warns only after traffic exceeded", 0, 10 * giB, 11 * giB, 0, 0, 0, false, true},
+		{"zero threshold silent while still in limits", now + msPerDay, 10 * giB, 1 * giB, 0, 0, 0, false, false},
+		{"already-expired client inside window", now - msPerDay, 0, 0, 0, day3, 0, true, false},
+		{"disabled expiry field is ignored", 0, 100 * giB, 1 * giB, 0, day3, tenGiB, false, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			gotExpire, gotTraffic := approachingLimits(now, tc.expiryTime, tc.total, tc.up, tc.down, tc.exDiff, tc.trDiff)
+			if gotExpire != tc.wantExpire || gotTraffic != tc.wantTraffic {
+				t.Fatalf("approachingLimits() = (%v, %v), want (%v, %v)",
+					gotExpire, gotTraffic, tc.wantExpire, tc.wantTraffic)
+			}
+		})
+	}
+}
