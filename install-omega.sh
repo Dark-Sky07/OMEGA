@@ -1465,6 +1465,12 @@ install_x-ui() {
     rm x-ui-linux-$(arch).tar.gz -f
 
     cd x-ui
+    if [[ -f sha256sums.txt ]] && command -v sha256sum >/dev/null 2>&1; then
+        if ! grep '  x-ui$' sha256sums.txt | sha256sum -c --status; then
+            echo -e "${red}SHA-256 checksum verification failed for x-ui binary; aborting installation.${plain}"
+            exit 1
+        fi
+    fi
     # Replace any stale core bundled in the panel archive.
     install_staged_xray
     chmod +x x-ui

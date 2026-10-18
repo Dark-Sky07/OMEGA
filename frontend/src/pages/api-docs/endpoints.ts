@@ -1565,6 +1565,117 @@ export const sections: readonly Section[] = [
         response:
           '{\n  "success": true,\n  "obj": { "role": "reseller", "username": "reseller1", "name": "Ali", "stat": { "clientCount": 12 } }\n}',
       },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/revokeSub/:email',
+        summary: 'Revoke and regenerate the subscription token (subId) for the client across all attached inbounds.',
+        params: [{ name: 'email', in: 'path', type: 'string' }],
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/clients/templates',
+        summary: 'List all reusable client plan templates.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/templates/add',
+        summary: 'Create a reusable client plan template.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/templates/update/:id',
+        summary: 'Update an existing client plan template.',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/templates/del/:id',
+        summary: 'Delete a client plan template.',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/resellers/tickets',
+        summary: 'List all reseller support tickets (admin only).',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/resellers/tickets/:id',
+        summary: 'Get a reseller support ticket and its message thread (admin only).',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/resellers/tickets/:id/reply',
+        summary: 'Post an admin reply to a reseller support ticket.',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/resellers/tickets/:id/close',
+        summary: 'Close a reseller support ticket (admin only).',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/resellers/orders',
+        summary: 'List processed payment webhook orders (admin only).',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/resellers/orders/process',
+        summary: 'Manually process an idempotent payment order (reseller deposit, quota top-up, or client renewal).',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/reseller/tickets',
+        summary: 'List the signed-in reseller own support tickets.',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/reseller/tickets/:id',
+        summary: 'Get a support ticket and its message thread owned by the signed-in reseller.',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/reseller/tickets/create',
+        summary: 'Open a new support ticket as the signed-in reseller.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/reseller/tickets/:id/reply',
+        summary: 'Post a reply to a support ticket owned by the signed-in reseller.',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/reseller/tickets/:id/close',
+        summary: 'Close a support ticket owned by the signed-in reseller.',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/setting/admins',
+        summary: 'List all panel admin accounts and their RBAC roles/permissions (owner only).',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/setting/admins/create',
+        summary: 'Create a new panel admin account with an RBAC role and granular permissions (owner only).',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/setting/admins/update/:id',
+        summary: 'Update a panel admin account RBAC role, permissions, or status (owner only).',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/setting/admins/delete/:id',
+        summary: 'Delete a secondary panel admin account (owner only).',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
     ],
   },
 

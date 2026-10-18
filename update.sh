@@ -1118,6 +1118,12 @@ stage_update_assets() {
         return 1
     fi
     [[ -d "$update_stage_dir" && -f "$update_stage_dir/x-ui" ]] || return 1
+    if [[ -f "$update_stage_dir/sha256sums.txt" ]] && command -v sha256sum >/dev/null 2>&1; then
+        if ! (cd "$update_stage_dir" && grep '  x-ui$' sha256sums.txt | sha256sum -c --status); then
+            echo -e "${red}SHA-256 checksum verification failed for x-ui binary; aborting update.${plain}"
+            return 1
+        fi
+    fi
 
     if ! preserve_update_data; then
         return 1
