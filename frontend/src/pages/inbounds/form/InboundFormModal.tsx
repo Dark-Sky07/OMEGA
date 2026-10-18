@@ -49,8 +49,10 @@ import { WsStreamSettingsSchema } from '@/schemas/protocols/stream/ws';
 import { GrpcStreamSettingsSchema } from '@/schemas/protocols/stream/grpc';
 import { HttpUpgradeStreamSettingsSchema } from '@/schemas/protocols/stream/httpupgrade';
 import { XHttpStreamSettingsSchema } from '@/schemas/protocols/stream/xhttp';
+import { XDriveStreamSettingsSchema } from '@/schemas/protocols/stream/xdrive';
 import { DateTimePicker } from '@/components/form';
 import { FinalMaskForm } from '@/lib/xray/forms/transport';
+import XDriveForm from '@/lib/xray/forms/transport/XDriveForm';
 import './InboundFormModal.css';
 
 import { AdvancedAllEditor, AdvancedSliceEditor } from './advanced-editors';
@@ -781,15 +783,24 @@ export default function InboundFormModal({
       case 'grpc': return GrpcStreamSettingsSchema.parse({});
       case 'httpupgrade': return HttpUpgradeStreamSettingsSchema.parse({});
       case 'xhttp': return XHttpStreamSettingsSchema.parse({});
+      case 'xdrive': return XDriveStreamSettingsSchema.parse({});
       default: return {};
     }
   };
   const onNetworkChange = (next: string) => {
-    const ALL = ['tcpSettings', 'kcpSettings', 'wsSettings', 'grpcSettings', 'httpupgradeSettings', 'xhttpSettings'];
+    const ALL = ['tcpSettings', 'kcpSettings', 'wsSettings', 'grpcSettings', 'httpupgradeSettings', 'xhttpSettings', 'xdriveSettings'];
     const current = (form.getFieldValue('streamSettings') as Record<string, unknown>) ?? {};
     const cleaned: Record<string, unknown> = { ...current, network: next };
     for (const k of ALL) {
       if (k !== `${next}Settings`) delete cleaned[k];
+    }
+    if (next === 'xdrive') {
+      cleaned.security = 'none';
+      delete cleaned.tlsSettings;
+      delete cleaned.realitySettings;
+    } else {
+      delete cleaned.address;
+      delete cleaned.port;
     }
     cleaned[`${next}Settings`] = newStreamSlice(next);
     // mKCP wants a UDP mask wrapper on the FinalMask side; seed it with
@@ -833,6 +844,7 @@ export default function InboundFormModal({
               { value: 'grpc', label: 'gRPC' },
               { value: 'httpupgrade', label: 'HTTPUpgrade' },
               { value: 'xhttp', label: 'XHTTP' },
+              { value: 'xdrive', label: 'XDRIVE' },
             ]}
           />
         </Form.Item>
@@ -860,6 +872,8 @@ export default function InboundFormModal({
           {network === 'httpupgrade' && <HttpUpgradeForm />}
 
           {network === 'kcp' && <KcpForm />}
+
+          {network === 'xdrive' && <XDriveForm />}
         </>
       )}
 
