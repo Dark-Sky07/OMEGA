@@ -313,6 +313,10 @@
             "description": "Telegram bot token",
             "type": "string"
           },
+          "tgBotUserReport": {
+            "description": "Send personal periodic usage reports to clients",
+            "type": "boolean"
+          },
           "tgCpu": {
             "description": "CPU usage threshold for alerts (percent)",
             "maximum": 100,
@@ -454,6 +458,7 @@
           "tgBotLoginNotify",
           "tgBotProxy",
           "tgBotToken",
+          "tgBotUserReport",
           "tgCpu",
           "tgLang",
           "tgRunTime",
@@ -777,6 +782,10 @@
             "description": "Telegram bot token",
             "type": "string"
           },
+          "tgBotUserReport": {
+            "description": "Send personal periodic usage reports to clients",
+            "type": "boolean"
+          },
           "tgCpu": {
             "description": "CPU usage threshold for alerts (percent)",
             "maximum": 100,
@@ -924,6 +933,7 @@
           "tgBotLoginNotify",
           "tgBotProxy",
           "tgBotToken",
+          "tgBotUserReport",
           "tgCpu",
           "tgLang",
           "tgRunTime",

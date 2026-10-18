@@ -1226,7 +1226,9 @@
         "userPassMustBeNotEmpty": "Tên người dùng mới và mật khẩu mới không thể để trống",
         "getOutboundTrafficError": "Lỗi khi lấy lưu lượng truy cập đi",
         "resetOutboundTrafficError": "Lỗi khi đặt lại lưu lượng truy cập đi"
-      }
+      },
+      "tgNotifyUserReport": "Báo cáo sử dụng cá nhân cho khách hàng",
+      "tgNotifyUserReportDesc": "Mỗi kỳ báo cáo, cũng gửi cho khách hàng có Telegram liên kết bản tóm tắt sử dụng cá nhân (lưu lượng và hạn dùng). Mặc định: tắt."
     },
     "xray": {
       "title": "Cài đặt Xray",
@@ -1742,7 +1744,8 @@
       "inviteRedeemed": "✅ {{ .Firstname }}, Telegram của bạn đã được liên kết với {{ .Email }}. Dùng các nút bên dưới để quản lý gói của bạn.",
       "inviteInvalid": "Liên kết mời này không hợp lệ. Hãy yêu cầu nhà cung cấp cấp liên kết mới.",
       "inviteUsed": "Liên kết mời này đã được sử dụng. Hãy yêu cầu nhà cung cấp cấp liên kết mới.",
-      "inviteExpired": "Liên kết mời này đã hết hạn. Hãy yêu cầu nhà cung cấp cấp liên kết mới."
+      "inviteExpired": "Liên kết mời này đã hết hạn. Hãy yêu cầu nhà cung cấp cấp liên kết mới.",
+      "userReport": "📊 Báo cáo sử dụng của bạn — {{ .DateTime }}"
     },
     "buttons": {
       "closeKeyboard": "❌ Đóng Bàn Phím",

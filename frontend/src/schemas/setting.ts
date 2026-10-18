@@ -27,6 +27,7 @@ export const AllSettingSchema = z.object({
   tgRunTime: z.string().optional(),
   tgBotBackup: z.boolean().optional(),
   tgBotLoginNotify: z.boolean().optional(),
+  tgBotUserReport: z.boolean().optional(),
   tgCpu: z.number().int().min(0).max(100).optional(),
   tgLang: z.string().optional(),
   twoFactorEnable: z.boolean().optional(),

@@ -1226,7 +1226,9 @@
         "userPassMustBeNotEmpty": "新しいユーザー名と新しいパスワードは空にできません",
         "getOutboundTrafficError": "送信トラフィックの取得エラー",
         "resetOutboundTrafficError": "送信トラフィックのリセットエラー"
-      }
+      },
+      "tgNotifyUserReport": "クライアントへの個人利用レポート",
+      "tgNotifyUserReportDesc": "各レポート時に、Telegram が紐づいたすべてのクライアントへ個人の利用状況（トラフィックと有効期限）を送信します。既定はオフ。"
     },
     "xray": {
       "title": "Xray 設定",
@@ -1742,7 +1744,8 @@
       "inviteRedeemed": "✅ {{ .Firstname }} さん、Telegram アカウントが {{ .Email }} に紐づきました。下のボタンからサブスクリプションを管理できます。",
       "inviteInvalid": "この招待リンクは無効です。提供者に新しいリンクを依頼してください。",
       "inviteUsed": "この招待リンクは既に使用されています。提供者に新しいリンクを依頼してください。",
-      "inviteExpired": "この招待リンクの有効期限が切れています。提供者に新しいリンクを依頼してください。"
+      "inviteExpired": "この招待リンクの有効期限が切れています。提供者に新しいリンクを依頼してください。",
+      "userReport": "📊 ご利用状況レポート — {{ .DateTime }}"
     },
     "buttons": {
       "closeKeyboard": "❌ キーボードを閉じる",

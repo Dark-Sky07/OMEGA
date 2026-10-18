@@ -1285,7 +1285,9 @@
         "userPassMustBeNotEmpty": "The new username and password are empty",
         "getOutboundTrafficError": "Error getting traffic",
         "resetOutboundTrafficError": "Error resetting outbound traffic"
-      }
+      },
+      "tgNotifyUserReport": "Personal usage report to clients",
+      "tgNotifyUserReportDesc": "At each report time, also send every client with a linked Telegram account a personal usage summary (traffic and expiry). Off by default."
     },
     "xray": {
       "title": "Xray Configs",
@@ -1852,7 +1854,8 @@
       "inviteRedeemed": "✅ {{ .Firstname }}, your Telegram is now linked to {{ .Email }}. Use the buttons below to manage your subscription.",
       "inviteInvalid": "This invite link is invalid. Ask your provider for a new one.",
       "inviteUsed": "This invite link has already been used. Ask your provider for a new one.",
-      "inviteExpired": "This invite link has expired. Ask your provider for a new one."
+      "inviteExpired": "This invite link has expired. Ask your provider for a new one.",
+      "userReport": "📊 Your usage report — {{ .DateTime }}"
     },
     "buttons": {
       "closeKeyboard": "❌ Close Keyboard",

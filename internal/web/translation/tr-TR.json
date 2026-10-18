@@ -1225,7 +1225,9 @@
         "userPassMustBeNotEmpty": "Yeni kullanıcı adı ve şifre boş olamaz.",
         "getOutboundTrafficError": "Giden trafik alınırken hata oluştu.",
         "resetOutboundTrafficError": "Giden trafik sıfırlanırken hata oluştu."
-      }
+      },
+      "tgNotifyUserReport": "İstemcilere kişisel kullanım raporu",
+      "tgNotifyUserReportDesc": "Her rapor zamanında, Telegram'ı bağlı olan her istemciye kişisel kullanım özeti (trafik ve bitiş) de gönderilsin. Varsayılan: kapalı."
     },
     "xray": {
       "title": "Xray Yapılandırmaları",
@@ -1741,7 +1743,8 @@
       "inviteRedeemed": "✅ {{ .Firstname }}, Telegram hesabınız artık {{ .Email }} hesabına bağlı. Aboneliğinizi yönetmek için aşağıdaki düğmeleri kullanın.",
       "inviteInvalid": "Bu davet bağlantısı geçersiz. Sağlayıcınızdan yeni bir bağlantı isteyin.",
       "inviteUsed": "Bu davet bağlantısı zaten kullanılmış. Sağlayıcınızdan yeni bir bağlantı isteyin.",
-      "inviteExpired": "Bu davet bağlantısının süresi doldu. Sağlayıcınızdan yeni bir bağlantı isteyin."
+      "inviteExpired": "Bu davet bağlantısının süresi doldu. Sağlayıcınızdan yeni bir bağlantı isteyin.",
+      "userReport": "📊 Kullanım raporunuz — {{ .DateTime }}"
     },
     "buttons": {
       "closeKeyboard": "❌ Klavyeyi Kapat",

@@ -23,6 +23,7 @@ export class AllSetting {
   tgRunTime = '@daily';
   tgBotBackup = false;
   tgBotLoginNotify = true;
+  tgBotUserReport = false;
   tgCpu = 80;
   tgLang = 'en-US';
   twoFactorEnable = false;

@@ -1226,7 +1226,9 @@
         "userPassMustBeNotEmpty": "Username dan password baru tidak boleh kosong",
         "getOutboundTrafficError": "Gagal mendapatkan lalu lintas keluar",
         "resetOutboundTrafficError": "Gagal mereset lalu lintas keluar"
-      }
+      },
+      "tgNotifyUserReport": "Laporan penggunaan pribadi ke klien",
+      "tgNotifyUserReportDesc": "Pada setiap waktu laporan, kirim juga ke setiap klien dengan Telegram tertaut ringkasan penggunaan pribadi (trafik dan kedaluwarsa). Bawaan: mati."
     },
     "xray": {
       "title": "Konfigurasi Xray",
@@ -1742,7 +1744,8 @@
       "inviteRedeemed": "✅ {{ .Firstname }}, Telegram Anda kini tertaut ke {{ .Email }}. Gunakan tombol di bawah untuk mengelola langganan Anda.",
       "inviteInvalid": "Tautan undangan ini tidak valid. Minta tautan baru dari penyedia Anda.",
       "inviteUsed": "Tautan undangan ini sudah pernah digunakan. Minta tautan baru dari penyedia Anda.",
-      "inviteExpired": "Tautan undangan ini sudah kedaluwarsa. Minta tautan baru dari penyedia Anda."
+      "inviteExpired": "Tautan undangan ini sudah kedaluwarsa. Minta tautan baru dari penyedia Anda.",
+      "userReport": "📊 Laporan penggunaan Anda — {{ .DateTime }}"
     },
     "buttons": {
       "closeKeyboard": "❌ Tutup Papan Ketik",
