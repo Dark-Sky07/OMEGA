@@ -1728,7 +1728,15 @@
       "AreYouSure": "Emin misiniz? 🤔",
       "SuccessResetTraffic": "📧 E-posta: {{ .ClientEmail }}\n🏁 Sonuç: ✅ Başarılı",
       "FailedResetTraffic": "📧 E-posta: {{ .ClientEmail }}\n🏁 Sonuç: ❌ Başarısız \n\n🛠️ Hata: [ {{ .ErrorMessage }} ]",
-      "FinishProcess": "🔚 Tüm kullanıcılar için trafik sıfırlama işlemi tamamlandı."
+      "FinishProcess": "🔚 Tüm kullanıcılar için trafik sıfırlama işlemi tamamlandı.",
+      "broadcastPrompt": "Tüm istemcilere gönderilecek mesaj metnini yazın (maks. ~3800 karakter).",
+      "broadcastEmpty": "Mesaj boş. Toplu mesaj metnini gönderin veya İptal'e basın.",
+      "broadcastTooLong": "Mesaj çok uzun. Kısaltın (maks. ~3800 karakter) ve tekrar deneyin.",
+      "broadcastPreview": "📣 Toplu mesaj önizleme — alıcılar: {{ .Count }}",
+      "broadcastCanceled": "Toplu mesaj iptal edildi.",
+      "broadcastRunning": "Başka bir toplu mesaj hâlâ gönderiliyor. Bitmesini bekleyin.",
+      "broadcastDone": "✅ Toplu mesaj tamamlandı: {{ .Sent }} gönderildi, {{ .Failed }} başarısız.",
+      "broadcastNoRecipients": "Bağlı Telegram hesabı olan istemci bulunamadı — gönderilecek kimse yok."
     },
     "buttons": {
       "closeKeyboard": "❌ Klavyeyi Kapat",
@@ -1773,7 +1781,9 @@
       "change_comment": "⚙️💬 Yorum",
       "change_flow": "⚙️🚦 Flow",
       "ResetAllTraffics": "Tüm Trafikleri Sıfırla",
-      "SortedTrafficUsageReport": "Sıralı Trafik Kullanım Raporu"
+      "SortedTrafficUsageReport": "Sıralı Trafik Kullanım Raporu",
+      "broadcast": "📣 Toplu Mesaj",
+      "confirmBroadcast": "✅ Şimdi gönder"
     },
     "answers": {
       "successfulOperation": "✅ İşlem başarılı!",

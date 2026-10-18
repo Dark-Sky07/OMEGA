@@ -1729,7 +1729,15 @@
       "AreYouSure": "Apakah kamu yakin? 🤔",
       "SuccessResetTraffic": "📧 Email: {{ .ClientEmail }}\n🏁 Hasil: ✅ Berhasil",
       "FailedResetTraffic": "📧 Email: {{ .ClientEmail }}\n🏁 Hasil: ❌ Gagal \n\n🛠️ Kesalahan: [ {{ .ErrorMessage }} ]",
-      "FinishProcess": "🔚 Proses reset traffic selesai untuk semua klien."
+      "FinishProcess": "🔚 Proses reset traffic selesai untuk semua klien.",
+      "broadcastPrompt": "Kirim teks pesan untuk disiarkan ke semua klien (maks. ~3800 karakter).",
+      "broadcastEmpty": "Pesan kosong. Kirim teks siaran, atau tekan Batal.",
+      "broadcastTooLong": "Pesan terlalu panjang. Pendekkan (maks. ~3800 karakter) dan coba lagi.",
+      "broadcastPreview": "📣 Pratinjau siaran — penerima: {{ .Count }}",
+      "broadcastCanceled": "Siaran dibatalkan.",
+      "broadcastRunning": "Siaran lain masih dikirim. Tunggu hingga selesai.",
+      "broadcastDone": "✅ Siaran selesai: {{ .Sent }} terkirim, {{ .Failed }} gagal.",
+      "broadcastNoRecipients": "Tidak ada klien dengan akun Telegram yang tertaut — tidak ada yang dikirim."
     },
     "buttons": {
       "closeKeyboard": "❌ Tutup Papan Ketik",
@@ -1774,7 +1782,9 @@
       "change_comment": "⚙️💬 Komentar",
       "change_flow": "⚙️🚦 Flow",
       "ResetAllTraffics": "Reset Semua Lalu Lintas",
-      "SortedTrafficUsageReport": "Laporan Penggunaan Lalu Lintas yang Terurut"
+      "SortedTrafficUsageReport": "Laporan Penggunaan Lalu Lintas yang Terurut",
+      "broadcast": "📣 Siaran",
+      "confirmBroadcast": "✅ Kirim sekarang"
     },
     "answers": {
       "successfulOperation": "✅ Operasi berhasil!",

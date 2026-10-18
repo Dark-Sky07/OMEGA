@@ -1729,7 +1729,15 @@
       "AreYouSure": "Вы уверены? 🤔",
       "SuccessResetTraffic": "📧 Почта: {{ .ClientEmail }}\n🏁 Результат: ✅ Успешно",
       "FailedResetTraffic": "📧 Почта: {{ .ClientEmail }}\n🏁 Результат: ❌ Неудача \n\n🛠️ Ошибка: [ {{ .ErrorMessage }} ]",
-      "FinishProcess": "🔚 Сброс трафика завершён для всех клиентов."
+      "FinishProcess": "🔚 Сброс трафика завершён для всех клиентов.",
+      "broadcastPrompt": "Отправьте текст сообщения для рассылки всем клиентам (макс. ~3800 символов).",
+      "broadcastEmpty": "Сообщение пустое. Отправьте текст рассылки или нажмите «Отмена».",
+      "broadcastTooLong": "Сообщение слишком длинное. Сократите его (макс. ~3800 символов) и попробуйте снова.",
+      "broadcastPreview": "📣 Предпросмотр рассылки — получателей: {{ .Count }}",
+      "broadcastCanceled": "Рассылка отменена.",
+      "broadcastRunning": "Другая рассылка ещё выполняется. Дождитесь её завершения.",
+      "broadcastDone": "✅ Рассылка завершена: {{ .Sent }} доставлено, {{ .Failed }} с ошибкой.",
+      "broadcastNoRecipients": "Клиентов с привязанным Telegram-аккаунтом не найдено — отправлять некого."
     },
     "buttons": {
       "closeKeyboard": "❌ Закрыть клавиатуру",
@@ -1774,7 +1782,9 @@
       "change_comment": "⚙️💬 Комментарий",
       "change_flow": "⚙️🚦 Flow",
       "ResetAllTraffics": "Сбросить весь трафик",
-      "SortedTrafficUsageReport": "Отсортированный отчет об использовании трафика"
+      "SortedTrafficUsageReport": "Отсортированный отчет об использовании трафика",
+      "broadcast": "📣 Рассылка",
+      "confirmBroadcast": "✅ Отправить"
     },
     "answers": {
       "successfulOperation": "✅ Успешно!",

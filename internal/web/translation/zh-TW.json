@@ -1729,7 +1729,15 @@
       "AreYouSure": "你確定嗎？🤔",
       "SuccessResetTraffic": "📧 電子郵件: {{ .ClientEmail }}\n🏁 結果: ✅ 成功",
       "FailedResetTraffic": "📧 電子郵件: {{ .ClientEmail }}\n🏁 結果: ❌ 失敗 \n\n🛠️ 錯誤: [ {{ .ErrorMessage }} ]",
-      "FinishProcess": "🔚 所有客戶的流量重置已完成。"
+      "FinishProcess": "🔚 所有客戶的流量重置已完成。",
+      "broadcastPrompt": "請傳送要廣播給所有用戶端的訊息文字（最多約 3800 個字元）。",
+      "broadcastEmpty": "訊息為空。請傳送廣播文字，或點選取消。",
+      "broadcastTooLong": "訊息太長。請精簡（最多約 3800 個字元）後重試。",
+      "broadcastPreview": "📣 廣播預覽 — 收件人數：{{ .Count }}",
+      "broadcastCanceled": "已取消廣播。",
+      "broadcastRunning": "另一次廣播仍在傳送中，請等待其完成。",
+      "broadcastDone": "✅ 廣播完成：成功 {{ .Sent }}，失敗 {{ .Failed }}。",
+      "broadcastNoRecipients": "未找到已關聯 Telegram 帳號的用戶端 — 無可傳送對象。"
     },
     "buttons": {
       "closeKeyboard": "❌ 關閉鍵盤",
@@ -1774,7 +1782,9 @@
       "change_comment": "⚙️💬 評論",
       "change_flow": "⚙️🚦 Flow",
       "ResetAllTraffics": "重設所有流量",
-      "SortedTrafficUsageReport": "排序過的流量使用報告"
+      "SortedTrafficUsageReport": "排序過的流量使用報告",
+      "broadcast": "📣 廣播",
+      "confirmBroadcast": "✅ 立即發送"
     },
     "answers": {
       "successfulOperation": "✅ 成功！",

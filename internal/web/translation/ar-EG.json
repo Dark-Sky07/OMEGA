@@ -1729,7 +1729,15 @@
       "AreYouSure": "إنت متأكد؟ 🤔",
       "SuccessResetTraffic": "📧 البريد الإلكتروني: {{ .ClientEmail }}\n🏁 النتيجة: ✅ تم بنجاح",
       "FailedResetTraffic": "📧 البريد الإلكتروني: {{ .ClientEmail }}\n🏁 النتيجة: ❌ فشل \n\n🛠️ الخطأ: [ {{ .ErrorMessage }} ]",
-      "FinishProcess": "🔚 عملية إعادة ضبط الترافيك خلصت لكل العملاء."
+      "FinishProcess": "🔚 عملية إعادة ضبط الترافيك خلصت لكل العملاء.",
+      "broadcastPrompt": "أرسل نص الرسالة لإرسالها إلى جميع العملاء (بحد أقصى ~3800 حرف).",
+      "broadcastEmpty": "الرسالة فارغة. أرسل نص الرسالة أو اضغط إلغاء.",
+      "broadcastTooLong": "الرسالة طويلة جدًا. اختصرها (بحد أقصى ~3800 حرف) وأعد المحاولة.",
+      "broadcastPreview": "📣 معاينة الإرسال الجماعي — المستلمون: {{ .Count }}",
+      "broadcastCanceled": "تم إلغاء الإرسال الجماعي.",
+      "broadcastRunning": "لا يزال هناك إرسال جماعي آخر قيد التنفيذ. انتظر انتهاءه.",
+      "broadcastDone": "✅ اكتمل الإرسال الجماعي: {{ .Sent }} تم إرسالها، {{ .Failed }} فشلت.",
+      "broadcastNoRecipients": "لم يتم العثور على أي عميل بحساب تيليجرام مرتبط — لا يوجد ما يُرسل."
     },
     "buttons": {
       "closeKeyboard": "❌ اقفل الكيبورد",
@@ -1774,7 +1782,9 @@
       "change_comment": "⚙️💬 تعليق",
       "change_flow": "⚙️🚦 Flow",
       "ResetAllTraffics": "إعادة ضبط جميع الترافيك",
-      "SortedTrafficUsageReport": "تقرير استخدام الترافيك المرتب"
+      "SortedTrafficUsageReport": "تقرير استخدام الترافيك المرتب",
+      "broadcast": "📣 إرسال جماعي",
+      "confirmBroadcast": "✅ إرسال الآن"
     },
     "answers": {
       "successfulOperation": "✅ العملية نجحت!",

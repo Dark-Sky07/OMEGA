@@ -1786,7 +1786,15 @@
       "AreYouSure": "مطمئنی؟ 🤔",
       "SuccessResetTraffic": "📧 ایمیل: {{ .ClientEmail }}\n🏁 نتیجه: ✅ موفقیت‌آمیز",
       "FailedResetTraffic": "📧 ایمیل: {{ .ClientEmail }}\n🏁 نتیجه: ❌ ناموفق \n\n🛠️ خطا: [ {{ .ErrorMessage }} ]",
-      "FinishProcess": "🔚 فرآیند بازنشانی ترافیک برای همه مشتریان به پایان رسید."
+      "FinishProcess": "🔚 فرآیند بازنشانی ترافیک برای همه مشتریان به پایان رسید.",
+      "broadcastPrompt": "متن پیامی را که می‌خواهید برای همهٔ کلاینت‌ها ارسال شود بفرستید (حداکثر ~۳۸۰۰ نویسه).",
+      "broadcastEmpty": "پیام خالی است. متن ارسال همگانی را بفرستید یا انصراف را بزنید.",
+      "broadcastTooLong": "پیام بسیار طولانی است. آن را کوتاه‌تر کنید (حداکثر ~۳۸۰۰ نویسه) و دوباره بفرستید.",
+      "broadcastPreview": "📣 پیش‌نمایش ارسال همگانی — گیرندگان: {{ .Count }}",
+      "broadcastCanceled": "ارسال همگانی لغو شد.",
+      "broadcastRunning": "یک ارسال همگانی دیگر هنوز در حال ارسال است. تا پایان آن صبر کنید.",
+      "broadcastDone": "✅ ارسال همگانی پایان یافت: {{ .Sent }} موفق، {{ .Failed }} ناموفق.",
+      "broadcastNoRecipients": "هیچ کلاینتی با حساب تلگرام متصل یافت نشد — چیزی برای ارسال نیست."
     },
     "buttons": {
       "closeKeyboard": "❌ بستن کیبورد",
@@ -1831,7 +1839,9 @@
       "change_comment": "⚙️💬 نظر",
       "change_flow": "⚙️🚦 Flow",
       "ResetAllTraffics": "بازنشانی همه ترافیک‌ها",
-      "SortedTrafficUsageReport": "گزارش استفاده از ترافیک مرتب‌شده"
+      "SortedTrafficUsageReport": "گزارش استفاده از ترافیک مرتب‌شده",
+      "broadcast": "📣 ارسال همگانی",
+      "confirmBroadcast": "✅ ارسال شود"
     },
     "answers": {
       "successfulOperation": "✅ انجام شد!",
