@@ -1248,7 +1248,22 @@
       "certDomainRequired": "Domain is required",
       "certEmail": "Contact Email (optional)",
       "certPort80Notice": "Port 80 must be reachable from the internet and point to this server.",
-      "certIssuedSuccess": "Certificate issued and applied"
+      "certIssuedSuccess": "Certificate issued and applied",
+      "discordSettings": "Discord Bot",
+      "discordEnable": "Enable Discord Notifications",
+      "discordEnableDesc": "Send periodic traffic reports, approaching-limit alerts, and login notifications to Discord.",
+      "discordWebhookURL": "Discord Webhook URL",
+      "discordWebhookURLDesc": "Simplest setup: paste a channel Webhook URL.",
+      "discordBotToken": "Discord Bot Token (optional)",
+      "discordBotTokenDesc": "Alternative to Webhook: Bot token from Discord Developer Portal.",
+      "discordChannelId": "Discord Channel ID",
+      "discordChannelIdDesc": "Target channel ID when using a Bot token.",
+      "discordLoginNotify": "Login Notification",
+      "discordLoginNotifyDesc": "Post an embed whenever an admin login succeeds or fails.",
+      "discordTestTitle": "Test Discord Connection",
+      "discordTestDesc": "Save your settings first, then send a verification embed.",
+      "discordTestBtn": "Send Test Embed",
+      "discordTestSuccess": "Test message sent to Discord"
     },
     "xray": {
       "title": "Konfigurasi Xray",

@@ -51,6 +51,13 @@ type AllSetting struct {
 	TgCpu            int    `json:"tgCpu" form:"tgCpu" validate:"gte=0,lte=100"` // CPU usage threshold for alerts (percent)
 	TgLang           string `json:"tgLang" form:"tgLang"`                        // Telegram bot language
 
+	// Discord bot / webhook notifications
+	DiscordEnable      bool   `json:"discordEnable" form:"discordEnable"`
+	DiscordWebhookURL  string `json:"discordWebhookURL" form:"discordWebhookURL"`
+	DiscordBotToken    string `json:"discordBotToken" form:"discordBotToken"`
+	DiscordChannelId   string `json:"discordChannelId" form:"discordChannelId"`
+	DiscordLoginNotify bool   `json:"discordLoginNotify" form:"discordLoginNotify"`
+
 	// Security settings
 	TimeLocation    string `json:"timeLocation" form:"timeLocation"`       // Time zone location
 	TwoFactorEnable bool   `json:"twoFactorEnable" form:"twoFactorEnable"` // Enable two-factor authentication
@@ -131,12 +138,14 @@ type AllSetting struct {
 type AllSettingView struct {
 	AllSetting
 
-	HasTgBotToken     bool `json:"hasTgBotToken"`
-	HasTwoFactorToken bool `json:"hasTwoFactorToken"`
-	HasLdapPassword   bool `json:"hasLdapPassword"`
-	HasApiToken       bool `json:"hasApiToken"`
-	HasWarpSecret     bool `json:"hasWarpSecret"`
-	HasNordSecret     bool `json:"hasNordSecret"`
+	HasTgBotToken        bool `json:"hasTgBotToken"`
+	HasDiscordBotToken   bool `json:"hasDiscordBotToken"`
+	HasDiscordWebhookURL bool `json:"hasDiscordWebhookURL"`
+	HasTwoFactorToken    bool `json:"hasTwoFactorToken"`
+	HasLdapPassword      bool `json:"hasLdapPassword"`
+	HasApiToken          bool `json:"hasApiToken"`
+	HasWarpSecret        bool `json:"hasWarpSecret"`
+	HasNordSecret        bool `json:"hasNordSecret"`
 }
 
 // CheckValid validates all settings in the AllSetting struct, checking IP addresses, ports, SSL certificates, and other configuration values.
