@@ -24,6 +24,7 @@ import {
   MoonFilled,
   MoonOutlined,
   SafetyOutlined,
+  SearchOutlined,
   SettingOutlined,
   ShopOutlined,
   SunOutlined,
@@ -38,6 +39,7 @@ import { HttpUtil } from '@/utils';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import { useAllSettings } from '@/api/queries/useAllSettings';
 import { useSession } from '@/api/queries/useSession';
+import { openCommandPalette } from '@/components/CommandPalette';
 import './AppSidebar.css';
 
 const SIDEBAR_COLLAPSED_KEY = 'isSidebarCollapsed';
@@ -354,6 +356,16 @@ export default function AppSidebar() {
           />
           <div className="sider-footer">
             <div className="sider-tools">
+              <Tooltip title={`${t('commandPalette.open') || 'Quick search'} (Ctrl+K)`} placement="top">
+                <button
+                  type="button"
+                  className="sidebar-search omega-icon-btn"
+                  aria-label="Command palette (Ctrl+K)"
+                  onClick={openCommandPalette}
+                >
+                  <SearchOutlined />
+                </button>
+              </Tooltip>
               <ThemeCycleButton
                 id="theme-cycle"
                 isDark={isDark}
