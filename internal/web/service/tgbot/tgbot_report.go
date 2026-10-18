@@ -157,12 +157,21 @@ func (t *Tgbot) prepareServerUsageInfo() string {
 
 // UserLoginNotify sends a notification about user login attempts to admins.
 func (t *Tgbot) UserLoginNotify(attempt LoginAttempt) {
-	if !t.IsRunning() {
+	if attempt.Username == "" || attempt.IP == "" || attempt.Time == "" {
+		logger.Warning("UserLoginNotify failed, invalid info!")
 		return
 	}
 
-	if attempt.Username == "" || attempt.IP == "" || attempt.Time == "" {
-		logger.Warning("UserLoginNotify failed, invalid info!")
+	// Forward to Discord independently of Telegram's running state.
+	go (&service.DiscordService{}).SendLoginNotify(
+		attempt.Username,
+		attempt.IP,
+		attempt.Time,
+		attempt.Reason,
+		attempt.Status == LoginSuccess,
+	)
+
+	if !t.IsRunning() {
 		return
 	}
 

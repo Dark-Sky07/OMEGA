@@ -57,6 +57,11 @@ var defaultValueMap = map[string]string{
 	"tgBotUserReport":             "false",
 	"tgCpu":                       "80",
 	"tgLang":                      "en-US",
+	"discordEnable":               "false",
+	"discordWebhookURL":           "",
+	"discordBotToken":             "",
+	"discordChannelId":            "",
+	"discordLoginNotify":          "true",
 	"twoFactorEnable":             "false",
 	"twoFactorToken":              "",
 	"subEnable":                   "true",
@@ -223,6 +228,8 @@ func (s *SettingService) GetAllSettingView() (*entity.AllSettingView, error) {
 	}
 	view := &entity.AllSettingView{AllSetting: *allSetting}
 	view.HasTgBotToken = secretConfigured(allSetting.TgBotToken)
+	view.HasDiscordBotToken = secretConfigured(allSetting.DiscordBotToken)
+	view.HasDiscordWebhookURL = secretConfigured(allSetting.DiscordWebhookURL)
 	view.HasTwoFactorToken = secretConfigured(allSetting.TwoFactorToken)
 	view.HasLdapPassword = secretConfigured(allSetting.LdapPassword)
 	view.HasWarpSecret = secretConfigured(mustString(s.GetWarp()))
@@ -232,6 +239,8 @@ func (s *SettingService) GetAllSettingView() (*entity.AllSettingView, error) {
 		view.HasApiToken = apiTokenCount > 0
 	}
 	view.TgBotToken = ""
+	view.DiscordBotToken = ""
+	view.DiscordWebhookURL = ""
 	view.TwoFactorToken = ""
 	view.LdapPassword = ""
 	return view, nil
@@ -500,6 +509,26 @@ func (s *SettingService) GetTgBotLoginNotify() (bool, error) {
 // Defaults to false: existing deployments keep exactly their old behavior.
 func (s *SettingService) GetTgBotUserReport() (bool, error) {
 	return s.getBool("tgBotUserReport")
+}
+
+func (s *SettingService) GetDiscordEnable() (bool, error) {
+	return s.getBool("discordEnable")
+}
+
+func (s *SettingService) GetDiscordWebhookURL() (string, error) {
+	return s.getString("discordWebhookURL")
+}
+
+func (s *SettingService) GetDiscordBotToken() (string, error) {
+	return s.getString("discordBotToken")
+}
+
+func (s *SettingService) GetDiscordChannelId() (string, error) {
+	return s.getString("discordChannelId")
+}
+
+func (s *SettingService) GetDiscordLoginNotify() (bool, error) {
+	return s.getBool("discordLoginNotify")
 }
 
 func (s *SettingService) GetTgCpu() (int, error) {
@@ -971,6 +1000,20 @@ func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting) 
 		}
 		allSetting.TgBotToken = value
 	}
+	if strings.TrimSpace(allSetting.DiscordBotToken) == "" {
+		value, err := s.GetDiscordBotToken()
+		if err != nil {
+			return err
+		}
+		allSetting.DiscordBotToken = value
+	}
+	if strings.TrimSpace(allSetting.DiscordWebhookURL) == "" {
+		value, err := s.GetDiscordWebhookURL()
+		if err != nil {
+			return err
+		}
+		allSetting.DiscordWebhookURL = value
+	}
 	if strings.TrimSpace(allSetting.LdapPassword) == "" {
 		value, err := s.GetLdapPassword()
 		if err != nil {
@@ -1003,12 +1046,19 @@ func validateSettingsURLs(allSetting *entity.AllSetting) error {
 		}
 		allSetting.TgBotAPIServer = u
 	}
+	if allSetting.DiscordWebhookURL != "" {
+		u, err := SanitizeHTTPURL(allSetting.DiscordWebhookURL)
+		if err != nil {
+			return common.NewError("discord webhook URL is invalid:", err)
+		}
+		allSetting.DiscordWebhookURL = u
+	}
 	return nil
 }
 
 func (s *SettingService) UpdateSecret(key string, value string) error {
 	switch key {
-	case "tgBotToken", "ldapPassword", "twoFactorToken":
+	case "tgBotToken", "discordBotToken", "discordWebhookURL", "ldapPassword", "twoFactorToken":
 		return s.saveSetting(key, strings.TrimSpace(value))
 	default:
 		return common.NewError("secret key is not replaceable:", key)

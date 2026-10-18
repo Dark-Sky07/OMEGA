@@ -20,6 +20,11 @@ export type transportBits = z.infer<typeof transportBitsSchema>;
 
 export const AllSettingSchema = z.object({
   datepicker: z.string(),
+  discordBotToken: z.string(),
+  discordChannelId: z.string(),
+  discordEnable: z.boolean(),
+  discordLoginNotify: z.boolean(),
+  discordWebhookURL: z.string(),
   expireDiff: z.number().int().min(0),
   externalTrafficInformEnable: z.boolean(),
   externalTrafficInformURI: z.string(),
@@ -112,10 +117,17 @@ export type AllSetting = z.infer<typeof AllSettingSchema>;
 
 export const AllSettingViewSchema = z.object({
   datepicker: z.string(),
+  discordBotToken: z.string(),
+  discordChannelId: z.string(),
+  discordEnable: z.boolean(),
+  discordLoginNotify: z.boolean(),
+  discordWebhookURL: z.string(),
   expireDiff: z.number().int().min(0),
   externalTrafficInformEnable: z.boolean(),
   externalTrafficInformURI: z.string(),
   hasApiToken: z.boolean(),
+  hasDiscordBotToken: z.boolean(),
+  hasDiscordWebhookURL: z.boolean(),
   hasLdapPassword: z.boolean(),
   hasNordSecret: z.boolean(),
   hasTgBotToken: z.boolean(),

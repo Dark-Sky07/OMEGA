@@ -26,6 +26,13 @@ export class AllSetting {
   tgBotUserReport = false;
   tgCpu = 80;
   tgLang = 'en-US';
+  discordEnable = false;
+  discordWebhookURL = '';
+  discordBotToken = '';
+  discordChannelId = '';
+  discordLoginNotify = true;
+  hasDiscordBotToken?: boolean;
+  hasDiscordWebhookURL?: boolean;
   twoFactorEnable = false;
   twoFactorToken = '';
   xrayTemplateConfig = '';

@@ -33,6 +33,22 @@
             "description": "Date picker format",
             "type": "string"
           },
+          "discordBotToken": {
+            "type": "string"
+          },
+          "discordChannelId": {
+            "type": "string"
+          },
+          "discordEnable": {
+            "description": "Discord bot / webhook notifications",
+            "type": "boolean"
+          },
+          "discordLoginNotify": {
+            "type": "boolean"
+          },
+          "discordWebhookURL": {
+            "type": "string"
+          },
           "expireDiff": {
             "description": "Expiration warning threshold in days",
             "minimum": 0,
@@ -387,6 +403,11 @@
         },
         "required": [
           "datepicker",
+          "discordBotToken",
+          "discordChannelId",
+          "discordEnable",
+          "discordLoginNotify",
+          "discordWebhookURL",
           "expireDiff",
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
@@ -484,6 +505,22 @@
             "description": "Date picker format",
             "type": "string"
           },
+          "discordBotToken": {
+            "type": "string"
+          },
+          "discordChannelId": {
+            "type": "string"
+          },
+          "discordEnable": {
+            "description": "Discord bot / webhook notifications",
+            "type": "boolean"
+          },
+          "discordLoginNotify": {
+            "type": "boolean"
+          },
+          "discordWebhookURL": {
+            "type": "string"
+          },
           "expireDiff": {
             "description": "Expiration warning threshold in days",
             "minimum": 0,
@@ -498,6 +535,12 @@
             "type": "string"
           },
           "hasApiToken": {
+            "type": "boolean"
+          },
+          "hasDiscordBotToken": {
+            "type": "boolean"
+          },
+          "hasDiscordWebhookURL": {
             "type": "boolean"
           },
           "hasLdapPassword": {
@@ -856,10 +899,17 @@
         },
         "required": [
           "datepicker",
+          "discordBotToken",
+          "discordChannelId",
+          "discordEnable",
+          "discordLoginNotify",
+          "discordWebhookURL",
           "expireDiff",
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
           "hasApiToken",
+          "hasDiscordBotToken",
+          "hasDiscordWebhookURL",
           "hasLdapPassword",
           "hasNordSecret",
           "hasTgBotToken",
@@ -8417,6 +8467,39 @@
                     "subject": "panel.example.com",
                     "daysLeft": 89
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/discord/test": {
+      "post": {
+        "tags": [
+          "API Tokens"
+        ],
+        "summary": "Send a verification embed to the configured Discord Webhook URL and/or Bot channel.",
+        "operationId": "post_panel_api_setting_discord_test",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true
                 }
               }
             }

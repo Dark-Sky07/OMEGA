@@ -1107,6 +1107,12 @@ export const sections: readonly Section[] = [
         body: '{\n  "domain": "panel.example.com",\n  "mode": "letsencrypt",\n  "applyToPanel": true\n}',
         response: '{\n  "success": true,\n  "obj": {\n    "configured": true,\n    "subject": "panel.example.com",\n    "daysLeft": 89\n  }\n}',
       },
+      {
+        method: 'POST',
+        path: '/panel/api/setting/discord/test',
+        summary: 'Send a verification embed to the configured Discord Webhook URL and/or Bot channel.',
+        response: '{\n  "success": true\n}',
+      },
     ],
   },
 

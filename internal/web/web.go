@@ -345,7 +345,8 @@ func (s *Server) startTask(restartXray bool) {
 	// Make a traffic condition every day, 8:30
 	var entry cron.EntryID
 	isTgbotenabled, err := s.settingService.GetTgbotEnabled()
-	if (err == nil) && (isTgbotenabled) {
+	isDiscordEnabled, _ := s.settingService.GetDiscordEnable()
+	if (err == nil && isTgbotenabled) || isDiscordEnabled {
 		runtime, err := s.settingService.GetTgbotRuntime()
 		if err != nil {
 			logger.Warningf("Add NewStatsNotifyJob: failed to load runtime: %v; using default @daily", err)

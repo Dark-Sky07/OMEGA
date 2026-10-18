@@ -34,6 +34,7 @@ type SettingController struct {
 	apiTokenService panel.ApiTokenService
 	xrayService     service.XrayService
 	certService     service.CertService
+	discordService  service.DiscordService
 }
 
 // NewSettingController creates a new SettingController and initializes its routes.
@@ -59,6 +60,7 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/apiTokens/setEnabled/:id", a.setApiTokenEnabled)
 	g.GET("/cert/status", a.getCertStatus)
 	g.POST("/cert/issue", a.issueCert)
+	g.POST("/discord/test", a.testDiscord)
 }
 
 // getAllSetting retrieves all current settings.
@@ -239,4 +241,8 @@ func (a *SettingController) issueCert(c *gin.Context) {
 		return
 	}
 	jsonObj(c, st, nil)
+}
+
+func (a *SettingController) testDiscord(c *gin.Context) {
+	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), a.discordService.SendTestMessage())
 }

@@ -7,6 +7,22 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Date picker format",
         "type": "string"
       },
+      "discordBotToken": {
+        "type": "string"
+      },
+      "discordChannelId": {
+        "type": "string"
+      },
+      "discordEnable": {
+        "description": "Discord bot / webhook notifications",
+        "type": "boolean"
+      },
+      "discordLoginNotify": {
+        "type": "boolean"
+      },
+      "discordWebhookURL": {
+        "type": "string"
+      },
       "expireDiff": {
         "description": "Expiration warning threshold in days",
         "minimum": 0,
@@ -361,6 +377,11 @@ export const SCHEMAS: Record<string, unknown> = {
     },
     "required": [
       "datepicker",
+      "discordBotToken",
+      "discordChannelId",
+      "discordEnable",
+      "discordLoginNotify",
+      "discordWebhookURL",
       "expireDiff",
       "externalTrafficInformEnable",
       "externalTrafficInformURI",
@@ -458,6 +479,22 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Date picker format",
         "type": "string"
       },
+      "discordBotToken": {
+        "type": "string"
+      },
+      "discordChannelId": {
+        "type": "string"
+      },
+      "discordEnable": {
+        "description": "Discord bot / webhook notifications",
+        "type": "boolean"
+      },
+      "discordLoginNotify": {
+        "type": "boolean"
+      },
+      "discordWebhookURL": {
+        "type": "string"
+      },
       "expireDiff": {
         "description": "Expiration warning threshold in days",
         "minimum": 0,
@@ -472,6 +509,12 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "hasApiToken": {
+        "type": "boolean"
+      },
+      "hasDiscordBotToken": {
+        "type": "boolean"
+      },
+      "hasDiscordWebhookURL": {
         "type": "boolean"
       },
       "hasLdapPassword": {
@@ -830,10 +873,17 @@ export const SCHEMAS: Record<string, unknown> = {
     },
     "required": [
       "datepicker",
+      "discordBotToken",
+      "discordChannelId",
+      "discordEnable",
+      "discordLoginNotify",
+      "discordWebhookURL",
       "expireDiff",
       "externalTrafficInformEnable",
       "externalTrafficInformURI",
       "hasApiToken",
+      "hasDiscordBotToken",
+      "hasDiscordWebhookURL",
       "hasLdapPassword",
       "hasNordSecret",
       "hasTgBotToken",

@@ -1305,7 +1305,22 @@
       "certDomainRequired": "وارد کردن دامنه الزامی است",
       "certEmail": "ایمیل تماس (اختیاری)",
       "certPort80Notice": "پورت ۸۰ باید از اینترنت در دسترس باشد و دامنه به این سرور اشاره کند.",
-      "certIssuedSuccess": "گواهی صادر و روی پنل تنظیم شد"
+      "certIssuedSuccess": "گواهی صادر و روی پنل تنظیم شد",
+      "discordSettings": "ربات دیسکورد",
+      "discordEnable": "فعال‌سازی اعلان‌های دیسکورد",
+      "discordEnableDesc": "ارسال گزارش دوره‌ای مصرف، هشدار رو‌به‌اتمام و اعلان ورود به دیسکورد.",
+      "discordWebhookURL": "آدرس Webhook دیسکورد",
+      "discordWebhookURLDesc": "ساده‌ترین روش: آدرس Webhook کانال دیسکورد را وارد کنید.",
+      "discordBotToken": "توکن ربات دیسکورد (اختیاری)",
+      "discordBotTokenDesc": "روش جایگزین Webhook: توکن ربات از پنل توسعه‌دهندگان دیسکورد.",
+      "discordChannelId": "شناسه کانال دیسکورد (Channel ID)",
+      "discordChannelIdDesc": "شناسه کانال مقصد هنگام استفاده از توکن ربات.",
+      "discordLoginNotify": "اعلان ورود به پنل",
+      "discordLoginNotifyDesc": "ارسال پیام در صورت ورود موفق یا ناموفق به پنل.",
+      "discordTestTitle": "تست اتصال دیسکورد",
+      "discordTestDesc": "ابتدا تنظیمات را ذخیره کنید، سپس پیام تست بفرستید.",
+      "discordTestBtn": "ارسال پیام تست",
+      "discordTestSuccess": "پیام تست به دیسکورد ارسال شد"
     },
     "xray": {
       "title": "پیکربندی ایکس‌ری",
