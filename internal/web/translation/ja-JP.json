@@ -877,7 +877,17 @@
         "bulkAdjusted": "{count} 件のクライアントを調整しました",
         "bulkAdjustedMixed": "{ok} 件調整、{skipped} 件スキップ",
         "delDepleted": "使い切った {count} 件のクライアントを削除しました"
-      }
+      },
+      "userTemplates": "User Plan Templates",
+      "userTemplatesDesc": "Reusable client plan presets (quota, duration, on-hold start, IP/device limits, and default inbounds)",
+      "addTemplate": "Add Template",
+      "templateName": "Template Name",
+      "templateNameRequired": "Template name is required",
+      "applyTemplate": "Apply Plan Template",
+      "selectTemplatePlaceholder": "Select a preset template...",
+      "templateApplied": "Template '{{name}}' applied",
+      "revokeSub": "Revoke & Rotate Subscription Link",
+      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?"
     },
     "groups": {
       "title": "グループ",

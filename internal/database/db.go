@@ -89,6 +89,7 @@ func initModels() error {
 		&model.BotNotifyState{},
 		&model.ClientInvite{},
 		&model.TuicTrafficReceipt{},
+		&model.UserTemplate{},
 	}
 	for _, mdl := range models {
 		if err := db.AutoMigrate(mdl); err != nil {

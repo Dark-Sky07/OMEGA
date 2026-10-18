@@ -930,7 +930,17 @@
         "bulkAdjusted": "{count} کلاینت تنظیم شد",
         "bulkAdjustedMixed": "{ok} تنظیم، {skipped} رد شد",
         "delDepleted": "{count} کلاینت اتمام‌یافته حذف شد"
-      }
+      },
+      "userTemplates": "قالب‌های پلن کاربر (User Templates)",
+      "userTemplatesDesc": "تعریف پلن‌های آماده (حجم، مدت اعتبار، شروع با اولین اتصال، محدودیت IP/دستگاه و اینباندها) برای ساخت سریع کاربر",
+      "addTemplate": "افزودن قالب جدید",
+      "templateName": "نام قالب پلن",
+      "templateNameRequired": "وارد کردن نام قالب الزامی است",
+      "applyTemplate": "اعمال سریع قالب پلن",
+      "selectTemplatePlaceholder": "انتخاب قالب آماده (مثلاً ۵۰ گیگ ۳۰ روزه)...",
+      "templateApplied": "قالب «{{name}}» اعمال شد",
+      "revokeSub": "ابطال و چرخش لینک اشتراک (Revoke Sub)",
+      "revokeSubConfirm": "آیا مطمئن هستید؟ لینک اشتراک فعلی باطل شده و یک توکن جدید جایگزین می‌شود."
     },
     "groups": {
       "title": "گروه‌ها",
