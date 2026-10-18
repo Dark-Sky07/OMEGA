@@ -8,6 +8,7 @@ import { GrpcStreamSettingsSchema } from './grpc';
 import { HttpUpgradeStreamSettingsSchema } from './httpupgrade';
 import { HysteriaStreamSettingsSchema } from './hysteria';
 import { KcpStreamSettingsSchema } from './kcp';
+import { MasqueStreamSettingsSchema } from './masque';
 import { SockoptStreamSettingsSchema } from './sockopt';
 import { TcpStreamSettingsSchema } from './tcp';
 import { WsStreamSettingsSchema } from './ws';
@@ -20,6 +21,7 @@ export * from './grpc';
 export * from './httpupgrade';
 export * from './hysteria';
 export * from './kcp';
+export * from './masque';
 export * from './sockopt';
 export * from './tcp';
 export * from './ws';
@@ -27,7 +29,7 @@ export * from './xdrive';
 export * from './xhttp';
 
 export const NetworkSchema = z.enum([
-  'tcp', 'kcp', 'ws', 'grpc', 'httpupgrade', 'xhttp', 'hysteria', 'xdrive',
+  'tcp', 'kcp', 'ws', 'grpc', 'httpupgrade', 'xhttp', 'hysteria', 'xdrive', 'masque',
 ]);
 export type Network = z.infer<typeof NetworkSchema>;
 
@@ -48,6 +50,7 @@ const TransportNetworkSettingsSchema = z.discriminatedUnion('network', [
   z.object({ network: z.literal('httpupgrade'), httpupgradeSettings: HttpUpgradeStreamSettingsSchema }),
   z.object({ network: z.literal('xhttp'),       xhttpSettings:       XHttpStreamSettingsSchema }),
   z.object({ network: z.literal('hysteria'),    hysteriaSettings:    HysteriaStreamSettingsSchema }),
+  z.object({ network: z.literal('masque'),      masqueSettings:      MasqueStreamSettingsSchema }),
   z.object({
     network: z.literal('xdrive'),
     xdriveSettings: XDriveStreamSettingsSchema,

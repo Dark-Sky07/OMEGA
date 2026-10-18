@@ -3,6 +3,7 @@ import type { InboundSettings } from '@/schemas/protocols/inbound';
 import {
   AmneziawgClientSchema,
   HysteriaClientSchema,
+  MasqueClientSchema,
   ShadowsocksClientSchema,
   TrojanClientSchema,
   VlessClientSchema,
@@ -120,6 +121,8 @@ const NETWORK_SETTINGS_KEY: Record<string, string> = {
   httpupgrade: 'httpupgradeSettings',
   xhttp: 'xhttpSettings',
   hysteria: 'hysteriaSettings',
+  xdrive: 'xdriveSettings',
+  masque: 'masqueSettings',
 };
 
 function healStreamNetworkKey(stream: Record<string, unknown>): void {
@@ -249,6 +252,7 @@ function clientSchemaForProtocol(protocol: string): z.ZodType | null {
     case 'shadowsocks': return ShadowsocksClientSchema;
     case 'hysteria': return HysteriaClientSchema;
     case 'amneziawg': return AmneziawgClientSchema;
+    case 'masque': return MasqueClientSchema;
     default: return null;
   }
 }

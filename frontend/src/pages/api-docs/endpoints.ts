@@ -1157,7 +1157,7 @@ export const sections: readonly Section[] = [
         path: '/panel/api/xray/warp/:action',
         summary: 'Manage Cloudflare Warp integration. The action parameter selects the operation.',
         params: [
-          { name: 'action', in: 'path', type: 'string', desc: 'data — return Warp stats (quota, remaining). del — delete Warp data. config — return current Warp config. reg — register a new Warp endpoint (sends privateKey, publicKey). license — set a Warp+ license key (sends license).' },
+          { name: 'action', in: 'path', type: 'string', desc: 'data — return Warp stats (quota, remaining). del — delete Warp data. config — return current Warp config. reg — register a new Warp endpoint (sends privateKey, publicKey). regMasque — register a separate device enrolled for MASQUE and return its warp key pair, addresses and endpoint. license — set a Warp+ license key (sends license).' },
           { name: 'privateKey', in: 'body (form)', type: 'string', desc: 'Required when action=reg.' },
           { name: 'publicKey', in: 'body (form)', type: 'string', desc: 'Required when action=reg.' },
           { name: 'license', in: 'body (form)', type: 'string', desc: 'Required when action=license.' },

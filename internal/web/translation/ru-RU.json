@@ -666,6 +666,10 @@
           "holeTimeout": "Тайм-аут пропущенного сегмента (мс)",
           "sessionTtl": "TTL сессии (с)",
           "concurrency": "Параллелизм"
+        },
+        "masque": {
+          "addressPool": "Пул адресов",
+          "addressPoolDesc": "Адреса туннелей выдаются из этих префиксов — не более одного IPv4 и одного IPv6."
         }
       },
       "info": {
@@ -1467,7 +1471,10 @@
         "acceptProxyProtocol": "Принимать proxy protocol",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (мс)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (с)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (с)",
+        "masqueWarpDesc": "Подключение к Cloudflare WARP через MASQUE с зарегистрированным ключом ECDSA P-256; host и path по умолчанию указывают на конечную точку Cloudflare.",
+        "masqueWarpPublicKey": "Открытый ключ конечной точки",
+        "masqueWarpAddress": "Адреса туннеля"
       },
       "outbound": {
         "addOutbound": "Создать исходящее подключение",
@@ -1632,7 +1639,9 @@
         "warpPlusData": "WARP+ data",
         "quota": "Квота",
         "usage": "Использование",
-        "addOutbound": "Добавить исходящий"
+        "addOutbound": "Добавить исходящий",
+        "masqueDesc": "Регистрирует отдельное устройство WARP для MASQUE; регистрация WireGuard выше не затрагивается.",
+        "addMasqueOutbound": "Добавить аутбаунд WARP через MASQUE"
       },
       "dns": {
         "enable": "Включить DNS",

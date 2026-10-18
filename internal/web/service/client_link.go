@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -23,6 +24,15 @@ func (s *ClientService) SyncInboundPreservingExisting(tx *gorm.DB, inboundId int
 func (s *ClientService) syncInbound(tx *gorm.DB, inboundId int, clients []model.Client, preserveExisting bool) error {
 	if tx == nil {
 		tx = database.GetDB()
+	}
+
+	var inbound model.Inbound
+	if err := tx.Select("protocol").Where("id = ?", inboundId).Take(&inbound).Error; err == nil && inbound.Protocol == model.MASQUE {
+		for _, client := range clients {
+			if strings.Contains(client.Email, ":") {
+				return fmt.Errorf("MASQUE: client email %q cannot contain \":\"", client.Email)
+			}
+		}
 	}
 
 	if err := tx.Where("inbound_id = ?", inboundId).Delete(&model.ClientInbound{}).Error; err != nil {

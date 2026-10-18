@@ -1605,7 +1605,8 @@
               "tun",
               "mtproto",
               "openvpn",
-              "l2tp"
+              "l2tp",
+              "masque"
             ],
             "example": "vless",
             "type": "string"
@@ -8678,7 +8679,7 @@
             "name": "action",
             "in": "path",
             "required": true,
-            "description": "data — return Warp stats (quota, remaining). del — delete Warp data. config — return current Warp config. reg — register a new Warp endpoint (sends privateKey, publicKey). license — set a Warp+ license key (sends license).",
+            "description": "data — return Warp stats (quota, remaining). del — delete Warp data. config — return current Warp config. reg — register a new Warp endpoint (sends privateKey, publicKey). regMasque — register a separate device enrolled for MASQUE and return its warp key pair, addresses and endpoint. license — set a Warp+ license key (sends license).",
             "schema": {
               "type": "string"
             }

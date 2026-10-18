@@ -169,6 +169,8 @@ func (s *SubJsonService) getConfig(inbound *model.Inbound, client model.Client, 
 			newOutbounds = append(newOutbounds, s.genServer(inbound, streamSettings, client))
 		case "hysteria":
 			newOutbounds = append(newOutbounds, s.genHy(inbound, newStream, client))
+		case "masque":
+			newOutbounds = append(newOutbounds, s.genMasque(inbound, newStream, client))
 		}
 
 		newOutbounds = append(newOutbounds, s.defaultOutbounds...)
@@ -437,6 +439,30 @@ func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any,
 	newStream["network"] = "hysteria"
 	newStream["security"] = "tls"
 
+	outbound.StreamSettings, _ = json.MarshalIndent(newStream, "", "  ")
+
+	result, _ := json.MarshalIndent(outbound, "", "  ")
+	return result
+}
+
+func (s *SubJsonService) genMasque(inbound *model.Inbound, newStream map[string]any, client model.Client) json_util.RawMessage {
+	outbound := Outbound{
+		Protocol: string(inbound.Protocol),
+		Tag:      "proxy",
+		Settings: map[string]any{
+			"address": inbound.Listen,
+			"port":    inbound.Port,
+		},
+	}
+	masqueSettings := map[string]any{"user": client.Email, "pass": client.Password}
+	if server, ok := newStream["masqueSettings"].(map[string]any); ok {
+		if path, ok := server["path"].(string); ok && path != "" {
+			masqueSettings["path"] = path
+		}
+	}
+	newStream["masqueSettings"] = masqueSettings
+	newStream["network"] = "masque"
+	newStream["security"] = "tls"
 	outbound.StreamSettings, _ = json.MarshalIndent(newStream, "", "  ")
 
 	result, _ := json.MarshalIndent(outbound, "", "  ")

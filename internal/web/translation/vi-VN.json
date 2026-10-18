@@ -666,6 +666,10 @@
           "holeTimeout": "Thời gian chờ phân đoạn thiếu (ms)",
           "sessionTtl": "TTL phiên (s)",
           "concurrency": "Số luồng đồng thời"
+        },
+        "masque": {
+          "addressPool": "Dải địa chỉ",
+          "addressPoolDesc": "Địa chỉ đường hầm được cấp từ các tiền tố này — tối đa một IPv4 và một IPv6."
         }
       },
       "info": {
@@ -1467,7 +1471,10 @@
         "acceptProxyProtocol": "Chấp nhận proxy protocol",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)",
+        "masqueWarpDesc": "Kết nối Cloudflare WARP qua MASQUE bằng khóa ECDSA P-256 đã đăng ký; host và path mặc định là endpoint của Cloudflare.",
+        "masqueWarpPublicKey": "Khóa công khai endpoint",
+        "masqueWarpAddress": "Địa chỉ đường hầm"
       },
       "outbound": {
         "addOutbound": "Thêm thư đi",
@@ -1632,7 +1639,9 @@
         "warpPlusData": "Dữ liệu WARP+",
         "quota": "Hạn ngạch",
         "usage": "Sử dụng",
-        "addOutbound": "Thêm outbound"
+        "addOutbound": "Thêm outbound",
+        "masqueDesc": "Đăng ký một thiết bị WARP riêng cho MASQUE; đăng ký WireGuard ở trên không bị ảnh hưởng.",
+        "addMasqueOutbound": "Thêm outbound WARP qua MASQUE"
       },
       "dns": {
         "enable": "Kích hoạt DNS",

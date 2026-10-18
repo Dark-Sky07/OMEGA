@@ -372,7 +372,7 @@ export const InboundSchema = z.object({
   nodeId: z.number().int().nullable().optional(),
   originNodeGuid: z.string().optional(),
   port: z.number().int().min(0).max(65535),
-  protocol: z.enum(['vmess', 'vless', 'trojan', 'shadowsocks', 'wireguard', 'amneziawg', 'hysteria', 'http', 'mixed', 'tunnel', 'tun', 'mtproto', 'openvpn', 'l2tp']),
+  protocol: z.enum(['vmess', 'vless', 'trojan', 'shadowsocks', 'wireguard', 'amneziawg', 'hysteria', 'http', 'mixed', 'tunnel', 'tun', 'mtproto', 'openvpn', 'l2tp', 'masque']),
   remark: z.string(),
   settings: z.unknown(),
   shareAddr: z.string(),

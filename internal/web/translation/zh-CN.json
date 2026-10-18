@@ -666,6 +666,10 @@
           "holeTimeout": "缺失分段超时（毫秒）",
           "sessionTtl": "会话 TTL（秒）",
           "concurrency": "并发数"
+        },
+        "masque": {
+          "addressPool": "地址池",
+          "addressPoolDesc": "隧道地址从这些前缀中分配——最多一个 IPv4 和一个 IPv6。"
         }
       },
       "info": {
@@ -1467,7 +1471,10 @@
         "acceptProxyProtocol": "接受 proxy protocol",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)",
+        "masqueWarpDesc": "使用已注册的 ECDSA P-256 密钥通过 MASQUE 连接 Cloudflare WARP；host 和 path 默认指向 Cloudflare 端点。",
+        "masqueWarpPublicKey": "端点公钥",
+        "masqueWarpAddress": "隧道地址"
       },
       "outbound": {
         "addOutbound": "添加出站",
@@ -1632,7 +1639,9 @@
         "warpPlusData": "WARP+ 数据",
         "quota": "配额",
         "usage": "使用",
-        "addOutbound": "添加出站"
+        "addOutbound": "添加出站",
+        "masqueDesc": "为 MASQUE 单独注册一个 WARP 设备；上方的 WireGuard 注册不受影响。",
+        "addMasqueOutbound": "添加 WARP over MASQUE 出站"
       },
       "dns": {
         "enable": "启用 DNS",

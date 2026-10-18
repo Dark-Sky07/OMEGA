@@ -666,6 +666,10 @@
           "holeTimeout": "Tiempo de espera de segmento perdido (ms)",
           "sessionTtl": "TTL de sesión (s)",
           "concurrency": "Concurrencia"
+        },
+        "masque": {
+          "addressPool": "Pool de direcciones",
+          "addressPoolDesc": "Las direcciones del túnel se asignan de estos prefijos: como máximo uno IPv4 y uno IPv6."
         }
       },
       "info": {
@@ -1467,7 +1471,10 @@
         "acceptProxyProtocol": "Aceptar proxy protocol",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)",
+        "masqueWarpDesc": "Conecta a Cloudflare WARP mediante MASQUE con una clave ECDSA P-256 registrada; host y path usan por defecto el endpoint de Cloudflare.",
+        "masqueWarpPublicKey": "Clave pública del endpoint",
+        "masqueWarpAddress": "Direcciones del túnel"
       },
       "outbound": {
         "addOutbound": "Agregar salida",
@@ -1632,7 +1639,9 @@
         "warpPlusData": "Datos WARP+",
         "quota": "Cuota",
         "usage": "Uso",
-        "addOutbound": "Añadir salida"
+        "addOutbound": "Añadir salida",
+        "masqueDesc": "Registra un dispositivo WARP aparte inscrito para MASQUE; el registro de WireGuard de arriba no se ve afectado.",
+        "addMasqueOutbound": "Añadir outbound de WARP sobre MASQUE"
       },
       "dns": {
         "enable": "Habilitar DNS",
