@@ -76,6 +76,8 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 	api.Use(middleware.CSRFMiddleware())
 	// Reseller (نمایندگی) sessions are confined to their own slice of the API.
 	api.Use(middleware.ResellerGuard())
+	// Multi-admin RBAC enforcement for secondary admin accounts.
+	api.Use(middleware.AdminRBACGuard())
 
 	// Inbounds API
 	inbounds := api.Group("/inbounds")

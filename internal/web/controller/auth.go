@@ -53,12 +53,16 @@ func (a *AuthController) me(c *gin.Context) {
 		return
 	}
 	username := user.Username
-	if first, err := a.userService.GetFirstUser(); err == nil && first != nil {
-		username = first.Username
+	if username == "" {
+		if first, err := a.userService.GetFirstUser(); err == nil && first != nil {
+			username = first.Username
+		}
 	}
 	jsonObj(c, gin.H{
-		"role":     "admin",
-		"username": username,
-		"name":     username,
+		"role":        "admin",
+		"adminRole":   panel.EffectiveAdminRole(user),
+		"permissions": panel.EffectiveAdminPermissions(user),
+		"username":    username,
+		"name":        username,
 	}, nil)
 }

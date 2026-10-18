@@ -61,6 +61,10 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.GET("/cert/status", a.getCertStatus)
 	g.POST("/cert/issue", a.issueCert)
 	g.POST("/discord/test", a.testDiscord)
+	g.GET("/admins", a.listAdmins)
+	g.POST("/admins/create", a.createAdmin)
+	g.POST("/admins/update/:id", a.updateAdmin)
+	g.POST("/admins/delete/:id", a.deleteAdmin)
 }
 
 // getAllSetting retrieves all current settings.
@@ -246,3 +250,89 @@ func (a *SettingController) issueCert(c *gin.Context) {
 func (a *SettingController) testDiscord(c *gin.Context) {
 	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), a.discordService.SendTestMessage())
 }
+
+type adminForm struct {
+	Username    string   `json:"username" form:"username"`
+	Password    string   `json:"password" form:"password"`
+	Role        string   `json:"role" form:"role"`
+	Permissions []string `json:"permissions" form:"permissions"`
+	Note        string   `json:"note" form:"note"`
+	Disabled    bool     `json:"disabled" form:"disabled"`
+}
+
+func (a *SettingController) ensureSuperAdmin(c *gin.Context) bool {
+	if c.GetBool("api_authed") {
+		return true
+	}
+	user := session.GetLoginUser(c)
+	if !panel.IsSuperAdmin(user) {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), errors.New("superadmin permission required"))
+		return false
+	}
+	return true
+}
+
+func (a *SettingController) listAdmins(c *gin.Context) {
+	admins, err := a.userService.ListAdmins()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
+		return
+	}
+	jsonObj(c, admins, nil)
+}
+
+func (a *SettingController) createAdmin(c *gin.Context) {
+	if !a.ensureSuperAdmin(c) {
+		return
+	}
+	var form adminForm
+	if err := c.ShouldBindJSON(&form); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+		return
+	}
+	created, err := a.userService.CreateAdmin(form.Username, form.Password, form.Role, form.Permissions, form.Note)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+		return
+	}
+	jsonObj(c, created, nil)
+}
+
+func (a *SettingController) updateAdmin(c *gin.Context) {
+	if !a.ensureSuperAdmin(c) {
+		return
+	}
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), errors.New("invalid admin id"))
+		return
+	}
+	var form adminForm
+	if err := c.ShouldBindJSON(&form); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+		return
+	}
+	updated, err := a.userService.UpdateAdmin(id, form.Username, form.Password, form.Role, form.Permissions, form.Note, form.Disabled)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+		return
+	}
+	jsonObj(c, updated, nil)
+}
+
+func (a *SettingController) deleteAdmin(c *gin.Context) {
+	if !a.ensureSuperAdmin(c) {
+		return
+	}
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), errors.New("invalid admin id"))
+		return
+	}
+	callerId := 0
+	if u := session.GetLoginUser(c); u != nil {
+		callerId = u.Id
+	}
+	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), a.userService.DeleteAdmin(id, callerId))
+}
+

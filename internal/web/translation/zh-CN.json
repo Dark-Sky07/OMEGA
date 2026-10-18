@@ -1263,7 +1263,21 @@
         "apiTokenExpireDaysDesc": "0 means never expires.",
         "apiTokenExpires": "Expires",
         "apiTokenExpired": "Expired",
-        "apiTokenLastUsed": "Last used"
+        "apiTokenLastUsed": "Last used",
+        "multiAdminTitle": "Admins & RBAC",
+        "multiAdminDesc": "Create secondary admin accounts with granular RBAC roles (Superadmin, Custom Admin, Support, or Read-only Viewer).",
+        "addAdmin": "Add Admin",
+        "editAdmin": "Edit Admin Account",
+        "adminRole": "Role",
+        "adminModules": "Allowed Modules",
+        "role_superadmin": "Superadmin (Full Access)",
+        "role_admin": "Custom Admin (Selected Modules)",
+        "role_support": "Support (Clients Read/Write + Inbounds Read)",
+        "role_viewer": "Viewer (Read-only Auditor)",
+        "lastLogin": "Last login",
+        "adminUsernameRequired": "Username is required",
+        "adminPasswordMin": "Password must be at least 4 characters",
+        "adminPasswordLeaveBlank": "Leave blank to keep existing password"
       },
       "toasts": {
         "modifySettings": "参数已更改。",
