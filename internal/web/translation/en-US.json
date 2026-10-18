@@ -2140,7 +2140,16 @@
       "clientUnassigned": "Client unassigned",
       "passwordChanged": "Password changed"
     },
-    "emptyInbounds": "No inbounds available"
+    "emptyInbounds": "No inbounds available",
+    "supportTickets": "Support Tickets",
+    "paymentOrders": "Payment Webhook Orders",
+    "ticketsDesc": "Direct support communication between Resellers and Panel Admins",
+    "newTicket": "New Ticket",
+    "ticketSubject": "Subject",
+    "ticketPriority": "Priority",
+    "ticketMessage": "Message",
+    "ticketReplyPlaceholder": "Write a reply...",
+    "ticketSubjectAndMessageRequired": "Subject and message are required"
   },
   "commandPalette": {
     "open": "Quick search",

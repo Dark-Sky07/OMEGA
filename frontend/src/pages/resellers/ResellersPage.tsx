@@ -34,6 +34,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import {
   AccountBookOutlined,
+  CustomerServiceOutlined,
   DeleteOutlined,
   EditOutlined,
   ExportOutlined,
@@ -53,6 +54,7 @@ import { useTheme } from '@/hooks/useTheme';
 import type { ResellerReport, ResellerStat } from '@/api/queries/useSession';
 import { PageHeader } from '@/components/ui';
 import ResellersOverview from './ResellersOverview';
+import SupportTicketsModal from './SupportTicketsModal';
 import './ResellersPage.css';
 
 const GB = 1024 * 1024 * 1024;
@@ -94,6 +96,7 @@ export default function ResellersPage() {
   }, [messageApi]);
 
   const [formOpen, setFormOpen] = useState(false);
+  const [ticketsOpen, setTicketsOpen] = useState(false);
   const [view, setView] = useState<'manage' | 'overview'>('manage');
   const [editing, setEditing] = useState<ResellerStat | null>(null);
   const [passwordFor, setPasswordFor] = useState<ResellerStat | null>(null);
@@ -517,6 +520,9 @@ export default function ResellersPage() {
                       { label: t('resellers.overview'), value: 'overview' },
                     ]}
                   />
+                  <Button icon={<CustomerServiceOutlined />} onClick={() => setTicketsOpen(true)}>
+                    {!isMobile && (t('resellers.supportTickets') || 'Support Tickets')}
+                  </Button>
                   <Button icon={<ReloadOutlined />} onClick={() => refreshAll()} loading={listQuery.isFetching}>
                     {!isMobile && t('refresh')}
                   </Button>
@@ -548,6 +554,12 @@ export default function ResellersPage() {
                 />
               </Card>
             )}
+
+            <SupportTicketsModal
+              open={ticketsOpen}
+              mode="admin"
+              onOpenChange={setTicketsOpen}
+            />
 
             <Modal
               open={formOpen}

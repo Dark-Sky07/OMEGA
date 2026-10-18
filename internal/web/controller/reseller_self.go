@@ -3,6 +3,7 @@ package controller
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -21,6 +22,7 @@ import (
 type ResellerSelfController struct {
 	BaseController
 	resellerService service.ResellerService
+	ticketService   service.TicketService
 }
 
 // NewResellerSelfController wires the reseller self-service routes.
@@ -35,6 +37,11 @@ func (a *ResellerSelfController) initRouter(g *gin.RouterGroup) {
 	g.GET("/stats", a.stats)
 	g.GET("/report", a.report)
 	g.POST("/password", a.changePassword)
+	g.GET("/tickets", a.listTickets)
+	g.GET("/tickets/:id", a.getTicket)
+	g.POST("/tickets/create", a.createTicket)
+	g.POST("/tickets/:id/reply", a.replyTicket)
+	g.POST("/tickets/:id/close", a.closeTicket)
 }
 
 // currentReseller returns the reseller bound to the request, or nil for admin
@@ -117,3 +124,98 @@ func (a *ResellerSelfController) changePassword(c *gin.Context) {
 	_ = session.ClearSession(c)
 	jsonObj(c, nil, nil)
 }
+
+func (a *ResellerSelfController) listTickets(c *gin.Context) {
+	reseller := a.currentReseller(c)
+	if reseller == nil {
+		return
+	}
+	rows, err := a.ticketService.ListForReseller(reseller.Id)
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, rows, nil)
+}
+
+func (a *ResellerSelfController) getTicket(c *gin.Context) {
+	reseller := a.currentReseller(c)
+	if reseller == nil {
+		return
+	}
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		jsonMsg(c, "", errors.New("invalid ticket id"))
+		return
+	}
+	t, msgs, err := a.ticketService.GetTicketWithMessages(id, reseller.Id)
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, gin.H{
+		"ticket":   t,
+		"messages": msgs,
+	}, nil)
+}
+
+func (a *ResellerSelfController) createTicket(c *gin.Context) {
+	reseller := a.currentReseller(c)
+	if reseller == nil {
+		return
+	}
+	var form struct {
+		Subject  string `json:"subject"`
+		Priority string `json:"priority"`
+		Message  string `json:"message"`
+	}
+	if err := c.ShouldBindJSON(&form); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	created, err := a.ticketService.CreateTicket(reseller, form.Subject, form.Priority, form.Message)
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, created, nil)
+}
+
+func (a *ResellerSelfController) replyTicket(c *gin.Context) {
+	reseller := a.currentReseller(c)
+	if reseller == nil {
+		return
+	}
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		jsonMsg(c, "", errors.New("invalid ticket id"))
+		return
+	}
+	var form struct {
+		Message string `json:"message"`
+	}
+	if err := c.ShouldBindJSON(&form); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	msg, err := a.ticketService.ReplyTicket(id, "reseller", reseller.Username, form.Message, reseller.Id)
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, msg, nil)
+}
+
+func (a *ResellerSelfController) closeTicket(c *gin.Context) {
+	reseller := a.currentReseller(c)
+	if reseller == nil {
+		return
+	}
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		jsonMsg(c, "", errors.New("invalid ticket id"))
+		return
+	}
+	jsonMsg(c, "", a.ticketService.CloseTicket(id, reseller.Id))
+}
+

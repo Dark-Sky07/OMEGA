@@ -233,6 +233,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	g.GET("/panel/api/openapi.json", controller.ServeOpenAPISpec)
 	g.GET("/manifest.webmanifest", controller.ServePWAManifest)
 	g.GET("/sw.js", controller.ServePWAServiceWorker)
+	g.POST("/api/payment/webhook", controller.HandlePublicPaymentWebhook)
 	s.api = controller.NewAPIController(g)
 
 	// Initialize WebSocket hub
