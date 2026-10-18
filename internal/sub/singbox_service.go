@@ -93,7 +93,9 @@ func (s *SubSingboxService) getOutbounds(inbound *model.Inbound, client model.Cl
 
 	externalProxies, ok := stream["externalProxy"].([]any)
 	hasExternalProxy := ok && len(externalProxies) > 0
-	if !hasExternalProxy {
+	if hasExternalProxy {
+		externalProxies = resolveSmartExternalProxyList(externalProxies, inbound, client.Email)
+	} else {
 		externalProxies = []any{
 			map[string]any{
 				"forceTls": "same",

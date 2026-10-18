@@ -18,7 +18,7 @@ import {
   Tooltip,
   message,
 } from 'antd';
-import { EyeOutlined, ReloadOutlined, RetweetOutlined } from '@ant-design/icons';
+import { EyeOutlined, ReloadOutlined, RetweetOutlined, SettingOutlined, DisconnectOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { HttpUtil, RandomUtil } from '@/utils';
@@ -26,6 +26,8 @@ import { formatInboundLabel } from '@/lib/inbounds/label';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
 import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
+import { useUserTemplates, type UserTemplate } from '@/hooks/useUserTemplates';
+import UserTemplatesModal from './UserTemplatesModal';
 import { ClientFormSchema, ClientCreateFormSchema } from '@/schemas/client';
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
@@ -211,6 +213,59 @@ export default function ClientFormModal({
   const [ipsLoading, setIpsLoading] = useState(false);
   const [ipsClearing, setIpsClearing] = useState(false);
   const [ipsModalOpen, setIpsModalOpen] = useState(false);
+  const [revokingSub, setRevokingSub] = useState(false);
+  const [templatesModalOpen, setTemplatesModalOpen] = useState(false);
+  const { templates, reload: reloadTemplates } = useUserTemplates(open);
+
+  function applyTemplate(tplId: number) {
+    const tpl = templates.find((item) => item.id === tplId);
+    if (!tpl) return;
+    setForm((prev) => {
+      const next = { ...prev };
+      next.totalGB = bytesToGB(tpl.totalGB || 0);
+      next.limitIp = tpl.limitIp || 0;
+      next.limitDevice = tpl.limitDevice || 0;
+      next.reset = tpl.reset || 0;
+      next.renewalMode = tpl.renewalMode || 0;
+      next.renewalDay = tpl.renewalDay || 0;
+      if (tpl.group) next.group = tpl.group;
+      if (tpl.delayedStart) {
+        next.delayedStart = true;
+        next.delayedDays = tpl.expireDurationDays || 0;
+        next.expiryDate = null;
+        next.activateBefore =
+          tpl.activateBeforeDays > 0 ? dayjs().add(tpl.activateBeforeDays, 'day') : null;
+      } else {
+        next.delayedStart = false;
+        next.delayedDays = 0;
+        next.expiryDate =
+          tpl.expireDurationDays > 0 ? dayjs().add(tpl.expireDurationDays, 'day') : null;
+        next.activateBefore = null;
+      }
+      if (!isEdit && Array.isArray(tpl.inboundIds) && tpl.inboundIds.length > 0) {
+        const validSet = new Set((inbounds || []).map((ib) => ib.id));
+        next.inboundIds = tpl.inboundIds.filter((id) => validSet.has(id));
+      }
+      return next;
+    });
+    messageApi.success(t('pages.clients.templateApplied', { name: tpl.name }));
+  }
+
+  async function onRevokeSub() {
+    if (!isEdit || !client?.email) return;
+    setRevokingSub(true);
+    try {
+      const msg = await HttpUtil.post(
+        `/panel/api/clients/revokeSub/${encodeURIComponent(client.email)}`,
+      );
+      if (msg?.success && msg.obj && typeof (msg.obj as { subId?: string }).subId === 'string') {
+        const newSubId = (msg.obj as { subId: string }).subId;
+        update('subId', newSubId);
+      }
+    } finally {
+      setRevokingSub(false);
+    }
+  }
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -584,6 +639,32 @@ export default function ClientFormModal({
                 children: (
                   <>
                     <Row gutter={16}>
+                      <Col xs={24}>
+                        <Form.Item label={t('pages.clients.applyTemplate')}>
+                          <Space.Compact style={{ display: 'flex' }}>
+                            <Select
+                              allowClear
+                              placeholder={t('pages.clients.selectTemplatePlaceholder')}
+                              style={{ flex: 1 }}
+                              options={templates.map((tpl) => ({
+                                value: tpl.id,
+                                label: tpl.name,
+                              }))}
+                              onChange={(val) => {
+                                if (typeof val === 'number') applyTemplate(val);
+                              }}
+                            />
+                            <Tooltip title={t('pages.clients.userTemplates')}>
+                              <Button
+                                icon={<SettingOutlined />}
+                                onClick={() => setTemplatesModalOpen(true)}
+                              />
+                            </Tooltip>
+                          </Space.Compact>
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                    <Row gutter={16}>
                       <Col xs={24} md={12}>
                         <Form.Item label={t('pages.clients.email')} required>
                           <Space.Compact style={{ display: 'flex' }}>
@@ -817,6 +898,23 @@ export default function ClientFormModal({
                           <Space.Compact style={{ display: 'flex' }}>
                             <Input value={form.subId} style={{ flex: 1 }} onChange={(e) => update('subId', e.target.value)} />
                             <Button icon={<ReloadOutlined />} onClick={() => update('subId', RandomUtil.randomLowerAndNum(16))} />
+                            {isEdit && (
+                              <Popconfirm
+                                title={t('pages.clients.revokeSubConfirm')}
+                                okText={t('confirm')}
+                                cancelText={t('cancel')}
+                                zIndex={CLIENT_IP_LOG_MODAL_Z_INDEX}
+                                onConfirm={onRevokeSub}
+                              >
+                                <Tooltip title={t('pages.clients.revokeSub')}>
+                                  <Button
+                                    danger
+                                    icon={<DisconnectOutlined />}
+                                    loading={revokingSub}
+                                  />
+                                </Tooltip>
+                              </Popconfirm>
+                            )}
                           </Space.Compact>
                         </Form.Item>
                       </Col>
@@ -990,6 +1088,14 @@ export default function ClientFormModal({
           <Tag>{t('tgbot.noIpRecord')}</Tag>
         )}
       </Modal>
+
+      <UserTemplatesModal
+        open={templatesModalOpen}
+        inbounds={inbounds}
+        groups={groups}
+        onOpenChange={setTemplatesModalOpen}
+        onChanged={reloadTemplates}
+      />
     </>
   );
 }

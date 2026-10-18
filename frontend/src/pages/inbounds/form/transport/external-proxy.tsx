@@ -95,7 +95,7 @@ export default function ExternalProxyForm({
                               </Field>
                               <Field label={t('pages.inbounds.address')}>
                                 <Form.Item name={[field.name, 'dest']} noStyle>
-                                  <Input placeholder={t('pages.inbounds.address')} />
+                                  <Input placeholder="cdn1.example.com, *.example.com" />
                                 </Form.Item>
                               </Field>
                               <Field label={t('pages.inbounds.port')}>
@@ -126,7 +126,7 @@ export default function ExternalProxyForm({
                                     <div className="ext-proxy-grid ext-proxy-grid--tls">
                                       <Field label="SNI">
                                         <Form.Item name={[field.name, 'sni']} noStyle>
-                                          <Input placeholder={t('pages.inbounds.form.serverNameIndication')} />
+                                          <Input placeholder="*.example.com / {USERNAME}.example.com" />
                                         </Form.Item>
                                       </Field>
                                       <Field label={t('pages.inbounds.form.fingerprint')}>

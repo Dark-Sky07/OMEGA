@@ -1245,6 +1245,93 @@ export interface GenAllLinksInput {
   fallbackHostname: string;
 }
 
+function randomSalt6(): string {
+  const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
+  let out = '';
+  for (let i = 0; i < 6; i++) {
+    out += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return out;
+}
+
+function splitSmartPool(raw: string): string[] {
+  if (!raw.includes(',') && !raw.includes('\n')) {
+    const trimmed = raw.trim();
+    return trimmed ? [trimmed] : [];
+  }
+  return raw
+    .split(/[,\r\n]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function applySmartTemplates(
+  val: string,
+  inbound: Inbound,
+  email: string,
+  salt: string,
+): string {
+  if (!val) return '';
+  let out = val;
+  if (out.startsWith('*.')) {
+    out = `${salt}${out.slice(1)}`;
+  }
+  if (!out.includes('{')) return out;
+  return out
+    .replaceAll('{USERNAME}', email)
+    .replaceAll('{EMAIL}', email)
+    .replaceAll('{PROTOCOL}', String(inbound.protocol ?? ''))
+    .replaceAll('{PORT}', String(inbound.port ?? ''))
+    .replaceAll('{REMARK}', String(inbound.remark ?? ''))
+    .replaceAll('{RAND}', salt);
+}
+
+export function resolveSmartExternalProxy(
+  ep: ExternalProxyEntry,
+  inbound: Inbound,
+  email: string,
+): ExternalProxyEntry {
+  const destRaw = ep.dest ?? '';
+  const sniRaw = ep.sni ?? '';
+  const remarkRaw = ep.remark ?? '';
+  const isDynamic =
+    destRaw.includes(',') ||
+    destRaw.includes('\n') ||
+    destRaw.includes('*.') ||
+    destRaw.includes('{') ||
+    sniRaw.includes(',') ||
+    sniRaw.includes('\n') ||
+    sniRaw.includes('*.') ||
+    sniRaw.includes('{') ||
+    remarkRaw.includes('{');
+  if (!isDynamic) return ep;
+
+  const destPool = splitSmartPool(destRaw);
+  const sniPool = splitSmartPool(sniRaw);
+  const maxPool = Math.max(destPool.length, sniPool.length);
+  const idx = maxPool > 1 ? Math.floor(Math.random() * maxPool) : 0;
+  const salt = randomSalt6();
+
+  const resolvedDest =
+    destPool.length > 0
+      ? applySmartTemplates(destPool[idx % destPool.length], inbound, email, salt)
+      : destRaw;
+  const resolvedSni =
+    sniPool.length > 0
+      ? applySmartTemplates(sniPool[idx % sniPool.length], inbound, email, salt)
+      : sniRaw;
+  const resolvedRemark = remarkRaw.includes('{')
+    ? applySmartTemplates(remarkRaw, inbound, email, salt)
+    : remarkRaw;
+
+  return {
+    ...ep,
+    dest: resolvedDest,
+    sni: resolvedSni,
+    remark: resolvedRemark,
+  };
+}
+
 // Fans out a single client's link per externalProxy entry, or just one
 // link when there are no external proxies. remarkModel is a 4-char
 // string: first char is the separator, remaining chars pick which
@@ -1280,7 +1367,8 @@ export function genAllLinks(input: GenAllLinksInput): GenAllLinksEntry[] {
     const r = composeRemark('');
     return [{ remark: r, link: genLink({ inbound, address: addr, port, forceTls: 'same', remark: r, client }) }];
   }
-  return externals.map((ep) => {
+  return externals.map((rawEp) => {
+    const ep = resolveSmartExternalProxy(rawEp, inbound, email);
     const r = composeRemark(ep.remark);
     return {
       remark: r,
