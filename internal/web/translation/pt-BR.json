@@ -1826,5 +1826,17 @@
       "chooseClient": "Escolha um cliente para Inbound {{ .Inbound }}",
       "chooseInbound": "Escolha um Inbound"
     }
+  },
+  "commandPalette": {
+    "open": "Quick search",
+    "placeholder": "Jump to page, search client email / subId, or run an action…",
+    "empty": "No matching pages, clients, or actions.",
+    "groupPages": "Pages",
+    "groupClients": "Clients",
+    "groupInbounds": "Inbounds",
+    "groupActions": "Quick actions",
+    "toggleTheme": "Toggle dark / light theme",
+    "hintNavigate": "navigate",
+    "hintSelect": "select"
   }
 }

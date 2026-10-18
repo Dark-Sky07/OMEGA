@@ -1985,5 +1985,17 @@
       "passwordChanged": "رمز عبور تغییر کرد"
     },
     "emptyInbounds": "اینباندی وجود ندارد"
+  },
+  "commandPalette": {
+    "open": "جستجوی سریع",
+    "placeholder": "پرش به صفحه، جستجوی ایمیل/شناسه اشتراک کلاینت، یا اجرای عملیات…",
+    "empty": "موردی یافت نشد.",
+    "groupPages": "صفحه‌ها",
+    "groupClients": "کاربران",
+    "groupInbounds": "ورودی‌ها",
+    "groupActions": "عملیات سریع",
+    "toggleTheme": "تغییر پوسته تیره / روشن",
+    "hintNavigate": "جابه‌جایی",
+    "hintSelect": "انتخاب"
   }
 }
