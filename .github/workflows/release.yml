@@ -86,11 +86,21 @@ jobs:
           esac
           echo "Resolving Bootlin musl toolchain for arch=$BOOTLIN_ARCH (platform=${{ matrix.platform }})"
           TARBALL_BASE="https://toolchains.bootlin.com/downloads/releases/toolchains/$BOOTLIN_ARCH/tarballs/"
-          TARBALL_URL=$(curl -fsSL "$TARBALL_BASE" | grep -oE "${BOOTLIN_ARCH}--musl--stable-[^\"]+\\.tar\\.xz" | sort -r | head -n1)
+          TARBALL_URL=""
+          for attempt in 1 2 3 4 5; do
+            TARBALL_URL=$(curl -fsSL "$TARBALL_BASE" | grep -oE "${BOOTLIN_ARCH}--musl--stable-[^\"]+\\.tar\\.xz" | sort -r | head -n1) || true
+            [ -n "$TARBALL_URL" ] && break
+            echo "Bootlin listing failed (attempt $attempt), retrying..."
+            sleep $((5 * attempt))
+          done
           [ -z "$TARBALL_URL" ] && { echo "Failed to locate Bootlin musl toolchain for arch=$BOOTLIN_ARCH" >&2; exit 1; }
           echo "Downloading: $TARBALL_URL"
           cd /tmp
-          curl -fL -sS -o "$(basename "$TARBALL_URL")" "$TARBALL_BASE/$TARBALL_URL"
+          for attempt in 1 2 3 4 5; do
+            curl -fL -sS -o "$(basename "$TARBALL_URL")" "$TARBALL_BASE/$TARBALL_URL" && break
+            echo "Bootlin download failed (attempt $attempt), retrying..."
+            sleep $((5 * attempt))
+          done
           tar -xf "$(basename "$TARBALL_URL")"
           TOOLCHAIN_DIR=$(find . -maxdepth 1 -type d -name "${BOOTLIN_ARCH}--musl--stable-*" | head -n1)
           export PATH="$(realpath "$TOOLCHAIN_DIR")/bin:$PATH"
@@ -106,7 +116,12 @@ jobs:
             PANEL_LDFLAGS="$PANEL_LDFLAGS -X github.com/mhsanaei/3x-ui/v3/internal/config.version=$PANEL_VERSION"
           fi
           echo "Building panel version ${PANEL_VERSION:-embedded default}"
-          go build -ldflags "$PANEL_LDFLAGS" -o xui-release -v main.go
+          for attempt in 1 2 3; do
+            go build -ldflags "$PANEL_LDFLAGS" -o xui-release -v main.go && break
+            echo "go build failed (attempt $attempt), retrying..."
+            sleep $((10 * attempt))
+          done
+          [ -f xui-release ] || { echo "go build did not produce xui-release" >&2; exit 1; }
           file xui-release
           ldd xui-release || echo "Static binary confirmed"
 
@@ -126,37 +141,37 @@ jobs:
           echo "Using latest Xray-core ${XRAY_VERSION}"
           Xray_URL="https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/"
           if [ "${{ matrix.platform }}" == "amd64" ]; then
-            wget -q ${Xray_URL}Xray-linux-64.zip
+            wget -q --tries=5 --waitretry=5 ${Xray_URL}Xray-linux-64.zip
             unzip Xray-linux-64.zip
             rm -f Xray-linux-64.zip
           elif [ "${{ matrix.platform }}" == "arm64" ]; then
-            wget -q ${Xray_URL}Xray-linux-arm64-v8a.zip
+            wget -q --tries=5 --waitretry=5 ${Xray_URL}Xray-linux-arm64-v8a.zip
             unzip Xray-linux-arm64-v8a.zip
             rm -f Xray-linux-arm64-v8a.zip
           elif [ "${{ matrix.platform }}" == "armv7" ]; then
-            wget -q ${Xray_URL}Xray-linux-arm32-v7a.zip
+            wget -q --tries=5 --waitretry=5 ${Xray_URL}Xray-linux-arm32-v7a.zip
             unzip Xray-linux-arm32-v7a.zip
             rm -f Xray-linux-arm32-v7a.zip
           elif [ "${{ matrix.platform }}" == "armv6" ]; then
-            wget -q ${Xray_URL}Xray-linux-arm32-v6.zip
+            wget -q --tries=5 --waitretry=5 ${Xray_URL}Xray-linux-arm32-v6.zip
             unzip Xray-linux-arm32-v6.zip
             rm -f Xray-linux-arm32-v6.zip
           elif [ "${{ matrix.platform }}" == "386" ]; then
-            wget -q ${Xray_URL}Xray-linux-32.zip
+            wget -q --tries=5 --waitretry=5 ${Xray_URL}Xray-linux-32.zip
             unzip Xray-linux-32.zip
             rm -f Xray-linux-32.zip
           elif [ "${{ matrix.platform }}" == "armv5" ]; then
-            wget -q ${Xray_URL}Xray-linux-arm32-v5.zip
+            wget -q --tries=5 --waitretry=5 ${Xray_URL}Xray-linux-arm32-v5.zip
             unzip Xray-linux-arm32-v5.zip
             rm -f Xray-linux-arm32-v5.zip
           elif [ "${{ matrix.platform }}" == "s390x" ]; then
-            wget -q ${Xray_URL}Xray-linux-s390x.zip
+            wget -q --tries=5 --waitretry=5 ${Xray_URL}Xray-linux-s390x.zip
             unzip Xray-linux-s390x.zip
             rm -f Xray-linux-s390x.zip
           fi
           rm -f geoip.dat geosite.dat
-          wget -q https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
-          wget -q https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
+          wget -q --tries=5 --waitretry=5 https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
+          wget -q --tries=5 --waitretry=5 https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
           wget -q -O geoip_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
           wget -q -O geosite_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
           wget -q -O geoip_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
@@ -311,21 +326,32 @@ jobs:
           }
           $Xray_URL = "https://github.com/XTLS/Xray-core/releases/download/$xrayVersion/"
           Write-Host "Using latest Xray-core $xrayVersion"
-          Invoke-WebRequest -Uri "${Xray_URL}Xray-windows-64.zip" -OutFile "Xray-windows-64.zip" -MaximumRetryCount 5 -RetryIntervalSec 5
-          Expand-Archive -Path "Xray-windows-64.zip" -DestinationPath .
-          Remove-Item "Xray-windows-64.zip"
+          $xrayOk = $false
+          for ($attempt = 1; $attempt -le 8 -and -not $xrayOk; $attempt++) {
+            try {
+              Invoke-WebRequest -Uri "${Xray_URL}Xray-windows-64.zip" -OutFile "Xray-windows-64.zip" -MaximumRetryCount 2 -RetryIntervalSec 5
+              Expand-Archive -Path "Xray-windows-64.zip" -DestinationPath . -Force
+              $xrayOk = $true
+            } catch {
+              Write-Host "Xray download/extract failed (attempt $attempt): $($_.Exception.Message)"
+              Remove-Item "Xray-windows-64.zip" -ErrorAction SilentlyContinue
+              Start-Sleep -Seconds (5 * $attempt)
+            }
+          }
+          if (-not $xrayOk) { throw "Could not fetch and extract Xray-windows-64.zip after 8 attempts" }
+          Remove-Item "Xray-windows-64.zip" -ErrorAction SilentlyContinue
           Remove-Item geoip.dat, geosite.dat -ErrorAction SilentlyContinue
-          Invoke-WebRequest -Uri "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat" -OutFile "geoip.dat" -MaximumRetryCount 5 -RetryIntervalSec 5
-          Invoke-WebRequest -Uri "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat" -OutFile "geosite.dat" -MaximumRetryCount 5 -RetryIntervalSec 5
-          Invoke-WebRequest -Uri "https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat" -OutFile "geoip_IR.dat" -MaximumRetryCount 5 -RetryIntervalSec 5
-          Invoke-WebRequest -Uri "https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat" -OutFile "geosite_IR.dat" -MaximumRetryCount 5 -RetryIntervalSec 5
-          Invoke-WebRequest -Uri "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat" -OutFile "geoip_RU.dat" -MaximumRetryCount 5 -RetryIntervalSec 5
-          Invoke-WebRequest -Uri "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat" -OutFile "geosite_RU.dat" -MaximumRetryCount 5 -RetryIntervalSec 5
+          Invoke-WebRequest -Uri "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat" -OutFile "geoip.dat" -MaximumRetryCount 10 -RetryIntervalSec 10
+          Invoke-WebRequest -Uri "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat" -OutFile "geosite.dat" -MaximumRetryCount 10 -RetryIntervalSec 10
+          Invoke-WebRequest -Uri "https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat" -OutFile "geoip_IR.dat" -MaximumRetryCount 10 -RetryIntervalSec 10
+          Invoke-WebRequest -Uri "https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat" -OutFile "geosite_IR.dat" -MaximumRetryCount 10 -RetryIntervalSec 10
+          Invoke-WebRequest -Uri "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat" -OutFile "geoip_RU.dat" -MaximumRetryCount 10 -RetryIntervalSec 10
+          Invoke-WebRequest -Uri "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat" -OutFile "geosite_RU.dat" -MaximumRetryCount 10 -RetryIntervalSec 10
           Rename-Item xray.exe xray-windows-amd64.exe
 
           # Download mtg (MTProto sidecar) for Windows
           $MTG_VER = "2.2.8"
-          Invoke-WebRequest -Uri "https://github.com/9seconds/mtg/releases/download/v$MTG_VER/mtg-$MTG_VER-windows-amd64.zip" -OutFile "mtg-windows-amd64.zip" -MaximumRetryCount 5 -RetryIntervalSec 5
+          Invoke-WebRequest -Uri "https://github.com/9seconds/mtg/releases/download/v$MTG_VER/mtg-$MTG_VER-windows-amd64.zip" -OutFile "mtg-windows-amd64.zip" -MaximumRetryCount 10 -RetryIntervalSec 10
           Expand-Archive -Path "mtg-windows-amd64.zip" -DestinationPath "mtg-tmp"
           $mtgExe = Get-ChildItem -Path "mtg-tmp" -Recurse -Filter "mtg.exe" | Select-Object -First 1
           Move-Item $mtgExe.FullName "mtg-windows-amd64.exe"
