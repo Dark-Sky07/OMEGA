@@ -83,6 +83,10 @@ func run(root, outDir string) error {
 			StructAllow: setOf("ServerSettings"),
 		},
 		{
+			Path:        resolveRel(root, "internal/tuic"),
+			StructAllow: setOf("TuicServerSettings", "TuicClientSettings"),
+		},
+		{
 			Path:        resolveRel(root, "internal/web/service/panel"),
 			StructAllow: setOf("ApiTokenView"),
 		},

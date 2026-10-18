@@ -72,6 +72,7 @@ import {
   OpenvpnFields,
   L2tpFields,
   ShadowsocksFields,
+  TuicFields,
   TunFields,
   TunnelFields,
   VlessFields,
@@ -218,7 +219,8 @@ export default function InboundFormModal({
     protocol !== Protocols.HYSTERIA
     && protocol !== Protocols.MASQUE
     && protocol !== Protocols.WIREGUARD
-    && protocol !== Protocols.TUNNEL;
+    && protocol !== Protocols.TUNNEL
+    && protocol !== Protocols.TUIC;
 
   const wPort = Form.useWatch('port', form);
   const wListen = (Form.useWatch('listen', form) ?? '') as string;
@@ -763,6 +765,8 @@ export default function InboundFormModal({
 
       {protocol === Protocols.MASQUE && <MasqueSettingsFields />}
 
+      {protocol === Protocols.TUIC && <TuicFields />}
+
       {protocol === Protocols.SHADOWSOCKS && <ShadowsocksFields form={form} isSSWith2022={isSSWith2022} />}
 
       {protocol === Protocols.VLESS && <VlessFields saving={saving} selectedVlessAuth={selectedVlessAuth} network={network} security={security} getNewVlessEnc={getNewVlessEnc} clearVlessEnc={clearVlessEnc} />}
@@ -1118,6 +1122,7 @@ export default function InboundFormModal({
               Protocols.OPENVPN,
               Protocols.L2TP,
               Protocols.MASQUE,
+              Protocols.TUIC,
             ] as string[]).includes(protocol) || isFallbackHost
               ? [{ key: 'protocol', label: t('pages.inbounds.protocol'), children: protocolTab, forceRender: true }]
               : []),

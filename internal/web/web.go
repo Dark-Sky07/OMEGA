@@ -21,6 +21,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
+	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/controller"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/job"
@@ -294,6 +295,10 @@ func (s *Server) startTask(restartXray bool) {
 	s.cron.AddJob("@every 10s", awgJob)
 	go awgJob.Run()
 
+	tuicJob := job.NewTuicJob()
+	s.cron.AddJob("@every 10s", tuicJob)
+	go tuicJob.Run()
+
 	// Reconcile openvpn daemons and scrape their per-client traffic
 	ovpnJob := job.NewOpenvpnJob()
 	s.cron.AddJob("@every 10s", ovpnJob)
@@ -491,15 +496,24 @@ func (s *Server) StopPanelOnly() error {
 
 func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	s.cancel()
+	var err1 error
+	var err2 error
+	if s.cron != nil {
+		<-s.cron.Stop().Done()
+	}
 	if stopXray {
-		s.xrayService.StopXray()
+		tuic.GetManager().StopAll()
+		if err := job.NewTuicJob().FlushStoppedTraffic(); err != nil {
+			logger.Warning("persist final TUIC traffic on shutdown failed:", err)
+			err2 = err
+		}
+		if err := s.xrayService.StopXray(); err != nil && !strings.Contains(err.Error(), "xray is not running") {
+			err2 = common.Combine(err2, err)
+		}
 		mtproto.GetManager().StopAll()
 		amneziawgnet.GetManager().StopAll()
 		openvpn.GetManager().StopAll()
 		l2tp.GetManager().StopAll()
-	}
-	if s.cron != nil {
-		s.cron.Stop()
 	}
 	if err := service.PersistSystemMetrics(); err != nil {
 		logger.Warning("persist system metrics on shutdown failed:", err)
@@ -514,15 +528,13 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	if s.wsHub != nil {
 		s.wsHub.Stop()
 	}
-	var err1 error
-	var err2 error
 	if s.httpServer != nil {
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer shutdownCancel()
 		err1 = s.httpServer.Shutdown(shutdownCtx)
 	}
 	if s.listener != nil {
-		err2 = s.listener.Close()
+		err1 = common.Combine(err1, s.listener.Close())
 	}
 	return common.Combine(err1, err2)
 }

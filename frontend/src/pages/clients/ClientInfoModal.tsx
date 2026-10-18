@@ -27,6 +27,7 @@ const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
   tunnel: 'orange',
   openvpn: 'red',
   l2tp: 'cyan',
+  tuic: 'orange',
 };
 
 const INBOUND_CHIP_LIMIT = 1;

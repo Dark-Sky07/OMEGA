@@ -15,6 +15,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
@@ -135,7 +136,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		if inbound.NodeID != nil {
 			continue
 		}
-		if inbound.Protocol == model.MTProto || inbound.Protocol == model.AmneziaWG {
+		if inbound.Protocol == model.MTProto || inbound.Protocol == model.AmneziaWG || inbound.Protocol == model.TUIC {
 			continue
 		}
 		// OpenVPN and L2TP/IPsec inbounds are served by host daemons that bind
@@ -312,6 +313,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	// whatever rules the admin adds through the stock Routing page, exactly
 	// like routing any other protocol.
 	injectAmneziawgnetSocks(xrayConfig, inbounds)
+	injectTuicSocks(xrayConfig, inbounds)
 
 	// Restores each opted-in peer's own distinct public IPv6 source identity
 	// for its outbound connections — a peer that has an IPv6 address in its
@@ -572,6 +574,40 @@ func injectAmneziawgnetSocks(cfg *xray.Config, inbounds []*model.Inbound) {
 			Protocol: "socks",
 			Settings: json_util.RawMessage(settings),
 			Sniffing: json_util.RawMessage(amneziawgEgressSniffingSettings),
+			Tag:      inbound.Tag,
+		})
+	}
+}
+
+const (
+	tuicEgressSocksSettings = `{"auth":"noauth","udp":true}`
+	// TUIC clients can connect to an IP while TLS carries a different or unresolvable SNI.
+	// Keep sniffed domains available for routing without replacing the requested destination.
+	tuicEgressSniffingSettings = `{"enabled":true,"destOverride":["http","tls","quic","fakedns"],"routeOnly":true}`
+)
+
+func injectTuicSocks(cfg *xray.Config, inbounds []*model.Inbound) {
+	existingTags := make(map[string]struct{}, len(cfg.InboundConfigs))
+	for i := range cfg.InboundConfigs {
+		existingTags[cfg.InboundConfigs[i].Tag] = struct{}{}
+	}
+
+	for _, inbound := range inbounds {
+		if inbound.Protocol != model.TUIC || !inbound.Enable || inbound.NodeID != nil {
+			continue
+		}
+		if _, taken := existingTags[inbound.Tag]; taken {
+			logger.Warning("tuic socks: inbound tag [", inbound.Tag, "] already present in generated config, skipping its relay inbound")
+			continue
+		}
+
+		existingTags[inbound.Tag] = struct{}{}
+		cfg.InboundConfigs = append(cfg.InboundConfigs, xray.InboundConfig{
+			Listen:   json_util.RawMessage(`"127.0.0.1"`),
+			Port:     tuic.SOCKSPortForInbound(inbound.Id),
+			Protocol: "socks",
+			Settings: json_util.RawMessage(tuicEgressSocksSettings),
+			Sniffing: json_util.RawMessage(tuicEgressSniffingSettings),
 			Tag:      inbound.Tag,
 		})
 	}

@@ -13,6 +13,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
+	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
@@ -104,6 +105,17 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 		}
 		return l2tp.GetManager().Ensure(inst)
 	}
+	if ib.Protocol == model.TUIC {
+		inst, ok := tuic.InstanceFromInbound(ib)
+		if !ok {
+			return nil
+		}
+		err := tuic.GetManager().Ensure(inst)
+		if l.deps.SetNeedRestart != nil {
+			l.deps.SetNeedRestart()
+		}
+		return err
+	}
 	body, err := json.MarshalIndent(ib.GenXrayInboundConfig(), "", "  ")
 	if err != nil {
 		return err
@@ -133,6 +145,13 @@ func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 		l2tp.GetManager().Remove(ib.Id)
 		return nil
 	}
+	if ib.Protocol == model.TUIC {
+		tuic.GetManager().Remove(ib.Id)
+		if l.deps.SetNeedRestart != nil {
+			l.deps.SetNeedRestart()
+		}
+		return nil
+	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
 		return api.DelInbound(ib.Tag)
 	})
@@ -158,11 +177,54 @@ func (l *Local) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound) 
 	if oldIb.Protocol == model.AmneziaWG || newIb.Protocol == model.AmneziaWG {
 		return l.updateAmneziaWGInbound(ctx, oldIb, newIb)
 	}
+	if oldIb.Protocol == model.TUIC || newIb.Protocol == model.TUIC {
+		return l.updateTuicInbound(ctx, oldIb, newIb)
+	}
 	_ = l.DelInbound(ctx, oldIb)
 	if !newIb.Enable {
 		return nil
 	}
 	return l.AddInbound(ctx, newIb)
+}
+
+func (l *Local) updateTuicInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
+	if oldIb.Protocol == model.TUIC && newIb.Protocol != model.TUIC {
+		tuic.GetManager().Remove(oldIb.Id)
+		if l.deps.SetNeedRestart != nil {
+			l.deps.SetNeedRestart()
+		}
+		if !newIb.Enable {
+			return nil
+		}
+		return l.AddInbound(ctx, newIb)
+	}
+	if oldIb.Protocol != model.TUIC {
+		_ = l.DelInbound(ctx, oldIb)
+		if l.deps.SetNeedRestart != nil {
+			l.deps.SetNeedRestart()
+		}
+	}
+	if oldIb.Protocol == model.TUIC && newIb.Protocol == model.TUIC && oldIb.Enable && newIb.Enable && oldIb.Tag != newIb.Tag && l.deps.SetNeedRestart != nil {
+		l.deps.SetNeedRestart()
+	}
+	if !newIb.Enable {
+		tuic.GetManager().Remove(newIb.Id)
+		if oldIb.Enable && l.deps.SetNeedRestart != nil {
+			l.deps.SetNeedRestart()
+		}
+		return nil
+	}
+	if !oldIb.Enable && newIb.Enable {
+		if l.deps.SetNeedRestart != nil {
+			l.deps.SetNeedRestart()
+		}
+	}
+	inst, ok := tuic.InstanceFromInbound(newIb)
+	if !ok {
+		tuic.GetManager().Remove(newIb.Id)
+		return nil
+	}
+	return tuic.GetManager().Ensure(inst)
 }
 
 func (l *Local) updateAmneziaWGInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
@@ -192,7 +254,7 @@ func (l *Local) updateAmneziaWGInbound(ctx context.Context, oldIb, newIb *model.
 }
 
 func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string]any) error {
-	if ib.Protocol == model.OpenVPN || ib.Protocol == model.MTProto || ib.Protocol == model.AmneziaWG || ib.Protocol == model.L2TP {
+	if ib.Protocol == model.OpenVPN || ib.Protocol == model.MTProto || ib.Protocol == model.AmneziaWG || ib.Protocol == model.L2TP || ib.Protocol == model.TUIC {
 		return nil
 	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
@@ -201,7 +263,7 @@ func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string
 }
 
 func (l *Local) RemoveUser(_ context.Context, ib *model.Inbound, email string) error {
-	if ib.Protocol == model.OpenVPN || ib.Protocol == model.MTProto || ib.Protocol == model.AmneziaWG || ib.Protocol == model.L2TP {
+	if ib.Protocol == model.OpenVPN || ib.Protocol == model.MTProto || ib.Protocol == model.AmneziaWG || ib.Protocol == model.L2TP || ib.Protocol == model.TUIC {
 		return nil
 	}
 	return l.withAPI(func(api *xray.XrayAPI) error {

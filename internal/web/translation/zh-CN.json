@@ -670,7 +670,8 @@
         "masque": {
           "addressPool": "地址池",
           "addressPoolDesc": "隧道地址从这些前缀中分配——最多一个 IPv4 和一个 IPv6。"
-        }
+        },
+        "autoFill": "自动填充"
       },
       "info": {
         "mode": "模式",
@@ -705,7 +706,8 @@
           "requestHeader": "请求头",
           "responseHeader": "响应头"
         }
-      }
+      },
+      "advancedTitle": "高级设置"
     },
     "clients": {
       "tabBasics": "基本",
@@ -1691,6 +1693,23 @@
         "edit": "编辑假 DNS",
         "ipPool": "IP 池子网",
         "poolSize": "池大小"
+      },
+      "tuic": {
+        "congestionControl": "拥塞控制算法",
+        "congestionControlHint": "服务器和客户端算法。服务器更改在重新连接后生效。",
+        "profileOptions": "Client profile options",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP 转发模式",
+        "udpRelayModeHint": "客户端 UDP 模式。服务器支持两种模式。",
+        "zeroRttHandshake": "0-RTT 握手",
+        "logLevel": "日志级别",
+        "logLevelHint": "此入站的最低日志级别。",
+        "maxIdleTime": "最大空闲时间 (秒)",
+        "authTimeout": "认证超时时间 (秒)",
+        "maxUdpRelayPacketSize": "最大 UDP 数据包大小",
+        "sni": "SNI",
+        "sniHint": "客户端配置中的 TLS 服务器名称。",
+        "sniRequired": "请输入域名以自动填充证书路径。"
       }
     }
   },

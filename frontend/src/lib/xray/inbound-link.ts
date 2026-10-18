@@ -13,6 +13,7 @@ import type { FinalMaskStreamSettings } from '@/schemas/protocols/stream/finalma
 import type { XHttpStreamSettings } from '@/schemas/protocols/stream/xhttp';
 
 import { getHeaderValue } from './headers';
+import { normalizeTuicCongestionController, resolveTuicServerSettings } from '@/lib/tuic';
 
 // Share-link generators. Each per-protocol fn takes a typed inbound plus
 // client overrides and returns a URL (or '' when the protocol doesn't
@@ -23,6 +24,11 @@ import { getHeaderValue } from './headers';
 
 type ForceTls = 'same' | 'tls' | 'none';
 const SHARE_HOSTNAME_RE = /^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*$/;
+
+function formatUrlHost(address: string): string {
+  const bare = address.replace(/^\[|\]$/g, '');
+  return bare.includes(':') ? `[${bare}]` : bare;
+}
 
 // xHTTP headers ship as Record<string, string> on the wire (Zod schema)
 // rather than the legacy class's HeaderEntry[]. Lookup by case-folded key.
@@ -707,6 +713,71 @@ export function genMtprotoLink(input: GenMtprotoLinkInput): string {
   return url.toString();
 }
 
+export interface GenTuicLinkInput {
+  inbound: Inbound;
+  address: string;
+  port?: number;
+  remark?: string;
+  clientUuid?: string;
+  clientPassword?: string;
+  externalProxy?: ExternalProxyEntry | null;
+}
+
+export function genTuicLink(input: GenTuicLinkInput): string {
+  const {
+    inbound,
+    address,
+    port = inbound.port,
+    remark = '',
+    clientUuid = '',
+    clientPassword = '',
+    externalProxy = null,
+  } = input;
+  if (!clientUuid || !clientPassword) return '';
+
+  const rawSettings = inbound.settings as Record<string, unknown>;
+  const server = resolveTuicServerSettings(rawSettings);
+  const host = formatUrlHost(externalProxy?.dest || address);
+  const targetPort = externalProxy?.port || port;
+
+  const url = new URL(
+    `tuic://${encodeURIComponent(clientUuid)}:${encodeURIComponent(clientPassword)}@${host}:${targetPort}`,
+  );
+  const cc = normalizeTuicCongestionController(
+    server.congestion_control ?? rawSettings.congestion_control,
+  );
+  url.searchParams.set('congestion_control', cc);
+
+  const epAlpn = externalProxyAlpn(externalProxy?.alpn);
+  const alpn =
+    epAlpn ||
+    (Array.isArray(server.alpn) && server.alpn.length > 0
+      ? (server.alpn as string[]).join(',')
+      : null) ||
+    (Array.isArray(rawSettings.alpn) && rawSettings.alpn.length > 0
+      ? (rawSettings.alpn as string[]).join(',')
+      : null) ||
+    'h3,spdy/3.1';
+  url.searchParams.set('alpn', alpn);
+
+  const sni = externalProxy?.sni || (server.sni as string) || (rawSettings.sni as string);
+  if (sni) {
+    url.searchParams.set('sni', sni);
+  }
+  const udpRelay =
+    (server.udp_relay_mode as string) || (rawSettings.udp_relay_mode as string) || 'native';
+  url.searchParams.set('udp_relay_mode', udpRelay);
+
+  const allowInsecure = externalProxy?.allowInsecure ? '1' : '0';
+  url.searchParams.set('allow_insecure', allowInsecure);
+
+  if (remark) {
+    url.hash = encodeURIComponent(remark);
+  }
+
+  return url.toString();
+}
+
 export interface GenWireguardLinkInput {
   settings: WireguardInboundSettings;
   address: string;
@@ -1063,7 +1134,7 @@ export function resolveShareHost(
 // `this.clients` getter, which used isSSMultiUser to gate). Returns null
 // for SS single-user, http, mixed, tunnel, wireguard, hysteria2-without-
 // clients, and any protocol without a clients array.
-type ClientShape = { id?: string; security?: VmessSecurity; flow?: VlessClient['flow']; password?: string; auth?: string; email?: string };
+type ClientShape = { id?: string; uuid?: string; security?: VmessSecurity; flow?: VlessClient['flow']; password?: string; auth?: string; email?: string };
 
 export function getInboundClients(inbound: Inbound): ClientShape[] | null {
   switch (inbound.protocol) {
@@ -1074,6 +1145,8 @@ export function getInboundClients(inbound: Inbound): ClientShape[] | null {
     case 'trojan':
       return (inbound.settings.clients ?? []) as ClientShape[];
     case 'hysteria':
+      return (inbound.settings.clients ?? []) as ClientShape[];
+    case 'tuic':
       return (inbound.settings.clients ?? []) as ClientShape[];
     case 'shadowsocks': {
       const isMultiUser = inbound.settings.method !== '2022-blake3-chacha20-poly1305';
@@ -1143,6 +1216,16 @@ export function genLink(input: GenLinkInput): string {
       });
     case 'mtproto':
       return genMtprotoLink({ inbound, address, port });
+    case 'tuic':
+      return genTuicLink({
+        inbound,
+        address,
+        port,
+        remark,
+        clientUuid: client.uuid ?? client.id ?? '',
+        clientPassword: client.password ?? '',
+        externalProxy,
+      });
     default:
       return '';
   }

@@ -13,6 +13,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
@@ -291,7 +292,7 @@ type portConflictContext struct {
 // inbound hosted on THIS panel (node_id IS NULL) — an inbound hosted on a
 // different node listens on that node's own host, never this one, so it can
 // never collide with a DNAT rule this process installs.
-func (s *InboundService) loadPortConflictContext(db *gorm.DB) (portConflictContext, error) {
+func (s *InboundService) loadPortConflictContext(db *gorm.DB, _ ...*int) (portConflictContext, error) {
 	var ctx portConflictContext
 	if webPort, err := (&SettingService{}).GetPort(); err == nil {
 		ctx.webPort = webPort
@@ -329,10 +330,15 @@ func (s *InboundService) checkForwardedPortsConflict(ctx portConflictContext, fo
 			}
 			return fmt.Sprintf("inbound '%s' (#%d, port %d)", name, ib.Id, ib.Port)
 		}
-		if ib.Protocol != model.AmneziaWG {
+		var socksPort int
+		switch ib.Protocol {
+		case model.AmneziaWG:
+			socksPort = amneziawgnet.SOCKSPortForInbound(ib.Id)
+		case model.TUIC:
+			socksPort = tuic.SOCKSPortForInbound(ib.Id)
+		default:
 			continue
 		}
-		socksPort := amneziawgnet.SOCKSPortForInbound(ib.Id)
 		if amneziawg.ForwardedPortsInclude(forwardedPorts, socksPort) {
 			name := ib.Remark
 			if name == "" {

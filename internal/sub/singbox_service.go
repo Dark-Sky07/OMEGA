@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 )
 
@@ -131,6 +132,9 @@ func (s *SubSingboxService) getOutbounds(inbound *model.Inbound, client model.Cl
 		security, _ := newStream["security"].(string)
 		if hasExternalProxy {
 			applyExternalProxyTLSToStream(extPrxy, newStream, security)
+			if inbound.Protocol == model.TUIC {
+				newStream["tuicExternalProxy"] = extPrxy
+			}
 		}
 
 		ob := s.genOutbound(inbound, client, newStream, dest, port)
@@ -198,6 +202,61 @@ func (s *SubSingboxService) genOutbound(inbound *model.Inbound, client model.Cli
 				}
 			}
 		}
+	case model.TUIC:
+		inst, ok := tuic.InstanceFromInbound(inbound)
+		if !ok {
+			return nil
+		}
+		uuid := client.ID
+		password := client.Password
+		for _, c := range inst.Clients {
+			if c.Email == client.Email {
+				if uuid == "" {
+					uuid = c.UUID
+				}
+				if password == "" {
+					password = c.Password
+				}
+				break
+			}
+		}
+		if uuid == "" || password == "" {
+			return nil
+		}
+		out["type"] = "tuic"
+		out["uuid"] = uuid
+		out["password"] = password
+		if inst.CongestionControl != "" {
+			out["congestion_control"] = inst.CongestionControl
+		}
+		if inst.UDPRelayMode != "" {
+			out["udp_relay_mode"] = inst.UDPRelayMode
+		}
+		if inst.ZeroRTTHandshake {
+			out["zero_rtt_handshake"] = true
+		}
+		tlsObj := map[string]any{
+			"enabled": true,
+		}
+		if inst.SNI != "" {
+			tlsObj["server_name"] = inst.SNI
+		}
+		if len(inst.ALPN) > 0 {
+			tlsObj["alpn"] = inst.ALPN
+		}
+		if ep, ok := stream["tuicExternalProxy"].(map[string]any); ok {
+			if sni, ok := externalProxySNI(ep); ok {
+				tlsObj["server_name"] = sni
+			}
+			if alpn, ok := externalProxyALPN(ep["alpn"]); ok {
+				tlsObj["alpn"] = strings.Split(alpn, ",")
+			}
+			if ai, ok := ep["allowInsecure"].(bool); ok && ai {
+				tlsObj["insecure"] = true
+			}
+		}
+		out["tls"] = tlsObj
+		return out
 	default:
 		return nil
 	}

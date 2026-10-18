@@ -171,6 +171,8 @@ func (s *SubJsonService) getConfig(inbound *model.Inbound, client model.Client, 
 			newOutbounds = append(newOutbounds, s.genHy(inbound, newStream, client))
 		case "masque":
 			newOutbounds = append(newOutbounds, s.genMasque(inbound, newStream, client))
+		case "amneziawg", "tuic":
+			continue
 		}
 
 		newOutbounds = append(newOutbounds, s.defaultOutbounds...)

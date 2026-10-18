@@ -389,6 +389,16 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 			if client.PublicKey == "" {
 				return false, common.NewError("wireguard client requires a key")
 			}
+		case "tuic":
+			if client.ID == "" {
+				return false, common.NewError("empty client ID")
+			}
+			if client.Password == "" {
+				return false, common.NewError("tuic client requires a password")
+			}
+			if client.Email == "" {
+				return false, common.NewError("empty client email")
+			}
 		default:
 			if client.ID == "" {
 				return false, common.NewError("empty client ID")
@@ -431,6 +441,9 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 			return
 		}
 		tx.Commit()
+		if oldInbound.Protocol == model.TUIC && oldInbound.NodeID == nil {
+			inboundSvc.applyLocalTuic(oldInbound.Id)
+		}
 		if markDirty && oldInbound.NodeID != nil {
 			if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
 				logger.Warning("mark node dirty failed:", dErr)
@@ -448,15 +461,21 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 		markDirty = true
 	}
 	if oldInbound.NodeID == nil {
+		for _, client := range clients {
+			if len(client.Email) > 0 {
+				inboundSvc.AddClientStat(tx, data.Id, &client)
+			}
+		}
 		if !push {
 			needRestart = true
+		} else if oldInbound.Protocol == model.TUIC {
+			// TUIC is reconciled via applyLocalTuic after commit.
 		} else {
 			for _, client := range clients {
 				if len(client.Email) == 0 {
 					needRestart = true
 					continue
 				}
-				inboundSvc.AddClientStat(tx, data.Id, &client)
 				if !client.Enable {
 					continue
 				}
@@ -567,6 +586,11 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		newClientId = clients[0].Auth
 	case "wireguard", "amneziawg":
 		newClientId = clients[0].Email
+	case "tuic":
+		if clients[0].Password == "" {
+			return false, common.NewError("tuic client requires a password")
+		}
+		newClientId = clients[0].ID
 	default:
 		newClientId = clients[0].ID
 	}
@@ -728,6 +752,9 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 			return
 		}
 		tx.Commit()
+		if oldInbound.Protocol == model.TUIC && oldInbound.NodeID == nil {
+			inboundSvc.applyLocalTuic(oldInbound.Id)
+		}
 		if markDirty && oldInbound.NodeID != nil {
 			if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
 				logger.Warning("mark node dirty failed:", dErr)
@@ -992,6 +1019,9 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 	}
 	if oldInbound.Protocol == model.AmneziaWG && oldInbound.NodeID == nil {
 		inboundSvc.applyLocalAmneziaWG(oldInbound.Id)
+	}
+	if oldInbound.Protocol == model.TUIC && oldInbound.NodeID == nil {
+		inboundSvc.applyLocalTuic(oldInbound.Id)
 	}
 	if markDirty && oldInbound.NodeID != nil {
 		if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {

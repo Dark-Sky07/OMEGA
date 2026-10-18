@@ -670,7 +670,8 @@
         "masque": {
           "addressPool": "Пул адрес",
           "addressPoolDesc": "Адреси тунелів видаються з цих префіксів — не більше одного IPv4 та одного IPv6."
-        }
+        },
+        "autoFill": "Автозаповнення"
       },
       "info": {
         "mode": "Режим",
@@ -705,7 +706,8 @@
           "requestHeader": "Заголовок запиту",
           "responseHeader": "Заголовок відповіді"
         }
-      }
+      },
+      "advancedTitle": "Додаткові налаштування"
     },
     "clients": {
       "tabBasics": "Основні",
@@ -1691,6 +1693,23 @@
         "edit": "Редагувати підроблений DNS",
         "ipPool": "Підмережа IP-пулу",
         "poolSize": "Розмір пулу"
+      },
+      "tuic": {
+        "congestionControl": "Контроль перевантаження",
+        "congestionControlHint": "Алгоритм сервера й клієнта. На сервері змінюється після перепідключення.",
+        "profileOptions": "Client profile options",
+        "alpn": "ALPN",
+        "udpRelayMode": "Режим ретрансляції UDP",
+        "udpRelayModeHint": "Режим UDP для клієнта. Сервер підтримує обидва.",
+        "zeroRttHandshake": "0-RTT рукостискання",
+        "logLevel": "Рівень журналювання",
+        "logLevelHint": "Мінімальний рівень повідомлень у логах цього інбаунду.",
+        "maxIdleTime": "Макс. час простою (сек)",
+        "authTimeout": "Таймаут автентифікації (сек)",
+        "maxUdpRelayPacketSize": "Макс. розмір пакета UDP",
+        "sni": "SNI",
+        "sniHint": "Ім’я сервера для TLS у профілі клієнта.",
+        "sniRequired": "Укажіть домен для автозаповнення."
       }
     }
   },

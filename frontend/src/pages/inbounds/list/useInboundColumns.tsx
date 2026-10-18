@@ -155,7 +155,7 @@ export function useInboundColumns({
             <span key={key} className={`omega-chip${tone ? ` ${tone}` : ''}`}>{label}</span>
           );
           const tags: ReactElement[] = [chip('p', record.protocol, 'is-protocol')];
-          if (record.isWireguard || record.isHysteria) {
+          if (record.isWireguard || record.isHysteria || record.isTuic) {
             tags.push(chip('n', 'UDP', 'is-success'));
           } else if (record.isSS) {
             const stream = readStreamHints(record.streamSettings);

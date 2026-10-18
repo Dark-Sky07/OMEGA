@@ -670,7 +670,8 @@
         "masque": {
           "addressPool": "位址池",
           "addressPoolDesc": "通道位址從這些前綴中分配——最多一個 IPv4 與一個 IPv6。"
-        }
+        },
+        "autoFill": "自動填入"
       },
       "info": {
         "mode": "模式",
@@ -705,7 +706,8 @@
           "requestHeader": "請求頭",
           "responseHeader": "響應頭"
         }
-      }
+      },
+      "advancedTitle": "進階設定"
     },
     "clients": {
       "tabBasics": "基本",
@@ -1691,6 +1693,23 @@
         "edit": "編輯假 DNS",
         "ipPool": "IP 池子網",
         "poolSize": "池大小"
+      },
+      "tuic": {
+        "congestionControl": "壅塞控制演算法",
+        "congestionControlHint": "伺服器與用戶端演算法。伺服器變更於重新連線後生效。",
+        "profileOptions": "Client profile options",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP 轉發模式",
+        "udpRelayModeHint": "用戶端 UDP 模式。伺服器支援兩種模式。",
+        "zeroRttHandshake": "0-RTT 握手",
+        "logLevel": "日誌層級",
+        "logLevelHint": "此入站的最低記錄級別。",
+        "maxIdleTime": "最大閒置時間 (秒)",
+        "authTimeout": "認證逾時時間 (秒)",
+        "maxUdpRelayPacketSize": "最大 UDP 封包大小",
+        "sni": "SNI",
+        "sniHint": "用戶端設定檔中的 TLS 伺服器名稱。",
+        "sniRequired": "請輸入網域以自動填入憑證路徑。"
       }
     }
   },

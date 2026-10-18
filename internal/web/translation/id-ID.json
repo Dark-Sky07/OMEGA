@@ -670,7 +670,8 @@
         "masque": {
           "addressPool": "Kumpulan alamat",
           "addressPoolDesc": "Alamat terowongan diberikan dari prefiks ini — maksimal satu IPv4 dan satu IPv6."
-        }
+        },
+        "autoFill": "Isi Otomatis"
       },
       "info": {
         "mode": "Mode",
@@ -705,7 +706,8 @@
           "requestHeader": "Header Permintaan",
           "responseHeader": "Header Respons"
         }
-      }
+      },
+      "advancedTitle": "Pengaturan Lanjutan"
     },
     "clients": {
       "tabBasics": "Dasar",
@@ -1691,6 +1693,23 @@
         "edit": "Edit DNS Palsu",
         "ipPool": "Subnet Kumpulan IP",
         "poolSize": "Ukuran Kolam"
+      },
+      "tuic": {
+        "congestionControl": "Kontrol Kemacetan",
+        "congestionControlHint": "Algoritma server dan klien. Perubahan server berlaku setelah terhubung ulang.",
+        "profileOptions": "Client profile options",
+        "alpn": "ALPN",
+        "udpRelayMode": "Mode Relai UDP",
+        "udpRelayModeHint": "Mode UDP klien. Server mendukung keduanya.",
+        "zeroRttHandshake": "Jabat Tangan 0-RTT",
+        "logLevel": "Tingkat Log",
+        "logLevelHint": "Level log minimum untuk inbound ini.",
+        "maxIdleTime": "Waktu Diam Maks (dtk)",
+        "authTimeout": "Batas Waktu Otentikasi (dtk)",
+        "maxUdpRelayPacketSize": "Ukuran Paket UDP Maks",
+        "sni": "SNI",
+        "sniHint": "Nama server TLS dalam profil klien.",
+        "sniRequired": "Masukkan domain untuk mengisi jalur sertifikat otomatis."
       }
     }
   },

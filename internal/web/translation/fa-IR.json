@@ -694,7 +694,8 @@
         "masque": {
           "addressPool": "مخزن آدرس",
           "addressPoolDesc": "آدرس‌های تونل از این پیشوندها تخصیص داده می‌شوند — حداکثر یک IPv4 و یک IPv6."
-        }
+        },
+        "autoFill": "تکمیل خودکار"
       },
       "info": {
         "mode": "حالت",
@@ -729,7 +730,8 @@
           "requestHeader": "سربرگ درخواست",
           "responseHeader": "سربرگ پاسخ"
         }
-      }
+      },
+      "advancedTitle": "تنظیمات پیشرفته"
     },
     "clients": {
       "import": "درون‌ریزی",
@@ -1748,6 +1750,23 @@
         "edit": "ویرایش دی‌ان‌اس جعلی",
         "ipPool": "زیرشبکه استخر آی‌پی",
         "poolSize": "اندازه استخر"
+      },
+      "tuic": {
+        "congestionControl": "کنترل ازدحام",
+        "congestionControlHint": "الگوریتم سرور و کلاینت. تغییر سرور پس از اتصال مجدد اعمال می‌شود.",
+        "profileOptions": "Client profile options",
+        "alpn": "ALPN",
+        "udpRelayMode": "حالت رله UDP",
+        "udpRelayModeHint": "حالت UDP کلاینت. سرور از هر دو پشتیبانی می‌کند.",
+        "zeroRttHandshake": "دست دادن 0-RTT",
+        "logLevel": "سطح گزارش",
+        "logLevelHint": "حداقل سطح لاگ این ورودی.",
+        "maxIdleTime": "حداکثر زمان بیکاری (ثانیه)",
+        "authTimeout": "مهلت زمانی احراز هویت (ثانیه)",
+        "maxUdpRelayPacketSize": "حداکثر اندازه بسته UDP",
+        "sni": "SNI",
+        "sniHint": "نام سرور TLS در پروفایل کلاینت.",
+        "sniRequired": "برای تکمیل خودکار مسیرهای گواهی، دامنه را وارد کنید."
       }
     }
   },
