@@ -2,6 +2,7 @@ package panel
 
 import (
 	"errors"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -99,6 +100,13 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 			return nil, errors.New("invalid 2fa code")
 		}
 	}
+
+	if user.Disabled && user.Id != 1 {
+		return nil, errors.New("invalid credentials")
+	}
+	now := time.Now().UnixMilli()
+	_ = db.Model(&model.User{}).Where("id = ?", user.Id).Update("last_login_at", now).Error
+	user.LastLoginAt = now
 
 	return user, nil
 }

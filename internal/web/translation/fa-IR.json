@@ -1320,7 +1320,21 @@
         "apiTokenExpireDaysDesc": "۰ یعنی بدون انقضا.",
         "apiTokenExpires": "انقضا",
         "apiTokenExpired": "منقضی‌شده",
-        "apiTokenLastUsed": "آخرین استفاده"
+        "apiTokenLastUsed": "آخرین استفاده",
+        "multiAdminTitle": "مدیریت ادمین‌ها و سطوح دسترسی (RBAC)",
+        "multiAdminDesc": "ایجاد اکانت‌های ادمین چندگانه با نقش‌های مجزا (سوپرادمین، ادمین ماژولار، پشتیبان کاربران یا ناظر فقط-خواندنی).",
+        "addAdmin": "افزودن ادمین جدید",
+        "editAdmin": "ویرایش اکانت ادمین",
+        "adminRole": "نقش و سطح دسترسی (Role)",
+        "adminModules": "ماژول‌های مجاز",
+        "role_superadmin": "سوپرادمین (دسترسی کامل)",
+        "role_admin": "ادمین سفارشی (ماژول‌های انتخابی)",
+        "role_support": "پشتیبان (مدیریت کاربران + مشاهده اینباندها)",
+        "role_viewer": "ناظر (فقط-خواندنی)",
+        "lastLogin": "آخرین ورود",
+        "adminUsernameRequired": "نام کاربری ادمین الزامی است",
+        "adminPasswordMin": "رمز عبور باید حداقل ۴ کاراکتر باشد",
+        "adminPasswordLeaveBlank": "در صورت عدم تغییر رمز عبور، این فیلد را خالی بگذارید"
       },
       "toasts": {
         "modifySettings": "پارامترها تغییر کرده‌اند.",
