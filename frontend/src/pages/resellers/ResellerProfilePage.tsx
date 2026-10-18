@@ -19,7 +19,7 @@ import {
   Typography,
   message,
 } from 'antd';
-import { ShopOutlined, UserOutlined } from '@ant-design/icons';
+import { CustomerServiceOutlined, ShopOutlined, UserOutlined } from '@ant-design/icons';
 
 import AppSidebar from '@/layouts/AppSidebar';
 import { PageHeader } from '@/components/ui';
@@ -30,6 +30,7 @@ import { keys } from '@/api/queryKeys';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useTheme } from '@/hooks/useTheme';
 import type { ResellerStat } from '@/api/queries/useSession';
+import SupportTicketsModal from './SupportTicketsModal';
 import './ResellersPage.css';
 
 const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
@@ -41,6 +42,7 @@ export default function ResellerProfilePage() {
   const queryClient = useQueryClient();
   const [messageApi, messageContextHolder] = message.useMessage();
   const [saving, setSaving] = useState(false);
+  const [ticketsOpen, setTicketsOpen] = useState(false);
   const [passwordForm] = Form.useForm<{ oldPassword: string; newPassword: string; confirmPassword: string }>();
 
   useEffect(() => {
@@ -237,7 +239,34 @@ export default function ResellerProfilePage() {
                     </Form>
                   </Card>
                 </Col>
+
+                <Col span={24}>
+                  <Card
+                    size="small"
+                    hoverable
+                    title={
+                      <Space>
+                        <CustomerServiceOutlined />
+                        {t('resellers.supportTickets') || 'Support Tickets'}
+                      </Space>
+                    }
+                  >
+                    <Space direction="vertical" size={8}>
+                      <span style={{ color: 'var(--ant-color-text-secondary)' }}>
+                        {t('resellers.ticketsDesc') || 'Open a support ticket or view replies from the panel administrator.'}
+                      </span>
+                      <Button type="primary" icon={<CustomerServiceOutlined />} onClick={() => setTicketsOpen(true)}>
+                        {t('resellers.supportTickets') || 'Support Tickets'}
+                      </Button>
+                    </Space>
+                  </Card>
+                </Col>
               </Row>
+              <SupportTicketsModal
+                open={ticketsOpen}
+                mode="reseller"
+                onOpenChange={setTicketsOpen}
+              />
               </>
             )}
           </Layout.Content>

@@ -90,6 +90,9 @@ func initModels() error {
 		&model.ClientInvite{},
 		&model.TuicTrafficReceipt{},
 		&model.UserTemplate{},
+		&model.SupportTicket{},
+		&model.SupportTicketMessage{},
+		&model.PaymentOrder{},
 	}
 	for _, mdl := range models {
 		if err := db.AutoMigrate(mdl); err != nil {

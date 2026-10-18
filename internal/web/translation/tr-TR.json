@@ -1940,5 +1940,16 @@
     "toggleTheme": "Toggle dark / light theme",
     "hintNavigate": "navigate",
     "hintSelect": "select"
+  },
+  "resellers": {
+    "supportTickets": "Support Tickets",
+    "paymentOrders": "Payment Webhook Orders",
+    "ticketsDesc": "Direct support communication between Resellers and Panel Admins",
+    "newTicket": "New Ticket",
+    "ticketSubject": "Subject",
+    "ticketPriority": "Priority",
+    "ticketMessage": "Message",
+    "ticketReplyPlaceholder": "Write a reply...",
+    "ticketSubjectAndMessageRequired": "Subject and message are required"
   }
 }
