@@ -1235,7 +1235,19 @@
         "resetOutboundTrafficError": "Giden trafik sıfırlanırken hata oluştu."
       },
       "tgNotifyUserReport": "İstemcilere kişisel kullanım raporu",
-      "tgNotifyUserReportDesc": "Her rapor zamanında, Telegram'ı bağlı olan her istemciye kişisel kullanım özeti (trafik ve bitiş) de gönderilsin. Varsayılan: kapalı."
+      "tgNotifyUserReportDesc": "Her rapor zamanında, Telegram'ı bağlı olan her istemciye kişisel kullanım özeti (trafik ve bitiş) de gönderilsin. Varsayılan: kapalı.",
+      "oneClickSslTitle": "One-Click SSL Certificate",
+      "oneClickSslDesc": "Issue a free Let's Encrypt certificate (auto-renewed before expiry) or an instant 1-year self-signed certificate.",
+      "issueCertBtn": "Issue SSL Certificate",
+      "certSelfSigned": "Self-Signed",
+      "certMode": "Certificate Type",
+      "certModeLetsEncrypt": "Let's Encrypt (HTTP-01 on port 80, auto-renewed)",
+      "certModeSelfSigned": "Self-Signed (instant, 1 year, no port 80 needed)",
+      "certDomain": "Domain",
+      "certDomainRequired": "Domain is required",
+      "certEmail": "Contact Email (optional)",
+      "certPort80Notice": "Port 80 must be reachable from the internet and point to this server.",
+      "certIssuedSuccess": "Certificate issued and applied"
     },
     "xray": {
       "title": "Xray Yapılandırmaları",

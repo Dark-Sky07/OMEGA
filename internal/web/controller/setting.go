@@ -1,8 +1,10 @@
 package controller
 
 import (
+	"context"
 	"errors"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -31,6 +33,7 @@ type SettingController struct {
 	panelService    panel.PanelService
 	apiTokenService panel.ApiTokenService
 	xrayService     service.XrayService
+	certService     service.CertService
 }
 
 // NewSettingController creates a new SettingController and initializes its routes.
@@ -54,6 +57,8 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/apiTokens/create", a.createApiToken)
 	g.POST("/apiTokens/delete/:id", a.deleteApiToken)
 	g.POST("/apiTokens/setEnabled/:id", a.setApiTokenEnabled)
+	g.GET("/cert/status", a.getCertStatus)
+	g.POST("/cert/issue", a.issueCert)
 }
 
 // getAllSetting retrieves all current settings.
@@ -199,4 +204,39 @@ func (a *SettingController) setApiTokenEnabled(c *gin.Context) {
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), a.apiTokenService.SetEnabled(id, form.Enabled))
+}
+
+type certIssueForm struct {
+	Domain       string `json:"domain" form:"domain"`
+	Email        string `json:"email" form:"email"`
+	Mode         string `json:"mode" form:"mode"` // "letsencrypt" (default) or "selfsigned"
+	ApplyToPanel bool   `json:"applyToPanel" form:"applyToPanel"`
+}
+
+func (a *SettingController) getCertStatus(c *gin.Context) {
+	jsonObj(c, a.certService.CurrentStatus(), nil)
+}
+
+func (a *SettingController) issueCert(c *gin.Context) {
+	form := &certIssueForm{ApplyToPanel: true}
+	if err := c.ShouldBind(form); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+		return
+	}
+	var (
+		st  *service.CertStatus
+		err error
+	)
+	if strings.EqualFold(strings.TrimSpace(form.Mode), "selfsigned") {
+		st, err = a.certService.IssueSelfSigned(form.Domain, "", form.ApplyToPanel)
+	} else {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Minute)
+		defer cancel()
+		st, err = a.certService.IssueLetsEncrypt(ctx, form.Domain, form.Email, "", form.ApplyToPanel)
+	}
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+		return
+	}
+	jsonObj(c, st, nil)
 }

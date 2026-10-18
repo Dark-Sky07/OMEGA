@@ -1236,7 +1236,19 @@
         "resetOutboundTrafficError": "Lỗi khi đặt lại lưu lượng truy cập đi"
       },
       "tgNotifyUserReport": "Báo cáo sử dụng cá nhân cho khách hàng",
-      "tgNotifyUserReportDesc": "Mỗi kỳ báo cáo, cũng gửi cho khách hàng có Telegram liên kết bản tóm tắt sử dụng cá nhân (lưu lượng và hạn dùng). Mặc định: tắt."
+      "tgNotifyUserReportDesc": "Mỗi kỳ báo cáo, cũng gửi cho khách hàng có Telegram liên kết bản tóm tắt sử dụng cá nhân (lưu lượng và hạn dùng). Mặc định: tắt.",
+      "oneClickSslTitle": "One-Click SSL Certificate",
+      "oneClickSslDesc": "Issue a free Let's Encrypt certificate (auto-renewed before expiry) or an instant 1-year self-signed certificate.",
+      "issueCertBtn": "Issue SSL Certificate",
+      "certSelfSigned": "Self-Signed",
+      "certMode": "Certificate Type",
+      "certModeLetsEncrypt": "Let's Encrypt (HTTP-01 on port 80, auto-renewed)",
+      "certModeSelfSigned": "Self-Signed (instant, 1 year, no port 80 needed)",
+      "certDomain": "Domain",
+      "certDomainRequired": "Domain is required",
+      "certEmail": "Contact Email (optional)",
+      "certPort80Notice": "Port 80 must be reachable from the internet and point to this server.",
+      "certIssuedSuccess": "Certificate issued and applied"
     },
     "xray": {
       "title": "Cài đặt Xray",

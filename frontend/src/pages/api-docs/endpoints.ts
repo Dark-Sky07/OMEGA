@@ -1088,6 +1088,25 @@ export const sections: readonly Section[] = [
         body: '{\n  "enabled": false\n}',
         response: '{\n  "success": true\n}',
       },
+      {
+        method: 'GET',
+        path: '/panel/api/setting/cert/status',
+        summary: 'Inspect the TLS certificate currently configured on the panel (subject, issuer, expiry, days left, self-signed flag).',
+        response: '{\n  "success": true,\n  "obj": {\n    "configured": true,\n    "subject": "panel.example.com",\n    "daysLeft": 62\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/setting/cert/issue',
+        summary: "Issue a Let's Encrypt (RFC 8555 HTTP-01 on port 80, auto-renewed daily) or 1-year self-signed certificate and optionally apply its paths to the panel.",
+        params: [
+          { name: 'domain', in: 'body', type: 'string', desc: 'Hostname (or IP for self-signed) to issue for.' },
+          { name: 'email', in: 'body', type: 'string', optional: true, desc: 'Optional ACME contact email.' },
+          { name: 'mode', in: 'body', type: 'string', optional: true, desc: '"letsencrypt" (default) or "selfsigned".' },
+          { name: 'applyToPanel', in: 'body', type: 'boolean', optional: true, desc: 'Save the new paths to webCertFile / webKeyFile (default true).' },
+        ],
+        body: '{\n  "domain": "panel.example.com",\n  "mode": "letsencrypt",\n  "applyToPanel": true\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "configured": true,\n    "subject": "panel.example.com",\n    "daysLeft": 89\n  }\n}',
+      },
     ],
   },
 

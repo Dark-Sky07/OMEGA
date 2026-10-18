@@ -1,11 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  Button,
+  Form,
   Input,
   InputNumber,
+  Modal,
   Select,
+  Space,
   Switch,
   Tabs,
+  Tag,
+  message,
 } from 'antd';
 import {
   ApartmentOutlined,
@@ -24,7 +30,21 @@ import { sanitizePath } from './uriPath';
 
 interface ApiMsg<T = unknown> {
   success?: boolean;
+  msg?: string;
   obj?: T;
+}
+
+interface CertStatusView {
+  configured: boolean;
+  certFile: string;
+  keyFile: string;
+  subject?: string;
+  issuer?: string;
+  selfSigned?: boolean;
+  notAfter?: number;
+  daysLeft?: number;
+  expired?: boolean;
+  error?: string;
 }
 
 interface GeneralTabProps {
@@ -45,6 +65,50 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
   const [inboundOptions, setInboundOptions] = useState<{ label: string; value: string }[]>([]);
   const [outboundTagList, setOutboundTagList] = useState<string[]>([]);
   const [balancerTagList, setBalancerTagList] = useState<string[]>([]);
+
+  const [certStatus, setCertStatus] = useState<CertStatusView | null>(null);
+  const [issueOpen, setIssueOpen] = useState(false);
+  const [issueDomain, setIssueDomain] = useState('');
+  const [issueEmail, setIssueEmail] = useState('');
+  const [issueMode, setIssueMode] = useState<'letsencrypt' | 'selfsigned'>('letsencrypt');
+  const [issuing, setIssuing] = useState(false);
+  const [messageApi, messageContextHolder] = message.useMessage();
+
+  const loadCertStatus = useCallback(async () => {
+    const msg = await HttpUtil.get('/panel/api/setting/cert/status', undefined, { silent: true }) as ApiMsg<CertStatusView>;
+    if (msg?.success && msg.obj) {
+      setCertStatus(msg.obj);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadCertStatus();
+  }, [loadCertStatus]);
+
+  async function confirmIssueCert() {
+    const domain = issueDomain.trim();
+    if (!domain) {
+      messageApi.error(t('pages.settings.certDomainRequired') || 'Domain is required');
+      return;
+    }
+    setIssuing(true);
+    try {
+      const msg = await HttpUtil.post('/panel/api/setting/cert/issue', {
+        domain,
+        email: issueEmail.trim(),
+        mode: issueMode,
+        applyToPanel: true,
+      }) as ApiMsg<CertStatusView>;
+      if (msg?.success && msg.obj) {
+        setCertStatus(msg.obj);
+        updateSetting({ webCertFile: msg.obj.certFile, webKeyFile: msg.obj.keyFile });
+        setIssueOpen(false);
+        messageApi.success(t('pages.settings.certIssuedSuccess') || 'Certificate issued and applied');
+      }
+    } finally {
+      setIssuing(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -153,7 +217,9 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
   );
 
   return (
-    <Tabs defaultActiveKey="1" items={[
+    <>
+      {messageContextHolder}
+      <Tabs defaultActiveKey="1" items={[
       {
         key: '1',
         label: catTabLabel(<SettingOutlined />, t('pages.settings.panelSettings'), isMobile),
@@ -247,6 +313,27 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
         label: catTabLabel(<SafetyCertificateOutlined />, t('pages.settings.certs'), isMobile),
         children: (
           <>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.oneClickSslTitle') || 'One-Click SSL Certificate'}
+              description={
+                t('pages.settings.oneClickSslDesc')
+                || "Issue a free Let's Encrypt certificate (auto-renewed every 60 days) or a 1-year self-signed certificate."
+              }
+            >
+              <Space wrap>
+                {certStatus?.configured && !certStatus.error ? (
+                  <Tag color={certStatus.expired ? 'red' : certStatus.selfSigned ? 'gold' : 'green'}>
+                    {certStatus.subject || 'TLS'} · {certStatus.selfSigned
+                      ? (t('pages.settings.certSelfSigned') || 'Self-Signed')
+                      : (certStatus.issuer || "Let's Encrypt")} · {certStatus.daysLeft ?? 0}d
+                  </Tag>
+                ) : null}
+                <Button type="primary" onClick={() => setIssueOpen(true)}>
+                  {t('pages.settings.issueCertBtn') || 'Issue SSL Certificate'}
+                </Button>
+              </Space>
+            </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.publicKeyPath')} description={t('pages.settings.publicKeyPathDesc')}>
               <Input value={allSetting.webCertFile} onChange={(e) => updateSetting({ webCertFile: e.target.value })} />
             </SettingListItem>
@@ -386,5 +473,55 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
         ),
       },
     ]} />
+
+      <Modal
+        open={issueOpen}
+        title={t('pages.settings.oneClickSslTitle') || 'Issue SSL Certificate'}
+        confirmLoading={issuing}
+        okText={t('confirm')}
+        cancelText={t('cancel')}
+        onOk={confirmIssueCert}
+        onCancel={() => setIssueOpen(false)}
+      >
+        <Form layout="vertical">
+          <Form.Item label={t('pages.settings.certMode') || 'Certificate Type'}>
+            <Select
+              value={issueMode}
+              onChange={(v) => setIssueMode(v)}
+              options={[
+                {
+                  value: 'letsencrypt',
+                  label: t('pages.settings.certModeLetsEncrypt') || "Let's Encrypt (HTTP-01 on port 80, auto-renewed)",
+                },
+                {
+                  value: 'selfsigned',
+                  label: t('pages.settings.certModeSelfSigned') || 'Self-Signed (instant, 1 year, no port 80 needed)',
+                },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item label={t('pages.settings.certDomain') || 'Domain'} required>
+            <Input
+              value={issueDomain}
+              placeholder="panel.example.com"
+              onChange={(e) => setIssueDomain(e.target.value)}
+              onPressEnter={confirmIssueCert}
+            />
+          </Form.Item>
+          {issueMode === 'letsencrypt' ? (
+            <Form.Item
+              label={t('pages.settings.certEmail') || 'Contact Email (optional)'}
+              extra={t('pages.settings.certPort80Notice') || 'Port 80 must be reachable from the internet and point to this server.'}
+            >
+              <Input
+                value={issueEmail}
+                placeholder="admin@example.com"
+                onChange={(e) => setIssueEmail(e.target.value)}
+              />
+            </Form.Item>
+          ) : null}
+        </Form>
+      </Modal>
+    </>
   );
 }
