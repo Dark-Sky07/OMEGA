@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { PortSchema } from '@/schemas/primitives';
+
 import { ExternalProxyEntrySchema } from './external-proxy';
 import { FinalMaskStreamSettingsSchema } from './finalmask';
 import { GrpcStreamSettingsSchema } from './grpc';
@@ -9,6 +11,7 @@ import { KcpStreamSettingsSchema } from './kcp';
 import { SockoptStreamSettingsSchema } from './sockopt';
 import { TcpStreamSettingsSchema } from './tcp';
 import { WsStreamSettingsSchema } from './ws';
+import { XDriveStreamSettingsSchema } from './xdrive';
 import { XHttpStreamSettingsSchema } from './xhttp';
 
 export * from './external-proxy';
@@ -20,10 +23,11 @@ export * from './kcp';
 export * from './sockopt';
 export * from './tcp';
 export * from './ws';
+export * from './xdrive';
 export * from './xhttp';
 
 export const NetworkSchema = z.enum([
-  'tcp', 'kcp', 'ws', 'grpc', 'httpupgrade', 'xhttp', 'hysteria',
+  'tcp', 'kcp', 'ws', 'grpc', 'httpupgrade', 'xhttp', 'hysteria', 'xdrive',
 ]);
 export type Network = z.infer<typeof NetworkSchema>;
 
@@ -44,6 +48,12 @@ const TransportNetworkSettingsSchema = z.discriminatedUnion('network', [
   z.object({ network: z.literal('httpupgrade'), httpupgradeSettings: HttpUpgradeStreamSettingsSchema }),
   z.object({ network: z.literal('xhttp'),       xhttpSettings:       XHttpStreamSettingsSchema }),
   z.object({ network: z.literal('hysteria'),    hysteriaSettings:    HysteriaStreamSettingsSchema }),
+  z.object({
+    network: z.literal('xdrive'),
+    xdriveSettings: XDriveStreamSettingsSchema,
+    address: z.string().optional(),
+    port: PortSchema.optional(),
+  }),
 ]);
 
 // Wireguard (always a UDP listener) and Tunnel (dokodemo-door) expose no

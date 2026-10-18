@@ -642,6 +642,30 @@
           "node": "Alamat node",
           "listen": "Alamat listen inbound",
           "custom": "Kustom"
+        },
+        "xdrive": {
+          "service": "Layanan penyimpanan",
+          "serviceLocal": "Folder lokal",
+          "serviceTemplate": "Template kustom",
+          "remoteFolder": "Folder jarak jauh",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "Rahasia",
+          "secretsDesc": "Nilai yang dibaca template sebagai {secret0}, {secret1}, …",
+          "template": "Template penyimpanan",
+          "templateInvalid": "Harus berupa objek JSON",
+          "front": "Alamat fronting",
+          "frontDesc": "Host atau IP opsional untuk menghubungi API penyimpanan (domain fronting).",
+          "frontPort": "Port fronting",
+          "segmentBytes": "Ukuran segmen (byte)",
+          "flushInterval": "Interval pengiriman (ms)",
+          "pollInterval": "Interval polling (ms)",
+          "maxPollInterval": "Interval polling maks. (ms)",
+          "eagerWindow": "Jendela kirim awal (ms)",
+          "holeTimeout": "Batas waktu segmen hilang (ms)",
+          "sessionTtl": "TTL sesi (s)",
+          "concurrency": "Konkurensi"
         }
       },
       "info": {

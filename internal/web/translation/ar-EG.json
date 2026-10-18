@@ -642,6 +642,30 @@
           "node": "عنوان العقدة",
           "listen": "عنوان استماع الوارد",
           "custom": "مخصص"
+        },
+        "xdrive": {
+          "service": "خدمة التخزين",
+          "serviceLocal": "مجلد محلي",
+          "serviceTemplate": "قالب مخصص",
+          "remoteFolder": "المجلد البعيد",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "الأسرار",
+          "secretsDesc": "قيم يقرؤها القالب باسم {secret0} و{secret1} …",
+          "template": "قالب التخزين",
+          "templateInvalid": "يجب أن يكون كائن JSON",
+          "front": "عنوان الواجهة (Front)",
+          "frontDesc": "مضيف أو IP اختياري يُتصل عبره بواجهة API التخزين (domain fronting).",
+          "frontPort": "منفذ الواجهة (Front)",
+          "segmentBytes": "حجم المقطع (بايت)",
+          "flushInterval": "فاصل الإرسال (ms)",
+          "pollInterval": "فاصل الاستطلاع (ms)",
+          "maxPollInterval": "أقصى فاصل استطلاع (ms)",
+          "eagerWindow": "نافذة الإرسال المبكر (ms)",
+          "holeTimeout": "مهلة المقطع المفقود (ms)",
+          "sessionTtl": "مدة صلاحية الجلسة (s)",
+          "concurrency": "التزامن"
         }
       },
       "info": {

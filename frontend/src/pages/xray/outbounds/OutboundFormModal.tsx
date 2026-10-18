@@ -21,6 +21,7 @@ import {
   rawOutboundToFormValues,
 } from '@/lib/xray/outbound-form-adapter';
 import { parseOutboundLink } from '@/lib/xray/outbound-link-parser';
+import XDriveForm from '@/lib/xray/forms/transport/XDriveForm';
 import {
   OutboundFormBaseSchema,
   type OutboundFormValues,
@@ -513,6 +514,8 @@ export default function OutboundFormModal({
                         {network === 'xhttp' && <XhttpForm form={form} onXmuxToggle={onXmuxToggle} />}
 
                         {network === 'hysteria' && <HysteriaForm form={form} />}
+
+                        {network === 'xdrive' && <XDriveForm />}
                       </>
                     )}
 
