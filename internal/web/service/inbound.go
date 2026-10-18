@@ -20,6 +20,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
+	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -352,6 +353,7 @@ type InboundOption struct {
 	SsMethod          string                    `json:"ssMethod"`
 	L2TP              *L2TPInboundOption        `json:"l2tp,omitempty"`
 	AwgServer         *amneziawg.ServerSettings `json:"awgServer,omitempty"`
+	TuicServer        *tuic.TuicServerSettings  `json:"tuicServer,omitempty"`
 	NodeAddress       string                    `json:"nodeAddress,omitempty"`
 	Listen            string                    `json:"listen,omitempty"`
 	ShareAddr         string                    `json:"shareAddr,omitempty"`
@@ -397,6 +399,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 			TlsFlowCapable:    inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings, r.Settings),
 			SsMethod:          inboundShadowsocksMethod(r.Protocol, r.Settings),
 			AwgServer:         inboundAmneziaWGServer(r.Protocol, r.Settings),
+			TuicServer:        inboundTuicServer(r.Protocol, r.Settings),
 			NodeId:            r.NodeId,
 			NodeAddress:       r.NodeAddress,
 			Listen:            r.Listen,
@@ -425,6 +428,28 @@ func inboundAmneziaWGServer(protocol string, settings string) *amneziawg.ServerS
 	redacted := *parsed.Server
 	redacted.PrivateKey = ""
 	return &redacted
+}
+
+func inboundTuicServer(protocol string, settings string) *tuic.TuicServerSettings {
+	if protocol != string(model.TUIC) || strings.TrimSpace(settings) == "" {
+		return nil
+	}
+	inst, ok := tuic.InstanceFromInbound(&model.Inbound{Protocol: model.TUIC, Settings: settings})
+	if !ok {
+		return nil
+	}
+	return &tuic.TuicServerSettings{
+		Certificate:           inst.Certificate,
+		CongestionControl:     inst.CongestionControl,
+		ALPN:                  inst.ALPN,
+		UDPRelayMode:          inst.UDPRelayMode,
+		ZeroRTTHandshake:      inst.ZeroRTTHandshake,
+		LogLevel:              inst.LogLevel,
+		MaxIdleTime:           inst.MaxIdleTime,
+		AuthenticationTimeout: inst.AuthenticationTimeout,
+		MaxUdpRelayPacketSize: inst.MaxUdpRelayPacketSize,
+		SNI:                   inst.SNI,
+	}
 }
 
 // GetAllInbounds retrieves all inbounds with client stats.
@@ -806,6 +831,9 @@ func (s *InboundService) addInbound(inbound *model.Inbound, preserveExistingClie
 		l2tpInboundMu.Lock()
 		defer l2tpInboundMu.Unlock()
 	}
+	if err := normalizeTuicSettings(inbound); err != nil {
+		return inbound, false, err
+	}
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	if err := validateXDriveStorage(inbound.StreamSettings); err != nil {
@@ -921,6 +949,16 @@ func (s *InboundService) addInbound(inbound *model.Inbound, preserveExistingClie
 			if client.Email == "" || client.Password == "" {
 				return inbound, false, common.NewError("l2tp clients require email and password")
 			}
+		case model.TUIC:
+			if client.ID == "" {
+				return inbound, false, common.NewError("empty client ID")
+			}
+			if client.Password == "" {
+				return inbound, false, common.NewError("tuic client requires a password")
+			}
+			if client.Email == "" {
+				return inbound, false, common.NewError("empty client email")
+			}
 		default:
 			if client.ID == "" {
 				return inbound, false, common.NewError("empty client ID")
@@ -953,6 +991,30 @@ func (s *InboundService) addInbound(inbound *model.Inbound, preserveExistingClie
 	err = tx.Omit("ClientStats").Save(inbound).Error
 	if err != nil {
 		return inbound, false, err
+	}
+	if inbound.NodeID == nil && inbound.Protocol == model.TUIC {
+		if self := tuicSocksSelfConflict(inbound, inbound.Id); self != "" {
+			err = common.NewError(self)
+			return inbound, false, err
+		}
+		conflict, cErr := checkTuicSocksRelayCollision(tx, inbound.Id)
+		if cErr != nil {
+			err = cErr
+			return inbound, false, err
+		}
+		if conflict != nil {
+			err = common.NewError(conflict.String())
+			return inbound, false, err
+		}
+		conflict, cErr = checkTuicSocksReverseConflict(tx, inbound.Id)
+		if cErr != nil {
+			err = cErr
+			return inbound, false, err
+		}
+		if conflict != nil {
+			err = common.NewError(conflict.String())
+			return inbound, false, err
+		}
 	}
 	// Imported stats first, so their traffic counters survive; emails that
 	// already own a (shared) row are skipped instead of tripping the unique
@@ -1020,13 +1082,19 @@ func (s *InboundService) addInbound(inbound *model.Inbound, preserveExistingClie
 			markDirty = true
 		}
 		if push {
-			if err1 := rt.AddInbound(context.Background(), inbound); err1 == nil {
+			payload := inbound
+			if inbound.NodeID == nil && (inbound.Protocol == model.MTProto || inbound.Protocol == model.TUIC) {
+				if built, bErr := s.buildInboundForLocalRuntime(tx, inbound); bErr == nil {
+					payload = built
+				}
+			}
+			if err1 := rt.AddInbound(context.Background(), payload); err1 == nil {
 				logger.Debug("New inbound added on", rt.Name(), ":", inbound.Tag)
 			} else {
 				logger.Debug("Unable to add inbound on", rt.Name(), ":", err1)
 				if inbound.NodeID != nil {
 					markDirty = true
-				} else {
+				} else if inbound.Protocol != model.MTProto && inbound.Protocol != model.TUIC {
 					needRestart = true
 				}
 			}
@@ -1250,6 +1318,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		l2tpInboundMu.Lock()
 		defer l2tpInboundMu.Unlock()
 	}
+	if err := normalizeTuicSettings(inbound); err != nil {
+		return inbound, false, err
+	}
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	if err := validateXDriveStorage(inbound.StreamSettings); err != nil {
@@ -1299,6 +1370,23 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		}
 		if clientErr = validateL2TPClientCredentials(clients); clientErr != nil {
 			return inbound, false, clientErr
+		}
+	}
+	if inbound.Protocol == model.TUIC {
+		clients, clientErr := s.GetClients(inbound)
+		if clientErr != nil {
+			return inbound, false, clientErr
+		}
+		for _, client := range clients {
+			if client.ID == "" {
+				return inbound, false, common.NewError("empty client ID")
+			}
+			if client.Password == "" {
+				return inbound, false, common.NewError("tuic client requires a password")
+			}
+			if client.Email == "" {
+				return inbound, false, common.NewError("empty client email")
+			}
 		}
 	}
 	// Capture the pre-edit routing state before oldInbound.Settings is replaced
@@ -1439,6 +1527,21 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	if oldInbound.NodeID == nil {
 		if !push {
 			needRestart = true
+		} else if oldRuntime.Protocol == model.TUIC || oldInbound.Protocol == model.TUIC {
+			oldSnapshot := oldRuntime
+			oldSnapshot.Tag = tag
+			payload := oldInbound
+			if oldInbound.Enable && oldInbound.Protocol == model.TUIC {
+				if built, bErr := s.buildInboundForLocalRuntime(tx, oldInbound); bErr == nil {
+					payload = built
+				}
+			}
+			if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, payload); err2 != nil {
+				logger.Debug("Unable to update TUIC inbound on", rt.Name(), ":", err2)
+				if oldInbound.Protocol != model.TUIC {
+					needRestart = true
+				}
+			}
 		} else {
 			oldSnapshot := oldRuntime
 			oldSnapshot.Tag = tag
@@ -1501,6 +1604,10 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	return inbound, needRestart, nil
 }
 
+func (s *InboundService) buildInboundForLocalRuntime(tx *gorm.DB, inbound *model.Inbound) (*model.Inbound, error) {
+	return s.buildRuntimeInboundForAPI(tx, inbound)
+}
+
 func (s *InboundService) buildRuntimeInboundForAPI(tx *gorm.DB, inbound *model.Inbound) (*model.Inbound, error) {
 	if inbound == nil {
 		return nil, fmt.Errorf("inbound is nil")
@@ -1517,18 +1624,32 @@ func (s *InboundService) buildRuntimeInboundForAPI(tx *gorm.DB, inbound *model.I
 		return &runtimeInbound, nil
 	}
 
+	emails := make([]string, 0, len(clients))
+	for _, client := range clients {
+		if c, ok := client.(map[string]any); ok {
+			if email, _ := c["email"].(string); email != "" {
+				emails = append(emails, transferEmailKey(email))
+			}
+		}
+	}
+
 	var clientStats []xray.ClientTraffic
-	err := tx.Model(xray.ClientTraffic{}).
-		Where("inbound_id = ?", inbound.Id).
-		Select("email", "enable").
-		Find(&clientStats).Error
-	if err != nil {
+	q := tx.Model(xray.ClientTraffic{}).Select("id", "email", "enable")
+	if len(emails) > 0 {
+		q = q.Where("inbound_id = ? OR LOWER(TRIM(email)) IN ?", inbound.Id, emails)
+	} else {
+		q = q.Where("inbound_id = ?", inbound.Id)
+	}
+	if err := q.Find(&clientStats).Error; err != nil {
 		return nil, err
 	}
 
 	enableMap := make(map[string]bool, len(clientStats))
+	trafficIDs := make(map[string]int, len(clientStats))
 	for _, clientTraffic := range clientStats {
-		enableMap[transferEmailKey(clientTraffic.Email)] = clientTraffic.Enable
+		key := transferEmailKey(clientTraffic.Email)
+		enableMap[key] = clientTraffic.Enable
+		trafficIDs[key] = clientTraffic.Id
 	}
 
 	finalClients := make([]any, 0, len(clients))
@@ -1539,12 +1660,20 @@ func (s *InboundService) buildRuntimeInboundForAPI(tx *gorm.DB, inbound *model.I
 		}
 
 		email, _ := c["email"].(string)
-		if enable, exists := enableMap[transferEmailKey(email)]; exists && !enable {
+		key := transferEmailKey(email)
+		if enable, exists := enableMap[key]; exists && !enable {
 			continue
 		}
 
 		if manualEnable, ok := c["enable"].(bool); ok && !manualEnable {
 			continue
+		}
+
+		if inbound.Protocol == model.TUIC {
+			delete(c, "traffic_id")
+			if id := trafficIDs[key]; id > 0 {
+				c["traffic_id"] = id
+			}
 		}
 
 		finalClients = append(finalClients, c)

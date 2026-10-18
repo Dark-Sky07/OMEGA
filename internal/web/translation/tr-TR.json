@@ -671,7 +671,8 @@
         "masque": {
           "addressPool": "Adres havuzu",
           "addressPoolDesc": "Tünel adresleri bu öneklerden atanır — en fazla bir IPv4 ve bir IPv6."
-        }
+        },
+        "autoFill": "Otomatik Doldur"
       },
       "info": {
         "mode": "Mod",
@@ -706,7 +707,8 @@
           "requestHeader": "İstek Başlığı",
           "responseHeader": "Yanıt Başlığı"
         }
-      }
+      },
+      "advancedTitle": "Gelişmiş Ayarlar"
     },
     "clients": {
       "tabBasics": "Temel",
@@ -1690,6 +1692,23 @@
         "edit": "Sahte DNS'i Düzenle",
         "ipPool": "IP Havuzu Alt Ağı",
         "poolSize": "Havuz Boyutu"
+      },
+      "tuic": {
+        "congestionControl": "Tıkanıklık Kontrolü",
+        "congestionControlHint": "Sunucu ve istemci algoritması. Sunucu değişiklikleri yeniden bağlanınca uygulanır.",
+        "profileOptions": "Client profile options",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP İletim Modu",
+        "udpRelayModeHint": "İstemci UDP modu. Sunucu her ikisini de destekler.",
+        "zeroRttHandshake": "0-RTT El Sıkışması",
+        "logLevel": "Günlük Seviyesi",
+        "logLevelHint": "Bu gelen bağlantı için en düşük günlük seviyesi.",
+        "maxIdleTime": "Maksimum Boşta Kalma Süresi (sn)",
+        "authTimeout": "Kimlik Doğrulama Zaman Aşımı (sn)",
+        "maxUdpRelayPacketSize": "Maksimum UDP Paket Boyutu",
+        "sni": "SNI",
+        "sniHint": "İstemci profilindeki TLS sunucu adı.",
+        "sniRequired": "Sertifika yollarını otomatik doldurmak için alan adı girin."
       }
     }
   },

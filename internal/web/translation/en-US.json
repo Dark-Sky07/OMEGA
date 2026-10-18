@@ -696,7 +696,8 @@
         "masque": {
           "addressPool": "Address pool",
           "addressPoolDesc": "Tunnel addresses are leased from these prefixes — at most one IPv4 and one IPv6."
-        }
+        },
+        "autoFill": "Auto Fill"
       },
       "info": {
         "mode": "Mode",
@@ -731,7 +732,8 @@
           "requestHeader": "Request Header",
           "responseHeader": "Response Header"
         }
-      }
+      },
+      "advancedTitle": "Advanced Settings"
     },
     "clients": {
       "import": "Import",
@@ -1801,6 +1803,23 @@
         "edit": "Edit Fake DNS",
         "ipPool": "IP Pool Subnet",
         "poolSize": "Pool Size"
+      },
+      "tuic": {
+        "congestionControl": "Congestion Control",
+        "congestionControlHint": "Server and client algorithm. Server changes apply after reconnecting.",
+        "profileOptions": "Client profile options",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP Relay Mode",
+        "udpRelayModeHint": "Client UDP mode. The server supports both.",
+        "zeroRttHandshake": "Zero-RTT Handshake",
+        "logLevel": "Log Level",
+        "logLevelHint": "Minimum log level for this inbound.",
+        "maxIdleTime": "Max Idle Time (s)",
+        "authTimeout": "Auth Timeout (s)",
+        "maxUdpRelayPacketSize": "Max UDP Packet Size",
+        "sni": "SNI",
+        "sniHint": "TLS server name in the client profile.",
+        "sniRequired": "Enter a domain to auto-fill certificate paths."
       }
     }
   },

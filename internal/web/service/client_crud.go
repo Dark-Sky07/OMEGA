@@ -158,6 +158,13 @@ func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound)
 		if c.Auth == "" {
 			c.Auth = strings.ReplaceAll(uuid.NewString(), "-", "")
 		}
+	case model.TUIC:
+		if c.ID == "" {
+			c.ID = uuid.NewString()
+		}
+		if c.Password == "" {
+			c.Password = strings.ReplaceAll(uuid.NewString(), "-", "")
+		}
 	}
 	return nil
 }
@@ -445,7 +452,7 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 		if existing.Email == "" {
 			continue
 		}
-		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, existing.Email, false)
+		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, existing.Email, keepTraffic)
 		if delErr != nil {
 			// The client is already absent from this inbound (data drift or a
 			// retried delete). Skip it — deletion stays idempotent.

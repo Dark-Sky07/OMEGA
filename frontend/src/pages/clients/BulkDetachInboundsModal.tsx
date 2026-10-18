@@ -7,7 +7,7 @@ import type { InboundOption } from '@/hooks/useClients';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import type { BulkDetachResult } from '@/schemas/client';
 
-const MULTI_USER_PROTOCOLS = new Set(['vmess', 'vless', 'trojan', 'hysteria', 'shadowsocks', 'masque']);
+const MULTI_USER_PROTOCOLS = new Set(['vmess', 'vless', 'trojan', 'hysteria', 'shadowsocks', 'masque', 'tuic']);
 
 interface BulkDetachInboundsModalProps {
   open: boolean;

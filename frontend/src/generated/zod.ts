@@ -12,6 +12,12 @@ export type Protocol = z.infer<typeof ProtocolSchema>;
 export const SubLinkProviderSchema = z.unknown();
 export type SubLinkProvider = z.infer<typeof SubLinkProviderSchema>;
 
+export const closeWriterSchema = z.unknown();
+export type closeWriter = z.infer<typeof closeWriterSchema>;
+
+export const readDeadlinerSchema = z.unknown();
+export type readDeadliner = z.infer<typeof readDeadlinerSchema>;
+
 export const trafficLocalApplyActionSchema = z.number().int();
 export type trafficLocalApplyAction = z.infer<typeof trafficLocalApplyActionSchema>;
 
@@ -372,7 +378,7 @@ export const InboundSchema = z.object({
   nodeId: z.number().int().nullable().optional(),
   originNodeGuid: z.string().optional(),
   port: z.number().int().min(0).max(65535),
-  protocol: z.enum(['vmess', 'vless', 'trojan', 'shadowsocks', 'wireguard', 'amneziawg', 'hysteria', 'http', 'mixed', 'tunnel', 'tun', 'mtproto', 'openvpn', 'l2tp', 'masque']),
+  protocol: z.enum(['vmess', 'vless', 'trojan', 'shadowsocks', 'wireguard', 'amneziawg', 'hysteria', 'http', 'mixed', 'tunnel', 'tun', 'mtproto', 'openvpn', 'l2tp', 'masque', 'tuic']),
   remark: z.string(),
   settings: z.unknown(),
   shareAddr: z.string(),
@@ -422,6 +428,7 @@ export const InboundOptionSchema = z.object({
   ssMethod: z.string(),
   tag: z.string(),
   tlsFlowCapable: z.boolean(),
+  tuicServer: z.lazy(() => TuicServerSettingsSchema).nullable().optional(),
 });
 export type InboundOption = z.infer<typeof InboundOptionSchema>;
 
@@ -570,6 +577,28 @@ export const SettingSchema = z.object({
   value: z.string(),
 });
 export type Setting = z.infer<typeof SettingSchema>;
+
+export const TuicClientSettingsSchema = z.object({
+  email: z.string(),
+  password: z.string(),
+  uuid: z.string(),
+});
+export type TuicClientSettings = z.infer<typeof TuicClientSettingsSchema>;
+
+export const TuicServerSettingsSchema = z.object({
+  alpn: z.array(z.string()),
+  authentication_timeout: z.number().int(),
+  certificate: z.string(),
+  congestion_control: z.string(),
+  log_level: z.string(),
+  max_idle_time: z.number().int(),
+  max_udp_relay_packet_size: z.number().int(),
+  private_key: z.string(),
+  sni: z.string().optional(),
+  udp_relay_mode: z.string(),
+  zero_rtt_handshake: z.boolean(),
+});
+export type TuicServerSettings = z.infer<typeof TuicServerSettingsSchema>;
 
 export const UserSchema = z.object({
   id: z.number().int(),

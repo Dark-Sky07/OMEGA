@@ -670,7 +670,8 @@
         "masque": {
           "addressPool": "Pool de direcciones",
           "addressPoolDesc": "Las direcciones del túnel se asignan de estos prefijos: como máximo uno IPv4 y uno IPv6."
-        }
+        },
+        "autoFill": "Autocompletar"
       },
       "info": {
         "mode": "Modo",
@@ -705,7 +706,8 @@
           "requestHeader": "Encabezado de solicitud",
           "responseHeader": "Encabezado de respuesta"
         }
-      }
+      },
+      "advancedTitle": "Configuración avanzada"
     },
     "clients": {
       "tabBasics": "Básico",
@@ -1691,6 +1693,23 @@
         "edit": "Editar DNS Falso",
         "ipPool": "Subred del grupo de IP",
         "poolSize": "Tamaño del grupo"
+      },
+      "tuic": {
+        "congestionControl": "Control de congestión",
+        "congestionControlHint": "Algoritmo del servidor y cliente. Los cambios del servidor se aplican al reconectar.",
+        "profileOptions": "Client profile options",
+        "alpn": "ALPN",
+        "udpRelayMode": "Modo de retransmisión UDP",
+        "udpRelayModeHint": "Modo UDP del cliente. El servidor admite ambos.",
+        "zeroRttHandshake": "Apretón de manos 0-RTT",
+        "logLevel": "Nivel de registro",
+        "logLevelHint": "Nivel mínimo de registro de esta entrada.",
+        "maxIdleTime": "Tiempo máx. de inactividad (s)",
+        "authTimeout": "Tiempo de espera de autenticación (s)",
+        "maxUdpRelayPacketSize": "Tamaño máx. de paquete UDP",
+        "sni": "SNI",
+        "sniHint": "Nombre del servidor TLS en el perfil del cliente.",
+        "sniRequired": "Introduce un dominio para completar las rutas del certificado."
       }
     }
   },

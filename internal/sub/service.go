@@ -19,6 +19,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -283,7 +284,7 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 		JOIN client_inbounds ON client_inbounds.inbound_id = inbounds.id
 		JOIN clients ON clients.id = client_inbounds.client_id
 		WHERE
-			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria','amneziawg','masque')
+			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria','amneziawg','masque','tuic')
 			AND clients.sub_id = ? AND inbounds.enable = ?
 	)`, subId, true).Order("sub_sort_index ASC").Order("id ASC").Find(&inbounds).Error
 	if err != nil {
@@ -516,8 +517,90 @@ func (s *SubService) GetLink(inbound *model.Inbound, email string) string {
 		return s.genMtprotoLink(inbound, email)
 	case model.AmneziaWG:
 		return s.genAmneziaWGLink(inbound, email)
+	case model.TUIC:
+		return s.genTuicLink(inbound, email)
 	}
 	return ""
+}
+
+func joinHostPort(host string, port int) string {
+	return net.JoinHostPort(strings.Trim(host, "[]"), fmt.Sprintf("%d", port))
+}
+
+func (s *SubService) genTuicLink(inbound *model.Inbound, email string) string {
+	if inbound.Protocol != model.TUIC {
+		return ""
+	}
+	inst, ok := tuic.InstanceFromInbound(inbound)
+	if !ok {
+		return ""
+	}
+	var client *tuic.TuicClientSettings
+	for _, c := range inst.Clients {
+		if c.Email == email {
+			client = &c
+			break
+		}
+	}
+	if client == nil && len(inst.Clients) > 0 && email == "" {
+		client = &inst.Clients[0]
+	}
+	if client == nil || client.UUID == "" || client.Password == "" {
+		return ""
+	}
+
+	params := make(map[string]string)
+	cc := inst.CongestionControl
+	if cc == "" {
+		cc = "bbr"
+	}
+	params["congestion_control"] = cc
+
+	if len(inst.ALPN) > 0 {
+		params["alpn"] = strings.Join(inst.ALPN, ",")
+	}
+	if inst.SNI != "" {
+		params["sni"] = inst.SNI
+	}
+	if inst.UDPRelayMode != "" {
+		params["udp_relay_mode"] = inst.UDPRelayMode
+	}
+	params["allow_insecure"] = "0"
+
+	stream := unmarshalStreamSettings(inbound.StreamSettings)
+	externalProxies, _ := stream["externalProxy"].([]any)
+	if len(externalProxies) > 0 {
+		links := make([]string, 0, len(externalProxies))
+		for _, externalProxy := range externalProxies {
+			ep, ok := externalProxy.(map[string]any)
+			if !ok {
+				continue
+			}
+			dest, _ := ep["dest"].(string)
+			portF, okPort := ep["port"].(float64)
+			if dest == "" || !okPort {
+				continue
+			}
+			epRemark, _ := ep["remark"].(string)
+			epParams := cloneStringMap(params)
+			if sni, ok := externalProxySNI(ep); ok {
+				epParams["sni"] = sni
+			}
+			if alpn, ok := externalProxyALPN(ep["alpn"]); ok {
+				epParams["alpn"] = alpn
+			}
+			if ai, ok := ep["allowInsecure"].(bool); ok && ai {
+				epParams["allow_insecure"] = "1"
+			}
+			link := fmt.Sprintf("tuic://%s:%s@%s", encodeUserinfo(client.UUID), encodeUserinfo(client.Password), joinHostPort(dest, int(portF)))
+			links = append(links, buildLinkWithParams(link, epParams, s.genRemark(inbound, email, epRemark)))
+		}
+		return strings.Join(links, "\n")
+	}
+
+	host := s.resolveInboundAddress(inbound)
+	link := fmt.Sprintf("tuic://%s:%s@%s", encodeUserinfo(client.UUID), encodeUserinfo(client.Password), joinHostPort(host, inbound.Port))
+	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
 }
 
 // genMtprotoLink builds a Telegram proxy deep link for an mtproto inbound:
@@ -1618,6 +1701,15 @@ func cloneStringMap(source map[string]string) map[string]string {
 }
 
 func (s *SubService) genRemark(inbound *model.Inbound, email string, extra string) string {
+	if s.remarkModel == "" {
+		out := make([]string, 0, 3)
+		for _, p := range []string{inbound.Remark, extra, email} {
+			if p != "" {
+				out = append(out, p)
+			}
+		}
+		return strings.Join(out, "-")
+	}
 	separationChar := string(s.remarkModel[0])
 	orderChars := s.remarkModel[1:]
 	orders := map[byte]string{

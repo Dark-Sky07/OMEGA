@@ -670,7 +670,8 @@
         "masque": {
           "addressPool": "مجمّع العناوين",
           "addressPoolDesc": "تُخصَّص عناوين النفق من هذه البادئات — بحد أقصى IPv4 واحد و IPv6 واحد."
-        }
+        },
+        "autoFill": "الملء التلقائي"
       },
       "info": {
         "mode": "الوضع",
@@ -705,7 +706,8 @@
           "requestHeader": "رأس الطلب",
           "responseHeader": "رأس الرد"
         }
-      }
+      },
+      "advancedTitle": "الإعدادات المتقدمة"
     },
     "clients": {
       "tabBasics": "أساسي",
@@ -1691,6 +1693,23 @@
         "edit": "عدل Fake DNS",
         "ipPool": "نطاق IP Pool",
         "poolSize": "حجم المجموعة"
+      },
+      "tuic": {
+        "congestionControl": "التحكم في الازدحام",
+        "congestionControlHint": "خوارزمية الخادم والعميل. تسري تغييرات الخادم بعد إعادة الاتصال.",
+        "profileOptions": "Client profile options",
+        "alpn": "ALPN",
+        "udpRelayMode": "وضع ترحيل UDP",
+        "udpRelayModeHint": "وضع UDP للعميل. يدعم الخادم كلا الوضعين.",
+        "zeroRttHandshake": "مصافحة 0-RTT",
+        "logLevel": "مستوى السجل",
+        "logLevelHint": "أدنى مستوى للسجل لهذا الاتصال الوارد.",
+        "maxIdleTime": "أقصى وقت خمول (ثوانٍ)",
+        "authTimeout": "مهلة المصادقة (ثوانٍ)",
+        "maxUdpRelayPacketSize": "أقصى حجم لحزمة UDP",
+        "sni": "SNI",
+        "sniHint": "اسم خادم TLS في ملف إعداد العميل.",
+        "sniRequired": "أدخل نطاقًا لملء مسارات الشهادة تلقائيًا."
       }
     }
   },

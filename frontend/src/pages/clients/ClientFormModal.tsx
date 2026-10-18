@@ -32,7 +32,7 @@ const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 const VMESS_SECURITY_OPTIONS = ['auto', 'aes-128-gcm', 'chacha20-poly1305', 'none', 'zero'] as const;
 
 const MULTI_CLIENT_PROTOCOLS = new Set([
-  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'wireguard', 'amneziawg', 'openvpn', 'l2tp', 'masque',
+  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'wireguard', 'amneziawg', 'openvpn', 'l2tp', 'masque', 'tuic',
 ]);
 
 const CLIENT_FORM_MODAL_Z_INDEX = 1000;
@@ -467,6 +467,7 @@ export default function ClientFormModal({
       email: form.email.trim(),
       subId: form.subId,
       id: form.uuid,
+      uuid: form.uuid,
       password: form.password,
       auth: form.auth,
       flow: showFlow ? (form.flow || '') : '',

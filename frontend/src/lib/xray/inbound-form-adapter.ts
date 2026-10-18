@@ -1,3 +1,4 @@
+import { resolveTuicServerSettings } from '@/lib/tuic';
 import type { InboundFormValues, ShareAddrStrategy, TrafficReset } from '@/schemas/forms/inbound-form';
 import type { InboundSettings } from '@/schemas/protocols/inbound';
 import {
@@ -6,6 +7,7 @@ import {
   MasqueClientSchema,
   ShadowsocksClientSchema,
   TrojanClientSchema,
+  TuicClientSchema,
   VlessClientSchema,
   VmessClientSchema,
 } from '@/schemas/protocols/inbound';
@@ -169,7 +171,11 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
   const protocol = (row.protocol || 'vless') as InboundSettings['protocol'];
   const settingsRecord: Record<string, unknown> = { ...coerceJsonObject(row.settings) };
   healDaemonRouteThroughXray(protocol, settingsRecord);
-  const settings = settingsRecord as InboundSettings['settings'];
+  const settings = (
+    protocol === 'tuic'
+      ? { clients: settingsRecord.clients, server: resolveTuicServerSettings(settingsRecord) }
+      : settingsRecord
+  ) as InboundSettings['settings'];
   const rawStream = coerceJsonObject(row.streamSettings);
   const streamSettings = Object.keys(rawStream).length > 0
     ? (rawStream as StreamSettings)
@@ -253,6 +259,7 @@ function clientSchemaForProtocol(protocol: string): z.ZodType | null {
     case 'hysteria': return HysteriaClientSchema;
     case 'amneziawg': return AmneziawgClientSchema;
     case 'masque': return MasqueClientSchema;
+    case 'tuic': return TuicClientSchema;
     default: return null;
   }
 }

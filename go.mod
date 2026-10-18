@@ -89,7 +89,7 @@ require (
 	github.com/refraction-networking/utls v1.8.3-0.20260301010127-aa6edf4b11af // indirect
 	github.com/rogpeppe/go-internal v1.15.0 // indirect
 	github.com/sagernet/sing v0.8.10 // indirect
-	github.com/sagernet/sing-shadowsocks v0.2.9 // indirect
+	github.com/sagernet/sing-shadowsocks v0.2.8 // indirect
 	github.com/tklauser/go-sysconf v0.4.0 // indirect
 	github.com/tklauser/numcpus v0.12.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
@@ -116,3 +116,5 @@ require (
 	gvisor.dev/gvisor v0.0.0-20260122175437-89a5d21be8f0 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
 )
+
+replace github.com/sagernet/sing-shadowsocks => github.com/sagernet/sing-shadowsocks v0.2.8

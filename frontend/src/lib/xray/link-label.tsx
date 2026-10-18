@@ -25,6 +25,7 @@ const PROTOCOL_LABELS: Record<string, string> = {
   hysteria: 'Hysteria',
   wireguard: 'WireGuard',
   wg: 'WireGuard',
+  tuic: 'TUIC',
 };
 
 const PROTOCOL_COLORS: Record<string, string> = {
@@ -35,6 +36,7 @@ const PROTOCOL_COLORS: Record<string, string> = {
   Hysteria: 'magenta',
   Hysteria2: 'magenta',
   WireGuard: 'cyan',
+  TUIC: 'orange',
 };
 
 const SECURITY_COLORS: Record<string, string> = {
@@ -100,6 +102,10 @@ export function parseLinkParts(link: string, email = ''): LinkParts | null {
       const hash = url.hash.replace(/^#/, '');
       try { remark = decodeURIComponent(hash); } catch { remark = hash; }
     } catch { /* not URL-shaped, fall back to protocol only */ }
+    if (scheme === 'tuic') {
+      network = 'quic';
+      security = 'TLS';
+    }
   }
   if (security === 'none') security = '';
   return {

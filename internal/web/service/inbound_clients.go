@@ -228,6 +228,9 @@ func (s *InboundService) buildTargetClientFromSource(source model.Client, target
 		target.Password = s.generateRandomCredential(targetProtocol)
 	case model.Hysteria:
 		target.Auth = s.generateRandomCredential(targetProtocol)
+	case model.TUIC:
+		target.ID = uuid.NewString()
+		target.Password = s.generateRandomCredential(targetProtocol)
 	default:
 		target.ID = s.generateRandomCredential(targetProtocol)
 	}

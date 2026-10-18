@@ -2,10 +2,12 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  genAllLinks,
   genHysteriaLink,
   genInboundLinks,
   genShadowsocksLink,
   genTrojanLink,
+  genTuicLink,
   genVlessLink,
   genVmessLink,
   genWireguardConfig,
@@ -480,5 +482,159 @@ describe('external proxy pinned cert (pcs)', () => {
     });
 
     expect(new URL(link).searchParams.has('pcs')).toBe(false);
+  });
+});
+
+describe('genTuicLink', () => {
+  it('canonicalizes legacy flat controller values to the Go runtime default', () => {
+    const cases = [
+      { value: '', expected: 'bbr' },
+      { value: ' ', expected: 'bbr' },
+      { value: 'BBR', expected: 'bbr' },
+      { value: ' CuBiC ', expected: 'cubic' },
+      { value: 'reno', expected: 'new_reno' },
+      { value: 'invalid', expected: 'new_reno' },
+    ];
+    for (const { value, expected } of cases) {
+      const inbound = InboundSchema.parse({
+        id: 10,
+        protocol: 'tuic',
+        port: 8443,
+        settings: {
+          congestion_control: value,
+          clients: [
+            {
+              uuid: '11111111-2222-3333-4444-555555555555',
+              password: 'secretpassword',
+              email: 'user@tuic',
+            },
+          ],
+        },
+      });
+      const link = genTuicLink({
+        inbound,
+        address: 'example.com',
+        clientUuid: '11111111-2222-3333-4444-555555555555',
+        clientPassword: 'secretpassword',
+      });
+      expect(new URL(link).searchParams.get('congestion_control')).toBe(expected);
+    }
+  });
+
+  it('builds a standard tuic share link with all parameters', () => {
+    const inbound = InboundSchema.parse({
+      id: 1,
+      tag: 'tuic-test',
+      protocol: 'tuic',
+      port: 8443,
+      listen: '0.0.0.0',
+      enable: true,
+      settings: {
+        server: {
+          certificate: '/etc/cert.pem',
+          private_key: '/etc/key.pem',
+          congestion_control: 'bbr',
+          alpn: ['h3', 'spdy/3.1'],
+          udp_relay_mode: 'native',
+          zero_rtt_handshake: true,
+          sni: 'tuic.example.com',
+        },
+        clients: [
+          {
+            uuid: '11111111-2222-3333-4444-555555555555',
+            password: 'secretpassword',
+            email: 'user@tuic',
+            enable: true,
+          },
+        ],
+      },
+    });
+
+    const link = genTuicLink({
+      inbound,
+      address: 'example.com',
+      port: 8443,
+      remark: 'TUIC-Node',
+      clientUuid: '11111111-2222-3333-4444-555555555555',
+      clientPassword: 'secretpassword',
+    });
+
+    expect(link).toContain(
+      'tuic://11111111-2222-3333-4444-555555555555:secretpassword@example.com:8443',
+    );
+    expect(link).toContain('congestion_control=bbr');
+    expect(link).toContain('alpn=h3%2Cspdy%2F3.1');
+    expect(link).toContain('sni=tuic.example.com');
+    expect(link).toContain('udp_relay_mode=native');
+    expect(link).toContain('allow_insecure=0');
+    expect(link).toContain('#TUIC-Node');
+  });
+
+  it('applies externalProxy overrides (sni, alpn, allow_insecure) and does not duplicate remark', () => {
+    const inbound = InboundSchema.parse({
+      id: 3,
+      tag: 'tuic-ep-test',
+      protocol: 'tuic',
+      port: 8443,
+      listen: '0.0.0.0',
+      enable: true,
+      settings: {
+        server: {
+          certificate: '/etc/cert.pem',
+          private_key: '/etc/key.pem',
+          congestion_control: 'bbr',
+          alpn: ['h3'],
+          sni: 'default.example.com',
+        },
+        clients: [
+          {
+            uuid: '11111111-2222-3333-4444-555555555555',
+            password: 'secretpassword',
+            email: 'user@tuic',
+            enable: true,
+          },
+        ],
+      },
+      streamSettings: {
+        network: 'tcp',
+        security: 'none',
+        tcpSettings: {},
+        externalProxy: [
+          {
+            forceTls: 'same',
+            dest: 'host-us.example.com',
+            port: 9443,
+            remark: 'US',
+            sni: 'override.example.com',
+            alpn: ['h3', 'h2'],
+            allowInsecure: true,
+          },
+        ],
+      },
+    });
+
+    const entries = genAllLinks({
+      inbound,
+      remark: 'TUIC-Node',
+      client: {
+        uuid: '11111111-2222-3333-4444-555555555555',
+        password: 'secretpassword',
+        email: 'user@tuic',
+      },
+      fallbackHostname: 'panel.example.com',
+    });
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0].remark).toBe('TUIC-Node-US');
+
+    const link = entries[0].link;
+    expect(link).toContain(
+      'tuic://11111111-2222-3333-4444-555555555555:secretpassword@host-us.example.com:9443',
+    );
+    expect(link).toContain('sni=override.example.com');
+    expect(link).toContain('alpn=h3%2Ch2');
+    expect(link).toContain('allow_insecure=1');
+    expect(link).toContain('#TUIC-Node-US');
+    expect(link).not.toContain('#TUIC-Node-US-US');
   });
 });

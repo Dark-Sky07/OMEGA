@@ -405,7 +405,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "shareAddrStrategy": "",
     "ssMethod": "",
     "tag": "in-443-tcp",
-    "tlsFlowCapable": true
+    "tlsFlowCapable": true,
+    "tuicServer": null
   },
   "L2TPInboundOption": {
     "dns1": "",
@@ -540,6 +541,26 @@ export const EXAMPLES: Record<string, unknown> = {
     "id": 0,
     "key": "",
     "value": ""
+  },
+  "TuicClientSettings": {
+    "email": "",
+    "password": "",
+    "uuid": ""
+  },
+  "TuicServerSettings": {
+    "alpn": [
+      ""
+    ],
+    "authentication_timeout": 0,
+    "certificate": "",
+    "congestion_control": "",
+    "log_level": "",
+    "max_idle_time": 0,
+    "max_udp_relay_packet_size": 0,
+    "private_key": "",
+    "sni": "",
+    "udp_relay_mode": "",
+    "zero_rtt_handshake": false
   },
   "User": {
     "id": 0,
