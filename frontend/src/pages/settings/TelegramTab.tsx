@@ -215,6 +215,9 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
             <SettingListItem paddings="small" title={t('pages.settings.tgNotifyLogin')} description={t('pages.settings.tgNotifyLoginDesc')}>
               <Switch checked={allSetting.tgBotLoginNotify} onChange={(v) => updateSetting({ tgBotLoginNotify: v })} />
             </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.tgNotifyUserReport')} description={t('pages.settings.tgNotifyUserReportDesc')}>
+              <Switch checked={allSetting.tgBotUserReport} onChange={(v) => updateSetting({ tgBotUserReport: v })} />
+            </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.tgNotifyCpu')} description={t('pages.settings.tgNotifyCpuDesc')}>
               <InputNumber value={allSetting.tgCpu} min={0} max={100} style={{ width: '100%' }}
                 onChange={(v) => updateSetting({ tgCpu: Number(v) || 0 })} />

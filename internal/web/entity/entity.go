@@ -47,6 +47,7 @@ type AllSetting struct {
 	TgRunTime        string `json:"tgRunTime" form:"tgRunTime"`                  // Cron schedule for Telegram notifications
 	TgBotBackup      bool   `json:"tgBotBackup" form:"tgBotBackup"`              // Enable database backup via Telegram
 	TgBotLoginNotify bool   `json:"tgBotLoginNotify" form:"tgBotLoginNotify"`    // Send login notifications
+	TgBotUserReport  bool   `json:"tgBotUserReport" form:"tgBotUserReport"`      // Send personal periodic usage reports to clients
 	TgCpu            int    `json:"tgCpu" form:"tgCpu" validate:"gte=0,lte=100"` // CPU usage threshold for alerts (percent)
 	TgLang           string `json:"tgLang" form:"tgLang"`                        // Telegram bot language
 

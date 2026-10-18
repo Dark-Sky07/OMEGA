@@ -37,6 +37,8 @@ func (t *Tgbot) SendReport() {
 	t.sendExhaustedToAdmins()
 	t.notifyExhausted()
 
+	t.sendUserReports()
+
 	backupEnable, err := t.settingService.GetTgBotBackup()
 	if err == nil && backupEnable {
 		t.SendBackupToAdmins()
@@ -377,6 +379,52 @@ func (t *Tgbot) notifyExhausted() {
 			msg.WriteString(t.I18nBot("tgbot.messages.depleteSoon", "Deplete=="+strconv.Itoa(freshCount)))
 			msg.WriteString(output.String())
 			t.SendMsgToTgbot(client.TgID, msg.String())
+		}
+	}
+}
+
+// sendUserReports delivers a personal usage digest to every client that
+// linked a Telegram account (TgID). Opt-in via the tgBotUserReport setting
+// (default off): deployments that never enable it send nothing new. Runs at
+// the periodic report time, right after the admin report, paced to stay under
+// Telegram flood limits.
+func (t *Tgbot) sendUserReports() {
+	enabled, err := t.settingService.GetTgBotUserReport()
+	if err != nil || !enabled {
+		return
+	}
+	inbounds, err := t.inboundService.GetAllInbounds()
+	if err != nil {
+		logger.Warning("user report: unable to load inbounds", err)
+		return
+	}
+	seen := make(map[int64]struct{})
+	for _, inbound := range inbounds {
+		clients, err := t.inboundService.GetClients(inbound)
+		if err != nil {
+			continue
+		}
+		for _, client := range clients {
+			if client.TgID == EmptyTelegramUserID || checkAdmin(client.TgID) {
+				continue
+			}
+			if _, dup := seen[client.TgID]; dup {
+				continue
+			}
+			seen[client.TgID] = struct{}{}
+			traffics, err := t.inboundService.GetClientTrafficTgBot(client.TgID)
+			if err != nil || len(traffics) == 0 {
+				continue
+			}
+			var b strings.Builder
+			b.WriteString(t.I18nBot("tgbot.messages.userReport", "DateTime=="+time.Now().Format("2006-01-02 15:04")))
+			b.WriteString("\r\n")
+			for _, traffic := range traffics {
+				b.WriteString(t.clientInfoMsg(traffic, true, false, false, true, true, false))
+				b.WriteString("\r\n")
+			}
+			t.SendMsgToTgbot(client.TgID, b.String())
+			time.Sleep(broadcastDelay)
 		}
 	}
 }

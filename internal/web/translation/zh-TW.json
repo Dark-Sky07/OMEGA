@@ -1226,7 +1226,9 @@
         "userPassMustBeNotEmpty": "新使用者名稱和新密碼不能為空",
         "getOutboundTrafficError": "取得出站流量錯誤",
         "resetOutboundTrafficError": "重設出站流量錯誤"
-      }
+      },
+      "tgNotifyUserReport": "向用戶端傳送個人用量報告",
+      "tgNotifyUserReportDesc": "每次週期報告時，向已關聯 Telegram 的用戶端傳送個人用量摘要（流量與到期）。預設關閉。"
     },
     "xray": {
       "title": "Xray 配置",
@@ -1742,7 +1744,8 @@
       "inviteRedeemed": "✅ {{ .Firstname }}，您的 Telegram 已關聯至 {{ .Email }}。使用下方按鈕管理您的訂閱。",
       "inviteInvalid": "此邀請連結無效。請向您的提供者索取新連結。",
       "inviteUsed": "此邀請連結已被使用。請向您的提供者索取新連結。",
-      "inviteExpired": "此邀請連結已過期。請向您的提供者索取新連結。"
+      "inviteExpired": "此邀請連結已過期。請向您的提供者索取新連結。",
+      "userReport": "📊 您的用量報告 — {{ .DateTime }}"
     },
     "buttons": {
       "closeKeyboard": "❌ 關閉鍵盤",

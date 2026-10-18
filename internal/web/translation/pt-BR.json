@@ -1226,7 +1226,9 @@
         "userPassMustBeNotEmpty": "O novo nome de usuário e senha não podem estar vazios",
         "getOutboundTrafficError": "Erro ao obter tráfego de saída",
         "resetOutboundTrafficError": "Erro ao redefinir tráfego de saída"
-      }
+      },
+      "tgNotifyUserReport": "Relatório de uso pessoal para clientes",
+      "tgNotifyUserReportDesc": "Em cada relatório periódico, enviar também a cada cliente com Telegram vinculado um resumo pessoal de uso (tráfego e validade). Desativado por padrão."
     },
     "xray": {
       "title": "Configurações Xray",
@@ -1742,7 +1744,8 @@
       "inviteRedeemed": "✅ {{ .Firstname }}, seu Telegram agora está vinculado a {{ .Email }}. Use os botões abaixo para gerenciar sua assinatura.",
       "inviteInvalid": "Este link de convite é inválido. Peça um novo ao seu provedor.",
       "inviteUsed": "Este link de convite já foi usado. Peça um novo ao seu provedor.",
-      "inviteExpired": "Este link de convite expirou. Peça um novo ao seu provedor."
+      "inviteExpired": "Este link de convite expirou. Peça um novo ao seu provedor.",
+      "userReport": "📊 Seu relatório de uso — {{ .DateTime }}"
     },
     "buttons": {
       "closeKeyboard": "❌ Fechar teclado",

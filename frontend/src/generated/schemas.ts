@@ -287,6 +287,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Telegram bot token",
         "type": "string"
       },
+      "tgBotUserReport": {
+        "description": "Send personal periodic usage reports to clients",
+        "type": "boolean"
+      },
       "tgCpu": {
         "description": "CPU usage threshold for alerts (percent)",
         "maximum": 100,
@@ -428,6 +432,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "tgBotLoginNotify",
       "tgBotProxy",
       "tgBotToken",
+      "tgBotUserReport",
       "tgCpu",
       "tgLang",
       "tgRunTime",
@@ -751,6 +756,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Telegram bot token",
         "type": "string"
       },
+      "tgBotUserReport": {
+        "description": "Send personal periodic usage reports to clients",
+        "type": "boolean"
+      },
       "tgCpu": {
         "description": "CPU usage threshold for alerts (percent)",
         "maximum": 100,
@@ -898,6 +907,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "tgBotLoginNotify",
       "tgBotProxy",
       "tgBotToken",
+      "tgBotUserReport",
       "tgCpu",
       "tgLang",
       "tgRunTime",
