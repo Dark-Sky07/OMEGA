@@ -1839,7 +1839,15 @@
       "AreYouSure": "Are you sure? 🤔",
       "SuccessResetTraffic": "📧 Email: {{ .ClientEmail }}\n🏁 Result: ✅ Success",
       "FailedResetTraffic": "📧 Email: {{ .ClientEmail }}\n🏁 Result: ❌ Failed \n\n🛠️ Error: [ {{ .ErrorMessage }} ]",
-      "FinishProcess": "🔚 Traffic reset process finished for all clients."
+      "FinishProcess": "🔚 Traffic reset process finished for all clients.",
+      "broadcastPrompt": "Send the message text to broadcast to all clients (max ~3800 characters).",
+      "broadcastEmpty": "The message is empty. Send the broadcast text, or press Cancel.",
+      "broadcastTooLong": "The message is too long. Shorten it (max ~3800 characters) and try again.",
+      "broadcastPreview": "📣 Broadcast preview — recipients: {{ .Count }}",
+      "broadcastCanceled": "Broadcast canceled.",
+      "broadcastRunning": "Another broadcast is still being delivered. Wait for it to finish.",
+      "broadcastDone": "✅ Broadcast finished: {{ .Sent }} sent, {{ .Failed }} failed.",
+      "broadcastNoRecipients": "No client with a linked Telegram account was found — nothing to send."
     },
     "buttons": {
       "closeKeyboard": "❌ Close Keyboard",
@@ -1884,7 +1892,9 @@
       "change_comment": "⚙️💬 Comment",
       "change_flow": "⚙️🚦 Flow",
       "ResetAllTraffics": "Reset All Traffic",
-      "SortedTrafficUsageReport": "Sorted Traffic Usage Report"
+      "SortedTrafficUsageReport": "Sorted Traffic Usage Report",
+      "broadcast": "📣 Broadcast",
+      "confirmBroadcast": "✅ Send now"
     },
     "answers": {
       "successfulOperation": "✅ Operation successful!",

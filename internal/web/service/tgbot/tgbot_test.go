@@ -4,6 +4,7 @@ import (
 	"io"
 	"net"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -157,5 +158,48 @@ func TestApproachingLimits(t *testing.T) {
 					gotExpire, gotTraffic, tc.wantExpire, tc.wantTraffic)
 			}
 		})
+	}
+}
+
+func TestBroadcastDraftLifecycle(t *testing.T) {
+	const chat = int64(42)
+
+	if _, ok := takeBroadcastDraft(chat); ok {
+		t.Fatal("no draft must exist initially")
+	}
+	setBroadcastDraft(chat, "hello all")
+	text, ok := takeBroadcastDraft(chat)
+	if !ok || text != "hello all" {
+		t.Fatalf("takeBroadcastDraft = (%q, %v)", text, ok)
+	}
+	if _, ok := takeBroadcastDraft(chat); ok {
+		t.Fatal("draft must be consumed exactly once")
+	}
+
+	if !tryStartBroadcast() {
+		t.Fatal("first broadcast must start")
+	}
+	if tryStartBroadcast() {
+		t.Fatal("overlapping broadcast must be refused")
+	}
+	finishBroadcast()
+	if !tryStartBroadcast() {
+		t.Fatal("broadcast must start again after finishing")
+	}
+	finishBroadcast()
+}
+
+// The broadcast preview must show exactly the literal text recipients will
+// see: SendMsgToTgbot delivers with ParseMode=HTML, so any markup in the
+// draft is escaped before preview and delivery.
+func TestBroadcastPreviewEscapesHTML(t *testing.T) {
+	tg := &Tgbot{}
+	draft := `<b>bold</b> & "quotes"`
+	got := tg.broadcastPreviewText(draft, 7)
+	if strings.Contains(got, "<b>") {
+		t.Fatalf("raw HTML must be escaped in preview, got %q", got)
+	}
+	if !strings.Contains(got, "&lt;b&gt;") || !strings.Contains(got, "&amp;") {
+		t.Fatalf("escaped text missing from preview, got %q", got)
 	}
 }

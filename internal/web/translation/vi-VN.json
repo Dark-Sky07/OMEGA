@@ -1729,7 +1729,15 @@
       "AreYouSure": "Bạn có chắc không? 🤔",
       "SuccessResetTraffic": "📧 Email: {{ .ClientEmail }}\n🏁 Kết quả: ✅ Thành công",
       "FailedResetTraffic": "📧 Email: {{ .ClientEmail }}\n🏁 Kết quả: ❌ Thất bại \n\n🛠️ Lỗi: [ {{ .ErrorMessage }} ]",
-      "FinishProcess": "🔚 Quá trình đặt lại lưu lượng đã hoàn tất cho tất cả khách hàng."
+      "FinishProcess": "🔚 Quá trình đặt lại lưu lượng đã hoàn tất cho tất cả khách hàng.",
+      "broadcastPrompt": "Gửi nội dung tin nhắn để phát tới tất cả khách hàng (tối đa ~3800 ký tự).",
+      "broadcastEmpty": "Tin nhắn trống. Gửi nội dung phát sóng, hoặc nhấn Hủy.",
+      "broadcastTooLong": "Tin nhắn quá dài. Rút ngắn lại (tối đa ~3800 ký tự) rồi thử lại.",
+      "broadcastPreview": "📣 Xem trước phát sóng — người nhận: {{ .Count }}",
+      "broadcastCanceled": "Đã hủy phát sóng.",
+      "broadcastRunning": "Một đợt phát sóng khác đang được gửi. Hãy chờ hoàn tất.",
+      "broadcastDone": "✅ Phát sóng hoàn tất: {{ .Sent }} đã gửi, {{ .Failed }} thất bại.",
+      "broadcastNoRecipients": "Không tìm thấy khách hàng nào có tài khoản Telegram được liên kết — không có gì để gửi."
     },
     "buttons": {
       "closeKeyboard": "❌ Đóng Bàn Phím",
@@ -1774,7 +1782,9 @@
       "change_comment": "⚙️💬 Bình Luận",
       "change_flow": "⚙️🚦 Flow",
       "ResetAllTraffics": "Đặt lại tất cả lưu lượng",
-      "SortedTrafficUsageReport": "Báo cáo sử dụng lưu lượng đã sắp xếp"
+      "SortedTrafficUsageReport": "Báo cáo sử dụng lưu lượng đã sắp xếp",
+      "broadcast": "📣 Phát sóng",
+      "confirmBroadcast": "✅ Gửi ngay"
     },
     "answers": {
       "successfulOperation": "✅ Thành công!",

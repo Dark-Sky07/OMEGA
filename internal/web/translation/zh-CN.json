@@ -1729,7 +1729,15 @@
       "AreYouSure": "你确定吗？🤔",
       "SuccessResetTraffic": "📧 邮箱: {{ .ClientEmail }}\n🏁 结果: ✅ 成功",
       "FailedResetTraffic": "📧 邮箱: {{ .ClientEmail }}\n🏁 结果: ❌ 失败 \n\n🛠️ 错误: [ {{ .ErrorMessage }} ]",
-      "FinishProcess": "🔚 所有客户的流量重置已完成。"
+      "FinishProcess": "🔚 所有客户的流量重置已完成。",
+      "broadcastPrompt": "请发送要广播给所有客户端的消息文本（最多约 3800 个字符）。",
+      "broadcastEmpty": "消息为空。请发送广播文本，或点击取消。",
+      "broadcastTooLong": "消息太长。请精简（最多约 3800 个字符）后重试。",
+      "broadcastPreview": "📣 广播预览 — 收件人数：{{ .Count }}",
+      "broadcastCanceled": "已取消广播。",
+      "broadcastRunning": "另一次广播仍在发送中，请等待其完成。",
+      "broadcastDone": "✅ 广播完成：成功 {{ .Sent }}，失败 {{ .Failed }}。",
+      "broadcastNoRecipients": "未找到已关联 Telegram 账号的客户端 — 无可发送对象。"
     },
     "buttons": {
       "closeKeyboard": "❌ 关闭键盘",
@@ -1774,7 +1782,9 @@
       "change_comment": "⚙️💬 评论",
       "change_flow": "⚙️🚦 Flow",
       "ResetAllTraffics": "重置所有流量",
-      "SortedTrafficUsageReport": "排序的流量使用报告"
+      "SortedTrafficUsageReport": "排序的流量使用报告",
+      "broadcast": "📣 广播",
+      "confirmBroadcast": "✅ 立即发送"
     },
     "answers": {
       "successfulOperation": "✅ 成功！",

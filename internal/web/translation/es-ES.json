@@ -1729,7 +1729,15 @@
       "AreYouSure": "¿Estás seguro? 🤔",
       "SuccessResetTraffic": "📧 Correo: {{ .ClientEmail }}\n🏁 Resultado: ✅ Éxito",
       "FailedResetTraffic": "📧 Correo: {{ .ClientEmail }}\n🏁 Resultado: ❌ Fallido \n\n🛠️ Error: [ {{ .ErrorMessage }} ]",
-      "FinishProcess": "🔚 Proceso de reinicio de tráfico finalizado para todos los clientes."
+      "FinishProcess": "🔚 Proceso de reinicio de tráfico finalizado para todos los clientes.",
+      "broadcastPrompt": "Envía el texto del mensaje para transmitirlo a todos los clientes (máx. ~3800 caracteres).",
+      "broadcastEmpty": "El mensaje está vacío. Envía el texto o pulsa Cancelar.",
+      "broadcastTooLong": "El mensaje es demasiado largo. Acórtalo (máx. ~3800 caracteres) e inténtalo de nuevo.",
+      "broadcastPreview": "📣 Vista previa de la difusión — destinatarios: {{ .Count }}",
+      "broadcastCanceled": "Difusión cancelada.",
+      "broadcastRunning": "Todavía se está enviando otra difusión. Espera a que termine.",
+      "broadcastDone": "✅ Difusión finalizada: {{ .Sent }} enviados, {{ .Failed }} fallidos.",
+      "broadcastNoRecipients": "No se encontró ningún cliente con una cuenta de Telegram vinculada — nada que enviar."
     },
     "buttons": {
       "closeKeyboard": "❌ Cerrar Teclado",
@@ -1774,7 +1782,9 @@
       "change_comment": "⚙️💬 Comentario",
       "change_flow": "⚙️🚦 Flow",
       "ResetAllTraffics": "Reiniciar todo el tráfico",
-      "SortedTrafficUsageReport": "Informe de uso de tráfico ordenado"
+      "SortedTrafficUsageReport": "Informe de uso de tráfico ordenado",
+      "broadcast": "📣 Difusión",
+      "confirmBroadcast": "✅ Enviar ahora"
     },
     "answers": {
       "successfulOperation": "✅ ¡Exitosa!",
