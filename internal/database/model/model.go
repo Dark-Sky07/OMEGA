@@ -153,11 +153,15 @@ type HistoryOfSeeders struct {
 }
 
 type ApiToken struct {
-	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	Name      string `json:"name" gorm:"uniqueIndex;not null"`
-	Token     string `json:"token" gorm:"not null"` // SHA-256 hash; the plaintext is shown only once at creation
-	Enabled   bool   `json:"enabled" gorm:"default:true"`
-	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	Id         int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Name       string `json:"name" gorm:"uniqueIndex;not null"`
+	Token      string `json:"token" gorm:"not null"` // SHA-256 hash; the plaintext is shown only once at creation
+	Prefix     string `json:"prefix" gorm:"size:16"` // leading plaintext characters, for identifying a token in the list
+	Scope      string `json:"scope" gorm:"size:16"`  // "full" or "read"; empty means "full" (legacy rows)
+	Enabled    bool   `json:"enabled" gorm:"default:true"`
+	ExpiresAt  int64  `json:"expiresAt"`  // unix millis; 0 = never expires
+	LastUsedAt int64  `json:"lastUsedAt"` // unix millis of the last successful authentication
+	CreatedAt  int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
 }
 
 // MarshalJSON emits settings, streamSettings, and sniffing as nested JSON

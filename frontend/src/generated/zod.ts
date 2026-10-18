@@ -218,8 +218,12 @@ export type AmneziaWGLogs = z.infer<typeof AmneziaWGLogsSchema>;
 export const ApiTokenSchema = z.object({
   createdAt: z.number().int(),
   enabled: z.boolean(),
+  expiresAt: z.number().int(),
   id: z.number().int(),
+  lastUsedAt: z.number().int(),
   name: z.string(),
+  prefix: z.string(),
+  scope: z.string(),
   token: z.string(),
 });
 export type ApiToken = z.infer<typeof ApiTokenSchema>;
@@ -227,8 +231,12 @@ export type ApiToken = z.infer<typeof ApiTokenSchema>;
 export const ApiTokenViewSchema = z.object({
   createdAt: z.number().int(),
   enabled: z.boolean(),
+  expiresAt: z.number().int(),
   id: z.number().int(),
+  lastUsedAt: z.number().int(),
   name: z.string(),
+  prefix: z.string(),
+  scope: z.string(),
   token: z.string().optional(),
 });
 export type ApiTokenView = z.infer<typeof ApiTokenViewSchema>;

@@ -1215,7 +1215,15 @@
         "apiTokenEmpty": "Токенов пока нет — создайте один для аутентификации ботов или удалённых панелей.",
         "apiTokenDeleteWarning": "Любой клиент, использующий этот токен, немедленно потеряет аутентификацию.",
         "apiTokenCreatedTitle": "Токен создан",
-        "apiTokenCreatedNotice": "Скопируйте этот токен сейчас. В целях безопасности он не хранится в читаемом виде и больше не будет показан."
+        "apiTokenCreatedNotice": "Скопируйте этот токен сейчас. В целях безопасности он не хранится в читаемом виде и больше не будет показан.",
+        "apiTokenScope": "Permissions",
+        "apiTokenScopeFull": "Full access",
+        "apiTokenScopeRead": "Read-only",
+        "apiTokenExpireDays": "Expires in (days)",
+        "apiTokenExpireDaysDesc": "0 means never expires.",
+        "apiTokenExpires": "Expires",
+        "apiTokenExpired": "Expired",
+        "apiTokenLastUsed": "Last used"
       },
       "toasts": {
         "modifySettings": "Настройки изменены",

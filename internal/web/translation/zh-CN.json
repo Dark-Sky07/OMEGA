@@ -1215,7 +1215,15 @@
         "apiTokenEmpty": "暂无令牌 — 创建一个用于认证机器人或远程面板。",
         "apiTokenDeleteWarning": "使用此令牌的任何调用方将立即无法认证。",
         "apiTokenCreatedTitle": "令牌已创建",
-        "apiTokenCreatedNotice": "请立即复制此令牌。出于安全考虑，它不会以可读形式存储，也不会再次显示。"
+        "apiTokenCreatedNotice": "请立即复制此令牌。出于安全考虑，它不会以可读形式存储，也不会再次显示。",
+        "apiTokenScope": "Permissions",
+        "apiTokenScopeFull": "Full access",
+        "apiTokenScopeRead": "Read-only",
+        "apiTokenExpireDays": "Expires in (days)",
+        "apiTokenExpireDaysDesc": "0 means never expires.",
+        "apiTokenExpires": "Expires",
+        "apiTokenExpired": "Expired",
+        "apiTokenLastUsed": "Last used"
       },
       "toasts": {
         "modifySettings": "参数已更改。",
