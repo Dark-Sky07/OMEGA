@@ -60,6 +60,8 @@ export function newStreamSlice(network: string): Record<string, unknown> {
       };
     case 'xdrive':
       return { network: 'xdrive', xdriveSettings: XDriveStreamSettingsSchema.parse({}) };
+    case 'masque':
+      return { network: 'masque', masqueSettings: {} };
     default:
       return { network: 'tcp', tcpSettings: { header: { type: 'none' } } };
   }
@@ -78,6 +80,11 @@ export function hysteriaStreamSlice(): Record<string, unknown> {
   };
 }
 
+export function masqueStreamSlice(): Record<string, unknown> {
+  const { tlsSettings } = hysteriaStreamSlice();
+  return { ...newStreamSlice('masque'), security: 'tls', tlsSettings };
+}
+
 // Network change cascade: swap the per-network sub-key (tcpSettings,
 // wsSettings, etc.) so the DU branch matches. Carry over the security mode
 // and its settings (tlsSettings/realitySettings, including SNI serverName)
@@ -89,6 +96,7 @@ export function applyNetworkChange(
   next: string,
 ): Record<string, unknown> {
   if (next === 'hysteria') return hysteriaStreamSlice();
+  if (next === 'masque') return masqueStreamSlice();
   const stream = prevStream ?? {};
   const currentSecurity = (stream.security as string) ?? 'none';
   const stillTls = canEnableTls({ protocol, streamSettings: { network: next, security: currentSecurity } });

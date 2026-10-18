@@ -666,6 +666,10 @@
           "holeTimeout": "مهلة المقطع المفقود (ms)",
           "sessionTtl": "مدة صلاحية الجلسة (s)",
           "concurrency": "التزامن"
+        },
+        "masque": {
+          "addressPool": "مجمّع العناوين",
+          "addressPoolDesc": "تُخصَّص عناوين النفق من هذه البادئات — بحد أقصى IPv4 واحد و IPv6 واحد."
         }
       },
       "info": {
@@ -1467,7 +1471,10 @@
         "acceptProxyProtocol": "قبول proxy protocol",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (ثانية)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (ثانية)",
+        "masqueWarpDesc": "الاتصال بـ Cloudflare WARP عبر MASQUE بمفتاح ECDSA P-256 مسجَّل؛ يكون host و path افتراضيًا نقطة نهاية Cloudflare.",
+        "masqueWarpPublicKey": "المفتاح العام لنقطة النهاية",
+        "masqueWarpAddress": "عناوين النفق"
       },
       "outbound": {
         "addOutbound": "أضف مخرج",
@@ -1632,7 +1639,9 @@
         "warpPlusData": "بيانات WARP+",
         "quota": "الحصة",
         "usage": "الاستخدام",
-        "addOutbound": "إضافة صادر"
+        "addOutbound": "إضافة صادر",
+        "masqueDesc": "يسجّل جهاز WARP منفصلًا مخصصًا لـ MASQUE؛ ولا يتأثر تسجيل WireGuard أعلاه.",
+        "addMasqueOutbound": "إضافة outbound لـ WARP عبر MASQUE"
       },
       "dns": {
         "enable": "فعل DNS",

@@ -207,6 +207,10 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 				if c.Auth != "" {
 					entry["auth"] = c.Auth
 				}
+			case model.MASQUE:
+				if c.Password != "" {
+					entry["password"] = c.Password
+				}
 			}
 			finalClients = append(finalClients, entry)
 		}

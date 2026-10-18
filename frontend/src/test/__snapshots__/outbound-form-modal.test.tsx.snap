@@ -56,7 +56,7 @@ exports[`OutboundFormModal > field structure is stable for every protocol > hyst
 ]
 `;
 
-exports[`OutboundFormModal > field structure is stable for every protocol > shadowsocks 1`] = `
+exports[`OutboundFormModal > field structure is stable for every protocol > masque 1`] = `
 [
   "Protocol",
   "Tag",
@@ -70,7 +70,7 @@ exports[`OutboundFormModal > field structure is stable for every protocol > shad
 ]
 `;
 
-exports[`OutboundFormModal > field structure is stable for every protocol > socks 1`] = `
+exports[`OutboundFormModal > field structure is stable for every protocol > shadowsocks 1`] = `
 [
   "Protocol",
   "Tag",

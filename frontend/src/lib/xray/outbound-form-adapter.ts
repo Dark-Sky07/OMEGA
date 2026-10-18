@@ -8,6 +8,7 @@ import type {
   FreedomFinalRuleForm,
   FreedomOutboundFormSettings,
   HysteriaOutboundFormSettings,
+  MasqueOutboundFormSettings,
   LoopbackOutboundFormSettings,
   MuxForm,
   OutboundFormSettings,
@@ -219,6 +220,14 @@ function hysteriaFromWire(raw: Raw): HysteriaOutboundFormSettings {
   };
 }
 
+function masqueFromWire(raw: Raw): MasqueOutboundFormSettings {
+  return {
+    address: asString(raw.address),
+    port: asPort(raw.port, 443),
+    remoteDNS: asArray(raw.remoteDNS).map((d) => asString(d)).filter(Boolean),
+  };
+}
+
 function freedomFromWire(raw: Raw): FreedomOutboundFormSettings {
   const fragment = asObject(raw.fragment);
   const noises = asArray(raw.noises).map((n) => {
@@ -390,6 +399,7 @@ export function rawOutboundToFormValues(raw: RawOutboundRow): OutboundFormValues
     case 'http':        typed = { protocol: 'http',        settings: simpleAuthFromWire(settings, 8080) }; break;
     case 'wireguard':   typed = { protocol: 'wireguard',   settings: wireguardFromWire(settings) }; break;
     case 'hysteria':    typed = { protocol: 'hysteria',    settings: hysteriaFromWire(settings) }; break;
+    case 'masque':      typed = { protocol: 'masque',      settings: masqueFromWire(settings) }; break;
     case 'freedom':     typed = { protocol: 'freedom',     settings: freedomFromWire(settings) }; break;
     case 'blackhole':   typed = { protocol: 'blackhole',   settings: blackholeFromWire(settings) }; break;
     case 'dns':         typed = { protocol: 'dns',         settings: dnsFromWire(settings) }; break;
@@ -507,6 +517,15 @@ function hysteriaToWire(s: HysteriaOutboundFormSettings) {
   return { address: s.address, port: s.port, version: s.version };
 }
 
+function masqueToWire(s: MasqueOutboundFormSettings) {
+  const remoteDNS = s.remoteDNS.filter(Boolean);
+  return {
+    address: s.address,
+    port: s.port,
+    remoteDNS: remoteDNS.length > 0 ? remoteDNS : undefined,
+  };
+}
+
 function freedomToWire(s: FreedomOutboundFormSettings) {
   // Legacy semantics: emit fragment only when the user actually populated
   // at least one of the four sub-fields. Defaults like packets='1-3' alone
@@ -570,7 +589,7 @@ function loopbackToWire(s: LoopbackOutboundFormSettings) {
 
 // canEnableMux mirrors the legacy Outbound.canEnableMux().
 const MUX_PROTOCOLS = new Set(['vmess', 'vless', 'trojan', 'shadowsocks', 'http', 'socks']);
-const STREAM_PROTOCOLS = new Set(['vmess', 'vless', 'trojan', 'shadowsocks', 'hysteria']);
+const STREAM_PROTOCOLS = new Set(['vmess', 'vless', 'trojan', 'shadowsocks', 'hysteria', 'masque']);
 
 function dropEmptyStrings(obj: Raw): Raw {
   const out: Raw = {};
@@ -620,6 +639,7 @@ export function formValuesToWirePayload(values: OutboundFormValues): WireOutboun
     case 'http':        settings = simpleAuthToWire(values.settings); break;
     case 'wireguard':   settings = wireguardToWire(values.settings); break;
     case 'hysteria':    settings = hysteriaToWire(values.settings); break;
+    case 'masque':      settings = masqueToWire(values.settings); break;
     case 'freedom':     settings = freedomToWire(values.settings); break;
     case 'blackhole':   settings = blackholeToWire(values.settings); break;
     case 'dns':         settings = dnsToWire(values.settings); break;

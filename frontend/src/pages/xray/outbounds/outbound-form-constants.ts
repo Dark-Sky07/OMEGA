@@ -38,11 +38,12 @@ export const NETWORK_OPTIONS: { value: string; label: string }[] = [
 // The hysteria protocol is locked to its own QUIC transport: the selector
 // shows only this option when the parent protocol is hysteria.
 export const HYSTERIA_NETWORK_OPTION = { value: 'hysteria', label: 'Hysteria' };
+export const MASQUE_NETWORK_OPTION = { value: 'masque', label: 'MASQUE' };
 
 // Protocols whose form schema carries a flat connect target — these all
 // get the shared "server" sub-block (address + port) at the top of the
 // protocol section. Wireguard has an address but no port. DNS/freedom/
 // blackhole/loopback have no connect target.
 export const SERVER_PROTOCOLS = new Set<string>([
-  'vmess', 'vless', 'trojan', 'shadowsocks', 'socks', 'http', 'hysteria',
+  'vmess', 'vless', 'trojan', 'shadowsocks', 'socks', 'http', 'hysteria', 'masque',
 ]);

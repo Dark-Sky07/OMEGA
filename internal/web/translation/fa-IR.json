@@ -690,6 +690,10 @@
           "holeTimeout": "مهلت قطعهٔ گمشده (میلی‌ثانیه)",
           "sessionTtl": "TTL نشست (ثانیه)",
           "concurrency": "هم‌زمانی"
+        },
+        "masque": {
+          "addressPool": "مخزن آدرس",
+          "addressPoolDesc": "آدرس‌های تونل از این پیشوندها تخصیص داده می‌شوند — حداکثر یک IPv4 و یک IPv6."
         }
       },
       "info": {
@@ -1524,7 +1528,10 @@
         "acceptProxyProtocol": "پذیرش Proxy Protocol",
         "proxyProtocol": "Proxy Protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)",
+        "masqueWarpDesc": "اتصال به Cloudflare WARP از طریق MASQUE با یک کلید ECDSA P-256 ثبت‌شده؛ host و path به‌طور پیش‌فرض endpoint کلودفلر هستند.",
+        "masqueWarpPublicKey": "کلید عمومی endpoint",
+        "masqueWarpAddress": "آدرس‌های تونل"
       },
       "outbound": {
         "addOutbound": "افزودن خروجی",
@@ -1689,7 +1696,9 @@
         "warpPlusData": "داده WARP+",
         "quota": "سهمیه",
         "usage": "مصرف",
-        "addOutbound": "افزودن خروجی"
+        "addOutbound": "افزودن خروجی",
+        "masqueDesc": "یک دستگاه WARP جداگانه برای MASQUE ثبت می‌کند؛ ثبت WireGuard بالا تغییری نمی‌کند.",
+        "addMasqueOutbound": "افزودن outbound برای WARP روی MASQUE"
       },
       "dns": {
         "enable": "فعال کردن حل دامنه",

@@ -35,6 +35,7 @@ const (
 	AmneziaWG   Protocol = "amneziawg"
 	OpenVPN     Protocol = "openvpn"
 	L2TP        Protocol = "l2tp"
+	MASQUE      Protocol = "masque"
 )
 
 // User represents a user account in the 3x-ui panel.
@@ -63,7 +64,7 @@ type Inbound struct {
 	// Xray configuration fields
 	Listen            string   `json:"listen" form:"listen"`
 	Port              int      `json:"port" form:"port" validate:"gte=0,lte=65535" example:"443"`
-	Protocol          Protocol `json:"protocol" form:"protocol" validate:"required,oneof=vmess vless trojan shadowsocks wireguard amneziawg hysteria http mixed tunnel tun mtproto openvpn l2tp" example:"vless"`
+	Protocol          Protocol `json:"protocol" form:"protocol" validate:"required,oneof=vmess vless trojan shadowsocks wireguard amneziawg hysteria http mixed tunnel tun mtproto openvpn l2tp masque" example:"vless"`
 	Settings          string   `json:"settings" form:"settings"`
 	StreamSettings    string   `json:"streamSettings" form:"streamSettings"`
 	Tag               string   `json:"tag" form:"tag" gorm:"unique" example:"in-443-tcp"`
@@ -254,6 +255,10 @@ func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 		if stripped, ok := StripVlessInboundEncryption(settings); ok {
 			settings = stripped
 		}
+	case MASQUE:
+		if converted, ok := MasqueClientsToCore(settings); ok {
+			settings = converted
+		}
 	}
 	return &xray.InboundConfig{
 		Listen:         json_util.RawMessage(listen),
@@ -289,6 +294,46 @@ func StripVmessClientSecurity(settings string) (string, bool) {
 			clients[i] = cm
 			changed = true
 		}
+	}
+	if !changed {
+		return settings, false
+	}
+	out, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		return settings, false
+	}
+	return string(out), true
+}
+
+// MasqueClientsToCore renames each client's panel "password" to the "pass" key the
+// MASQUE server reads; xray-core refuses the whole inbound when one user's pass is empty.
+func MasqueClientsToCore(settings string) (string, bool) {
+	if settings == "" {
+		return settings, false
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return settings, false
+	}
+	clients, ok := parsed["clients"].([]any)
+	if !ok {
+		return settings, false
+	}
+	changed := false
+	for i := range clients {
+		cm, ok := clients[i].(map[string]any)
+		if !ok {
+			continue
+		}
+		password, has := cm["password"]
+		if !has {
+			continue
+		}
+		if _, set := cm["pass"]; !set {
+			cm["pass"] = password
+		}
+		delete(cm, "password")
+		changed = true
 	}
 	if !changed {
 		return settings, false

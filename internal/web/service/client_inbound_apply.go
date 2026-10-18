@@ -373,7 +373,7 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 			if oldInbound.Protocol == model.L2TP && client.Password == "" {
 				return false, common.NewError("l2tp client password is required")
 			}
-		case "trojan":
+		case "trojan", "masque":
 			if client.Password == "" {
 				return false, common.NewError("empty client ID")
 			}
@@ -559,7 +559,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 			return false, common.NewError("l2tp client password is required")
 		}
 		newClientId = clients[0].Email
-	case "trojan":
+	case "trojan", "masque":
 		newClientId = clients[0].Password
 	case "shadowsocks":
 		newClientId = clients[0].Email

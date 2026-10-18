@@ -3,6 +3,10 @@ import { RandomUtil, Wireguard } from '@/utils';
 import type { AmneziawgInboundSettings, AmneziawgServer } from '@/schemas/protocols/inbound/amneziawg';
 import type { HttpInboundSettings } from '@/schemas/protocols/inbound/http';
 import type { HysteriaClient, HysteriaInboundSettings } from '@/schemas/protocols/inbound/hysteria';
+import {
+  MASQUE_DEFAULT_ADDRESS_POOL,
+  type MasqueInboundSettings,
+} from '@/schemas/protocols/inbound/masque';
 import type { MixedInboundSettings } from '@/schemas/protocols/inbound/mixed';
 import type { MtprotoInboundSettings } from '@/schemas/protocols/inbound/mtproto';
 import type { OpenvpnInboundSettings } from '@/schemas/protocols/inbound/openvpn';
@@ -387,7 +391,12 @@ export type AnyInboundSettings =
   | AmneziawgInboundSettings
   | MtprotoInboundSettings
   | OpenvpnInboundSettings
-  | L2tpInboundSettings;
+  | L2tpInboundSettings
+  | MasqueInboundSettings;
+
+export function createDefaultMasqueInboundSettings(): MasqueInboundSettings {
+  return { clients: [], address: [...MASQUE_DEFAULT_ADDRESS_POOL] };
+}
 
 export function createDefaultInboundSettings(protocol: string): AnyInboundSettings | null {
   switch (protocol) {
@@ -405,6 +414,7 @@ export function createDefaultInboundSettings(protocol: string): AnyInboundSettin
     case 'mtproto':     return createDefaultMtprotoInboundSettings();
     case 'openvpn':     return createDefaultOpenvpnInboundSettings();
     case 'l2tp':        return createDefaultL2tpInboundSettings();
+    case 'masque':      return createDefaultMasqueInboundSettings();
     default:            return null;
   }
 }

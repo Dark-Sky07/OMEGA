@@ -666,6 +666,10 @@
           "holeTimeout": "欠落セグメントのタイムアウト（ms）",
           "sessionTtl": "セッション TTL（秒）",
           "concurrency": "同時実行数"
+        },
+        "masque": {
+          "addressPool": "アドレスプール",
+          "addressPoolDesc": "トンネルのアドレスはこれらのプレフィックスから割り当てられます（IPv4 と IPv6 をそれぞれ最大 1 つ）。"
         }
       },
       "info": {
@@ -1467,7 +1471,10 @@
         "acceptProxyProtocol": "proxy protocol を受け入れる",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (秒)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (秒)",
+        "masqueWarpDesc": "登録済みの ECDSA P-256 鍵で MASQUE 経由で Cloudflare WARP に接続します。host と path の既定値は Cloudflare のエンドポイントです。",
+        "masqueWarpPublicKey": "エンドポイント公開鍵",
+        "masqueWarpAddress": "トンネルアドレス"
       },
       "outbound": {
         "addOutbound": "アウトバウンド追加",
@@ -1632,7 +1639,9 @@
         "warpPlusData": "WARP+ データ",
         "quota": "クォータ",
         "usage": "使用量",
-        "addOutbound": "アウトバウンドを追加"
+        "addOutbound": "アウトバウンドを追加",
+        "masqueDesc": "MASQUE 用に別の WARP デバイスを登録します。上の WireGuard の登録には影響しません。",
+        "addMasqueOutbound": "WARP over MASQUE のアウトバウンドを追加"
       },
       "dns": {
         "enable": "DNSを有効にする",
