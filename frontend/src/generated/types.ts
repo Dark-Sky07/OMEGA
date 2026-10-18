@@ -203,16 +203,24 @@ export interface AmneziaWGLogs {
 export interface ApiToken {
   createdAt: number;
   enabled: boolean;
+  expiresAt: number;
   id: number;
+  lastUsedAt: number;
   name: string;
+  prefix: string;
+  scope: string;
   token: string;
 }
 
 export interface ApiTokenView {
   createdAt: number;
   enabled: boolean;
+  expiresAt: number;
   id: number;
+  lastUsedAt: number;
   name: string;
+  prefix: string;
+  scope: string;
   token?: string;
 }
 

@@ -1214,7 +1214,15 @@
         "apiTokenEmpty": "Henüz token yok — botları veya uzak panelleri doğrulamak için bir tane oluşturun.",
         "apiTokenDeleteWarning": "Bu token'ı kullanan tüm bağlantılar anında kimlik doğrulamasını kaybeder.",
         "apiTokenCreatedTitle": "Token Oluşturuldu",
-        "apiTokenCreatedNotice": "Bu token'ı şimdi kopyalayın. Güvenlik nedeniyle okunabilir biçimde saklanmaz ve tekrar gösterilmez."
+        "apiTokenCreatedNotice": "Bu token'ı şimdi kopyalayın. Güvenlik nedeniyle okunabilir biçimde saklanmaz ve tekrar gösterilmez.",
+        "apiTokenScope": "Permissions",
+        "apiTokenScopeFull": "Full access",
+        "apiTokenScopeRead": "Read-only",
+        "apiTokenExpireDays": "Expires in (days)",
+        "apiTokenExpireDaysDesc": "0 means never expires.",
+        "apiTokenExpires": "Expires",
+        "apiTokenExpired": "Expired",
+        "apiTokenLastUsed": "Last used"
       },
       "toasts": {
         "modifySettings": "Parametreler değiştirildi.",

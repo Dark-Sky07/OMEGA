@@ -41,7 +41,14 @@ func (a *APIController) checkAPIAuth(c *gin.Context) {
 	auth := c.GetHeader("Authorization")
 	if after, ok := strings.CutPrefix(auth, "Bearer "); ok {
 		tok := after
-		if a.apiTokenService.Match(tok) {
+		if token, ok := a.apiTokenService.Authenticate(tok); ok {
+			// Read-only tokens may query but never mutate: every write goes
+			// through a non-safe method, so the scope is enforced right here
+			// for the whole /panel/api surface.
+			if panel.NormalizeTokenScope(token.Scope) == panel.ApiTokenScopeRead && !panel.IsReadOnlyAPIRequest(c.Request.Method) {
+				c.AbortWithStatus(http.StatusForbidden)
+				return
+			}
 			if u, err := a.userService.GetFirstUser(); err == nil {
 				session.SetAPIAuthUser(c, u)
 			}

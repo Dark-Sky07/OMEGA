@@ -1215,7 +1215,15 @@
         "apiTokenEmpty": "Nenhum token ainda — crie um para autenticar bots ou painéis remotos.",
         "apiTokenDeleteWarning": "Qualquer cliente usando este token deixará de se autenticar imediatamente.",
         "apiTokenCreatedTitle": "Token criado",
-        "apiTokenCreatedNotice": "Copie este token agora. Por segurança, ele não é armazenado de forma legível e não será exibido novamente."
+        "apiTokenCreatedNotice": "Copie este token agora. Por segurança, ele não é armazenado de forma legível e não será exibido novamente.",
+        "apiTokenScope": "Permissions",
+        "apiTokenScopeFull": "Full access",
+        "apiTokenScopeRead": "Read-only",
+        "apiTokenExpireDays": "Expires in (days)",
+        "apiTokenExpireDaysDesc": "0 means never expires.",
+        "apiTokenExpires": "Expires",
+        "apiTokenExpired": "Expired",
+        "apiTokenLastUsed": "Last used"
       },
       "toasts": {
         "modifySettings": "Os parâmetros foram alterados.",

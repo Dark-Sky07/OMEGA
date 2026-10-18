@@ -5,11 +5,14 @@ import {
   Empty,
   Form,
   Input,
+  InputNumber,
   Modal,
+  Select,
   Space,
   Spin,
   Switch,
   Tabs,
+  Tag,
   message,
 } from 'antd';
 import { ApiOutlined, SafetyOutlined, UserOutlined } from '@ant-design/icons';
@@ -30,7 +33,11 @@ interface ApiMsg<T = unknown> {
 interface ApiTokenRow {
   id: number;
   name: string;
+  prefix?: string;
+  scope?: string;
   enabled: boolean;
+  expiresAt?: number;
+  lastUsedAt?: number;
   createdAt: number;
 }
 
@@ -78,6 +85,8 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
   const [apiTokensLoading, setApiTokensLoading] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState('');
+  const [createScope, setCreateScope] = useState<'full' | 'read'>('full');
+  const [createExpireDays, setCreateExpireDays] = useState<number>(0);
   const [creating, setCreating] = useState(false);
   const [createdToken, setCreatedToken] = useState<{ name: string; token: string } | null>(null);
 
@@ -145,6 +154,8 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
 
   function openCreateModal() {
     setCreateName('');
+    setCreateScope('full');
+    setCreateExpireDays(0);
     setCreateOpen(true);
   }
 
@@ -156,7 +167,11 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
     }
     setCreating(true);
     try {
-      const msg = await HttpUtil.post('/panel/api/setting/apiTokens/create', { name }) as ApiMsg<{ token?: string }>;
+      const msg = await HttpUtil.post('/panel/api/setting/apiTokens/create', {
+        name,
+        scope: createScope,
+        expireDays: createExpireDays || 0,
+      }) as ApiMsg<{ token?: string }>;
       if (msg?.success) {
         setCreateOpen(false);
         await loadApiTokens();
@@ -192,9 +207,15 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
     }
   }
 
-  function formatTokenDate(ts: number): string {
+  function formatTokenDate(ts?: number): string {
     if (!ts) return '';
-    return new Date(ts * 1000).toLocaleString();
+    // Model timestamps are unix milliseconds; handle legacy second-precision values gracefully.
+    const ms = ts < 1e12 ? ts * 1000 : ts;
+    return new Date(ms).toLocaleString();
+  }
+
+  function isTokenExpired(row: ApiTokenRow): boolean {
+    return !!row.expiresAt && row.expiresAt > 0 && Date.now() > row.expiresAt;
   }
 
   function toggleTwoFactor() {
@@ -293,22 +314,41 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
                 {!apiTokens.length && !apiTokensLoading && (
                   <Empty description={t('pages.settings.security.apiTokenEmpty') || 'No tokens yet'} />
                 )}
-                {apiTokens.map((row) => (
-                  <div key={row.id} className={`api-token-row${row.enabled ? '' : ' disabled'}`}>
-                    <div className="api-token-row-head">
-                      <div className="api-token-name-wrap">
-                        <span className="api-token-name">{row.name}</span>
-                        <span className="api-token-created">{formatTokenDate(row.createdAt)}</span>
-                      </div>
-                      <div className="api-token-actions">
-                        <Switch size="small" checked={row.enabled} onChange={() => toggleTokenEnabled(row)} />
-                        <Button size="small" danger type="text" onClick={() => confirmDeleteToken(row)}>
-                          {t('delete')}
-                        </Button>
+                {apiTokens.map((row) => {
+                  const expired = isTokenExpired(row);
+                  const readOnly = row.scope === 'read';
+                  return (
+                    <div key={row.id} className={`api-token-row${row.enabled && !expired ? '' : ' disabled'}`}>
+                      <div className="api-token-row-head">
+                        <div className="api-token-name-wrap">
+                          <Space size={6} wrap>
+                            <span className="api-token-name">{row.name}</span>
+                            {row.prefix ? <code>{row.prefix}…</code> : null}
+                            <Tag color={readOnly ? 'blue' : 'gold'}>
+                              {readOnly
+                                ? (t('pages.settings.security.apiTokenScopeRead') || 'Read-only')
+                                : (t('pages.settings.security.apiTokenScopeFull') || 'Full access')}
+                            </Tag>
+                            {expired ? (
+                              <Tag color="red">{t('pages.settings.security.apiTokenExpired') || 'Expired'}</Tag>
+                            ) : null}
+                          </Space>
+                          <span className="api-token-created">
+                            {formatTokenDate(row.createdAt)}
+                            {row.expiresAt ? ` · ${t('pages.settings.security.apiTokenExpires') || 'Expires'}: ${formatTokenDate(row.expiresAt)}` : ''}
+                            {row.lastUsedAt ? ` · ${t('pages.settings.security.apiTokenLastUsed') || 'Last used'}: ${formatTokenDate(row.lastUsedAt)}` : ''}
+                          </span>
+                        </div>
+                        <div className="api-token-actions">
+                          <Switch size="small" checked={row.enabled} onChange={() => toggleTokenEnabled(row)} />
+                          <Button size="small" danger type="text" onClick={() => confirmDeleteToken(row)}>
+                            {t('delete')}
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </Spin>
             </div>
           ),
@@ -332,6 +372,34 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
               placeholder={t('pages.settings.security.apiTokenNamePlaceholder') || 'e.g. central-panel-a'}
               onChange={(e) => setCreateName(e.target.value)}
               onPressEnter={confirmCreateToken}
+            />
+          </Form.Item>
+          <Form.Item label={t('pages.settings.security.apiTokenScope') || 'Permissions'}>
+            <Select
+              value={createScope}
+              onChange={(v) => setCreateScope(v)}
+              options={[
+                {
+                  value: 'full',
+                  label: t('pages.settings.security.apiTokenScopeFull') || 'Full access (read & write)',
+                },
+                {
+                  value: 'read',
+                  label: t('pages.settings.security.apiTokenScopeRead') || 'Read-only (GET only)',
+                },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item
+            label={t('pages.settings.security.apiTokenExpireDays') || 'Expires in (days)'}
+            extra={t('pages.settings.security.apiTokenExpireDaysDesc') || '0 means never expires.'}
+          >
+            <InputNumber
+              min={0}
+              max={3650}
+              style={{ width: '100%' }}
+              value={createExpireDays}
+              onChange={(v) => setCreateExpireDays(typeof v === 'number' ? v : 0)}
             />
           </Form.Item>
         </Form>

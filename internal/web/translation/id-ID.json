@@ -1215,7 +1215,15 @@
         "apiTokenEmpty": "Belum ada token — buat satu untuk mengautentikasi bot atau panel jarak jauh.",
         "apiTokenDeleteWarning": "Setiap pemanggil yang menggunakan token ini akan berhenti terautentikasi segera.",
         "apiTokenCreatedTitle": "Token dibuat",
-        "apiTokenCreatedNotice": "Salin token ini sekarang. Demi keamanan, token tidak disimpan dalam bentuk yang dapat dibaca dan tidak akan ditampilkan lagi."
+        "apiTokenCreatedNotice": "Salin token ini sekarang. Demi keamanan, token tidak disimpan dalam bentuk yang dapat dibaca dan tidak akan ditampilkan lagi.",
+        "apiTokenScope": "Permissions",
+        "apiTokenScopeFull": "Full access",
+        "apiTokenScopeRead": "Read-only",
+        "apiTokenExpireDays": "Expires in (days)",
+        "apiTokenExpireDaysDesc": "0 means never expires.",
+        "apiTokenExpires": "Expires",
+        "apiTokenExpired": "Expired",
+        "apiTokenLastUsed": "Last used"
       },
       "toasts": {
         "modifySettings": "Parameter telah diubah.",

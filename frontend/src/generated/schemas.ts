@@ -964,10 +964,26 @@ export const SCHEMAS: Record<string, unknown> = {
       "enabled": {
         "type": "boolean"
       },
+      "expiresAt": {
+        "description": "unix millis; 0 = never expires",
+        "type": "integer"
+      },
       "id": {
         "type": "integer"
       },
+      "lastUsedAt": {
+        "description": "unix millis of the last successful authentication",
+        "type": "integer"
+      },
       "name": {
+        "type": "string"
+      },
+      "prefix": {
+        "description": "leading plaintext characters, for identifying a token in the list",
+        "type": "string"
+      },
+      "scope": {
+        "description": "\"full\" or \"read\"; empty means \"full\" (legacy rows)",
         "type": "string"
       },
       "token": {
@@ -978,8 +994,12 @@ export const SCHEMAS: Record<string, unknown> = {
     "required": [
       "createdAt",
       "enabled",
+      "expiresAt",
       "id",
+      "lastUsedAt",
       "name",
+      "prefix",
+      "scope",
       "token"
     ],
     "type": "object"
@@ -994,12 +1014,28 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": true,
         "type": "boolean"
       },
+      "expiresAt": {
+        "example": 0,
+        "type": "integer"
+      },
       "id": {
         "example": 2,
         "type": "integer"
       },
+      "lastUsedAt": {
+        "example": 0,
+        "type": "integer"
+      },
       "name": {
         "example": "central-panel-a",
+        "type": "string"
+      },
+      "prefix": {
+        "example": "a1b2c3d4",
+        "type": "string"
+      },
+      "scope": {
+        "example": "read",
         "type": "string"
       },
       "token": {
@@ -1010,8 +1046,12 @@ export const SCHEMAS: Record<string, unknown> = {
     "required": [
       "createdAt",
       "enabled",
+      "expiresAt",
       "id",
-      "name"
+      "lastUsedAt",
+      "name",
+      "prefix",
+      "scope"
     ],
     "type": "object"
   },

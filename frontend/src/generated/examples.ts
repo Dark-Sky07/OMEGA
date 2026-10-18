@@ -209,15 +209,23 @@ export const EXAMPLES: Record<string, unknown> = {
   "ApiToken": {
     "createdAt": 0,
     "enabled": false,
+    "expiresAt": 0,
     "id": 0,
+    "lastUsedAt": 0,
     "name": "",
+    "prefix": "",
+    "scope": "",
     "token": ""
   },
   "ApiTokenView": {
     "createdAt": 1736000000,
     "enabled": true,
+    "expiresAt": 0,
     "id": 2,
+    "lastUsedAt": 0,
     "name": "central-panel-a",
+    "prefix": "a1b2c3d4",
+    "scope": "read",
     "token": "new-token-string"
   },
   "Client": {
