@@ -1736,7 +1736,12 @@
       "broadcastCanceled": "Toplu mesaj iptal edildi.",
       "broadcastRunning": "Başka bir toplu mesaj hâlâ gönderiliyor. Bitmesini bekleyin.",
       "broadcastDone": "✅ Toplu mesaj tamamlandı: {{ .Sent }} gönderildi, {{ .Failed }} başarısız.",
-      "broadcastNoRecipients": "Bağlı Telegram hesabı olan istemci bulunamadı — gönderilecek kimse yok."
+      "broadcastNoRecipients": "Bağlı Telegram hesabı olan istemci bulunamadı — gönderilecek kimse yok.",
+      "inviteCreated": "🔗 {{ .Email }} için davet bağlantısı\n(tek kullanım, {{ .Expires }} tarihine kadar geçerli):\n\n{{ .Link }}",
+      "inviteRedeemed": "✅ {{ .Firstname }}, Telegram hesabınız artık {{ .Email }} hesabına bağlı. Aboneliğinizi yönetmek için aşağıdaki düğmeleri kullanın.",
+      "inviteInvalid": "Bu davet bağlantısı geçersiz. Sağlayıcınızdan yeni bir bağlantı isteyin.",
+      "inviteUsed": "Bu davet bağlantısı zaten kullanılmış. Sağlayıcınızdan yeni bir bağlantı isteyin.",
+      "inviteExpired": "Bu davet bağlantısının süresi doldu. Sağlayıcınızdan yeni bir bağlantı isteyin."
     },
     "buttons": {
       "closeKeyboard": "❌ Klavyeyi Kapat",
@@ -1783,7 +1788,8 @@
       "ResetAllTraffics": "Tüm Trafikleri Sıfırla",
       "SortedTrafficUsageReport": "Sıralı Trafik Kullanım Raporu",
       "broadcast": "📣 Toplu Mesaj",
-      "confirmBroadcast": "✅ Şimdi gönder"
+      "confirmBroadcast": "✅ Şimdi gönder",
+      "invite": "🔗 Davet bağlantısı"
     },
     "answers": {
       "successfulOperation": "✅ İşlem başarılı!",

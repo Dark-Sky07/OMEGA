@@ -1737,7 +1737,12 @@
       "broadcastCanceled": "Đã hủy phát sóng.",
       "broadcastRunning": "Một đợt phát sóng khác đang được gửi. Hãy chờ hoàn tất.",
       "broadcastDone": "✅ Phát sóng hoàn tất: {{ .Sent }} đã gửi, {{ .Failed }} thất bại.",
-      "broadcastNoRecipients": "Không tìm thấy khách hàng nào có tài khoản Telegram được liên kết — không có gì để gửi."
+      "broadcastNoRecipients": "Không tìm thấy khách hàng nào có tài khoản Telegram được liên kết — không có gì để gửi.",
+      "inviteCreated": "🔗 Liên kết mời cho {{ .Email }}\n(dùng một lần, có hiệu lực đến {{ .Expires }}):\n\n{{ .Link }}",
+      "inviteRedeemed": "✅ {{ .Firstname }}, Telegram của bạn đã được liên kết với {{ .Email }}. Dùng các nút bên dưới để quản lý gói của bạn.",
+      "inviteInvalid": "Liên kết mời này không hợp lệ. Hãy yêu cầu nhà cung cấp cấp liên kết mới.",
+      "inviteUsed": "Liên kết mời này đã được sử dụng. Hãy yêu cầu nhà cung cấp cấp liên kết mới.",
+      "inviteExpired": "Liên kết mời này đã hết hạn. Hãy yêu cầu nhà cung cấp cấp liên kết mới."
     },
     "buttons": {
       "closeKeyboard": "❌ Đóng Bàn Phím",
@@ -1784,7 +1789,8 @@
       "ResetAllTraffics": "Đặt lại tất cả lưu lượng",
       "SortedTrafficUsageReport": "Báo cáo sử dụng lưu lượng đã sắp xếp",
       "broadcast": "📣 Phát sóng",
-      "confirmBroadcast": "✅ Gửi ngay"
+      "confirmBroadcast": "✅ Gửi ngay",
+      "invite": "🔗 Liên kết mời"
     },
     "answers": {
       "successfulOperation": "✅ Thành công!",

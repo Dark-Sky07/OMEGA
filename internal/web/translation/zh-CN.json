@@ -1737,7 +1737,12 @@
       "broadcastCanceled": "已取消广播。",
       "broadcastRunning": "另一次广播仍在发送中，请等待其完成。",
       "broadcastDone": "✅ 广播完成：成功 {{ .Sent }}，失败 {{ .Failed }}。",
-      "broadcastNoRecipients": "未找到已关联 Telegram 账号的客户端 — 无可发送对象。"
+      "broadcastNoRecipients": "未找到已关联 Telegram 账号的客户端 — 无可发送对象。",
+      "inviteCreated": "🔗 {{ .Email }} 的邀请链接\n（一次性，有效期至 {{ .Expires }}）：\n\n{{ .Link }}",
+      "inviteRedeemed": "✅ {{ .Firstname }}，您的 Telegram 已关联到 {{ .Email }}。使用下方按钮管理您的订阅。",
+      "inviteInvalid": "此邀请链接无效。请向您的提供者索取新链接。",
+      "inviteUsed": "此邀请链接已被使用。请向您的提供者索取新链接。",
+      "inviteExpired": "此邀请链接已过期。请向您的提供者索取新链接。"
     },
     "buttons": {
       "closeKeyboard": "❌ 关闭键盘",
@@ -1784,7 +1789,8 @@
       "ResetAllTraffics": "重置所有流量",
       "SortedTrafficUsageReport": "排序的流量使用报告",
       "broadcast": "📣 广播",
-      "confirmBroadcast": "✅ 立即发送"
+      "confirmBroadcast": "✅ 立即发送",
+      "invite": "🔗 邀请链接"
     },
     "answers": {
       "successfulOperation": "✅ 成功！",

@@ -1737,7 +1737,12 @@
       "broadcastCanceled": "Difusión cancelada.",
       "broadcastRunning": "Todavía se está enviando otra difusión. Espera a que termine.",
       "broadcastDone": "✅ Difusión finalizada: {{ .Sent }} enviados, {{ .Failed }} fallidos.",
-      "broadcastNoRecipients": "No se encontró ningún cliente con una cuenta de Telegram vinculada — nada que enviar."
+      "broadcastNoRecipients": "No se encontró ningún cliente con una cuenta de Telegram vinculada — nada que enviar.",
+      "inviteCreated": "🔗 Enlace de invitación para {{ .Email }}\n(un solo uso, válido hasta {{ .Expires }}):\n\n{{ .Link }}",
+      "inviteRedeemed": "✅ {{ .Firstname }}, tu Telegram ya está vinculado a {{ .Email }}. Usa los botones de abajo para gestionar tu suscripción.",
+      "inviteInvalid": "Este enlace de invitación no es válido. Pídele uno nuevo a tu proveedor.",
+      "inviteUsed": "Este enlace de invitación ya fue usado. Pídele uno nuevo a tu proveedor.",
+      "inviteExpired": "Este enlace de invitación ha caducado. Pídele uno nuevo a tu proveedor."
     },
     "buttons": {
       "closeKeyboard": "❌ Cerrar Teclado",
@@ -1784,7 +1789,8 @@
       "ResetAllTraffics": "Reiniciar todo el tráfico",
       "SortedTrafficUsageReport": "Informe de uso de tráfico ordenado",
       "broadcast": "📣 Difusión",
-      "confirmBroadcast": "✅ Enviar ahora"
+      "confirmBroadcast": "✅ Enviar ahora",
+      "invite": "🔗 Enlace de invitación"
     },
     "answers": {
       "successfulOperation": "✅ ¡Exitosa!",
