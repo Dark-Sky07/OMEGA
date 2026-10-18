@@ -8312,6 +8312,118 @@
         }
       }
     },
+    "/panel/api/setting/cert/status": {
+      "get": {
+        "tags": [
+          "API Tokens"
+        ],
+        "summary": "Inspect the TLS certificate currently configured on the panel (subject, issuer, expiry, days left, self-signed flag).",
+        "operationId": "get_panel_api_setting_cert_status",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "configured": true,
+                    "subject": "panel.example.com",
+                    "daysLeft": 62
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/cert/issue": {
+      "post": {
+        "tags": [
+          "API Tokens"
+        ],
+        "summary": "Issue a Let's Encrypt (RFC 8555 HTTP-01 on port 80, auto-renewed daily) or 1-year self-signed certificate and optionally apply its paths to the panel.",
+        "operationId": "post_panel_api_setting_cert_issue",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "domain": {
+                    "type": "string",
+                    "description": "Hostname (or IP for self-signed) to issue for."
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "Optional ACME contact email."
+                  },
+                  "mode": {
+                    "type": "string",
+                    "description": "\"letsencrypt\" (default) or \"selfsigned\"."
+                  },
+                  "applyToPanel": {
+                    "type": "boolean",
+                    "description": "Save the new paths to webCertFile / webKeyFile (default true)."
+                  }
+                },
+                "required": [
+                  "domain"
+                ]
+              },
+              "example": {
+                "domain": "panel.example.com",
+                "mode": "letsencrypt",
+                "applyToPanel": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "configured": true,
+                    "subject": "panel.example.com",
+                    "daysLeft": 89
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/xray/": {
       "post": {
         "tags": [

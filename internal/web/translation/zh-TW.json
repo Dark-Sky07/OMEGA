@@ -1236,7 +1236,19 @@
         "resetOutboundTrafficError": "重設出站流量錯誤"
       },
       "tgNotifyUserReport": "向用戶端傳送個人用量報告",
-      "tgNotifyUserReportDesc": "每次週期報告時，向已關聯 Telegram 的用戶端傳送個人用量摘要（流量與到期）。預設關閉。"
+      "tgNotifyUserReportDesc": "每次週期報告時，向已關聯 Telegram 的用戶端傳送個人用量摘要（流量與到期）。預設關閉。",
+      "oneClickSslTitle": "One-Click SSL Certificate",
+      "oneClickSslDesc": "Issue a free Let's Encrypt certificate (auto-renewed before expiry) or an instant 1-year self-signed certificate.",
+      "issueCertBtn": "Issue SSL Certificate",
+      "certSelfSigned": "Self-Signed",
+      "certMode": "Certificate Type",
+      "certModeLetsEncrypt": "Let's Encrypt (HTTP-01 on port 80, auto-renewed)",
+      "certModeSelfSigned": "Self-Signed (instant, 1 year, no port 80 needed)",
+      "certDomain": "Domain",
+      "certDomainRequired": "Domain is required",
+      "certEmail": "Contact Email (optional)",
+      "certPort80Notice": "Port 80 must be reachable from the internet and point to this server.",
+      "certIssuedSuccess": "Certificate issued and applied"
     },
     "xray": {
       "title": "Xray 配置",

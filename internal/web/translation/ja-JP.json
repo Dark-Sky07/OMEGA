@@ -1236,7 +1236,19 @@
         "resetOutboundTrafficError": "送信トラフィックのリセットエラー"
       },
       "tgNotifyUserReport": "クライアントへの個人利用レポート",
-      "tgNotifyUserReportDesc": "各レポート時に、Telegram が紐づいたすべてのクライアントへ個人の利用状況（トラフィックと有効期限）を送信します。既定はオフ。"
+      "tgNotifyUserReportDesc": "各レポート時に、Telegram が紐づいたすべてのクライアントへ個人の利用状況（トラフィックと有効期限）を送信します。既定はオフ。",
+      "oneClickSslTitle": "One-Click SSL Certificate",
+      "oneClickSslDesc": "Issue a free Let's Encrypt certificate (auto-renewed before expiry) or an instant 1-year self-signed certificate.",
+      "issueCertBtn": "Issue SSL Certificate",
+      "certSelfSigned": "Self-Signed",
+      "certMode": "Certificate Type",
+      "certModeLetsEncrypt": "Let's Encrypt (HTTP-01 on port 80, auto-renewed)",
+      "certModeSelfSigned": "Self-Signed (instant, 1 year, no port 80 needed)",
+      "certDomain": "Domain",
+      "certDomainRequired": "Domain is required",
+      "certEmail": "Contact Email (optional)",
+      "certPort80Notice": "Port 80 must be reachable from the internet and point to this server.",
+      "certIssuedSuccess": "Certificate issued and applied"
     },
     "xray": {
       "title": "Xray 設定",
