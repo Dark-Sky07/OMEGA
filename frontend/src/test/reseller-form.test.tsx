@@ -154,8 +154,8 @@ describe('reseller form (admin)', () => {
     const inputs = textInputs(dialog);
     fireEvent.change(inputs[0], { target: { value: 'sara' } });
     fireEvent.change(inputs[1], { target: { value: 'sara12345' } });
-    // #1 is owned by Ali: taken in create mode, so its checkbox is disabled.
-    expect((within(dialog).getByRole('checkbox', { name: /res-inb/ }) as HTMLInputElement).disabled).toBe(true);
+    // #1 is also attached to Ali, and shared inbounds are selectable for multiple resellers.
+    expect((within(dialog).getByRole('checkbox', { name: /res-inb/ }) as HTMLInputElement).disabled).toBe(false);
     fireEvent.click(within(dialog).getByRole('checkbox', { name: /second-inb/ }));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
 

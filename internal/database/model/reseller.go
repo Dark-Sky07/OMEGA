@@ -35,12 +35,13 @@ type Reseller struct {
 
 func (Reseller) TableName() string { return "resellers" }
 
-// ResellerInbound links an inbound to the reseller that owns it. This mapping
-// grants access to the inbound only; it never grants access to clients living
-// on it. Client visibility is represented separately by ResellerClient.
+// ResellerInbound links an inbound to a reseller that has access to it. Multiple
+// resellers may share the same inbound; this mapping grants access to the
+// inbound only and never grants access to other resellers' or admin clients
+// living on it. Client visibility is isolated per reseller by ResellerClient.
 type ResellerInbound struct {
 	ResellerId int   `json:"resellerId" gorm:"primaryKey;column:reseller_id;index"`
-	InboundId  int   `json:"inboundId" gorm:"primaryKey;column:inbound_id;index;uniqueIndex:ux_reseller_inbounds_inbound"`
+	InboundId  int   `json:"inboundId" gorm:"primaryKey;column:inbound_id;index"`
 	CreatedAt  int64 `json:"createdAt" gorm:"autoCreateTime:milli"`
 }
 

@@ -356,9 +356,17 @@ export default function ResellersPage() {
 
   const rows = listQuery.data || [];
   const assignments = useMemo(() => assignmentsQuery.data || [], [assignmentsQuery.data]);
-  const ownerByInbound = useMemo(() => {
-    const map = new Map<number, number>();
-    assignments.forEach((entry) => entry.inboundIds.forEach((id) => map.set(id, entry.resellerId)));
+  const ownersByInbound = useMemo(() => {
+    const map = new Map<number, number[]>();
+    assignments.forEach((entry) =>
+      entry.inboundIds.forEach((id) => {
+        const list = map.get(id) || [];
+        if (!list.includes(entry.resellerId)) {
+          list.push(entry.resellerId);
+        }
+        map.set(id, list);
+      }),
+    );
     return map;
   }, [assignments]);
   const explicitEmails = useMemo(
@@ -366,11 +374,13 @@ export default function ResellersPage() {
     [assignments, clientFor],
   );
   const assignableClientOptions = useMemo(() => {
-    const assigned = new Set(explicitEmails.map((email) => email.trim().toLowerCase()));
+    const assigned = new Set(
+      assignments.flatMap((entry) => entry.emails || []).map((email) => email.trim().toLowerCase()),
+    );
     return (clientsQuery.data || [])
       .filter((client) => !assigned.has(client.email.trim().toLowerCase()))
       .map((client) => ({ value: client.email, label: client.email }));
-  }, [clientsQuery.data, explicitEmails]);
+  }, [clientsQuery.data, assignments]);
 
   // The assignment map loads lazily when the form opens, so on the first edit
   // it is usually still empty when openEdit runs. Re-apply the owned set once
@@ -615,23 +625,21 @@ export default function ResellersPage() {
                     <Checkbox.Group style={{ width: '100%' }}>
                       <Space orientation="vertical" style={{ width: '100%' }}>
                         {(inboundsQuery.data || []).map((row) => {
-                          const owner = ownerByInbound.get(row.id);
-                          const takenByOther = owner !== undefined && (!editing || owner !== editing.reseller.id);
-                          const ownerName =
-                            owner === undefined
-                              ? null
-                              : rows.find((r) => r.reseller.id === owner)?.reseller.name || `#${owner}`;
+                          const owners = ownersByInbound.get(row.id) || [];
                           return (
-                            <Checkbox key={row.id} value={row.id} disabled={takenByOther}>
-                              <Space size={4}>
+                            <Checkbox key={row.id} value={row.id}>
+                              <Space size={4} wrap>
                                 <span>{row.remark || `#${row.id}`}</span>
                                 <Tag>{row.protocol}</Tag>
                                 <Tag>:{row.port}</Tag>
-                                {owner !== undefined && (
-                                  <Tag color={editing && owner === editing.reseller.id ? 'green' : 'blue'}>
-                                    {ownerName}
-                                  </Tag>
-                                )}
+                                {owners.map((owner) => {
+                                  const ownerName = rows.find((r) => r.reseller.id === owner)?.reseller.name || `#${owner}`;
+                                  return (
+                                    <Tag key={owner} color={editing && owner === editing.reseller.id ? 'green' : 'blue'}>
+                                      {ownerName}
+                                    </Tag>
+                                  );
+                                })}
                               </Space>
                             </Checkbox>
                           );

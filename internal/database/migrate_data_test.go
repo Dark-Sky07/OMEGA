@@ -137,3 +137,36 @@ func TestMigrateData_PreservesFalseDefaultedColumns(t *testing.T) {
 		t.Fatalf("disabled node re-enabled after migration")
 	}
 }
+
+func TestInitDB_DropsLegacyResellerInboundUniqueIndex(t *testing.T) {
+	dbPath := t.TempDir() + "/x-ui-legacy.db"
+	raw, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{Logger: logger.Discard})
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	if err := raw.AutoMigrate(&model.ResellerInbound{}); err != nil {
+		t.Fatalf("automigrate reseller_inbounds: %v", err)
+	}
+	if err := raw.Exec("CREATE UNIQUE INDEX ux_reseller_inbounds_inbound ON reseller_inbounds(inbound_id)").Error; err != nil {
+		t.Fatalf("create legacy unique index: %v", err)
+	}
+	if sqlDB, err := raw.DB(); err == nil {
+		sqlDB.Close()
+	}
+
+	if err := InitDB(dbPath); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = CloseDB()
+	})
+	if db.Migrator().HasIndex(&model.ResellerInbound{}, "ux_reseller_inbounds_inbound") {
+		t.Fatal("legacy unique index ux_reseller_inbounds_inbound was not dropped")
+	}
+	if err := db.Create(&model.ResellerInbound{ResellerId: 1, InboundId: 10}).Error; err != nil {
+		t.Fatalf("first reseller inbound mapping: %v", err)
+	}
+	if err := db.Create(&model.ResellerInbound{ResellerId: 2, InboundId: 10}).Error; err != nil {
+		t.Fatalf("shared reseller inbound mapping rejected after upgrade: %v", err)
+	}
+}
