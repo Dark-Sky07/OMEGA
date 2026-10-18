@@ -16,6 +16,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/controller"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/network"
@@ -224,6 +225,14 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		if linksPathForAssets != "/assets" {
 			engine.StaticFS(linksPathForAssets, assetsFS)
 		}
+	}
+	engine.GET("/manifest.webmanifest", controller.ServePWAManifest)
+	engine.GET("/sw.js", controller.ServePWAServiceWorker)
+	if basePath != "/" {
+		engine.GET(basePath+"manifest.webmanifest", controller.ServePWAManifest)
+		engine.GET(basePath+"sw.js", controller.ServePWAServiceWorker)
+	}
+	if assetsFS != nil {
 
 		// Browser may resolve subpage assets relative to the request URL —
 		// /sub/<basePath>/<subId>/assets/... — so route those to the same FS.

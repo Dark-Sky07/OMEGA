@@ -430,7 +430,8 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 	)
 	escapedBase := jsEscape.Replace(basePath)
 
-	inject := []byte(`<script>window.X_UI_BASE_PATH="` + escapedBase + `";` +
+	inject := []byte(`<link rel="manifest" href="` + escapedBase + `manifest.webmanifest"><meta name="theme-color" content="#0f172a">` +
+		`<script>window.X_UI_BASE_PATH="` + escapedBase + `";` +
 		`window.__SUB_PAGE_DATA__=` + string(subDataJSON) + `;</script></head>`)
 	out := bytes.Replace(body, []byte("</head>"), inject, 1)
 

@@ -14,9 +14,11 @@ import { setupAxios } from '@/api/axios-init';
 import { readyI18n } from '@/i18n/react';
 import { ThemeProvider } from '@/hooks/useTheme';
 import { QueryProvider } from '@/api/QueryProvider';
+import { registerPwaServiceWorker } from '@/hooks/usePwaInstall';
 import { router } from '@/routes';
 
 setupAxios();
+registerPwaServiceWorker();
 
 const messageContainer = document.getElementById('message');
 if (messageContainer) {
