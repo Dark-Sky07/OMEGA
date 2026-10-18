@@ -57,11 +57,7 @@ const (
 )
 
 func initModels() error {
-	// Older reseller builds allowed multiple owners for one inbound. Collapse
-	// those legacy rows deterministically before AutoMigrate creates the inbound
-	// ownership uniqueness index. The smallest reseller id remains the owner;
-	// no inbound/client payload is changed.
-	if err := dedupeLegacyResellerInbounds(); err != nil {
+	if err := dropLegacyResellerInboundUniqueIndex(); err != nil {
 		return err
 	}
 	models := []any{
@@ -107,6 +103,9 @@ func initModels() error {
 	if err := dropLegacyForeignKeys(); err != nil {
 		return err
 	}
+	if err := dropLegacyResellerInboundUniqueIndex(); err != nil {
+		return err
+	}
 	if err := pruneOrphanedClientInbounds(); err != nil {
 		return err
 	}
@@ -122,35 +121,15 @@ func initModels() error {
 	return nil
 }
 
-func dedupeLegacyResellerInbounds() error {
+func dropLegacyResellerInboundUniqueIndex() error {
 	if db == nil || !db.Migrator().HasTable("reseller_inbounds") {
 		return nil
 	}
-	// Read and delete through GORM instead of using a dialect-specific
-	// self-referencing DELETE. MySQL rejects modifying a table selected by a
-	// subquery, while PostgreSQL and SQLite accept different variants of that
-	// statement. The migration runs only once and the mapping table is small.
-	var rows []model.ResellerInbound
-	if err := db.Order("inbound_id ASC, reseller_id ASC").Find(&rows).Error; err != nil {
-		log.Printf("Error reading legacy reseller inbound ownership: %v", err)
-		return err
-	}
-	seen := make(map[int]struct{}, len(rows))
-	removed := 0
-	for _, row := range rows {
-		if _, exists := seen[row.InboundId]; exists {
-			if err := db.Where("reseller_id = ? AND inbound_id = ?", row.ResellerId, row.InboundId).
-				Delete(&model.ResellerInbound{}).Error; err != nil {
-				log.Printf("Error deleting duplicate reseller inbound ownership: %v", err)
-				return err
-			}
-			removed++
-			continue
+	if db.Migrator().HasIndex(&model.ResellerInbound{}, "ux_reseller_inbounds_inbound") {
+		if err := db.Migrator().DropIndex(&model.ResellerInbound{}, "ux_reseller_inbounds_inbound"); err != nil {
+			log.Printf("Error dropping legacy reseller inbound unique index: %v", err)
+			return err
 		}
-		seen[row.InboundId] = struct{}{}
-	}
-	if removed > 0 {
-		log.Printf("Collapsed %d legacy reseller inbound ownership row(s)", removed)
 	}
 	return nil
 }
