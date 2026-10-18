@@ -198,6 +198,7 @@ jobs:
               ;;
           esac
           cd ../..
+          (cd x-ui && sha256sum x-ui bin/* > sha256sums.txt && go version -m x-ui > sbom.txt)
 
       - name: Package
         run: tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
@@ -359,6 +360,8 @@ jobs:
 
           cd ..
           Copy-Item -Path ..\windows_files\* -Destination . -Recurse
+          $hash = (Get-FileHash -Path "x-ui.exe" -Algorithm SHA256).Hash.ToLower()
+          "$hash  x-ui.exe" | Out-File -FilePath "sha256sums.txt" -Encoding ascii
           cd ..
 
       - name: Package to Zip
