@@ -50,7 +50,9 @@ const server = http.createServer((req, res) => {
     try {
       respond(res, route(req.method, path, url.searchParams));
     } catch (err) {
-      respond(res, { success: false, msg: String(err && err.message || err), obj: null }, 500);
+      // eslint-disable-next-line no-console
+      console.error('[mock-api] route error:', err);
+      respond(res, { success: false, msg: 'Internal mock error', obj: null }, 500);
     }
   });
 });

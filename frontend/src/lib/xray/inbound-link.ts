@@ -1245,11 +1245,18 @@ export interface GenAllLinksInput {
   fallbackHostname: string;
 }
 
+function cryptoRandomInt(maxExclusive: number): number {
+  if (maxExclusive <= 1) return 0;
+  const buf = new Uint32Array(1);
+  globalThis.crypto.getRandomValues(buf);
+  return buf[0] % maxExclusive;
+}
+
 function randomSalt6(): string {
   const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
   let out = '';
   for (let i = 0; i < 6; i++) {
-    out += chars.charAt(Math.floor(Math.random() * chars.length));
+    out += chars.charAt(cryptoRandomInt(chars.length));
   }
   return out;
 }
@@ -1309,7 +1316,7 @@ export function resolveSmartExternalProxy(
   const destPool = splitSmartPool(destRaw);
   const sniPool = splitSmartPool(sniRaw);
   const maxPool = Math.max(destPool.length, sniPool.length);
-  const idx = maxPool > 1 ? Math.floor(Math.random() * maxPool) : 0;
+  const idx = maxPool > 1 ? cryptoRandomInt(maxPool) : 0;
   const salt = randomSalt6();
 
   const resolvedDest =

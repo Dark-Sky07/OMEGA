@@ -249,16 +249,8 @@ export default function GeneralTab({ allSetting, updateSetting, defaultSubTab = 
   async function runCloudBackupNow() {
     setCloudBackingUp(true);
     try {
-      const msg = await HttpUtil.post('/panel/api/setting/cloudBackup/run', {
-        cloudBackupProvider: allSetting.cloudBackupProvider || 's3',
-        cloudBackupEndpoint: allSetting.cloudBackupEndpoint || '',
-        cloudBackupRegion: allSetting.cloudBackupRegion || 'auto',
-        cloudBackupBucket: allSetting.cloudBackupBucket || '',
-        cloudBackupPrefix: allSetting.cloudBackupPrefix || 'omega-backups/',
-        cloudBackupAccessKey: allSetting.cloudBackupAccessKey || '',
-        cloudBackupSecretKey: allSetting.cloudBackupSecretKey || '',
-        cloudBackupRetention: allSetting.cloudBackupRetention ?? 7,
-      }) as ApiMsg<{ key?: string }>;
+      await HttpUtil.post('/panel/api/setting/update', allSetting, { silent: true });
+      const msg = await HttpUtil.post('/panel/api/setting/cloudBackup/run', {}) as ApiMsg<{ key?: string }>;
       if (msg?.success) {
         messageApi.success(`${t('pages.settings.cloudBackupSuccess', 'Cloud backup uploaded')}: ${msg.obj?.key || ''}`);
       }
