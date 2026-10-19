@@ -151,7 +151,7 @@ func (d *DiscordService) postJSON(url string, authHeader string, body []byte) er
 func (d *DiscordService) SendTestMessage() error {
 	host, _ := os.Hostname()
 	if host == "" {
-		host = "omega"
+		host = "phoenix"
 	}
 	return d.SendEmbed(DiscordEmbed{
 		Title:       "🔥 PHOENIX Discord Notification Test",

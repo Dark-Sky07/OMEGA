@@ -173,7 +173,7 @@ func (s *CloudBackupService) BackupNow() (string, error) {
 		}
 	case "gdrive", "google_drive", "googledrive":
 		driveName := fileName
-		if pfx := strings.Trim(prefix, "/"); pfx != "" && pfx != "omega-backups" {
+		if pfx := strings.Trim(prefix, "/"); pfx != "" && pfx != "phoenix-backups" && pfx != "omega-backups" {
 			driveName = strings.ReplaceAll(pfx, "/", "-") + "-" + fileName
 		}
 		folderID := extractGoogleDriveFolderID(bucket)
@@ -265,7 +265,7 @@ func uploadGoogleDrive(ctx context.Context, client *http.Client, clientSecretOrE
 		return "", err
 	}
 
-	boundary := fmt.Sprintf("omega_gdrive_%d", time.Now().UnixNano())
+	boundary := fmt.Sprintf("phoenix_gdrive_%d", time.Now().UnixNano())
 	var body bytes.Buffer
 	fmt.Fprintf(&body, "--%s\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n%s\r\n", boundary, string(metaJSON))
 	fmt.Fprintf(&body, "--%s\r\nContent-Type: application/octet-stream\r\n\r\n", boundary)

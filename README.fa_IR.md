@@ -11,8 +11,8 @@
 
 [English](README.md) · فارسی
 
-[![Release](https://img.shields.io/github/v/release/Dark-Sky07/OMEGA?include_prereleases&label=release&color=ff5500)](https://github.com/Dark-Sky07/OMEGA/releases)
-[![Build](https://img.shields.io/github/actions/workflow/status/Dark-Sky07/OMEGA/release.yml?label=build&color=f97316)](https://github.com/Dark-Sky07/OMEGA/actions)
+[![Release](https://img.shields.io/github/v/release/Dark-Sky07/phoenix?include_prereleases&label=release&color=ff5500)](https://github.com/Dark-Sky07/phoenix/releases)
+[![Build](https://img.shields.io/github/actions/workflow/status/Dark-Sky07/phoenix/release.yml?label=build&color=f97316)](https://github.com/Dark-Sky07/phoenix/actions)
 [![License](https://img.shields.io/badge/license-GPL--3.0-fbbf24.svg)](LICENSE)
 
 <img src="./docs/assets/phoenix-emblem.jpg" alt="PHOENIX Armored Emblem" width="640">
@@ -20,7 +20,7 @@
 **نصب آخرین نسخه‌ی PHOENIX با یک دستور** — روی سرور تازه، با کاربر `root`:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/phoenix/main/install-phoenix.sh)
 ```
 
 این لینک، نصب‌کننده‌ی رسمی و خودکار **PHOENIX** است: جدیدترین نسخه‌ی همین مخزن را دریافت و نصب می‌کند و دستور منوی مدیریت **`phoenix`** را در سیستم ثبت می‌نماید. برای آپدیت سرورهای موجود کافیست دستور `phoenix update` را اجرا کنید.
@@ -53,7 +53,7 @@ OpenVPN یک daemon سیستم‌عامل است، نه بخشی از Xray و ن
 برای نصب یا تعمیر سرور موجود با آخرین release پایدار، با کاربر `root` اجرا کنید:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/phoenix/main/install-phoenix.sh)
 ```
 
 پیش‌نیاز را قبل از بررسی شبکه verify کنید:
@@ -65,7 +65,7 @@ test -c /dev/net/tun && echo "TUN آماده است"
 systemctl restart x-ui
 ```
 
-اسکریپت `phoenix update` که در این release قرار دارد، آخرین tag پایدار را پیدا و installer همان tag را اجرا می‌کند و دیگر installer قدیمی و بدون tag را از `main` نمی‌گیرد. برای اینباند OpenVPN، پورت تنظیم‌شده را با transport انتخابی (`udp` یا `tcp`) در فایروال ارائه‌دهندهٔ VPS باز کنید. PHOENIX forwarding IPv4 را فعال می‌کند و ruleهای دقیق `INPUT`، `FORWARD` و `POSTROUTING MASQUERADE` را برای subnet تونل `10.x.x.0/24` مدیریت می‌کند و ruleهای نامرتبط فایروال را دست نمی‌زند. اگر profile import می‌شود اما روی `Trying to connect` می‌ماند، این موارد را بررسی کنید: `command -v openvpn`، `command -v iptables`، وجود `/dev/net/tun`، خروجی `ss -lunpt`، فایل `/var/log/x-ui/3xui.log` و فایل `bin/openvpn/<inbound-id>/openvpn.log`.
+اسکریپت `phoenix update` که در این release قرار دارد، آخرین tag پایدار را پیدا و installer همان tag را اجرا می‌کند و دیگر installer قدیمی و بدون tag را از `main` نمی‌گیرد. برای اینباند OpenVPN، پورت تنظیم‌شده را با transport انتخابی (`udp` یا `tcp`) در فایروال ارائه‌دهندهٔ VPS باز کنید. PHOENIX forwarding IPv4 را فعال می‌کند و ruleهای دقیق `INPUT`، `FORWARD` و `POSTROUTING MASQUERADE` را برای subnet تونل `10.x.x.0/24` مدیریت می‌کند و ruleهای نامرتبط فایروال را دست نمی‌زند. اگر profile import می‌شود اما روی `Trying to connect` می‌ماند، این موارد را بررسی کنید: `command -v openvpn`، `command -v iptables`، وجود `/dev/net/tun`، خروجی `ss -lunpt`، فایل `/var/log/x-ui/phoenix.log` و فایل `bin/openvpn/<inbound-id>/openvpn.log`.
 
 ### نصب و چک‌لیست L2TP/IPsec
 
@@ -120,7 +120,7 @@ OpenVPN و L2TP/IPsec توسط daemonهای سیستم‌عامل سرویس د�
 روی سرور تازه، با کاربر **root**:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/phoenix/main/install-phoenix.sh)
 ```
 
 نصب‌کننده خودش این کارها را انجام می‌دهد:
@@ -147,7 +147,7 @@ phoenix uninstall    # حذف کامل (دیتابیس در /etc/x-ui می‌م�
 
 ### نصب دستی
 
-از [صفحه‌ی ریلیزها](https://github.com/Dark-Sky07/OMEGA/releases) فایل `x-ui-linux-<arch>.tar.gz` معماری خودتان را
+از [صفحه‌ی ریلیزها](https://github.com/Dark-Sky07/phoenix/releases) فایل `x-ui-linux-<arch>.tar.gz` معماری خودتان را
 بگیرید (`amd64`، `arm64`، `armv7`، `armv6`، `386`، `armv5`، `s390x`) و روی سرور. استخراج دستی tar به‌تنهایی بسته‌ی OpenVPN سیستم‌عامل را نصب نمی‌کند؛ اگر این روش را استفاده می‌کنید ابتدا اجرا کنید:
 
 ```bash
@@ -173,7 +173,7 @@ phoenix update                                   # آپدیت درجا، تنظ�
 cp /etc/x-ui/x-ui.db /root/x-ui-backup.db     # یا از بخش تنظیمات → بکاپ در خود پنل
 ```
 
-📖 **راهنمای فارسی گام‌به‌گام:** [docs/OMEGA-INSTALL.fa.md](docs/OMEGA-INSTALL.fa.md)
+📖 **راهنمای فارسی گام‌به‌گام:** [docs/PHOENIX-INSTALL.fa.md](docs/PHOENIX-INSTALL.fa.md)
 
 ---
 
@@ -326,7 +326,7 @@ systemctl restart x-ui
 
 ## دونیت و اعتبار
 
-- **پروژه‌ی اصلی:** [Dark-Sky07/OMEGA](https://github.com/Dark-Sky07/OMEGA) — این ریپازیتوری فورک **PHOENIX نسخه‌ی 3.3.1** است
+- **پروژه‌ی اصلی:** [Dark-Sky07/phoenix](https://github.com/Dark-Sky07/phoenix) — این ریپازیتوری فورک **PHOENIX نسخه‌ی 3.3.1** است
   و طراحی، مستندات و مجوز آن را به ارث می‌برد. سپاس از [alireza0](https://github.com/alireza0/) و همه‌ی مشارکت‌کنندگان.
 - **اضافه‌شده اینجا:** قابلیت نمایندگی، AmneziaWG native، یکپارچه‌سازی OpenVPN و L2TP/IPsec، accounting و quota چرخه‌ی کلاینت، آپدیت امن، برندینگ PHOENIX و نصب‌کننده‌ی فورک‌محورِ آخرین release.
 - **مجوز:** [GPL-3.0](LICENSE) — مانند پروژه‌ی اصلی.

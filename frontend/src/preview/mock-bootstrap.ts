@@ -136,7 +136,7 @@ window.WebSocket = previewWebSocket as unknown as typeof WebSocket;
 if (import.meta.env.VITE_PREVIEW_SW === '1') {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register(`${basePath}sw.js`, { scope: basePath }).catch((err) => {
-      console.warn('[omega-preview] service worker registration failed', err);
+      console.warn('[phoenix-preview] service worker registration failed', err);
     });
   }
   const here = window.location.pathname;
@@ -146,4 +146,4 @@ if (import.meta.env.VITE_PREVIEW_SW === '1') {
 }
 
 // Make the preview obvious in dev tools without touching the UI itself.
-console.info('[omega-preview] static design preview — all data is simulated, nothing is saved.');
+console.info('[phoenix-preview] static design preview — all data is simulated, nothing is saved.');

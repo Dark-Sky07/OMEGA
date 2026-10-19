@@ -45,7 +45,7 @@ import './AppSidebar.css';
 
 const SIDEBAR_COLLAPSED_KEY = 'isSidebarCollapsed';
 const DONATE_URL = 'https://donate.sanaei.dev/';
-const REPO_URL = 'https://github.com/Dark-Sky07/OMEGA';
+const REPO_URL = 'https://github.com/Dark-Sky07/phoenix';
 const LOGOUT_KEY = '__logout__';
 
 type IconName =
