@@ -176,8 +176,11 @@ func (s *OutboundWatchdogService) CheckAndFailover(force bool) (*OutboundWatchdo
 	var bestDelay int64 = 1<<62 - 1
 	watchdogMu.Lock()
 	for i, r := range results {
+		if r == nil {
+			continue
+		}
 		if i < len(backupTags) {
-			watchdogState.LastResults[backupTags[i]] = r
+			watchdogState.LastResults[backupTags[i]] = *r
 		}
 		if r.Success && r.Delay > 0 && r.Delay < bestDelay {
 			bestDelay = r.Delay
@@ -186,11 +189,11 @@ func (s *OutboundWatchdogService) CheckAndFailover(force bool) (*OutboundWatchdo
 	}
 	watchdogMu.Unlock()
 
-	if bestIdx < 0 || bestIdx >= len(backupTags) {
+	if bestIdx < 0 || bestIdx >= len(backupTags) || results[bestIdx] == nil {
 		return s.Status(), nil
 	}
 	bestTag := backupTags[bestIdx]
-	bestRes := results[bestIdx]
+	bestRes := *results[bestIdx]
 
 	updatedTpl, changed, err := promoteOutboundInTemplate(tpl, activeTag, bestTag)
 	if err != nil || !changed {
