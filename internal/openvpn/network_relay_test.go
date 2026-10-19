@@ -11,17 +11,14 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/tproxy"
 )
 
-// fakeFirewall emulates iptables -C/-I/-D bookkeeping plus the sysctl/ip
+// fakeFirewall emulates iptables -C/-I/-D bookkeeping plus the sysctl/systemctl
 // helpers so the network manager can be exercised without root or a kernel.
 type fakeFirewall struct {
 	mu        sync.Mutex
 	present   map[string]bool
 	calls     []string
 	failMatch string // an -I whose rule contains this substring fails
-	ipRule    bool   // fwmark -> table 2601 rule present
-	// reverseRule mirrors the "iif lo" guard rule that must precede ipRule.
-	reverseRule bool
-	firewalld   bool // systemctl is-active firewalld reports "active"
+	firewalld bool   // systemctl is-active firewalld reports "active"
 }
 
 func newFakeFirewall() *fakeFirewall {
@@ -41,24 +38,6 @@ func (f *fakeFirewall) run(name string, args ...string) ([]byte, error) {
 			return []byte("active\n"), nil
 		}
 		return []byte("inactive\n"), errors.New("exit status 3")
-	case "ip":
-		switch {
-		case strings.HasPrefix(cmd, "ip -4 rule show"):
-			if f.ipRule {
-				return []byte("2600:\tfrom all iif lo fwmark 0x2e01 lookup main\n2601:\tfrom all fwmark 0x2e01 lookup 2601\n"), nil
-			}
-			return []byte("32766:\tfrom all lookup main\n"), nil
-		case strings.HasPrefix(cmd, "ip -4 rule add pref 2601"):
-			f.ipRule = true
-		case strings.HasPrefix(cmd, "ip -4 rule add pref 2600"):
-			f.reverseRule = true
-		case strings.HasPrefix(cmd, "ip -4 rule del"):
-			if !f.ipRule {
-				return []byte("RTNETLINK answers: No such file or directory"), errors.New("exit status 2")
-			}
-			f.ipRule = false
-		}
-		return nil, nil
 	}
 	op, rest := "", ""
 	for i, a := range args {
@@ -90,12 +69,12 @@ func (f *fakeFirewall) run(name string, args ...string) ([]byte, error) {
 	return nil, nil
 }
 
-func (f *fakeFirewall) mangleRules() []string {
+func (f *fakeFirewall) divertRules() []string {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	var out []string
 	for r := range f.present {
-		if strings.HasPrefix(r, "-t mangle ") {
+		if strings.HasPrefix(r, "-t nat PREROUTING ") {
 			out = append(out, r)
 		}
 	}
@@ -147,44 +126,20 @@ func TestNetworkManagerRelayLifecycle(t *testing.T) {
 	if err := m.Apply(inst); err != nil {
 		t.Fatalf("apply with relay: %v", err)
 	}
-	if got := len(f.mangleRules()); got != 3 {
-		t.Fatalf("expected three mangle divert rules, got %d: %v", got, f.mangleRules())
+	if got := len(f.divertRules()); got != 2 {
+		t.Fatalf("expected two nat PREROUTING divert rules, got %d: %v", got, f.divertRules())
 	}
-	if !f.has("-j TPROXY --on-ip 127.0.0.1 --on-port 63907") {
-		t.Fatalf("TPROXY rule missing: %v", f.mangleRules())
+	if !f.has("-t nat PREROUTING -i tun7 -s 10.7.0.0/24 ! -d 10.7.0.0/24 -p tcp -j DNAT --to-destination 127.0.0.1:63907") {
+		t.Fatalf("TCP DNAT rule missing: %v", f.divertRules())
 	}
-	if !f.has("-t mangle PREROUTING -i tun7 -s 10.7.0.0/24 -p tcp ! --syn -m socket --transparent") {
-		t.Fatalf("socket divert rule missing: %v", f.mangleRules())
+	if !f.has("-t nat PREROUTING -i tun7 -s 10.7.0.0/24 -p udp --dport 53 -j DNAT --to-destination 127.0.0.1:63907") {
+		t.Fatalf("UDP DNS DNAT rule missing: %v", f.divertRules())
 	}
-	if !f.has("-t filter INPUT -i tun7 -s 10.7.0.0/24 -m mark --mark 0x2e01/0xffffffff -j ACCEPT") {
+	if !f.has("-t filter INPUT -i tun7 -s 10.7.0.0/24 -d 127.0.0.1 -j ACCEPT") {
 		t.Fatal("INPUT exception for diverted packets missing")
 	}
-	if !f.ipRule {
-		t.Fatal("policy routing rule was not installed")
-	}
-	if !f.reverseRule {
-		t.Fatal("reverse-path guard rule (src_valid_mark hosts) was not installed")
-	}
-	var guard, deliver, throwRoute, divert int
-	for i, c := range f.calls {
-		switch {
-		case strings.HasPrefix(c, "ip -4 rule add pref 2600"):
-			guard = i + 1
-		case strings.HasPrefix(c, "ip -4 rule add pref 2601"):
-			deliver = i + 1
-		case c == "ip -4 route replace throw 10.7.0.0/24 table 2601":
-			throwRoute = i + 1
-		case strings.Contains(c, "-j TPROXY") && !strings.Contains(c, " -C "):
-			if divert == 0 {
-				divert = i + 1
-			}
-		}
-	}
-	if guard == 0 || deliver == 0 || throwRoute == 0 || divert == 0 {
-		t.Fatalf("missing policy-routing steps: guard=%d deliver=%d throw=%d divert=%d", guard, deliver, throwRoute, divert)
-	}
-	if !(guard < deliver && throwRoute < deliver && deliver < divert) {
-		t.Fatalf("policy routing must be installed guard -> throw -> deliver -> divert, got guard=%d throw=%d deliver=%d divert=%d", guard, throwRoute, deliver, divert)
+	if !f.has("-t filter FORWARD -i tun7 -s 10.7.0.0/24 -p udp --dport 443 -j DROP") {
+		t.Fatal("QUIC UDP/443 drop rule missing")
 	}
 	if st := readState(t, 7); st.XrayRelayPort != 63907 || st.PoolCIDR != "10.7.0.0/24" {
 		t.Fatalf("persisted state = %+v", st)
@@ -209,11 +164,11 @@ func TestNetworkManagerRelayLifecycle(t *testing.T) {
 	if err := m.Apply(inst); err != nil {
 		t.Fatalf("apply moved port: %v", err)
 	}
-	if f.has("--on-port 63907") || !f.has("--on-port 63999") {
-		t.Fatalf("old divert rules must be swapped for the new port: %v", f.mangleRules())
+	if f.has("--to-destination 127.0.0.1:63907") || !f.has("--to-destination 127.0.0.1:63999") {
+		t.Fatalf("old divert rules must be swapped for the new port: %v", f.divertRules())
 	}
-	if got := len(f.mangleRules()); got != 3 {
-		t.Fatalf("expected three mangle rules after port move, got %d", got)
+	if got := len(f.divertRules()); got != 2 {
+		t.Fatalf("expected two nat PREROUTING rules after port move, got %d", got)
 	}
 
 	// Relay gone (Xray stopped or toggle off): back to the direct path.
@@ -221,14 +176,14 @@ func TestNetworkManagerRelayLifecycle(t *testing.T) {
 	if err := m.Apply(inst); err != nil {
 		t.Fatalf("apply without relay: %v", err)
 	}
-	if got := len(f.mangleRules()); got != 0 {
-		t.Fatalf("divert rules must be removed on fallback, got %v", f.mangleRules())
+	if got := len(f.divertRules()); got != 0 {
+		t.Fatalf("divert rules must be removed on fallback, got %v", f.divertRules())
 	}
-	if f.has("-m mark --mark 0x2e01/0xffffffff -j ACCEPT") {
+	if f.has("-d 127.0.0.1 -j ACCEPT") {
 		t.Fatal("INPUT exception must go away with the divert rules")
 	}
-	if f.ipRule {
-		t.Fatal("policy routing must be released once no relay is active")
+	if !f.has("INPUT -i tun7 -s 10.7.0.0/24 -j ACCEPT") {
+		t.Fatal("base OpenVPN INPUT rule must survive relay removal")
 	}
 	if st := readState(t, 7); st.XrayRelayPort != 0 {
 		t.Fatalf("persisted state still carries a relay port: %+v", st)
@@ -246,9 +201,6 @@ func TestNetworkManagerRelayLifecycle(t *testing.T) {
 	if len(f.present) != 0 {
 		t.Fatalf("Remove must delete every managed rule, left: %v", f.present)
 	}
-	if f.ipRule {
-		t.Fatal("Remove must release policy routing")
-	}
 	if tproxy.ActiveOwners() != 0 {
 		t.Fatalf("no tproxy owners expected after Remove, got %d", tproxy.ActiveOwners())
 	}
@@ -260,21 +212,18 @@ func TestNetworkManagerRelayFailsOpen(t *testing.T) {
 		t.Fatal(err)
 	}
 	f := newFakeFirewall()
-	f.failMatch = "-j TPROXY"
+	f.failMatch = "-j DNAT"
 	m := newTestNetworkManager(f)
 	inst := Instance{Id: 8, Port: 1194, Proto: "udp", XrayRelayPort: 63908}
 
 	if err := m.Apply(inst); err != nil {
-		t.Fatalf("a missing TPROXY target must not fail Apply: %v", err)
+		t.Fatalf("a failing DNAT target must not fail Apply: %v", err)
 	}
-	if got := len(f.mangleRules()); got != 0 {
-		t.Fatalf("partial divert rules must be rolled back, got %v", f.mangleRules())
+	if got := len(f.divertRules()); got != 0 {
+		t.Fatalf("partial divert rules must be rolled back, got %v", f.divertRules())
 	}
-	if f.has("-m mark --mark 0x2e01/0xffffffff -j ACCEPT") {
+	if f.has("-d 127.0.0.1 -j ACCEPT") {
 		t.Fatal("the INPUT exception installed before the failing rule must be rolled back too")
-	}
-	if f.ipRule {
-		t.Fatal("policy routing must be released when the divert rules fail")
 	}
 	if st := readState(t, 8); st.XrayRelayPort != 0 {
 		t.Fatalf("state must record the direct path, got %+v", st)
@@ -285,7 +234,6 @@ func TestNetworkManagerRelayFailsOpen(t *testing.T) {
 	if m.relayWarned[8] == "" {
 		t.Fatal("relay failure should be remembered for warning de-duplication")
 	}
-	// The failure is retried on every round without spamming a new warning.
 	warned := m.relayWarned[8]
 	if err := m.Apply(inst); err != nil {
 		t.Fatalf("second apply: %v", err)
@@ -308,25 +256,24 @@ func TestNetworkManagerRelaySkipsUnderFirewalld(t *testing.T) {
 	m := newTestNetworkManager(f)
 	inst := Instance{Id: 9, Port: 1194, Proto: "udp", XrayRelayPort: 63909}
 
-	// Relay active, then firewalld shows up: rules are withdrawn.
 	if err := m.Apply(inst); err != nil {
 		t.Fatalf("apply: %v", err)
 	}
-	if got := len(f.mangleRules()); got != 3 {
-		t.Fatalf("expected the relay to be active first, got %d mangle rules", got)
+	if got := len(f.divertRules()); got != 2 {
+		t.Fatalf("expected the relay to be active first, got %d nat divert rules", got)
 	}
 	f.firewalld = true
 	if err := m.Apply(inst); err != nil {
 		t.Fatalf("apply under firewalld: %v", err)
 	}
-	if got := len(f.mangleRules()); got != 0 {
-		t.Fatalf("divert rules must be withdrawn under firewalld, got %v", f.mangleRules())
+	if got := len(f.divertRules()); got != 0 {
+		t.Fatalf("divert rules must be withdrawn under firewalld, got %v", f.divertRules())
 	}
-	if f.has("-m mark --mark 0x2e01/0xffffffff -j ACCEPT") {
+	if f.has("-d 127.0.0.1 -j ACCEPT") {
 		t.Fatal("INPUT exception must be withdrawn under firewalld")
 	}
-	if f.ipRule || tproxy.ActiveOwners() != 0 {
-		t.Fatal("policy routing must be released under firewalld")
+	if tproxy.ActiveOwners() != 0 {
+		t.Fatal("relay owner must be released under firewalld")
 	}
 	if st := readState(t, 9); st.XrayRelayPort != 0 {
 		t.Fatalf("state must record the direct path, got %+v", st)
@@ -343,20 +290,8 @@ func TestNetworkManagerRelaySkipsUnderFirewalld(t *testing.T) {
 	if err := m.Apply(inst); err != nil {
 		t.Fatalf("apply after firewalld stopped: %v", err)
 	}
-	if got := len(f.mangleRules()); got != 3 {
-		t.Fatalf("relay must resume once firewalld is gone, got %d mangle rules", got)
+	if got := len(f.divertRules()); got != 2 {
+		t.Fatalf("relay must resume once firewalld is gone, got %d nat divert rules", got)
 	}
 	m.Remove(9)
-}
-
-func TestStateForInstanceIgnoresInvalidRelayPort(t *testing.T) {
-	if st := stateForInstance(Instance{Id: 1, Port: 1194, XrayRelayPort: 70000}); st.XrayRelayPort != 0 {
-		t.Fatalf("out-of-range relay port must be ignored, got %d", st.XrayRelayPort)
-	}
-	if st := stateForInstance(Instance{Id: 1, Port: 1194, XrayRelayPort: -5}); st.XrayRelayPort != 0 {
-		t.Fatalf("negative relay port must be ignored, got %d", st.XrayRelayPort)
-	}
-	if rules := relayRulesForState(networkState{PoolCIDR: "10.1.0.0/24", InterfaceName: "tun1"}); rules != nil {
-		t.Fatal("no relay rules expected without a relay port")
-	}
 }

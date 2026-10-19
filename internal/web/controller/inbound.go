@@ -215,6 +215,13 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	if inbound != nil && (inbound.Protocol == model.OpenVPN || inbound.Protocol == model.L2TP) {
+		if needRestart && a.xrayService.IsXrayRunning() {
+			_ = a.xrayService.RestartXray(false)
+		} else {
+			a.xrayService.SyncDaemonInbounds()
+		}
+	}
 	a.notifyInboundsChanged(c)
 }
 
@@ -298,6 +305,13 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), inbound, nil)
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
+	}
+	if inbound != nil && (inbound.Protocol == model.OpenVPN || inbound.Protocol == model.L2TP) {
+		if needRestart && a.xrayService.IsXrayRunning() {
+			_ = a.xrayService.RestartXray(false)
+		} else {
+			a.xrayService.SyncDaemonInbounds()
+		}
 	}
 	a.notifyInboundsChanged(c)
 }

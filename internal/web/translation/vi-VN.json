@@ -1317,7 +1317,18 @@
       "discordTestTitle": "Test Discord Connection",
       "discordTestDesc": "Save your settings first, then send a verification embed.",
       "discordTestBtn": "Send Test Embed",
-      "discordTestSuccess": "Test message sent to Discord"
+      "discordTestSuccess": "Test message sent to Discord",
+      "cloudBackupTitle": "Cloud Backup",
+      "cloudBackupProviderGdrive": "Google Drive (Service Account / OAuth2)",
+      "cloudBackupGdriveGuide": "Google Drive Setup: (Method 1 - Recommended) Create a Google Cloud Service Account, enable Google Drive API, share your target Google Drive folder with the service account email, and paste the full JSON key below. (Method 2) Paste your OAuth2 Refresh Token below and enter your OAuth2 Client ID & Client Secret.",
+      "cloudBackupGdriveFolder": "Google Drive Folder ID or Link",
+      "cloudBackupGdriveFolderDesc": "Paste the Google Drive Folder ID or full folder URL (e.g. https://drive.google.com/drive/folders/1AbCdEf...). Leave empty to upload to Drive root.",
+      "cloudBackupGdriveCredentials": "Service Account JSON or OAuth2 Refresh Token",
+      "cloudBackupGdriveCredentialsDesc": "Paste the complete Google Cloud service_account JSON key file, or an OAuth2 Refresh Token (1//0g...).",
+      "cloudBackupGdriveClientId": "OAuth2 Client ID (Optional)",
+      "cloudBackupGdriveClientIdDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
+      "cloudBackupGdriveClientSecret": "OAuth2 Client Secret (Optional)",
+      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key."
     },
     "xray": {
       "title": "Cài đặt Xray",

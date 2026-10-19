@@ -13,7 +13,9 @@ import {
   message,
 } from 'antd';
 import {
+  ApartmentOutlined,
   CloudServerOutlined,
+  CloudUploadOutlined,
   CodeOutlined,
   InfoCircleOutlined,
   MessageOutlined,
@@ -42,7 +44,7 @@ interface ApiMsg {
   success?: boolean;
 }
 
-const tabSlugs = ['general', 'security', 'telegram', 'subscription', 'subscription-formats'];
+const tabSlugs = ['general', 'security', 'telegram', 'subscription', 'subscription-formats', 'ldap', 'cloud-backup'];
 
 function isIp(h: string): boolean {
   if (typeof h !== 'string') return false;
@@ -110,6 +112,8 @@ export default function SettingsPage() {
       { slug: 'security', icon: <SafetyOutlined />, label: t('pages.settings.securitySettings') },
       { slug: 'telegram', icon: <MessageOutlined />, label: t('pages.settings.TGBotSettings') },
       { slug: 'subscription', icon: <CloudServerOutlined />, label: t('pages.settings.subSettings') },
+      { slug: 'ldap', icon: <ApartmentOutlined />, label: 'LDAP' },
+      { slug: 'cloud-backup', icon: <CloudUploadOutlined />, label: t('pages.settings.cloudBackupTitle', 'Cloud Backup') },
     ];
     if (allSetting.subJsonEnable || allSetting.subClashEnable || activeSlug === 'subscription-formats') {
       list.push({ slug: 'subscription-formats', icon: <CodeOutlined />, label: 'Sub Formats' });
@@ -223,7 +227,9 @@ export default function SettingsPage() {
       case 'telegram': return <TelegramTab allSetting={allSetting} updateSetting={updateSetting} />;
       case 'subscription': return <SubscriptionGeneralTab allSetting={allSetting} updateSetting={updateSetting} />;
       case 'subscription-formats': return <SubscriptionFormatsTab allSetting={allSetting} updateSetting={updateSetting} />;
-      default: return <GeneralTab allSetting={allSetting} updateSetting={updateSetting} />;
+      case 'ldap': return <GeneralTab allSetting={allSetting} updateSetting={updateSetting} onlySubTab="6" />;
+      case 'cloud-backup': return <GeneralTab allSetting={allSetting} updateSetting={updateSetting} onlySubTab="7" />;
+      default: return <GeneralTab allSetting={allSetting} updateSetting={updateSetting} defaultSubTab="1" />;
     }
   }, [activeSlug, allSetting, updateSetting]);
 

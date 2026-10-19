@@ -707,7 +707,8 @@ func daemonRelayRoutesThroughXray(inbound *model.Inbound) bool {
 		return false
 	}
 	var parsed struct {
-		RouteThroughXray *bool `json:"routeThroughXray"`
+		RouteThroughXray *bool  `json:"routeThroughXray"`
+		OutboundTag      string `json:"outboundTag"`
 	}
 	if strings.TrimSpace(inbound.Settings) == "" {
 		return false
@@ -715,7 +716,45 @@ func daemonRelayRoutesThroughXray(inbound *model.Inbound) bool {
 	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil {
 		return false
 	}
-	return parsed.RouteThroughXray != nil && *parsed.RouteThroughXray
+	if parsed.RouteThroughXray != nil {
+		return *parsed.RouteThroughXray
+	}
+	return strings.TrimSpace(parsed.OutboundTag) != ""
+}
+
+// preserveDaemonInboundClients ensures that editing an OpenVPN or L2TP inbound
+// from a client or UI payload that omits "clients" inside settings does not
+// wipe the inbound's existing attached clients.
+func preserveDaemonInboundClients(inbound *model.Inbound, oldSettings string) {
+	if inbound == nil || (inbound.Protocol != model.OpenVPN && inbound.Protocol != model.L2TP) {
+		return
+	}
+	if strings.TrimSpace(oldSettings) == "" || strings.TrimSpace(inbound.Settings) == "" {
+		return
+	}
+	var newMap map[string]any
+	if err := json.Unmarshal([]byte(inbound.Settings), &newMap); err != nil || newMap == nil {
+		return
+	}
+	if !parsedRouteThroughXrayBool(newMap) {
+		delete(newMap, "outboundTag")
+	}
+	if _, hasClients := newMap["clients"]; !hasClients {
+		var oldMap map[string]any
+		if err := json.Unmarshal([]byte(oldSettings), &oldMap); err == nil && oldMap != nil {
+			if oldClients, ok := oldMap["clients"]; ok {
+				newMap["clients"] = oldClients
+			}
+		}
+	}
+	if bs, err := json.MarshalIndent(newMap, "", "  "); err == nil {
+		inbound.Settings = string(bs)
+	}
+}
+
+func parsedRouteThroughXrayBool(m map[string]any) bool {
+	v, ok := m["routeThroughXray"].(bool)
+	return ok && v
 }
 
 func settingsRouteXrayPort(parsed map[string]any) int {
@@ -1286,10 +1325,24 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 		return true, nil
 	}
 
-	// The daemons' TPROXY relay listener lives in the generated Xray config,
-	// so an enable/disable flip must regenerate it too (hot-applied).
-	if daemonRelayRoutesThroughXray(inbound) {
+	// The daemons' relay listener lives in the generated Xray config, so an
+	// enable/disable flip must regenerate it too (hot-applied).
+	if daemonRelayRoutesThroughXray(inbound) || inbound.Protocol == model.OpenVPN || inbound.Protocol == model.L2TP {
 		needRestart = true
+	}
+
+	if inbound.Protocol == model.OpenVPN || inbound.Protocol == model.L2TP {
+		payload := inbound
+		if enable {
+			if built, bErr := s.buildRuntimeInboundForAPI(db, inbound); bErr == nil {
+				payload = built
+			}
+		}
+		if err := rt.UpdateInbound(context.Background(), inbound, payload); err != nil {
+			logger.Debug("SetInboundEnable: UpdateInbound on", rt.Name(), "failed:", err)
+			needRestart = true
+		}
+		return needRestart, nil
 	}
 
 	if err := rt.DelInbound(context.Background(), inbound); err != nil &&
@@ -1487,6 +1540,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	oldInbound.Remark = inbound.Remark
 	oldInbound.SubSortIndex = inbound.SubSortIndex
 	oldInbound.Enable = inbound.Enable
+	preserveDaemonInboundClients(inbound, oldInbound.Settings)
 	oldInbound.ExpiryTime = inbound.ExpiryTime
 	oldInbound.TrafficReset = inbound.TrafficReset
 	oldInbound.Listen = inbound.Listen
@@ -1527,18 +1581,20 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	if oldInbound.NodeID == nil {
 		if !push {
 			needRestart = true
-		} else if oldRuntime.Protocol == model.TUIC || oldInbound.Protocol == model.TUIC {
+		} else if oldRuntime.Protocol == model.TUIC || oldInbound.Protocol == model.TUIC ||
+			oldRuntime.Protocol == model.OpenVPN || oldInbound.Protocol == model.OpenVPN ||
+			oldRuntime.Protocol == model.L2TP || oldInbound.Protocol == model.L2TP {
 			oldSnapshot := oldRuntime
 			oldSnapshot.Tag = tag
 			payload := oldInbound
-			if oldInbound.Enable && oldInbound.Protocol == model.TUIC {
+			if oldInbound.Enable && (oldInbound.Protocol == model.TUIC || oldInbound.Protocol == model.OpenVPN || oldInbound.Protocol == model.L2TP) {
 				if built, bErr := s.buildInboundForLocalRuntime(tx, oldInbound); bErr == nil {
 					payload = built
 				}
 			}
 			if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, payload); err2 != nil {
-				logger.Debug("Unable to update TUIC inbound on", rt.Name(), ":", err2)
-				if oldInbound.Protocol != model.TUIC {
+				logger.Debug("Unable to update daemon/TUIC inbound on", rt.Name(), ":", err2)
+				if oldInbound.Protocol != model.TUIC && oldInbound.Protocol != model.OpenVPN && oldInbound.Protocol != model.L2TP {
 					needRestart = true
 				}
 			}

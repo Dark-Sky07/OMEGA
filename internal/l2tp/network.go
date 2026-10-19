@@ -388,10 +388,10 @@ type relayRule struct {
 }
 
 // relayRulesForState returns the relay rules for a state whose XrayRelayPort
-// is set, in installation order (the INPUT exception first, then the TPROXY
-// divert rules), or nil when the pool is on the direct path. Sessions arrive
-// on pppd's per-client interfaces, so the interface match is the ppp+
-// wildcard and the pool filter does the actual selection.
+// is set, in installation order (the filter INPUT/FORWARD rules first, then
+// the nat PREROUTING DNAT rules), or nil when the pool is on the direct path.
+// Sessions arrive on pppd's per-client interfaces, so the interface match is
+// the ppp+ wildcard and the pool filter does the actual selection.
 func relayRulesForState(state networkState) []relayRule {
 	if state.XrayRelayPort <= 0 {
 		return nil
@@ -401,7 +401,21 @@ func relayRulesForState(state networkState) []relayRule {
 		rules = append(rules, relayRule{table: "filter", rule: spec})
 	}
 	for _, spec := range tproxy.DivertRules(clientInterfaces, state.PoolCIDR, state.XrayRelayPort) {
-		rules = append(rules, relayRule{table: "mangle", rule: spec})
+		rules = append(rules, relayRule{table: tproxy.DivertTable, rule: spec})
+	}
+	return rules
+}
+
+func legacyRelayRulesForState(state networkState) []relayRule {
+	if state.XrayRelayPort <= 0 {
+		return nil
+	}
+	rules := make([]relayRule, 0, 4)
+	for _, spec := range tproxy.LegacyAcceptRules(clientInterfaces, state.PoolCIDR) {
+		rules = append(rules, relayRule{table: "filter", rule: spec})
+	}
+	for _, spec := range tproxy.LegacyDivertRules(clientInterfaces, state.PoolCIDR, state.XrayRelayPort) {
+		rules = append(rules, relayRule{table: tproxy.LegacyDivertTable, rule: spec})
 	}
 	return rules
 }
@@ -417,6 +431,11 @@ func (m *NetworkManager) removeRelayRules(iptables string, state networkState) {
 	for i := len(rules) - 1; i >= 0; i-- {
 		m.removeRule(iptables, rules[i].table, rules[i].rule)
 	}
+	for _, legacy := range legacyRelayRulesForState(state) {
+		if err := m.run(iptables, iptablesArgs("-C", legacy.table, legacy.rule)...); err == nil {
+			m.removeRule(iptables, legacy.table, legacy.rule)
+		}
+	}
 }
 
 func (m *NetworkManager) warnRelay(id int, msg string) {
@@ -430,12 +449,11 @@ func (m *NetworkManager) warnRelay(id int, msg string) {
 	logger.Warningf("l2tp: inbound %d: cannot divert traffic through Xray, keeping the direct path: %s", id, msg)
 }
 
-// applyRelay converges the TPROXY divert rules of the pool to the relay port
-// carried by wanted and returns the port that is actually active afterwards
-// (0 = direct path). It never fails the caller: a kernel without TPROXY
-// support, or policy routing that cannot be installed, just leaves the pool
-// on the direct path with a warning, and the next reconcile round tries
-// again. Must be called with m.mu held.
+// applyRelay converges the nat PREROUTING divert rules of the pool to the relay
+// port carried by wanted and returns the port that is actually active afterwards
+// (0 = direct path). It never fails the caller: a host where the rules cannot be
+// installed just leaves the pool on the direct path with a warning, and the next
+// reconcile round tries again. Must be called with m.mu held.
 func (m *NetworkManager) applyRelay(iptables string, id int, previous networkState, hadPrevious bool, wanted networkState) int {
 	prevPort := 0
 	if hadPrevious {
@@ -444,6 +462,12 @@ func (m *NetworkManager) applyRelay(iptables string, id int, previous networkSta
 	changed := prevPort != wanted.XrayRelayPort || previous.PoolCIDR != wanted.PoolCIDR
 	if prevPort > 0 && changed {
 		m.removeRelayRules(iptables, previous)
+	} else if prevPort > 0 {
+		for _, legacy := range legacyRelayRulesForState(previous) {
+			if err := m.run(iptables, iptablesArgs("-C", legacy.table, legacy.rule)...); err == nil {
+				m.removeRule(iptables, legacy.table, legacy.rule)
+			}
+		}
 	}
 	if wanted.XrayRelayPort <= 0 {
 		if prevPort > 0 {

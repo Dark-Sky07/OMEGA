@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  Alert,
   Button,
   Form,
   Input,
@@ -96,6 +97,8 @@ interface CheckHostReport {
 interface GeneralTabProps {
   allSetting: AllSetting;
   updateSetting: (patch: Partial<AllSetting>) => void;
+  defaultSubTab?: string;
+  onlySubTab?: string;
 }
 
 const DATEPICKER_LIST: { name: string; value: 'gregorian' | 'jalalian' }[] = [
@@ -103,9 +106,13 @@ const DATEPICKER_LIST: { name: string; value: 'gregorian' | 'jalalian' }[] = [
   { name: 'Jalalian (شمسی)', value: 'jalalian' },
 ];
 
-export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProps) {
+export default function GeneralTab({ allSetting, updateSetting, defaultSubTab = '1', onlySubTab }: GeneralTabProps) {
   const { t } = useTranslation();
   const { isMobile } = useMediaQuery();
+  const [activeSubTab, setActiveSubTab] = useState<string>(onlySubTab || defaultSubTab);
+  useEffect(() => {
+    setActiveSubTab(onlySubTab || defaultSubTab);
+  }, [onlySubTab, defaultSubTab]);
 
   const [lang, setLang] = useState<string>(() => LanguageManager.getLanguage());
   const [inboundOptions, setInboundOptions] = useState<{ label: string; value: string }[]>([]);
@@ -242,7 +249,16 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
   async function runCloudBackupNow() {
     setCloudBackingUp(true);
     try {
-      const msg = await HttpUtil.post('/panel/api/setting/cloudBackup/run', {}) as ApiMsg<{ key?: string }>;
+      const msg = await HttpUtil.post('/panel/api/setting/cloudBackup/run', {
+        cloudBackupProvider: allSetting.cloudBackupProvider || 's3',
+        cloudBackupEndpoint: allSetting.cloudBackupEndpoint || '',
+        cloudBackupRegion: allSetting.cloudBackupRegion || 'auto',
+        cloudBackupBucket: allSetting.cloudBackupBucket || '',
+        cloudBackupPrefix: allSetting.cloudBackupPrefix || 'omega-backups/',
+        cloudBackupAccessKey: allSetting.cloudBackupAccessKey || '',
+        cloudBackupSecretKey: allSetting.cloudBackupSecretKey || '',
+        cloudBackupRetention: allSetting.cloudBackupRetention ?? 7,
+      }) as ApiMsg<{ key?: string }>;
       if (msg?.success) {
         messageApi.success(`${t('pages.settings.cloudBackupSuccess', 'Cloud backup uploaded')}: ${msg.obj?.key || ''}`);
       }
@@ -403,10 +419,9 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
     [],
   );
 
-  return (
-    <>
-      {messageContextHolder}
-      <Tabs defaultActiveKey="1" items={[
+  const activeCloudProvider = (allSetting.cloudBackupProvider || 's3').toLowerCase();
+
+  const tabItems = [
       {
         key: '1',
         label: catTabLabel(<SettingOutlined />, t('pages.settings.panelSettings'), isMobile),
@@ -572,7 +587,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
         key: '6',
         label: catTabLabel(<ApartmentOutlined />, 'LDAP', isMobile),
         children: (
-          <>
+          <div key="ldap-settings-panel" data-testid="ldap-settings-panel">
             <SettingListItem paddings="small" title={t('pages.settings.ldap.enable')}>
               <Switch checked={allSetting.ldapEnable} onChange={(v) => updateSetting({ ldapEnable: v })} />
             </SettingListItem>
@@ -656,18 +671,18 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
               <InputNumber value={allSetting.ldapDefaultLimitIP} min={0} style={{ width: '100%' }}
                 onChange={(v) => updateSetting({ ldapDefaultLimitIP: Number(v) || 0 })} />
             </SettingListItem>
-          </>
+          </div>
         ),
       },
       {
         key: '7',
         label: catTabLabel(<CloudUploadOutlined />, t('pages.settings.cloudBackupTitle', 'Cloud Backup'), isMobile),
         children: (
-          <>
+          <div key="cloud-backup-settings-panel" data-testid="cloud-backup-settings-panel">
             <SettingListItem
               paddings="small"
               title={t('pages.settings.cloudBackupEnable', 'Scheduled Cloud Backup')}
-              description={t('pages.settings.cloudBackupEnableDesc', 'Automatically upload database snapshots to S3 / Cloudflare R2 / MinIO or WebDAV and prune older backups.')}
+              description={t('pages.settings.cloudBackupEnableDesc', 'Automatically upload database snapshots to S3 / Cloudflare R2 / MinIO, WebDAV, or Google Drive and prune older backups.')}
             >
               <Space>
                 <Switch
@@ -685,42 +700,126 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
             </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.cloudBackupProvider', 'Storage Provider')}>
               <Select
-                value={allSetting.cloudBackupProvider || 's3'}
+                value={activeCloudProvider}
                 style={{ width: '100%' }}
                 onChange={(v) => updateSetting({ cloudBackupProvider: v })}
                 options={[
                   { value: 's3', label: 'S3 / Cloudflare R2 / MinIO (AWS Signature v4)' },
                   { value: 'webdav', label: 'WebDAV (Nextcloud / Hetzner Storage Box / Koofr)' },
+                  { value: 'gdrive', label: t('pages.settings.cloudBackupProviderGdrive', 'Google Drive (Service Account / OAuth2)') },
                 ]}
               />
             </SettingListItem>
-            <SettingListItem
-              paddings="small"
-              title={t('pages.settings.cloudBackupEndpoint', 'Endpoint URL')}
-              description={allSetting.cloudBackupProvider === 'webdav'
-                ? 'e.g. https://u12345.your-storagebox.de/'
-                : 'e.g. https://<account-id>.r2.cloudflarestorage.com or https://s3.amazonaws.com'}
-            >
-              <Input
-                value={allSetting.cloudBackupEndpoint}
-                placeholder="https://..."
-                onChange={(e) => updateSetting({ cloudBackupEndpoint: e.target.value })}
-              />
-            </SettingListItem>
-            {allSetting.cloudBackupProvider !== 'webdav' && (
+            {activeCloudProvider === 'gdrive' ? (
               <>
-                <SettingListItem paddings="small" title={t('pages.settings.cloudBackupBucket', 'S3 Bucket Name')}>
+                <Alert
+                  type="info"
+                  showIcon
+                  style={{ margin: '8px 0 12px' }}
+                  message={t(
+                    'pages.settings.cloudBackupGdriveGuide',
+                    'Google Drive Setup: (Method 1 - Recommended) Create a Google Cloud Service Account, enable Google Drive API, share your target Google Drive folder with the service account email, and paste the full JSON key below. (Method 2) Paste your OAuth2 Refresh Token below and enter your OAuth2 Client ID & Client Secret.',
+                  )}
+                />
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.settings.cloudBackupGdriveFolder', 'Google Drive Folder ID or Link')}
+                  description={t('pages.settings.cloudBackupGdriveFolderDesc', 'Paste the Google Drive Folder ID or full folder URL (e.g. https://drive.google.com/drive/folders/1AbCdEf...). Leave empty to upload to Drive root.')}
+                >
                   <Input
                     value={allSetting.cloudBackupBucket}
-                    placeholder="omega-backups"
+                    placeholder="1AbCdEfGhIjKlMnOpQrStUvWxYz or https://drive.google.com/drive/folders/..."
                     onChange={(e) => updateSetting({ cloudBackupBucket: e.target.value })}
                   />
                 </SettingListItem>
-                <SettingListItem paddings="small" title={t('pages.settings.cloudBackupRegion', 'S3 Region')}>
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.settings.cloudBackupGdriveCredentials', 'Service Account JSON or OAuth2 Refresh Token')}
+                  description={t('pages.settings.cloudBackupGdriveCredentialsDesc', 'Paste the complete Google Cloud service_account JSON key file, or an OAuth2 Refresh Token (1//0g...).')}
+                >
+                  <Input.TextArea
+                    rows={4}
+                    value={allSetting.cloudBackupSecretKey}
+                    placeholder={'{\n  "type": "service_account",\n  "client_email": "...",\n  "private_key": "-----BEGIN PRIVATE KEY-----..."\n}'}
+                    onChange={(e) => updateSetting({ cloudBackupSecretKey: e.target.value })}
+                  />
+                </SettingListItem>
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.settings.cloudBackupGdriveClientId', 'OAuth2 Client ID (Optional)')}
+                  description={t('pages.settings.cloudBackupGdriveClientIdDesc', 'Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.')}
+                >
                   <Input
-                    value={allSetting.cloudBackupRegion}
-                    placeholder="auto"
-                    onChange={(e) => updateSetting({ cloudBackupRegion: e.target.value })}
+                    value={allSetting.cloudBackupAccessKey}
+                    placeholder="1234567890-abc.apps.googleusercontent.com"
+                    onChange={(e) => updateSetting({ cloudBackupAccessKey: e.target.value })}
+                  />
+                </SettingListItem>
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.settings.cloudBackupGdriveClientSecret', 'OAuth2 Client Secret (Optional)')}
+                  description={t('pages.settings.cloudBackupGdriveClientSecretDesc', 'Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.')}
+                >
+                  <Input.Password
+                    value={allSetting.cloudBackupEndpoint}
+                    placeholder="GOCSPX-..."
+                    onChange={(e) => updateSetting({ cloudBackupEndpoint: e.target.value })}
+                  />
+                </SettingListItem>
+              </>
+            ) : (
+              <>
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.settings.cloudBackupEndpoint', 'Endpoint URL')}
+                  description={activeCloudProvider === 'webdav'
+                    ? 'e.g. https://u12345.your-storagebox.de/'
+                    : 'e.g. https://<account-id>.r2.cloudflarestorage.com or https://s3.amazonaws.com'}
+                >
+                  <Input
+                    value={allSetting.cloudBackupEndpoint}
+                    placeholder="https://..."
+                    onChange={(e) => updateSetting({ cloudBackupEndpoint: e.target.value })}
+                  />
+                </SettingListItem>
+                {activeCloudProvider !== 'webdav' && (
+                  <>
+                    <SettingListItem paddings="small" title={t('pages.settings.cloudBackupBucket', 'S3 Bucket Name')}>
+                      <Input
+                        value={allSetting.cloudBackupBucket}
+                        placeholder="omega-backups"
+                        onChange={(e) => updateSetting({ cloudBackupBucket: e.target.value })}
+                      />
+                    </SettingListItem>
+                    <SettingListItem paddings="small" title={t('pages.settings.cloudBackupRegion', 'S3 Region')}>
+                      <Input
+                        value={allSetting.cloudBackupRegion}
+                        placeholder="auto"
+                        onChange={(e) => updateSetting({ cloudBackupRegion: e.target.value })}
+                      />
+                    </SettingListItem>
+                  </>
+                )}
+                <SettingListItem
+                  paddings="small"
+                  title={activeCloudProvider === 'webdav'
+                    ? t('pages.settings.cloudBackupWebdavUser', 'WebDAV Username')
+                    : t('pages.settings.cloudBackupAccessKey', 'S3 Access Key ID')}
+                >
+                  <Input
+                    value={allSetting.cloudBackupAccessKey}
+                    onChange={(e) => updateSetting({ cloudBackupAccessKey: e.target.value })}
+                  />
+                </SettingListItem>
+                <SettingListItem
+                  paddings="small"
+                  title={activeCloudProvider === 'webdav'
+                    ? t('pages.settings.cloudBackupWebdavPass', 'WebDAV Password')
+                    : t('pages.settings.cloudBackupSecretKey', 'S3 Secret Access Key')}
+                >
+                  <Input.Password
+                    value={allSetting.cloudBackupSecretKey}
+                    onChange={(e) => updateSetting({ cloudBackupSecretKey: e.target.value })}
                   />
                 </SettingListItem>
               </>
@@ -730,28 +829,6 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                 value={allSetting.cloudBackupPrefix}
                 placeholder="omega-backups/"
                 onChange={(e) => updateSetting({ cloudBackupPrefix: e.target.value })}
-              />
-            </SettingListItem>
-            <SettingListItem
-              paddings="small"
-              title={allSetting.cloudBackupProvider === 'webdav'
-                ? t('pages.settings.cloudBackupWebdavUser', 'WebDAV Username')
-                : t('pages.settings.cloudBackupAccessKey', 'S3 Access Key ID')}
-            >
-              <Input
-                value={allSetting.cloudBackupAccessKey}
-                onChange={(e) => updateSetting({ cloudBackupAccessKey: e.target.value })}
-              />
-            </SettingListItem>
-            <SettingListItem
-              paddings="small"
-              title={allSetting.cloudBackupProvider === 'webdav'
-                ? t('pages.settings.cloudBackupWebdavPass', 'WebDAV Password')
-                : t('pages.settings.cloudBackupSecretKey', 'S3 Secret Access Key')}
-            >
-              <Input.Password
-                value={allSetting.cloudBackupSecretKey}
-                onChange={(e) => updateSetting({ cloudBackupSecretKey: e.target.value })}
               />
             </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.cloudBackupIntervalHours', 'Backup Interval (Hours)')}>
@@ -776,7 +853,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                 onChange={(v) => updateSetting({ cloudBackupRetention: Number(v) || 0 })}
               />
             </SettingListItem>
-          </>
+          </div>
         ),
       },
       {
@@ -1104,7 +1181,23 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
           </div>
         ),
       },
-    ]} />
+    ];
+
+  const singleItem = onlySubTab ? tabItems.find((item) => item.key === onlySubTab) : undefined;
+  const visibleTabs = useMemo(
+    () => tabItems.filter((item) => item.key !== '6' && item.key !== '7'),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [allSetting, isMobile, lang, t, certStatus, cloudBackingUp, watchdogStatus, watchdogChecking, auditLogs, auditLoading, auditActorType, auditModule, auditSearch, checkHostTarget, checkHostMode, checkHostLoading, checkHostNodes, checkHostPermLink, inboundPorts, inboundOptions, outboundOptions],
+  );
+
+  return (
+    <>
+      {messageContextHolder}
+      {singleItem ? (
+        <div key={`only-subtab-${singleItem.key}`}>{singleItem.children}</div>
+      ) : (
+        <Tabs activeKey={activeSubTab} onChange={setActiveSubTab} destroyOnHidden items={visibleTabs} />
+      )}
 
       <Modal
         open={issueOpen}

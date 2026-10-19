@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"net"
 	"strconv"
 	"testing"
@@ -46,6 +47,7 @@ func TestDaemonRelayRoutesThroughXray(t *testing.T) {
 		{"openvpn broken settings", &model.Inbound{Protocol: model.OpenVPN, Settings: `{"routeThroughXray":`}, false},
 		{"openvpn explicit true", &model.Inbound{Protocol: model.OpenVPN, Settings: `{"routeThroughXray":true}`}, true},
 		{"openvpn explicit false", &model.Inbound{Protocol: model.OpenVPN, Settings: `{"routeThroughXray":false}`}, false},
+		{"openvpn with outboundTag", &model.Inbound{Protocol: model.OpenVPN, Settings: `{"outboundTag":"warp"}`}, true},
 		{"l2tp default off", &model.Inbound{Protocol: model.L2TP, Settings: `{"psk":"x"}`}, false},
 		{"l2tp explicit true", &model.Inbound{Protocol: model.L2TP, Settings: `{"psk":"x","routeThroughXray":true}`}, true},
 		{"l2tp explicit false", &model.Inbound{Protocol: model.L2TP, Settings: `{"psk":"x","routeThroughXray":false}`}, false},
@@ -66,7 +68,7 @@ func TestInjectDaemonRelays(t *testing.T) {
 	cfg := relayTestConfig()
 	node := 9
 	inbounds := []*model.Inbound{
-		{Id: 7, Tag: "ovpn-7", Protocol: model.OpenVPN, Enable: true, Settings: `{"proto":"udp","routeThroughXray":true}`},
+		{Id: 7, Tag: "ovpn-7", Protocol: model.OpenVPN, Enable: true, Settings: `{"proto":"udp","dns1":"9.9.9.9","routeThroughXray":true,"outboundTag":"warp"}`},
 		{Id: 8, Tag: "l2tp-8", Protocol: model.L2TP, Enable: true, Settings: `{"psk":"secret","routeThroughXray":true}`},
 		{Id: 9, Tag: "ovpn-off", Protocol: model.OpenVPN, Enable: true, Settings: `{"routeThroughXray":false}`},
 		{Id: 13, Tag: "ovpn-legacy", Protocol: model.OpenVPN, Enable: true, Settings: `{"proto":"udp"}`},
@@ -76,8 +78,8 @@ func TestInjectDaemonRelays(t *testing.T) {
 	}
 	injectDaemonRelays(cfg, inbounds)
 
-	if len(cfg.InboundConfigs) != 3 {
-		t.Fatalf("expected exactly two relay inbounds appended, got %d: %+v", len(cfg.InboundConfigs)-1, cfg.InboundConfigs)
+	if len(cfg.InboundConfigs) != 5 {
+		t.Fatalf("expected four relay inbounds (TCP + DNS for each of 2 inbounds) appended, got %d: %+v", len(cfg.InboundConfigs)-1, cfg.InboundConfigs)
 	}
 	byTag := map[string]xray.InboundConfig{}
 	for _, ib := range cfg.InboundConfigs[1:] {
@@ -86,7 +88,11 @@ func TestInjectDaemonRelays(t *testing.T) {
 	for _, want := range []struct {
 		tag  string
 		port int
-	}{{"ovpn-7", daemonRelayBasePort + 7}, {"l2tp-8", daemonRelayBasePort + 8}} {
+		dns1 string
+	}{
+		{"ovpn-7", daemonRelayBasePort + 7, "9.9.9.9"},
+		{"l2tp-8", daemonRelayBasePort + 8, "1.1.1.1"},
+	} {
 		ib, ok := byTag[want.tag]
 		if !ok {
 			t.Fatalf("relay for %s missing", want.tag)
@@ -98,13 +104,24 @@ func TestInjectDaemonRelays(t *testing.T) {
 			t.Fatalf("%s: unexpected relay shape %+v", want.tag, ib)
 		}
 		if string(ib.Settings) != daemonRelayDokodemoSettings || string(ib.StreamSettings) != daemonRelayStreamSettings {
-			t.Fatalf("%s: relay must be a tproxy dokodemo listener, got %s / %s", want.tag, ib.Settings, ib.StreamSettings)
+			t.Fatalf("%s: relay must be a redirect dokodemo listener, got %s / %s", want.tag, ib.Settings, ib.StreamSettings)
 		}
-		if string(ib.Sniffing) != amneziawgEgressSniffingSettings {
-			t.Fatalf("%s: relay must sniff like the other generated inbounds, got %s", want.tag, ib.Sniffing)
+		if string(ib.Sniffing) != daemonRelaySniffingSettings {
+			t.Fatalf("%s: relay must sniff with routeOnly, got %s", want.tag, ib.Sniffing)
 		}
 		if !isDaemonRelayInbound(ib) {
 			t.Fatalf("%s: generated relay must be recognised by isDaemonRelayInbound", want.tag)
+		}
+
+		dnsIB, ok := byTag[want.tag+daemonRelayDNSTagSuffix]
+		if !ok {
+			t.Fatalf("DNS relay for %s missing", want.tag)
+		}
+		if dnsIB.Port != want.port {
+			t.Fatalf("%s:dns port %d, want %d", want.tag, dnsIB.Port, want.port)
+		}
+		if !isDaemonRelayInbound(dnsIB) {
+			t.Fatalf("%s:dns must be recognised by isDaemonRelayInbound", want.tag)
 		}
 	}
 	for _, tag := range []string{"ovpn-off", "ovpn-disabled", "ovpn-remote"} {
@@ -126,6 +143,30 @@ func TestInjectDaemonRelays(t *testing.T) {
 	}
 }
 
+func TestInjectDaemonRelays_AutoActivatesFromRoutingRule(t *testing.T) {
+	forceRelaySupported(t, true)
+	daemonRelaySuspended.Store(false)
+	cfg := &xray.Config{
+		RouterConfig: json_util.RawMessage(`{"domainStrategy":"AsIs","rules":[{"type":"field","inboundTag":["ovpn-9"],"outboundTag":"warp"}]}`),
+	}
+	inbounds := []*model.Inbound{
+		{Id: 9, Tag: "ovpn-9", Protocol: model.OpenVPN, Enable: true, Settings: `{"proto":"udp","routeThroughXray":false}`},
+	}
+	injectDaemonRelays(cfg, inbounds)
+	if len(cfg.InboundConfigs) != 2 {
+		t.Fatalf("expected relay + DNS inbound when referenced by routing rule, got %+v", cfg.InboundConfigs)
+	}
+	var routing map[string]any
+	if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+		t.Fatal(err)
+	}
+	rules, _ := routing["rules"].([]any)
+	rm, _ := rules[0].(map[string]any)
+	if !ruleContainsInboundTag(rm, "ovpn-9:dns") {
+		t.Fatalf("expected ovpn-9:dns mirrored into inboundTag rule: %+v", rm)
+	}
+}
+
 func TestInjectDaemonRelays_SkipsWhenUnsupportedOrSuspended(t *testing.T) {
 	inbounds := []*model.Inbound{{Id: 7, Tag: "ovpn-7", Protocol: model.OpenVPN, Enable: true, Settings: relayOptIn}}
 
@@ -133,7 +174,7 @@ func TestInjectDaemonRelays_SkipsWhenUnsupportedOrSuspended(t *testing.T) {
 	cfg := relayTestConfig()
 	injectDaemonRelays(cfg, inbounds)
 	if len(cfg.InboundConfigs) != 1 {
-		t.Fatalf("no relay expected without transparent-socket support, got %+v", cfg.InboundConfigs)
+		t.Fatalf("no relay expected without loopback-socket support, got %+v", cfg.InboundConfigs)
 	}
 
 	forceRelaySupported(t, true)
@@ -161,7 +202,7 @@ func TestInjectDaemonRelays_TagAndPortCollisions(t *testing.T) {
 	cfg = relayTestConfig()
 	cfg.InboundConfigs = append(cfg.InboundConfigs, xray.InboundConfig{Port: daemonRelayBasePort + 7, Protocol: "socks", Tag: "other"})
 	injectDaemonRelays(cfg, []*model.Inbound{{Id: 7, Tag: "ovpn-7", Protocol: model.OpenVPN, Enable: true, Settings: relayOptIn}})
-	if got := cfg.InboundConfigs[len(cfg.InboundConfigs)-1]; got.Tag != "ovpn-7" || got.Port != daemonRelayBasePort+8 {
+	if got := cfg.InboundConfigs[len(cfg.InboundConfigs)-2]; got.Tag != "ovpn-7" || got.Port != daemonRelayBasePort+8 {
 		t.Fatalf("port collision must pick the next free port, got %+v", got)
 	}
 
@@ -213,6 +254,17 @@ func TestIsDaemonRelayInbound(t *testing.T) {
 	if !isDaemonRelayInbound(relay) {
 		t.Fatal("relay inbound not recognised")
 	}
+	dnsRelay := xray.InboundConfig{
+		Listen:         daemonRelayListen,
+		Port:           daemonRelayBasePort + 1,
+		Protocol:       "dokodemo-door",
+		Settings:       json_util.RawMessage(`{"address":"1.1.1.1","port":53,"network":"udp","followRedirect":false}`),
+		StreamSettings: json_util.RawMessage(daemonRelayDNSStreamSettings),
+		Tag:            "ovpn-1:dns",
+	}
+	if !isDaemonRelayInbound(dnsRelay) {
+		t.Fatal("DNS relay inbound not recognised")
+	}
 	userTproxy := relay
 	userTproxy.Listen = json_util.RawMessage(`"0.0.0.0"`)
 	if isDaemonRelayInbound(userTproxy) {
@@ -247,22 +299,32 @@ func TestDropDaemonRelayTraffic(t *testing.T) {
 		StreamSettings: json_util.RawMessage(daemonRelayStreamSettings),
 		Tag:            "ovpn-7",
 	}
+	dnsRelay := xray.InboundConfig{
+		Listen:         daemonRelayListen,
+		Port:           daemonRelayBasePort + 7,
+		Protocol:       "dokodemo-door",
+		Settings:       json_util.RawMessage(`{"address":"1.1.1.1","port":53,"network":"udp","followRedirect":false}`),
+		StreamSettings: json_util.RawMessage(daemonRelayDNSStreamSettings),
+		Tag:            "ovpn-7:dns",
+	}
 	cfg := &xray.Config{InboundConfigs: []xray.InboundConfig{
 		{Port: 443, Protocol: "vless", Tag: "vless-443"},
 		relay,
+		dnsRelay,
 	}}
 	in := []*xray.Traffic{
 		{IsInbound: true, Tag: "vless-443", Up: 1, Down: 2},
 		{IsInbound: true, Tag: "ovpn-7", Up: 10, Down: 20},
+		{IsInbound: true, Tag: "ovpn-7:dns", Up: 3, Down: 4},
 		{IsInbound: false, IsOutbound: true, Tag: "direct", Up: 100, Down: 200},
 		nil,
 	}
 	out := dropDaemonRelayTraffic(cfg, in)
 	if len(out) != 3 {
-		t.Fatalf("expected the relay counter to be dropped, got %d entries", len(out))
+		t.Fatalf("expected the relay counters to be dropped, got %d entries", len(out))
 	}
 	for _, tr := range out {
-		if tr != nil && tr.IsInbound && tr.Tag == "ovpn-7" {
+		if tr != nil && tr.IsInbound && (tr.Tag == "ovpn-7" || tr.Tag == "ovpn-7:dns") {
 			t.Fatal("relay inbound traffic must be discarded")
 		}
 	}
@@ -295,8 +357,6 @@ func TestNoteDaemonRelayCrashGuard(t *testing.T) {
 		StreamSettings: json_util.RawMessage(daemonRelayStreamSettings),
 		Tag:            "ovpn-7",
 	}}}
-	// A never-started process reports IsRunning false and uptime ~0: the
-	// same shape as a core that died right after starting.
 	p = xray.NewProcess(relayCfg)
 	daemonRelayStrikes = 0
 	daemonRelaySuspended.Store(false)
@@ -314,7 +374,6 @@ func TestNoteDaemonRelayCrashGuard(t *testing.T) {
 		t.Fatal("a forced restart must lift the suspension")
 	}
 
-	// A crash while running normally (no relay in the config) never counts.
 	p = xray.NewProcess(&xray.Config{})
 	noteDaemonRelayCrash(false, true)
 	noteDaemonRelayCrash(false, true)
@@ -322,7 +381,6 @@ func TestNoteDaemonRelayCrashGuard(t *testing.T) {
 		t.Fatal("crashes without relay inbounds must not suspend anything")
 	}
 
-	// Strikes reset when a restart happens for any reason other than a crash.
 	p = xray.NewProcess(relayCfg)
 	noteDaemonRelayCrash(false, true)
 	noteDaemonRelayCrash(false, false)

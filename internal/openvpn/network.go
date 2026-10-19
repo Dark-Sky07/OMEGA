@@ -187,8 +187,8 @@ func rulesForState(state networkState) []managedRule {
 }
 
 // relayRulesForState returns the relay rules for a state whose XrayRelayPort
-// is set, in installation order (the INPUT exception first, then the TPROXY
-// divert rules), or nil when the pool is on the direct path.
+// is set, in installation order (the filter INPUT/FORWARD rules first, then
+// the nat PREROUTING DNAT rules), or nil when the pool is on the direct path.
 func relayRulesForState(state networkState) []managedRule {
 	if state.XrayRelayPort <= 0 {
 		return nil
@@ -198,7 +198,21 @@ func relayRulesForState(state networkState) []managedRule {
 		rules = append(rules, managedRule{table: "filter", rule: spec})
 	}
 	for _, spec := range tproxy.DivertRules(state.InterfaceName, state.PoolCIDR, state.XrayRelayPort) {
-		rules = append(rules, managedRule{table: "mangle", rule: spec})
+		rules = append(rules, managedRule{table: tproxy.DivertTable, rule: spec})
+	}
+	return rules
+}
+
+func legacyRelayRulesForState(state networkState) []managedRule {
+	if state.XrayRelayPort <= 0 {
+		return nil
+	}
+	rules := make([]managedRule, 0, 4)
+	for _, spec := range tproxy.LegacyAcceptRules(state.InterfaceName, state.PoolCIDR) {
+		rules = append(rules, managedRule{table: "filter", rule: spec})
+	}
+	for _, spec := range tproxy.LegacyDivertRules(state.InterfaceName, state.PoolCIDR, state.XrayRelayPort) {
+		rules = append(rules, managedRule{table: tproxy.LegacyDivertTable, rule: spec})
 	}
 	return rules
 }
@@ -219,6 +233,11 @@ func (m *NetworkManager) removeRelayRules(iptables string, state networkState) {
 	rules := relayRulesForState(state)
 	for i := len(rules) - 1; i >= 0; i-- {
 		m.removeRule(iptables, rules[i])
+	}
+	for _, legacy := range legacyRelayRulesForState(state) {
+		if err := m.run(iptables, iptablesArgs("-C", legacy.table, legacy.rule)...); err == nil {
+			m.removeRule(iptables, legacy)
+		}
 	}
 }
 
@@ -249,6 +268,12 @@ func (m *NetworkManager) applyRelay(iptables string, id int, previous networkSta
 		previous.InterfaceName != wanted.InterfaceName
 	if prevPort > 0 && changed {
 		m.removeRelayRules(iptables, previous)
+	} else if prevPort > 0 {
+		for _, legacy := range legacyRelayRulesForState(previous) {
+			if err := m.run(iptables, iptablesArgs("-C", legacy.table, legacy.rule)...); err == nil {
+				m.removeRule(iptables, legacy)
+			}
+		}
 	}
 	if wanted.XrayRelayPort <= 0 {
 		if prevPort > 0 {

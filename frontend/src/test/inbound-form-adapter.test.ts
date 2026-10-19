@@ -234,20 +234,28 @@ describe('formValuesToWirePayload', () => {
     expect(settings.routeThroughXray).toBe(false);
   });
 
-  it('keeps an explicit routeThroughXray choice for openvpn and l2tp', () => {
+  it('keeps an explicit routeThroughXray choice and attached clients for openvpn and l2tp', () => {
     for (const [protocol, base] of [
-      ['openvpn', { proto: 'udp' }],
-      ['l2tp', { psk: 'secret' }],
+      ['openvpn', { proto: 'udp', clients: [{ email: 'ovpn@example.com', enable: true }] }],
+      ['l2tp', { psk: 'secret', clients: [{ email: 'l2tp@example.com', enable: true }] }],
     ] as const) {
       for (const choice of [true, false]) {
         const values = rawInboundToFormValues({
           ...vlessRow,
           protocol,
-          settings: { ...base, routeThroughXray: choice },
+          settings: { ...base, routeThroughXray: choice, outboundTag: choice ? 'warp' : undefined },
         });
-        const payload = formValuesToWirePayload(values);
+        const parsed = InboundFormSchema.parse(values);
+        const payload = formValuesToWirePayload(parsed);
         const settings = JSON.parse(payload.settings) as Record<string, unknown>;
         expect(settings.routeThroughXray).toBe(choice);
+        expect(Array.isArray(settings.clients)).toBe(true);
+        expect((settings.clients as unknown[]).length).toBe(1);
+        if (choice) {
+          expect(settings.outboundTag).toBe('warp');
+        } else {
+          expect(settings.outboundTag).toBeUndefined();
+        }
       }
     }
   });

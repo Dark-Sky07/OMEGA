@@ -300,6 +300,9 @@ export function dropLegacyOptionalEmpties(
   // VLESS/Trojan emit `fallbacks` only when non-empty.
   const fb = settings.fallbacks;
   if (Array.isArray(fb) && fb.length === 0) delete settings.fallbacks;
+  if (settings.routeThroughXray === false || settings.outboundTag === '') {
+    delete settings.outboundTag;
+  }
 
   if (stream) {
     // StreamSettings emits `finalmask` only when at least one transport
