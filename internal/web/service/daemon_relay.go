@@ -508,7 +508,7 @@ func noteDaemonRelayCrash(isForce, crashed bool) {
 		daemonRelayStrikes = 0
 		return
 	}
-	if p == nil || !configHasDaemonRelay(p.GetConfig()) || p.GetUptime() >= daemonRelayCrashWindow {
+	if p == nil || !configHasDaemonRelay(p.GetConfig()) || p.GetUptime() >= uint64(daemonRelayCrashWindow/time.Second) {
 		daemonRelayStrikes = 0
 		return
 	}

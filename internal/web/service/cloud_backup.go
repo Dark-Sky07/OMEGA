@@ -20,7 +20,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -62,6 +61,12 @@ var (
 	googleOAuthTokenURL = "https://oauth2.googleapis.com/token"
 	googleDriveAPIBase  = "https://www.googleapis.com"
 )
+
+// RunScheduledIfDue is called by the periodic cron job and triggers a backup
+// when the configured interval has elapsed.
+func (s *CloudBackupService) RunScheduledIfDue() {
+	s.RunIfDue()
+}
 
 // RunIfDue is called by the periodic cron job and triggers a backup when the
 // configured interval has elapsed.
@@ -213,12 +218,8 @@ func (s *CloudBackupService) BackupNowWithOverride(override *CloudBackupOverride
 
 func buildDatabaseBackupPayload() ([]byte, string, error) {
 	if database.IsPostgres() {
-		tmpPath := filepath.Join(os.TempDir(), fmt.Sprintf("x-ui-cloudbackup-%d.dump", time.Now().UnixNano()))
-		defer os.Remove(tmpPath)
-		if err := database.DumpPostgresClusterToFile(tmpPath); err != nil {
-			return nil, "", err
-		}
-		b, err := os.ReadFile(tmpPath)
+		var srv ServerService
+		b, err := srv.GetDb()
 		return b, ".dump", err
 	}
 	if err := database.Checkpoint(); err != nil {
