@@ -9,9 +9,10 @@ plain='\033[0m'
 cur_dir=$(pwd)
 
 # PHOENIX: this installer ships the PHOENIX panel
-# from its own repository. Override OMEGA_REPO to install a different
-# fork/mirror; everything else (service name, paths, panel version) is untouched.
-OMEGA_REPO="${OMEGA_REPO:-Dark-Sky07/OMEGA}"
+# from its own repository. Override PHOENIX_REPO (the legacy OMEGA_REPO is
+# still honoured) to install a different fork/mirror; everything else
+# (service name, paths, panel version) is untouched.
+PHOENIX_REPO="${PHOENIX_REPO:-${OMEGA_REPO:-Dark-Sky07/phoenix}}"
 
 xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
 xui_service="${XUI_SERVICE:=/etc/systemd/system}"
@@ -128,7 +129,7 @@ gen_random_string() {
 }
 
 ensure_openvpn_tun() {
-    # OMEGA launches one openvpn process per enabled inbound. There is no
+    # PHOENIX launches one openvpn process per enabled inbound. There is no
     # useful global openvpn.service to enable; the kernel TUN device is the
     # runtime prerequisite that must exist before x-ui can start a daemon.
     if [[ ! -e /dev/net/tun ]]; then
@@ -257,7 +258,7 @@ install_l2tp_ipsec() {
         fi
     done
 
-    # OMEGA starts isolated foreground daemon instances with per-inbound
+    # PHOENIX starts isolated foreground daemon instances with per-inbound
     # configuration. Package post-install scripts may have enabled their
     # system-wide services, which would otherwise keep UDP 1701 or IKE ports
     # occupied and make the managed instance fail with address-in-use.
@@ -1303,26 +1304,26 @@ EOF
 }
 
 # Panel-side assets (x-ui.sh, systemd units, x-ui.rc) are fetched from the
-# exact OMEGA release tag selected by the dynamic launcher. Never fall back to
+# exact PHOENIX release tag selected by the dynamic launcher. Never fall back to
 # a branch or an older tag: mixing files from different releases can pair an
 # incompatible management script with the panel binary.
-omega_latest_tag() {
-    curl -4fsSL "https://api.github.com/repos/${OMEGA_REPO}/releases/latest" \
+phoenix_latest_tag() {
+    curl -4fsSL "https://api.github.com/repos/${PHOENIX_REPO}/releases/latest" \
         | grep -m1 '"tag_name":' \
         | sed -E 's/.*"([^"]+)".*/\1/'
 }
-omega_ref="${OMEGA_REF:-${1:-${tag_version:-}}}"
-if [[ -z "${omega_ref}" ]]; then
-    omega_ref="$(omega_latest_tag)"
+phoenix_ref="${PHOENIX_REF:-${OMEGA_REF:-${1:-${tag_version:-}}}}"
+if [[ -z "${phoenix_ref}" ]]; then
+    phoenix_ref="$(phoenix_latest_tag)"
 fi
-if [[ -z "${omega_ref}" ]]; then
-    echo -e "${red}Could not resolve the latest OMEGA release tag; installation aborted.${plain}"
+if [[ -z "${phoenix_ref}" ]]; then
+    echo -e "${red}Could not resolve the latest PHOENIX release tag; installation aborted.${plain}"
     exit 1
 fi
-omega_raw_fetch() {
+phoenix_raw_fetch() {
     local out="$1" path="$2"
-    if ! curl -fLRo "$out" "https://raw.githubusercontent.com/${OMEGA_REPO}/${omega_ref}/${path}" > /dev/null 2>&1; then
-        echo -e "${red}Release '${omega_ref}' does not contain ${path}; installation aborted.${plain}"
+    if ! curl -fLRo "$out" "https://raw.githubusercontent.com/${PHOENIX_REPO}/${phoenix_ref}/${path}" > /dev/null 2>&1; then
+        echo -e "${red}Release '${phoenix_ref}' does not contain ${path}; installation aborted.${plain}"
         rm -f "$out"
         return 1
     fi
@@ -1348,7 +1349,7 @@ resolve_latest_xray_version() {
 
 stage_latest_xray() {
     local xray_arch archive_url
-    XRAY_VERSION="${OMEGA_XRAY_VERSION:-$(resolve_latest_xray_version)}" || {
+    XRAY_VERSION="${PHOENIX_XRAY_VERSION:-${OMEGA_XRAY_VERSION:-$(resolve_latest_xray_version)}}" || {
         echo -e "${red}Failed to resolve the latest Xray-core release; installation aborted before changing the current panel.${plain}"
         exit 1
     }
@@ -1403,17 +1404,17 @@ install_x-ui() {
 
     # Download resources
     if [ $# == 0 ]; then
-        tag_version="${OMEGA_TAG:-$(curl -4fsSL "https://api.github.com/repos/${OMEGA_REPO}/releases/latest" | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}"
+        tag_version="${PHOENIX_TAG:-${OMEGA_TAG:-$(curl -4fsSL "https://api.github.com/repos/${PHOENIX_REPO}/releases/latest" | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}}"
         if [[ ! -n "$tag_version" ]]; then
             echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
-            tag_version="${OMEGA_TAG:-$(curl -4fsSL "https://api.github.com/repos/${OMEGA_REPO}/releases/latest" | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}"
+            tag_version="${PHOENIX_TAG:-${OMEGA_TAG:-$(curl -4fsSL "https://api.github.com/repos/${PHOENIX_REPO}/releases/latest" | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}}"
             if [[ ! -n "$tag_version" ]]; then
                 echo -e "${red}Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later${plain}"
                 exit 1
             fi
         fi
         echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
-        curl -4fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/${OMEGA_REPO}/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz
+        curl -4fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/${PHOENIX_REPO}/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Downloading x-ui failed, please be sure that your server can access GitHub ${plain}"
             exit 1
@@ -1428,7 +1429,7 @@ install_x-ui() {
             exit 1
         fi
 
-        url="https://github.com/${OMEGA_REPO}/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz"
+        url="https://github.com/${PHOENIX_REPO}/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz"
         echo -e "Beginning to install x-ui $1"
         curl -4fLRo ${xui_folder}-linux-$(arch).tar.gz ${url}
         if [[ $? -ne 0 ]]; then
@@ -1439,7 +1440,7 @@ install_x-ui() {
 
     # Stage the current core before any service stop or directory replacement.
     stage_latest_xray
-    omega_raw_fetch /usr/bin/x-ui-temp x-ui.sh
+    phoenix_raw_fetch /usr/bin/x-ui-temp x-ui.sh
     if [[ ! -s /usr/bin/x-ui-temp ]]; then
         echo -e "${red}Failed to download x-ui.sh${plain}"
         exit 1
@@ -1519,7 +1520,7 @@ install_x-ui() {
     fi
 
     if [[ $release == "alpine" ]]; then
-        omega_raw_fetch /etc/init.d/x-ui x-ui.rc > /dev/null 2>&1
+        phoenix_raw_fetch /etc/init.d/x-ui x-ui.rc > /dev/null 2>&1
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Failed to download x-ui.rc${plain}"
             exit 1
@@ -1576,13 +1577,13 @@ install_x-ui() {
             echo -e "${yellow}Service files not found in tar.gz, downloading from GitHub...${plain}"
             case "${release}" in
                 ubuntu | debian | armbian)
-                    omega_raw_fetch "${xui_service}/x-ui.service" x-ui.service.debian > /dev/null 2>&1
+                    phoenix_raw_fetch "${xui_service}/x-ui.service" x-ui.service.debian > /dev/null 2>&1
                     ;;
                 arch | manjaro | parch)
-                    omega_raw_fetch "${xui_service}/x-ui.service" x-ui.service.arch > /dev/null 2>&1
+                    phoenix_raw_fetch "${xui_service}/x-ui.service" x-ui.service.arch > /dev/null 2>&1
                     ;;
                 *)
-                    omega_raw_fetch "${xui_service}/x-ui.service" x-ui.service.rhel > /dev/null 2>&1
+                    phoenix_raw_fetch "${xui_service}/x-ui.service" x-ui.service.rhel > /dev/null 2>&1
                     ;;
             esac
 

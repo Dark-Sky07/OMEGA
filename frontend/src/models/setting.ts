@@ -106,7 +106,7 @@ export class AllSetting {
   cloudBackupEndpoint = '';
   cloudBackupRegion = 'auto';
   cloudBackupBucket = '';
-  cloudBackupPrefix = 'omega-backups/';
+  cloudBackupPrefix = 'phoenix-backups/';
   cloudBackupAccessKey = '';
   cloudBackupSecretKey = '';
   cloudBackupIntervalHours = 12;

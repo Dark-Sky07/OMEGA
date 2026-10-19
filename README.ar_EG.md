@@ -1,6 +1,6 @@
 [English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md)
 
-> **PHOENIX** — PHOENIX v3.3.1 + Resellers (نمایندگی). Install: `bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install`. Docs: [English](README.md) · [فارسی](README.fa_IR.md)
+> **PHOENIX** — PHOENIX v3.3.1 + Resellers (نمایندگی). Install: `bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/phoenix/main/install-phoenix.sh)`. Docs: [English](README.md) · [فارسی](README.fa_IR.md)
 
 <p align="center">
   <picture>
@@ -10,13 +10,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dark-Sky07/OMEGA/releases"><img src="https://img.shields.io/github/v/release/dark-sky07/omega" alt="Release"></a>
-  <a href="https://github.com/Dark-Sky07/OMEGA/actions"><img src="https://img.shields.io/github/actions/workflow/status/dark-sky07/omega/release.yml.svg" alt="Build"></a>
-  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/Dark-Sky07/OMEGA.svg" alt="GO Version"></a>
-  <a href="https://github.com/Dark-Sky07/OMEGA/releases/latest"><img src="https://img.shields.io/github/downloads/dark-sky07/omega/total.svg" alt="Downloads"></a>
+  <a href="https://github.com/Dark-Sky07/phoenix/releases"><img src="https://img.shields.io/github/v/release/dark-sky07/phoenix" alt="Release"></a>
+  <a href="https://github.com/Dark-Sky07/phoenix/actions"><img src="https://img.shields.io/github/actions/workflow/status/dark-sky07/phoenix/release.yml.svg" alt="Build"></a>
+  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/Dark-Sky07/phoenix.svg" alt="GO Version"></a>
+  <a href="https://github.com/Dark-Sky07/phoenix/releases/latest"><img src="https://img.shields.io/github/downloads/dark-sky07/phoenix/total.svg" alt="Downloads"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
-  <a href="https://pkg.go.dev/github.com/mhsanaei/3x-ui/v3"><img src="https://pkg.go.dev/badge/github.com/mhsanaei/3x-ui/v3.svg" alt="Go Reference"></a>
-  <a href="https://goreportcard.com/report/github.com/mhsanaei/3x-ui/v3"><img src="https://goreportcard.com/badge/github.com/mhsanaei/3x-ui/v3" alt="Go Report Card"></a>
 </p>
 
 **PHOENIX** هي لوحة تحكم ويب متقدمة ومفتوحة المصدر لإدارة خوادم [Xray-core](https://github.com/XTLS/Xray-core). توفّر واجهة نظيفة ومتعددة اللغات لنشر وتكوين ومراقبة مجموعة واسعة من بروتوكولات الوكيل وVPN — من خادم VPS واحد إلى عمليات النشر متعددة العقد.
@@ -72,12 +70,12 @@
 ## البدء السريع
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/phoenix/main/install-phoenix.sh)
 ```
 
 أثناء التثبيت، يتم إنشاء اسم مستخدم وكلمة مرور ومسار وصول عشوائية. بعد التثبيت، شغّل `phoenix` لفتح قائمة الإدارة، حيث يمكنك بدء/إيقاف الخدمة، وعرض أو إعادة تعيين بيانات تسجيل الدخول، وإدارة شهادات SSL، والمزيد.
 
-للحصول على الوثائق الكاملة، يرجى زيارة [ويكي المشروع](https://github.com/Dark-Sky07/OMEGA/wiki).
+للحصول على الوثائق الكاملة، يرجى زيارة [ويكي المشروع](https://github.com/Dark-Sky07/phoenix/wiki).
 
 ## المنصات المدعومة
 
@@ -120,7 +118,7 @@ docker compose --profile postgres up -d
 تتضمن الصورة Fail2ban (مُفعَّل افتراضيًا) لفرض **حدود IP** لكل عميل. يحظر Fail2ban المخالفين باستخدام `iptables`، الذي يتطلب صلاحية `NET_ADMIN`. يمنح `docker-compose.yml` هذه الصلاحية مسبقًا عبر `cap_add`؛ إذا شغّلت الحاوية باستخدام `docker run` بدلاً من ذلك، فأضِف الصلاحيات بنفسك، وإلا فسيتم تسجيل عمليات الحظر دون تطبيقها أبدًا:
 
 ```bash
-docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/dark-sky07/omega
+docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/dark-sky07/phoenix
 ```
 
 ## متغيرات البيئة
@@ -176,4 +174,4 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 
 ## النجوم عبر الزمن
 
-[![Stargazers over time](https://starchart.cc/Dark-Sky07/OMEGA.svg?variant=adaptive)](https://starchart.cc/Dark-Sky07/OMEGA)
+[![Stargazers over time](https://starchart.cc/Dark-Sky07/phoenix.svg?variant=adaptive)](https://starchart.cc/Dark-Sky07/phoenix)

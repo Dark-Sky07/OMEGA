@@ -31,16 +31,17 @@ type PanelUpdateInfo struct {
 	UpdateAvailable bool   `json:"updateAvailable"`
 }
 
-// omegaRepo is the canonical OMEGA project. In-panel updates must only ever
-// pull from this repository — never from the upstream PHOENIX project.
-const omegaRepo = "Dark-Sky07/OMEGA"
+// phoenixRepo is the canonical PHOENIX project. In-panel updates must only
+// ever pull from this repository — never from the upstream 3x-ui project.
+const phoenixRepo = "Dark-Sky07/phoenix"
 
 const (
 	// panelUpdaterURL is the script the in-panel update button downloads and
 	// runs. It is the very same installer the CLI uses (`x-ui.sh update` →
-	// install-omega.sh), which resolves the latest OMEGA release and restarts
-	// the panel — so an in-panel update can never install upstream PHOENIX.
-	panelUpdaterURL      = "https://raw.githubusercontent.com/" + omegaRepo + "/main/install-omega.sh"
+	// install-phoenix.sh), which resolves the latest PHOENIX release and
+	// restarts the panel — so an in-panel update can never install upstream
+	// 3x-ui.
+	panelUpdaterURL      = "https://raw.githubusercontent.com/" + phoenixRepo + "/main/install-phoenix.sh"
 	maxPanelUpdaterBytes = 2 << 20
 )
 
@@ -66,7 +67,7 @@ func (s *PanelService) RestartPanel(delay time.Duration) error {
 	return nil
 }
 
-// GetUpdateInfo checks the OMEGA repository for the latest panel release.
+// GetUpdateInfo checks the PHOENIX repository for the latest panel release.
 func (s *PanelService) GetUpdateInfo() (*PanelUpdateInfo, error) {
 	latest, err := fetchLatestPanelVersion()
 	if err != nil {
@@ -179,11 +180,11 @@ func downloadPanelUpdater() (string, error) {
 
 func fetchLatestPanelVersion() (string, error) {
 	client := (&service.SettingService{}).NewProxiedHTTPClient(10 * time.Second)
-	// OMEGA ships pre-releases, so /releases/latest would 404 while the
+	// PHOENIX ships pre-releases, so /releases/latest would 404 while the
 	// newest tag is a pre-release. Use the releases list instead (includes
 	// pre-releases, newest first) — the same source of truth
-	// install-omega.sh uses to resolve the update target.
-	resp, err := client.Get("https://api.github.com/repos/" + omegaRepo + "/releases?per_page=10")
+	// install-phoenix.sh uses to resolve the update target.
+	resp, err := client.Get("https://api.github.com/repos/" + phoenixRepo + "/releases?per_page=10")
 	if err != nil {
 		return "", err
 	}
@@ -197,7 +198,7 @@ func fetchLatestPanelVersion() (string, error) {
 		return "", err
 	}
 	if len(releases) == 0 || releases[0].TagName == "" {
-		return "", fmt.Errorf("no releases found for %s", omegaRepo)
+		return "", fmt.Errorf("no releases found for %s", phoenixRepo)
 	}
 	return releases[0].TagName, nil
 }
@@ -263,8 +264,8 @@ func parseVersionParts(version string) ([3]int, bool) {
 
 func normalizeVersionTag(version string) string {
 	v := strings.TrimPrefix(strings.TrimSpace(version), "v")
-	// Drop pre-release/build suffixes (e.g. "3.3.4-omega" → "3.3.4") so
-	// OMEGA tags compare numerically against each other.
+	// Drop pre-release/build suffixes (e.g. "5.0.0-phoenix" → "5.0.0") so
+	// PHOENIX tags compare numerically against each other.
 	if i := strings.IndexByte(v, '-'); i >= 0 {
 		v = v[:i]
 	}

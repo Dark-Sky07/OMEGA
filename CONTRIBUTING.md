@@ -50,8 +50,8 @@ Cross-building the Linux SQLite target from Windows (or vice versa) requires a s
 ## First-time setup
 
 ```bash
-git clone https://github.com/Dark-Sky07/OMEGA.git
-cd PHOENIX
+git clone https://github.com/Dark-Sky07/phoenix.git
+cd phoenix
 
 cp .env.example .env
 
@@ -253,7 +253,7 @@ For deeper notes on the frontend toolchain see [`frontend/README.md`](frontend/R
 | `XUI_DEBUG` | `false` | Verbose logs + Gin debug mode + serve `/assets` from disk |
 | `XUI_LOG_LEVEL` | `info` | `debug` / `info` / `notice` / `warning` / `error` |
 | `XUI_DB_FOLDER` | platform default | Where `x-ui.db` lives |
-| `XUI_LOG_FOLDER` | platform default | Where `3xui.log` lives |
+| `XUI_LOG_FOLDER` | platform default | Where `phoenix.log` lives |
 | `XUI_BIN_FOLDER` | `bin` | Where the xray binary, geo files, and xray `config.json` live |
 | `XUI_INIT_WEB_BASE_PATH` | `/` | The initial URI path for the web panel |
 | `XUI_DB_TYPE` | `sqlite` | Set to `postgres` to use PostgreSQL via `XUI_DB_DSN` |
@@ -261,6 +261,6 @@ For deeper notes on the frontend toolchain see [`frontend/README.md`](frontend/R
 
 ## Issues
 
-- Bug reports and feature requests: [GitHub Issues](https://github.com/Dark-Sky07/OMEGA/issues)
+- Bug reports and feature requests: [GitHub Issues](https://github.com/Dark-Sky07/phoenix/issues)
 
-Before filing a bug, include the OS, Go version, panel version (`/panel/api/server/status` or the dashboard footer), and the relevant excerpt from `x-ui/3xui.log`.
+Before filing a bug, include the OS, Go version, panel version (`/panel/api/server/status` or the dashboard footer), and the relevant excerpt from `x-ui/phoenix.log`.

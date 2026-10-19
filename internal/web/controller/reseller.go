@@ -558,7 +558,10 @@ func HandlePublicPaymentWebhook(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "msg": "invalid body"})
 		return
 	}
-	sig := c.GetHeader("X-Omega-Signature")
+	sig := c.GetHeader("X-Phoenix-Signature")
+	if sig == "" {
+		sig = c.GetHeader("X-Omega-Signature")
+	}
 	if !service.VerifyPaymentWebhookHMAC(rawBody, sig, secret) {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "msg": "invalid webhook HMAC signature"})
 		return

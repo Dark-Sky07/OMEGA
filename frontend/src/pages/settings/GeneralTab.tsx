@@ -779,7 +779,7 @@ export default function GeneralTab({ allSetting, updateSetting, defaultSubTab = 
                     <SettingListItem paddings="small" title={t('pages.settings.cloudBackupBucket', 'S3 Bucket Name')}>
                       <Input
                         value={allSetting.cloudBackupBucket}
-                        placeholder="omega-backups"
+                        placeholder="phoenix-backups"
                         onChange={(e) => updateSetting({ cloudBackupBucket: e.target.value })}
                       />
                     </SettingListItem>
@@ -819,7 +819,7 @@ export default function GeneralTab({ allSetting, updateSetting, defaultSubTab = 
             <SettingListItem paddings="small" title={t('pages.settings.cloudBackupPrefix', 'Remote Folder / Prefix')}>
               <Input
                 value={allSetting.cloudBackupPrefix}
-                placeholder="omega-backups/"
+                placeholder="phoenix-backups/"
                 onChange={(e) => updateSetting({ cloudBackupPrefix: e.target.value })}
               />
             </SettingListItem>

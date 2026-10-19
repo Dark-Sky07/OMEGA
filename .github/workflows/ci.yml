@@ -13,7 +13,8 @@ on:
       - "scripts/**"
       - "update.sh"
       - "install.sh"
-      - "install-omega.sh"
+      - "install-phoenix.sh"
+      - "phoenix.sh"
       - ".nvmrc"
       - ".github/workflows/ci.yml"
   push:
@@ -27,7 +28,8 @@ on:
       - "scripts/**"
       - "update.sh"
       - "install.sh"
-      - "install-omega.sh"
+      - "install-phoenix.sh"
+      - "phoenix.sh"
       - ".nvmrc"
       - ".github/workflows/ci.yml"
 

@@ -8,6 +8,12 @@ plain='\033[0m'
 
 cur_dir=$(pwd)
 
+# PHOENIX: this installer ships the PHOENIX panel
+# from its own repository. Override PHOENIX_REPO (the legacy OMEGA_REPO is
+# still honoured) to install a different fork/mirror; everything else
+# (service name, paths, panel version) is untouched.
+PHOENIX_REPO="${PHOENIX_REPO:-${OMEGA_REPO:-Dark-Sky07/phoenix}}"
+
 xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
 xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 
@@ -122,6 +128,94 @@ gen_random_string() {
         | head -c "$length"
 }
 
+ensure_openvpn_tun() {
+    # PHOENIX launches one openvpn process per enabled inbound. There is no
+    # useful global openvpn.service to enable; the kernel TUN device is the
+    # runtime prerequisite that must exist before x-ui can start a daemon.
+    if [[ ! -e /dev/net/tun ]]; then
+        mkdir -p /dev/net
+        if command -v modprobe > /dev/null 2>&1; then
+            modprobe tun > /dev/null 2>&1 || true
+        fi
+    fi
+
+    if [[ ! -c /dev/net/tun ]]; then
+        echo -e "${red}OpenVPN is installed, but /dev/net/tun is unavailable. Load the tun kernel module or expose the TUN device (and NET_ADMIN in Docker) before using OpenVPN inbounds.${plain}"
+        return 1
+    fi
+    echo -e "${green}OpenVPN TUN device is ready: /dev/net/tun${plain}"
+}
+
+install_openvpn() {
+    if command -v openvpn > /dev/null 2>&1; then
+        echo -e "${green}OpenVPN is already installed: $(command -v openvpn)${plain}"
+    else
+        echo -e "${green}Installing OpenVPN for OpenVPN inbounds...${plain}"
+        case "${release}" in
+            ubuntu | debian | armbian | linuxmint)
+                if ! apt-get update || ! apt-get install -y -q openvpn; then
+                    echo -e "${red}Failed to install the 'openvpn' package with apt.${plain}"
+                    return 1
+                fi
+                ;;
+            fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
+                if ! dnf install -y -q openvpn; then
+                    echo -e "${red}Failed to install the 'openvpn' package with dnf.${plain}"
+                    return 1
+                fi
+                ;;
+            centos)
+                if [[ "${VERSION_ID}" =~ ^7 ]]; then
+                    if ! yum install -y openvpn; then
+                        echo -e "${red}Failed to install the 'openvpn' package with yum.${plain}"
+                        return 1
+                    fi
+                else
+                    if ! dnf install -y -q openvpn; then
+                        echo -e "${red}Failed to install the 'openvpn' package with dnf.${plain}"
+                        return 1
+                    fi
+                fi
+                ;;
+            arch | manjaro | parch)
+                if ! pacman -S --noconfirm openvpn; then
+                    echo -e "${red}Failed to install the 'openvpn' package with pacman.${plain}"
+                    return 1
+                fi
+                ;;
+            opensuse-tumbleweed | opensuse-leap)
+                if ! zypper --non-interactive install openvpn; then
+                    echo -e "${red}Failed to install the 'openvpn' package with zypper.${plain}"
+                    return 1
+                fi
+                ;;
+            alpine)
+                if ! apk add --no-cache openvpn; then
+                    echo -e "${red}Failed to install the 'openvpn' package with apk.${plain}"
+                    return 1
+                fi
+                ;;
+            *)
+                echo -e "${red}Could not identify a supported package manager for OpenVPN. Install the 'openvpn' package manually, then rerun the installer.${plain}"
+                return 1
+                ;;
+        esac
+    fi
+
+    if ! command -v openvpn > /dev/null 2>&1; then
+        echo -e "${red}OpenVPN installation did not complete. The panel cannot serve OpenVPN inbounds without the 'openvpn' binary.${plain}"
+        return 1
+    fi
+    if ! openvpn --version > /dev/null 2>&1; then
+        echo -e "${red}The 'openvpn' command was found but could not execute. Repair the package before continuing.${plain}"
+        return 1
+    fi
+    if ! ensure_openvpn_tun; then
+        return 1
+    fi
+    echo -e "${green}OpenVPN prerequisite is ready: $(openvpn --version 2>/dev/null | head -1)${plain}"
+}
+
 install_l2tp_ipsec() {
     # L2TP/IPsec is deliberately managed as two foreground daemons by x-ui.
     # Install the binaries plus PPP and iptables, then fail early when the
@@ -164,7 +258,7 @@ install_l2tp_ipsec() {
         fi
     done
 
-    # OMEGA starts isolated foreground daemon instances with per-inbound
+    # PHOENIX starts isolated foreground daemon instances with per-inbound
     # configuration. Package post-install scripts may have enabled their
     # system-wide services, which would otherwise keep UDP 1701 or IKE ports
     # occupied and make the managed instance fail with address-in-use.
@@ -1209,6 +1303,32 @@ EOF
     ${xui_folder}/x-ui migrate
 }
 
+# Panel-side assets (x-ui.sh, systemd units, x-ui.rc) are fetched from the
+# exact PHOENIX release tag selected by the dynamic launcher. Never fall back to
+# a branch or an older tag: mixing files from different releases can pair an
+# incompatible management script with the panel binary.
+phoenix_latest_tag() {
+    curl -4fsSL "https://api.github.com/repos/${PHOENIX_REPO}/releases/latest" \
+        | grep -m1 '"tag_name":' \
+        | sed -E 's/.*"([^"]+)".*/\1/'
+}
+phoenix_ref="${PHOENIX_REF:-${OMEGA_REF:-${1:-${tag_version:-}}}}"
+if [[ -z "${phoenix_ref}" ]]; then
+    phoenix_ref="$(phoenix_latest_tag)"
+fi
+if [[ -z "${phoenix_ref}" ]]; then
+    echo -e "${red}Could not resolve the latest PHOENIX release tag; installation aborted.${plain}"
+    exit 1
+fi
+phoenix_raw_fetch() {
+    local out="$1" path="$2"
+    if ! curl -fLRo "$out" "https://raw.githubusercontent.com/${PHOENIX_REPO}/${phoenix_ref}/${path}" > /dev/null 2>&1; then
+        echo -e "${red}Release '${phoenix_ref}' does not contain ${path}; installation aborted.${plain}"
+        rm -f "$out"
+        return 1
+    fi
+}
+
 # The panel archive may contain an older bundled core. Resolve and stage the
 # current Xray release before stopping or replacing an existing installation,
 # then install it over the archive copy after extraction.
@@ -1229,7 +1349,7 @@ resolve_latest_xray_version() {
 
 stage_latest_xray() {
     local xray_arch archive_url
-    XRAY_VERSION="${OMEGA_XRAY_VERSION:-$(resolve_latest_xray_version)}" || {
+    XRAY_VERSION="${PHOENIX_XRAY_VERSION:-${OMEGA_XRAY_VERSION:-$(resolve_latest_xray_version)}}" || {
         echo -e "${red}Failed to resolve the latest Xray-core release; installation aborted before changing the current panel.${plain}"
         exit 1
     }
@@ -1284,17 +1404,17 @@ install_x-ui() {
 
     # Download resources
     if [ $# == 0 ]; then
-        tag_version=$(curl -Ls "https://api.github.com/repos/Dark-Sky07/OMEGA/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        tag_version="${PHOENIX_TAG:-${OMEGA_TAG:-$(curl -4fsSL "https://api.github.com/repos/${PHOENIX_REPO}/releases/latest" | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}}"
         if [[ ! -n "$tag_version" ]]; then
             echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
-            tag_version=$(curl -4 -Ls "https://api.github.com/repos/Dark-Sky07/OMEGA/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+            tag_version="${PHOENIX_TAG:-${OMEGA_TAG:-$(curl -4fsSL "https://api.github.com/repos/${PHOENIX_REPO}/releases/latest" | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}}"
             if [[ ! -n "$tag_version" ]]; then
                 echo -e "${red}Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later${plain}"
                 exit 1
             fi
         fi
         echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
-        curl -4fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/Dark-Sky07/OMEGA/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz
+        curl -4fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/${PHOENIX_REPO}/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Downloading x-ui failed, please be sure that your server can access GitHub ${plain}"
             exit 1
@@ -1309,7 +1429,7 @@ install_x-ui() {
             exit 1
         fi
 
-        url="https://github.com/Dark-Sky07/OMEGA/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz"
+        url="https://github.com/${PHOENIX_REPO}/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz"
         echo -e "Beginning to install x-ui $1"
         curl -4fLRo ${xui_folder}-linux-$(arch).tar.gz ${url}
         if [[ $? -ne 0 ]]; then
@@ -1320,8 +1440,8 @@ install_x-ui() {
 
     # Stage the current core before any service stop or directory replacement.
     stage_latest_xray
-    curl -4fLRo /usr/bin/x-ui-temp https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.sh
-    if [[ $? -ne 0 ]]; then
+    phoenix_raw_fetch /usr/bin/x-ui-temp x-ui.sh
+    if [[ ! -s /usr/bin/x-ui-temp ]]; then
         echo -e "${red}Failed to download x-ui.sh${plain}"
         exit 1
     fi
@@ -1346,6 +1466,12 @@ install_x-ui() {
     rm x-ui-linux-$(arch).tar.gz -f
 
     cd x-ui
+    if [[ -f sha256sums.txt ]] && command -v sha256sum >/dev/null 2>&1; then
+        if ! grep '  x-ui$' sha256sums.txt | sha256sum -c --status; then
+            echo -e "${red}SHA-256 checksum verification failed for x-ui binary; aborting installation.${plain}"
+            exit 1
+        fi
+    fi
     # Replace any stale core bundled in the panel archive.
     install_staged_xray
     chmod +x x-ui
@@ -1394,7 +1520,7 @@ install_x-ui() {
     fi
 
     if [[ $release == "alpine" ]]; then
-        curl -4fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.rc
+        phoenix_raw_fetch /etc/init.d/x-ui x-ui.rc > /dev/null 2>&1
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Failed to download x-ui.rc${plain}"
             exit 1
@@ -1451,13 +1577,13 @@ install_x-ui() {
             echo -e "${yellow}Service files not found in tar.gz, downloading from GitHub...${plain}"
             case "${release}" in
                 ubuntu | debian | armbian)
-                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.service.debian > /dev/null 2>&1
+                    phoenix_raw_fetch "${xui_service}/x-ui.service" x-ui.service.debian > /dev/null 2>&1
                     ;;
                 arch | manjaro | parch)
-                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.service.arch > /dev/null 2>&1
+                    phoenix_raw_fetch "${xui_service}/x-ui.service" x-ui.service.arch > /dev/null 2>&1
                     ;;
                 *)
-                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.service.rhel > /dev/null 2>&1
+                    phoenix_raw_fetch "${xui_service}/x-ui.service" x-ui.service.rhel > /dev/null 2>&1
                     ;;
             esac
 
@@ -1505,6 +1631,13 @@ install_x-ui() {
 
 echo -e "${green}Running...${plain}"
 install_base
+# OpenVPN inbounds are served by a host-side OpenVPN daemon. Install and
+# validate the dependency during both fresh installs and updates so a valid
+# .ovpn profile never points at a panel whose VPN listener is silently absent.
+if ! install_openvpn; then
+    echo -e "${red}OpenVPN setup failed; installation aborted. Fix the prerequisite above and rerun this installer.${plain}"
+    exit 1
+fi
 if ! install_l2tp_ipsec; then
     echo -e "${red}L2TP/IPsec setup failed; installation aborted. Fix the prerequisite above and rerun this installer.${plain}"
     exit 1

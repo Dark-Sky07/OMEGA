@@ -9,10 +9,10 @@
 
 English · [فارسی](README.fa_IR.md)
 
-[![Release](https://img.shields.io/github/v/release/Dark-Sky07/OMEGA?include_prereleases&label=release&color=ff5500)](https://github.com/Dark-Sky07/OMEGA/releases)
-[![Build](https://img.shields.io/github/actions/workflow/status/Dark-Sky07/OMEGA/release.yml?label=build&color=f97316)](https://github.com/Dark-Sky07/OMEGA/actions)
+[![Release](https://img.shields.io/github/v/release/Dark-Sky07/phoenix?include_prereleases&label=release&color=ff5500)](https://github.com/Dark-Sky07/phoenix/releases)
+[![Build](https://img.shields.io/github/actions/workflow/status/Dark-Sky07/phoenix/release.yml?label=build&color=f97316)](https://github.com/Dark-Sky07/phoenix/actions)
 [![License](https://img.shields.io/badge/license-GPL--3.0-fbbf24.svg)](LICENSE)
-[![Go](https://img.shields.io/github/go-mod/go-version/Dark-Sky07/OMEGA?color=ea580c)](go.mod)
+[![Go](https://img.shields.io/github/go-mod/go-version/Dark-Sky07/phoenix?color=ea580c)](go.mod)
 [![Platforms](https://img.shields.io/badge/platforms-linux%20%7C%20windows-lightgrey)](#supported-platforms)
 
 <img src="./docs/assets/phoenix-emblem.jpg" alt="PHOENIX Armored Emblem" width="640">
@@ -20,7 +20,7 @@ English · [فارسی](README.fa_IR.md)
 **Install the latest PHOENIX release in one line** — on a fresh server, as `root`:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/phoenix/main/install-phoenix.sh)
 ```
 
 This is the canonical automatic installer. It resolves the newest PHOENIX release from this repository, downloads the matching panel archive and release-managed scripts, and installs the `phoenix` CLI management menu. For an existing installation, run `phoenix update`.
@@ -53,7 +53,7 @@ OpenVPN is a host daemon, not an Xray component and not a file inside the `phoen
 To install or repair an existing host with the exact stable release, run as `root`:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/phoenix/main/install-phoenix.sh)
 ```
 
 Verify the prerequisite before troubleshooting the network:
@@ -65,7 +65,7 @@ test -c /dev/net/tun && echo "TUN is ready"
 systemctl restart x-ui
 ```
 
-The `phoenix update` script shipped in this release resolves the latest stable release tag and runs its matching installer; it no longer downloads an unpinned, possibly stale `main` installer. For an OpenVPN inbound, allow the configured port on the VPS/provider firewall using the selected transport (`udp` or `tcp`). PHOENIX enables IPv4 forwarding and maintains exact `INPUT`, `FORWARD`, and `POSTROUTING MASQUERADE` rules for the generated `10.x.x.0/24` tunnel subnet, while preserving unrelated firewall rules. If a profile imports but remains on `Trying to connect`, check `command -v openvpn`, `command -v iptables`, `/dev/net/tun`, the listener with `ss -lunpt`, and `/var/log/x-ui/3xui.log` plus `bin/openvpn/<inbound-id>/openvpn.log`.
+The `phoenix update` script shipped in this release resolves the latest stable release tag and runs its matching installer; it no longer downloads an unpinned, possibly stale `main` installer. For an OpenVPN inbound, allow the configured port on the VPS/provider firewall using the selected transport (`udp` or `tcp`). PHOENIX enables IPv4 forwarding and maintains exact `INPUT`, `FORWARD`, and `POSTROUTING MASQUERADE` rules for the generated `10.x.x.0/24` tunnel subnet, while preserving unrelated firewall rules. If a profile imports but remains on `Trying to connect`, check `command -v openvpn`, `command -v iptables`, `/dev/net/tun`, the listener with `ss -lunpt`, and `/var/log/x-ui/phoenix.log` plus `bin/openvpn/<inbound-id>/openvpn.log`.
 
 ### L2TP/IPsec installation and host checklist
 
@@ -147,7 +147,7 @@ or archive** in the AmneziaWG app. Do not paste an AmneziaVPN `vpn://` URI into 
 On a fresh server, as **root**:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/phoenix/main/install-phoenix.sh)
 ```
 
 The installer takes care of everything:
@@ -174,7 +174,7 @@ phoenix uninstall    # full removal (the database in /etc/x-ui is kept; back it 
 
 ### Manual install
 
-Grab `x-ui-linux-<arch>.tar.gz` from the [releases page](https://github.com/Dark-Sky07/OMEGA/releases)
+Grab `x-ui-linux-<arch>.tar.gz` from the [releases page](https://github.com/Dark-Sky07/phoenix/releases)
 (`amd64`, `arm64`, `armv7`, `armv6`, `386`, `armv5`, `s390x`), then on the server. Manual extraction of the tarball does **not** install host VPN packages; run the following first if you use this path:
 
 ```bash
@@ -201,7 +201,7 @@ phoenix update                                   # upgrade in place, settings pr
 cp /etc/x-ui/x-ui.db /root/x-ui-backup.db     # or use Settings → Backup inside the panel
 ```
 
-📖 **Persian step-by-step guide:** [docs/OMEGA-INSTALL.fa.md](docs/OMEGA-INSTALL.fa.md) — نصب، ساخت اولین نمایندگی،
+📖 **Persian step-by-step guide:** [docs/PHOENIX-INSTALL.fa.md](docs/PHOENIX-INSTALL.fa.md) — نصب، ساخت اولین نمایندگی،
 بروزرسانی، بکاپ و نکات امنیتی.
 
 ---
@@ -354,19 +354,19 @@ The source SQLite file is left untouched; remove it manually once you have verif
 
 ### Docker
 
-PHOENIX publishes multi-architecture images to [GHCR](https://ghcr.io/dark-sky07/omega) for release tags. To build the same image locally instead, use the bundled `Dockerfile`:
+PHOENIX publishes multi-architecture images to [GHCR](https://ghcr.io/dark-sky07/phoenix) for release tags. To build the same image locally instead, use the bundled `Dockerfile`:
 
 ```bash
-git clone https://github.com/Dark-Sky07/OMEGA.git && cd PHOENIX
-docker build -t omega-panel .
+git clone https://github.com/Dark-Sky07/phoenix.git && cd phoenix
+docker build -t phoenix-panel .
 
-docker run -d --name omega --restart unless-stopped \
+docker run -d --name phoenix --restart unless-stopped \
   --cap-add=NET_ADMIN --cap-add=NET_RAW \
   --device /dev/net/tun:/dev/net/tun --device /dev/ppp:/dev/ppp \
   --sysctl net.ipv4.ip_forward=1 \
   -p 2053:2053 -p 1194:1194/udp -p 1194:1194/tcp \
   -p 500:500/udp -p 4500:4500/udp -p 1701:1701/udp \
-  -v /etc/x-ui:/etc/x-ui omega-panel
+  -v /etc/x-ui:/etc/x-ui phoenix-panel
 ```
 
 `docker-compose.yml` in this repository builds the same image and keeps SQLite by default. To run with the bundled PostgreSQL service, uncomment the two `XUI_DB_*` env lines and start with the profile:
@@ -402,7 +402,7 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 Contributions are welcome. Please read the [Contributing Guide](/CONTRIBUTING.md) before opening an issue or pull request.
 
 For anything that is not about the reseller feature or the PHOENIX branding, the upstream
-[PHOENIX repository](https://github.com/Dark-Sky07/OMEGA) and its [Wiki](https://github.com/Dark-Sky07/OMEGA/wiki)
+[PHOENIX repository](https://github.com/Dark-Sky07/phoenix) and its [Wiki](https://github.com/Dark-Sky07/phoenix/wiki)
 are the authoritative references.
 
 ## Security notes
@@ -417,7 +417,7 @@ are the authoritative references.
 
 ## Credits & License
 
-- **Upstream project:** [Dark-Sky07/OMEGA](https://github.com/Dark-Sky07/OMEGA) — this repository is a fork of
+- **Upstream project:** [Dark-Sky07/phoenix](https://github.com/Dark-Sky07/phoenix) — this repository is a fork of
   **PHOENIX v3.3.1** and inherits its design, documentation and licence. Thanks to
   [alireza0](https://github.com/alireza0/) and every upstream contributor.
 - **Added here:** reseller (نمایندگی) controls, native AmneziaWG, OpenVPN and L2TP/IPsec integrations, traffic/quota lifecycle support, safe release/update handling, PHOENIX branding, and the fork-aware latest-release installer.
@@ -449,4 +449,4 @@ Tools and integrations built by the community around PHOENIX.
 
 ## Stargazers over Time
 
-[![Stargazers over time](https://starchart.cc/Dark-Sky07/OMEGA.svg?variant=adaptive)](https://starchart.cc/Dark-Sky07/OMEGA)
+[![Stargazers over time](https://starchart.cc/Dark-Sky07/phoenix.svg?variant=adaptive)](https://starchart.cc/Dark-Sky07/phoenix)

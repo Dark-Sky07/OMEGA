@@ -62,7 +62,7 @@ func certTemplate(cn string, isCA bool) (*x509.Certificate, error) {
 	}
 	return &x509.Certificate{
 		SerialNumber:          serial,
-		Subject:               pkix.Name{CommonName: cn, Organization: []string{"Omega OpenVPN"}},
+		Subject:               pkix.Name{CommonName: cn, Organization: []string{"PHOENIX OpenVPN"}},
 		NotBefore:             time.Now().Add(-time.Hour),
 		NotAfter:              time.Now().Add(certValidity),
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
@@ -141,7 +141,7 @@ func ensureCA(dir string) (*x509.Certificate, *ecdsa.PrivateKey, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	tmpl, err := certTemplate("Omega OpenVPN CA", true)
+	tmpl, err := certTemplate("PHOENIX OpenVPN CA", true)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Dev-only mock of the OMEGA panel API.
+ * Dev-only mock of the PHOENIX panel API.
  *
  * Lets the Vite dev server run the real UI against believable data when no Go
  * backend is available (design reviews, screenshots, UI tests). It is never
@@ -64,5 +64,5 @@ server.on('upgrade', (req, socket) => {
 
 server.listen(PORT, '127.0.0.1', () => {
   // eslint-disable-next-line no-console
-  console.log(`[mock-api] OMEGA mock backend listening on http://127.0.0.1:${PORT}`);
+  console.log(`[mock-api] PHOENIX mock backend listening on http://127.0.0.1:${PORT}`);
 });

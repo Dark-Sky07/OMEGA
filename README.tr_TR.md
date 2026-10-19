@@ -1,6 +1,6 @@
 [English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md)
 
-> **PHOENIX** — PHOENIX v3.3.1 + Resellers (نمایندگی). Install: `bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install`. Docs: [English](README.md) · [فارسی](README.fa_IR.md)
+> **PHOENIX** — PHOENIX v3.3.1 + Resellers (نمایندگی). Install: `bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/phoenix/main/install-phoenix.sh)`. Docs: [English](README.md) · [فارسی](README.fa_IR.md)
 
 <p align="center">
   <picture>
@@ -10,13 +10,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dark-Sky07/OMEGA/releases"><img src="https://img.shields.io/github/v/release/dark-sky07/omega" alt="Release"></a>
-  <a href="https://github.com/Dark-Sky07/OMEGA/actions"><img src="https://img.shields.io/github/actions/workflow/status/dark-sky07/omega/release.yml.svg" alt="Build"></a>
-  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/Dark-Sky07/OMEGA.svg" alt="GO Version"></a>
-  <a href="https://github.com/Dark-Sky07/OMEGA/releases/latest"><img src="https://img.shields.io/github/downloads/dark-sky07/omega/total.svg" alt="Downloads"></a>
+  <a href="https://github.com/Dark-Sky07/phoenix/releases"><img src="https://img.shields.io/github/v/release/dark-sky07/phoenix" alt="Release"></a>
+  <a href="https://github.com/Dark-Sky07/phoenix/actions"><img src="https://img.shields.io/github/actions/workflow/status/dark-sky07/phoenix/release.yml.svg" alt="Build"></a>
+  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/Dark-Sky07/phoenix.svg" alt="GO Version"></a>
+  <a href="https://github.com/Dark-Sky07/phoenix/releases/latest"><img src="https://img.shields.io/github/downloads/dark-sky07/phoenix/total.svg" alt="Downloads"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
-  <a href="https://pkg.go.dev/github.com/mhsanaei/3x-ui/v3"><img src="https://pkg.go.dev/badge/github.com/mhsanaei/3x-ui/v3.svg" alt="Go Reference"></a>
-  <a href="https://goreportcard.com/report/github.com/mhsanaei/3x-ui/v3"><img src="https://goreportcard.com/badge/github.com/mhsanaei/3x-ui/v3" alt="Go Report Card"></a>
 </p>
 
 **PHOENIX**, [Xray-core](https://github.com/XTLS/Xray-core) sunucularını yönetmek için geliştirilmiş profesyonel, açık kaynaklı bir web kontrol panelidir. Tek bir sanal sunucudan (VPS) çok düğümlü (multi-node) dağıtımlara kadar çok çeşitli proxy ve VPN protokollerini kurmak, yapılandırmak ve izlemek için temiz, çok dilli bir arayüz sağlar.
@@ -72,12 +70,12 @@ Orijinal X-UI projesinin geliştirilmiş bir çatallaması (fork) olarak inşa e
 ## Hızlı Başlangıç
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/phoenix/main/install-phoenix.sh)
 ```
 
 Kurulum sırasında rastgele bir kullanıcı adı, şifre ve erişim yolu oluşturulur. Kurulumdan sonra, hizmeti başlatabileceğiniz/durdurabileceğiniz, giriş bilgilerinizi görüntüleyebileceğiniz veya sıfırlayabileceğiniz, SSL sertifikalarını yönetebileceğiniz ve çok daha fazlasını yapabileceğiniz yönetim menüsünü açmak için terminalde `phoenix` komutunu çalıştırın.
 
-Tam dokümantasyon için lütfen [proje Wiki sayfasını](https://github.com/Dark-Sky07/OMEGA/wiki) ziyaret edin.
+Tam dokümantasyon için lütfen [proje Wiki sayfasını](https://github.com/Dark-Sky07/phoenix/wiki) ziyaret edin.
 
 ## Desteklenen Platformlar
 
@@ -120,7 +118,7 @@ docker compose --profile postgres up -d
 Docker imajı, kullanıcı başına **IP limitlerini** zorunlu kılmak için Fail2ban ile (varsayılan olarak etkindir) paketlenmiştir. Fail2ban, ihlalcileri `iptables` ile engeller ve bunun için `NET_ADMIN` yetkisine ihtiyaç duyar. `docker-compose.yml` bunu zaten `cap_add` üzerinden vermektedir; ancak konteyneri bunun yerine `docker run` ile başlatırsanız bu yetkileri kendiniz eklemelisiniz, aksi takdirde yasaklamalar günlüğe kaydedilir ancak uygulanmaz:
 
 ```bash
-docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/dark-sky07/omega
+docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/dark-sky07/phoenix
 ```
 
 ## Ortam Değişkenleri (Environment Variables)
@@ -177,4 +175,4 @@ PHOENIX çevresindeki topluluk tarafından oluşturulmuş araçlar ve entegrasyo
 
 ## Yıldız Tablosu
 
-[![Zaman içerisindeki yıldız sayısı](https://starchart.cc/Dark-Sky07/OMEGA.svg?variant=adaptive)](https://starchart.cc/Dark-Sky07/OMEGA)
+[![Zaman içerisindeki yıldız sayısı](https://starchart.cc/Dark-Sky07/phoenix.svg?variant=adaptive)](https://starchart.cc/Dark-Sky07/phoenix)

@@ -140,7 +140,7 @@ var defaultValueMap = map[string]string{
 	"cloudBackupEndpoint":      "",
 	"cloudBackupRegion":        "auto",
 	"cloudBackupBucket":        "",
-	"cloudBackupPrefix":        "omega-backups/",
+	"cloudBackupPrefix":        "phoenix-backups/",
 	"cloudBackupAccessKey":     "",
 	"cloudBackupSecretKey":     "",
 	"cloudBackupIntervalHours": "12",
