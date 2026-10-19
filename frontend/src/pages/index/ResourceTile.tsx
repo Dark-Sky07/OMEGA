@@ -17,7 +17,7 @@ interface ResourceTileProps {
   className?: string;
 }
 
-const HEALTHY_GRADIENT = { '0%': '#7c5cff', '100%': '#22d3ee' };
+const HEALTHY_GRADIENT = { '0%': '#ff5500', '100%': '#fbbf24' };
 const WARN_GRADIENT = { '0%': '#f59e0b', '100%': '#fbbf24' };
 const DANGER_GRADIENT = { '0%': '#f43f5e', '100%': '#fb7185' };
 

@@ -1,4 +1,4 @@
-# OMEGA pins the exact dependency set of 3x-ui v3.3.1 (go.mod and
+# PHOENIX pins the exact dependency set of PHOENIX v3.3.1 (go.mod and
 # frontend/package-lock.json are intentionally untouched), so automated
 # *version* updates are disabled: open-pull-requests-limit 0 keeps the file
 # (and the security-alert integration) in place without opening bump PRs that

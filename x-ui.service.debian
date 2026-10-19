@@ -1,5 +1,5 @@
 [Unit]
-Description=x-ui Service
+Description=PHOENIX Service
 After=network.target
 Wants=network.target
 StartLimitIntervalSec=0

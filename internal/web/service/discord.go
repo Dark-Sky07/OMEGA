@@ -50,7 +50,7 @@ type discordMessagePayload struct {
 }
 
 const (
-	discordColorInfo    = 0x6366F1 // Indigo (OMEGA brand)
+	discordColorInfo    = 0xFF6A00 // Phoenix Flame Orange
 	discordColorSuccess = 0x10B981 // Emerald
 	discordColorWarn    = 0xF59E0B // Amber
 	discordColorDanger  = 0xEF4444 // Red
@@ -92,7 +92,7 @@ func (d *DiscordService) SendEmbed(embed DiscordEmbed) error {
 		embed.Timestamp = time.Now().UTC().Format(time.RFC3339)
 	}
 	body, err := json.Marshal(discordMessagePayload{
-		Username: "OMEGA Panel",
+		Username: "PHOENIX Panel",
 		Embeds:   []DiscordEmbed{embed},
 	})
 	if err != nil {
@@ -154,7 +154,7 @@ func (d *DiscordService) SendTestMessage() error {
 		host = "omega"
 	}
 	return d.SendEmbed(DiscordEmbed{
-		Title:       "✅ OMEGA Discord Notification Test",
+		Title:       "🔥 PHOENIX Discord Notification Test",
 		Description: "Your Discord notification channel is connected and working.",
 		Color:       discordColorSuccess,
 		Fields: []DiscordEmbedField{
@@ -263,7 +263,7 @@ func (d *DiscordService) SendPeriodicReport() {
 		},
 	}
 	if err := d.SendEmbed(DiscordEmbed{
-		Title:  "📊 OMEGA Periodic Report",
+		Title:  "📊 PHOENIX Periodic Report",
 		Color:  color,
 		Fields: fields,
 	}); err != nil {

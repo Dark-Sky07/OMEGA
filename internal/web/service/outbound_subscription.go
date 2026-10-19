@@ -267,7 +267,7 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 		s.recordError(sub, err)
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "3x-ui-outbound-sub/1.0")
+	req.Header.Set("User-Agent", "phoenix-outbound-sub/1.0")
 
 	resp, err := client.Do(req)
 	if err != nil {

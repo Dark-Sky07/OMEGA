@@ -86,6 +86,7 @@ func serveDistPage(c *gin.Context, name string) {
 	if basePath != "/" {
 		body = bytes.ReplaceAll(body, []byte(`src="/assets/`), []byte(`src="`+basePath+`assets/`))
 		body = bytes.ReplaceAll(body, []byte(`href="/assets/`), []byte(`href="`+basePath+`assets/`))
+		body = bytes.ReplaceAll(body, []byte(`href="/phoenix-icon.png"`), []byte(`href="`+basePath+`phoenix-icon.png"`))
 	}
 
 	jsEscape := strings.NewReplacer(
@@ -117,7 +118,7 @@ func serveDistPage(c *gin.Context, name string) {
 		script += `;window.X_UI_DB_TYPE="` + config.GetDBKind() + `"`
 	}
 	script += `;</script>`
-	manifestMeta := []byte(`<link rel="manifest" href="` + htmlpkg.EscapeString(basePath) + `manifest.webmanifest"><meta name="theme-color" content="#0f172a">`)
+	manifestMeta := []byte(`<link rel="manifest" href="` + htmlpkg.EscapeString(basePath) + `manifest.webmanifest"><meta name="theme-color" content="#ff5500">`)
 	inject := []byte(script)
 	inject = append(inject, csrfMeta...)
 	inject = append(inject, basePathMeta...)
@@ -132,12 +133,12 @@ func serveDistPage(c *gin.Context, name string) {
 	c.Data(http.StatusOK, "text/html; charset=utf-8", out)
 }
 
-const pwaIconDataURI = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230f172a'/%3E%3Cpath d='M256 108c-82 0-148 66-148 148 0 54 29 101 72 127h-52v41h112v-73c-38-14-64-50-64-95 0-56 45-101 101-101s101 45 101 101c0 45-26 81-64 95v73h112v-41h-52c43-26 72-73 72-127 0-82-66-148-148-148z' fill='%2338bdf8'/%3E%3C/svg%3E"
+const pwaIconDataURI = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230b0708'/%3E%3Cpath d='M256 76c-32 48-68 78-68 128 0 28 14 54 36 70-48-12-94-48-116-102-12 66 20 136 82 168-30 6-62 2-88-14 26 48 80 78 138 78v32l16 20 16-20v-32c58 0 112-30 138-78-26 16-58 20-88 14 62-32 94-102 82-168-22 54-68 90-116 102 22-16 36-42 36-70 0-50-36-80-68-128z' fill='%23ff6a00'/%3E%3C/svg%3E"
 
-const pwaServiceWorkerJS = `// OMEGA Safe Network-First Service Worker
+const pwaServiceWorkerJS = `// PHOENIX Safe Network-First Service Worker
 // Caches immutable /assets/* bundles for fast startup while NEVER caching
 // /panel/api/*, authentication routes, or live subscription payloads.
-const CACHE_NAME = 'omega-static-v1';
+const CACHE_NAME = 'phoenix-static-v1';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -179,15 +180,21 @@ func ServePWAManifest(c *gin.Context) {
 		basePath = "/"
 	}
 	manifest := map[string]any{
-		"name":             "OMEGA Panel",
-		"short_name":       "OMEGA",
-		"description":      "OMEGA Unified Multi-Protocol Proxy & VPN Management Panel",
+		"name":             "PHOENIX Panel",
+		"short_name":       "PHOENIX",
+		"description":      "PHOENIX — Reborn from Fire & Ash • Unified Multi-Protocol Proxy & VPN Management Panel",
 		"start_url":        basePath,
 		"scope":            basePath,
 		"display":          "standalone",
-		"background_color": "#0f172a",
-		"theme_color":      "#0f172a",
+		"background_color": "#0b0708",
+		"theme_color":      "#ff5500",
 		"icons": []map[string]string{
+			{
+				"src":     basePath + "phoenix-icon.png",
+				"sizes":   "192x192",
+				"type":    "image/png",
+				"purpose": "any maskable",
+			},
 			{
 				"src":     pwaIconDataURI,
 				"sizes":   "512x512",

@@ -40,6 +40,7 @@ import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import { useAllSettings } from '@/api/queries/useAllSettings';
 import { useSession } from '@/api/queries/useSession';
 import { openCommandPalette } from '@/components/CommandPalette';
+import phoenixCrest from '@/assets/phoenix-crest.png';
 import './AppSidebar.css';
 
 const SIDEBAR_COLLAPSED_KEY = 'isSidebarCollapsed';
@@ -86,16 +87,16 @@ function readCollapsed(): boolean {
   }
 }
 
-/** Gradient Ω monogram + wordmark. `.brand-text` always reads "OMEGA". */
+/** PHOENIX crest medallion + fiery wordmark. `.brand-text` always reads "PHOENIX". */
 function Brand({ compact }: { compact?: boolean }) {
   return (
     <div className={`brand-block${compact ? ' is-compact' : ''}`}>
       <span className="brand-mark" aria-hidden="true">
-        <span className="brand-mark-glyph">Ω</span>
+        <img src={phoenixCrest} alt="" className="brand-mark-img" />
       </span>
       <span className="brand-copy">
-        <span className="brand-text">OMEGA</span>
-        <span className="brand-sub">control panel</span>
+        <span className="brand-text">PHOENIX</span>
+        <span className="brand-sub">Eternal Flame Core</span>
       </span>
     </div>
   );

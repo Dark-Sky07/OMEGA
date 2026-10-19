@@ -27,6 +27,8 @@ import { antdRule } from '@/utils/zodForm';
 import { setMessageInstance } from '@/utils/messageBus';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import { LoginFormSchema, type LoginFormValues } from '@/schemas/login';
+import phoenixCrest from '@/assets/phoenix-crest.png';
+import phoenixEmblem from '@/assets/phoenix-emblem.jpg';
 import './LoginPage.css';
 
 const HEADLINE_INTERVAL_MS = 2000;
@@ -179,21 +181,31 @@ export default function LoginPage() {
             ) : (
               <div className="login-stage">
                 <aside className="login-aside" aria-hidden="true">
+                  <img src={phoenixEmblem} alt="" className="login-aside-backdrop" />
                   <div className="login-aside-brand">
-                    <span className="login-mark"><span>Ω</span></span>
-                    <span className="login-wordmark">OMEGA</span>
+                    <span className="login-mark">
+                      <img src={phoenixCrest} alt="" className="login-mark-img" />
+                    </span>
+                    <div className="login-wordmark-wrap">
+                      <span className="login-wordmark">PHOENIX</span>
+                      <span className="login-myth-tag">REBORN FROM FIRE &amp; ASH • ققنوس</span>
+                    </div>
+                  </div>
+                  <div className="login-phoenix-showcase">
+                    <img src={phoenixCrest} alt="PHOENIX Emblem" className="login-phoenix-medallion" />
                   </div>
                   <h1 className="login-aside-title">
-                    {t('pages.login.asideTitle', 'One panel for every tunnel.')}
+                    {t('pages.login.asideTitle', 'Reborn from Fire. Immortal across every border.')}
                   </h1>
                   <p className="login-aside-text">
-                    {t('pages.login.asideText', 'Xray, OpenVPN, L2TP/IPsec and AmneziaWG — managed, routed and measured from a single place.')}
+                    {t('pages.login.asideText', 'Like the legendary Phoenix (ققنوس) rising from obsidian ash in solar flame — Xray-core, OpenVPN, L2TP/IPsec, TUIC v5, MASQUE and AmneziaWG united in one sovereign sanctuary.')}
                   </p>
                   <ul className="login-aside-list">
                     <li><span className="login-aside-dot" />Xray-core</li>
                     <li><span className="login-aside-dot" />OpenVPN</li>
                     <li><span className="login-aside-dot" />L2TP / IPsec</li>
                     <li><span className="login-aside-dot" />AmneziaWG</li>
+                    <li><span className="login-aside-dot" />TUIC v5 &amp; MASQUE</li>
                   </ul>
                   <div className="login-aside-orb login-aside-orb-a" />
                   <div className="login-aside-orb login-aside-orb-b" />
@@ -201,7 +213,8 @@ export default function LoginPage() {
 
                 <div className="login-card">
                   <div className="brand">
-                    <span className="brand-name">OMEGA</span>
+                    <img src={phoenixCrest} alt="" className="brand-mini-crest" aria-hidden="true" />
+                    <span className="brand-name">PHOENIX</span>
                     <span className="brand-accent" aria-hidden="true" />
                   </div>
                   <h2 className="welcome">

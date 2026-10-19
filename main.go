@@ -1,13 +1,16 @@
-// Package main is the entry point for the 3x-ui web panel application.
+// Package main is the entry point for the PHOENIX web panel application.
 // It initializes the database, web server, and handles command-line operations for managing the panel.
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"runtime"
 	"syscall"
 	"time"
 	_ "unsafe"
@@ -28,9 +31,45 @@ import (
 	"github.com/op/go-logging"
 )
 
-// runWebServer initializes and starts the web server for the 3x-ui panel.
+// ensurePhoenixCLI guarantees that `/usr/bin/phoenix` (and `/usr/bin/x-ui`) is
+// installed and executable on Linux whenever the panel starts as root. This
+// ensures that even an in-panel 1-click update from an older release makes the
+// `phoenix` CLI menu command immediately available in SSH.
+func ensurePhoenixCLI() {
+	if runtime.GOOS != "linux" || os.Geteuid() != 0 {
+		return
+	}
+	candidates := []string{"/usr/local/x-ui/x-ui.sh"}
+	if exe, err := os.Executable(); err == nil {
+		candidates = append([]string{filepath.Join(filepath.Dir(exe), "x-ui.sh")}, candidates...)
+	}
+	candidates = append(candidates, "/usr/bin/x-ui")
+	var scriptBytes []byte
+	for _, src := range candidates {
+		if b, err := os.ReadFile(src); err == nil && len(b) > 0 {
+			scriptBytes = b
+			break
+		}
+	}
+	if len(scriptBytes) == 0 {
+		return
+	}
+	for _, dst := range []string{"/usr/bin/phoenix", "/usr/bin/x-ui"} {
+		if existing, err := os.ReadFile(dst); err == nil && bytes.Equal(existing, scriptBytes) {
+			_ = os.Chmod(dst, 0o755)
+			continue
+		}
+		tmp := dst + ".tmp"
+		if err := os.WriteFile(tmp, scriptBytes, 0o755); err == nil {
+			_ = os.Rename(tmp, dst)
+		}
+	}
+}
+
+// runWebServer initializes and starts the web server for the PHOENIX panel.
 func runWebServer() {
 	log.Printf("Starting %v %v", config.GetName(), config.GetVersion())
+	ensurePhoenixCLI()
 
 	switch config.GetLogLevel() {
 	case config.Debug:
@@ -438,7 +477,7 @@ func GetApiToken(getApiToken bool) {
 	fmt.Println("apiToken:", created.Token)
 }
 
-// migrateDb performs database migration operations for the 3x-ui panel.
+// migrateDb performs database migration operations for the PHOENIX panel.
 func migrateDb() {
 	inboundService := service.InboundService{}
 
@@ -469,7 +508,7 @@ func loadServiceEnvFile() {
 	}
 }
 
-// main is the entry point of the 3x-ui application.
+// main is the entry point of the PHOENIX application.
 // It parses command-line arguments to run the web server, migrate database, or update settings.
 func main() {
 	loadServiceEnvFile()

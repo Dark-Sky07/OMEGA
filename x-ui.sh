@@ -128,10 +128,14 @@ before_show_menu() {
     show_menu
 }
 
-# Resolve and run the installer from the latest stable OMEGA release. Using
+# Resolve and run the installer from the latest stable PHOENIX release. Using
 # `main` here allowed an older branch to update the panel without installing
 # release-specific dependencies such as OpenVPN. A release tag keeps the
 # panel binary, management script, and dependency installer in sync.
+if [[ $EUID -eq 0 && -f "$0" && ! -f /usr/bin/phoenix ]]; then
+    cp -f "$0" /usr/bin/phoenix 2> /dev/null && chmod +x /usr/bin/phoenix 2> /dev/null || true
+fi
+
 omega_latest_tag() {
     local repo="${OMEGA_REPO:-Dark-Sky07/OMEGA}" tag
     tag="${OMEGA_TAG:-$(curl -4fsSL "https://api.github.com/repos/${repo}/releases/latest" 2> /dev/null | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}"
@@ -143,13 +147,13 @@ omega_run_installer() {
     local repo="${OMEGA_REPO:-Dark-Sky07/OMEGA}" tag tmp rc
     tag="${1:-$(omega_latest_tag)}"
     if [[ -z "${tag}" ]]; then
-        LOGE "Could not determine the latest OMEGA release tag."
+        LOGE "Could not determine the latest PHOENIX release tag."
         return 1
     fi
     tmp="$(mktemp /tmp/omega-install.XXXXXX.sh)" || return 1
     if ! curl -4fLRsS -o "${tmp}" "https://raw.githubusercontent.com/${repo}/${tag}/install-omega.sh"; then
         rm -f "${tmp}"
-        LOGE "Could not download the OMEGA ${tag} installer."
+        LOGE "Could not download the PHOENIX ${tag} installer."
         return 1
     fi
     env OMEGA_REF="${tag}" bash "${tmp}" "${tag}"
@@ -204,6 +208,8 @@ update_menu() {
     fi
     chmod +x ${xui_folder}/x-ui.sh
     chmod +x /usr/bin/x-ui
+    cp -f /usr/bin/x-ui /usr/bin/phoenix 2> /dev/null || true
+    chmod +x /usr/bin/phoenix 2> /dev/null || true
     echo -e "${green}Update successful. The panel has automatically restarted.${plain}"
     exit 0
 }
@@ -213,13 +219,13 @@ legacy_version() {
     # made a menu action an accidental downgrade path and could install a
     # release with a mismatched launcher. Keep the menu entry safe by routing
     # it through the same latest-release resolver as install/update.
-    echo "Version-pinned installation is no longer supported; resolving the latest OMEGA release."
+    echo "Version-pinned installation is no longer supported; resolving the latest PHOENIX release."
     omega_run_installer
 }
 
 # Function to handle the deletion of the script file
 delete_script() {
-    rm "$0" # Remove the script file itself
+    rm -f /usr/bin/phoenix /usr/bin/x-ui "$0" # Remove the script file itself
     exit 1
 }
 
@@ -806,6 +812,8 @@ update_shell() {
         before_show_menu
     else
         chmod +x /usr/bin/x-ui
+        cp -f /usr/bin/x-ui /usr/bin/phoenix 2> /dev/null || true
+        chmod +x /usr/bin/phoenix 2> /dev/null || true
         LOGI "Upgrade script succeeded, Please rerun the script"
         before_show_menu
     fi
@@ -3076,32 +3084,32 @@ migrate_db_prompt() {
 
 show_usage() {
     echo -e "┌────────────────────────────────────────────────────────────────┐
-│  ${blue}x-ui control menu usages (subcommands):${plain}                       │
+│  ${blue}phoenix control menu usages (subcommands):${plain}                    │
 │                                                                │
-│  ${blue}x-ui${plain}                       - Admin Management Script          │
-│  ${blue}x-ui start${plain}                 - Start                            │
-│  ${blue}x-ui stop${plain}                  - Stop                             │
-│  ${blue}x-ui restart${plain}               - Restart                          │
-|  ${blue}x-ui restart-xray${plain}          - Restart Xray                     │
-│  ${blue}x-ui status${plain}                - Current Status                   │
-│  ${blue}x-ui settings${plain}              - Current Settings                 │
-│  ${blue}x-ui enable${plain}                - Enable Autostart on OS Startup   │
-│  ${blue}x-ui disable${plain}               - Disable Autostart on OS Startup  │
-│  ${blue}x-ui log${plain}                   - Check logs                       │
-│  ${blue}x-ui banlog${plain}                - Check Fail2ban ban logs          │
-│  ${blue}x-ui update${plain}                - Update                           │
-│  ${blue}x-ui update-all-geofiles${plain}   - Update all geo files             │
-│  ${blue}x-ui migrateDB [file]${plain}      - Convert .db <-> .dump (SQLite)   │
-│  ${blue}x-ui legacy${plain}                - Legacy version                   │
-│  ${blue}x-ui install${plain}               - Install                          │
-│  ${blue}x-ui uninstall${plain}             - Uninstall                        │
+│  ${blue}phoenix${plain}                    - Admin Management Script          │
+│  ${blue}phoenix start${plain}              - Start                            │
+│  ${blue}phoenix stop${plain}               - Stop                             │
+│  ${blue}phoenix restart${plain}            - Restart                          │
+|  ${blue}phoenix restart-xray${plain}       - Restart Xray                     │
+│  ${blue}phoenix status${plain}             - Current Status                   │
+│  ${blue}phoenix settings${plain}           - Current Settings                 │
+│  ${blue}phoenix enable${plain}             - Enable Autostart on OS Startup   │
+│  ${blue}phoenix disable${plain}            - Disable Autostart on OS Startup  │
+│  ${blue}phoenix log${plain}                - Check logs                       │
+│  ${blue}phoenix banlog${plain}             - Check Fail2ban ban logs          │
+│  ${blue}phoenix update${plain}             - Update                           │
+│  ${blue}phoenix update-all-geofiles${plain}- Update all geo files             │
+│  ${blue}phoenix migrateDB [file]${plain}   - Convert .db <-> .dump (SQLite)   │
+│  ${blue}phoenix legacy${plain}             - Legacy version                   │
+│  ${blue}phoenix install${plain}            - Install                          │
+│  ${blue}phoenix uninstall${plain}          - Uninstall                        │
 └────────────────────────────────────────────────────────────────┘"
 }
 
 show_menu() {
     echo -e "
 ╔────────────────────────────────────────────────╗
-│   ${green}OMEGA Panel Management Script${plain}                │
+│   🔥 ${yellow}PHOENIX Panel Management Script${plain}           │
 │   ${green}0.${plain} Exit Script                               │
 │────────────────────────────────────────────────│
 │   ${green}1.${plain} Install                                   │

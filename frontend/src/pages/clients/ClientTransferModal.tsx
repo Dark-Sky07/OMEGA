@@ -68,7 +68,7 @@ export default function ClientTransferModal({ open, onOpenChange, onImported }: 
 
   async function submit() {
     if (!payload) {
-      setParseError('Choose a valid OMEGA client transfer file first.');
+      setParseError('Choose a valid PHOENIX client transfer file first.');
       return;
     }
     setSubmitting(true);
@@ -129,7 +129,7 @@ export default function ClientTransferModal({ open, onOpenChange, onImported }: 
           }}
         >
           <p className="ant-upload-drag-icon"><InboxOutlined /></p>
-          <p className="ant-upload-text">Click or drag an OMEGA JSON export here</p>
+          <p className="ant-upload-text">Click or drag a PHOENIX JSON export here</p>
           <p className="ant-upload-hint">Only client configuration and authorized inbound attachments are transferred.</p>
         </Dragger>
         {parseError && <Alert type="error" showIcon message={parseError} />}

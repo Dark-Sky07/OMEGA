@@ -19,7 +19,7 @@ const (
 	loginResellerKey  = "LOGIN_RESELLER"
 	resellerEpochKey  = "LOGIN_RESELLER_EPOCH"
 	apiAuthUserKey    = "api_auth_user"
-	sessionCookieName = "3x-ui"
+	sessionCookieName = "phoenix"
 )
 
 func init() {

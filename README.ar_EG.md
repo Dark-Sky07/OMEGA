@@ -1,27 +1,27 @@
 [English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md)
 
-> **OMEGA** — 3x-ui v3.3.1 + Resellers (نمایندگی). Install: `bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install`. Docs: [English](README.md) · [فارسی](README.fa_IR.md)
+> **PHOENIX** — PHOENIX v3.3.1 + Resellers (نمایندگی). Install: `bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install`. Docs: [English](README.md) · [فارسی](README.fa_IR.md)
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./media/3x-ui-dark.png">
-    <img alt="3x-ui" src="./media/3x-ui-light.png">
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/phoenix-emblem.jpg">
+    <img alt="PHOENIX" src="./docs/assets/phoenix-emblem.jpg">
   </picture>
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dark-Sky07/OMEGA/releases"><img src="https://img.shields.io/github/v/release/mhsanaei/3x-ui" alt="Release"></a>
-  <a href="https://github.com/Dark-Sky07/OMEGA/actions"><img src="https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg" alt="Build"></a>
+  <a href="https://github.com/Dark-Sky07/OMEGA/releases"><img src="https://img.shields.io/github/v/release/dark-sky07/omega" alt="Release"></a>
+  <a href="https://github.com/Dark-Sky07/OMEGA/actions"><img src="https://img.shields.io/github/actions/workflow/status/dark-sky07/omega/release.yml.svg" alt="Build"></a>
   <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/Dark-Sky07/OMEGA.svg" alt="GO Version"></a>
-  <a href="https://github.com/Dark-Sky07/OMEGA/releases/latest"><img src="https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg" alt="Downloads"></a>
+  <a href="https://github.com/Dark-Sky07/OMEGA/releases/latest"><img src="https://img.shields.io/github/downloads/dark-sky07/omega/total.svg" alt="Downloads"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
   <a href="https://pkg.go.dev/github.com/mhsanaei/3x-ui/v3"><img src="https://pkg.go.dev/badge/github.com/mhsanaei/3x-ui/v3.svg" alt="Go Reference"></a>
   <a href="https://goreportcard.com/report/github.com/mhsanaei/3x-ui/v3"><img src="https://goreportcard.com/badge/github.com/mhsanaei/3x-ui/v3" alt="Go Report Card"></a>
 </p>
 
-**3X-UI** هي لوحة تحكم ويب متقدمة ومفتوحة المصدر لإدارة خوادم [Xray-core](https://github.com/XTLS/Xray-core). توفّر واجهة نظيفة ومتعددة اللغات لنشر وتكوين ومراقبة مجموعة واسعة من بروتوكولات الوكيل وVPN — من خادم VPS واحد إلى عمليات النشر متعددة العقد.
+**PHOENIX** هي لوحة تحكم ويب متقدمة ومفتوحة المصدر لإدارة خوادم [Xray-core](https://github.com/XTLS/Xray-core). توفّر واجهة نظيفة ومتعددة اللغات لنشر وتكوين ومراقبة مجموعة واسعة من بروتوكولات الوكيل وVPN — من خادم VPS واحد إلى عمليات النشر متعددة العقد.
 
-تم بناء 3X-UI كنسخة محسّنة (fork) من مشروع X-UI الأصلي، وتضيف دعمًا أوسع للبروتوكولات، واستقرارًا محسّنًا، ومحاسبة للترافيك لكل عميل، والعديد من ميزات تحسين تجربة الاستخدام.
+تم بناء PHOENIX كنسخة محسّنة (fork) من مشروع X-UI الأصلي، وتضيف دعمًا أوسع للبروتوكولات، واستقرارًا محسّنًا، ومحاسبة للترافيك لكل عميل، والعديد من ميزات تحسين تجربة الاستخدام.
 
 > [!IMPORTANT]
 > هذا المشروع مخصص للاستخدام الشخصي فقط. يرجى عدم استخدامه لأغراض غير قانونية أو في بيئة إنتاجية.
@@ -75,7 +75,7 @@
 bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install
 ```
 
-أثناء التثبيت، يتم إنشاء اسم مستخدم وكلمة مرور ومسار وصول عشوائية. بعد التثبيت، شغّل `x-ui` لفتح قائمة الإدارة، حيث يمكنك بدء/إيقاف الخدمة، وعرض أو إعادة تعيين بيانات تسجيل الدخول، وإدارة شهادات SSL، والمزيد.
+أثناء التثبيت، يتم إنشاء اسم مستخدم وكلمة مرور ومسار وصول عشوائية. بعد التثبيت، شغّل `phoenix` لفتح قائمة الإدارة، حيث يمكنك بدء/إيقاف الخدمة، وعرض أو إعادة تعيين بيانات تسجيل الدخول، وإدارة شهادات SSL، والمزيد.
 
 للحصول على الوثائق الكاملة، يرجى زيارة [ويكي المشروع](https://github.com/Dark-Sky07/OMEGA/wiki).
 
@@ -87,7 +87,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.s
 
 ## خيارات قاعدة البيانات
 
-يدعم 3X-UI خلفيتين (backends) يتم اختيارهما أثناء التثبيت:
+يدعم PHOENIX خلفيتين (backends) يتم اختيارهما أثناء التثبيت:
 
 - **SQLite** (افتراضي) — ملف واحد في `/etc/x-ui/x-ui.db`. بدون إعداد، مثالي لعمليات النشر الصغيرة والمتوسطة.
 - **PostgreSQL** — موصى به لأعداد العملاء الكبيرة أو الإعدادات متعددة العقد. يمكن للمثبِّت تثبيت PostgreSQL محليًا لك، أو قبول DSN لخادم موجود.
@@ -102,7 +102,7 @@ XUI_DB_DSN=postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable
 ### ترحيل تثبيت SQLite موجود إلى PostgreSQL
 
 ```bash
-x-ui migrate-db --dsn "postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable"
+phoenix migrate-db --dsn "postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable"
 # ثم عيّن XUI_DB_TYPE و XUI_DB_DSN في /etc/default/x-ui وأعد التشغيل:
 systemctl restart x-ui
 ```
@@ -158,9 +158,9 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 
 ## أدوات المجتمع
 
-أدوات وتكاملات بناها المجتمع حول 3x-ui.
+أدوات وتكاملات بناها المجتمع حول PHOENIX.
 
-- [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (الترخيص: **MIT**): _إدارة الاتصالات الواردة والعملاء وإعدادات اللوحة وتكوين Xray كرمز باستخدام Terraform / OpenTofu._
+- [terraform-provider-PHOENIX](https://github.com/batonogov/terraform-provider-threexui) (الترخيص: **MIT**): _إدارة الاتصالات الواردة والعملاء وإعدادات اللوحة وتكوين Xray كرمز باستخدام Terraform / OpenTofu._
 
 ## دعم المشروع
 
@@ -176,4 +176,4 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 
 ## النجوم عبر الزمن
 
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)
+[![Stargazers over time](https://starchart.cc/Dark-Sky07/OMEGA.svg?variant=adaptive)](https://starchart.cc/Dark-Sky07/OMEGA)

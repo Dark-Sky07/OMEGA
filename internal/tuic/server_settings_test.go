@@ -67,7 +67,7 @@ func TestLogfUsesCommonLoggerAndHonorsThreshold(t *testing.T) {
 				}
 			}
 			if !strings.Contains(logs, "inbound 99001 (log-test)") {
-				t.Fatal("TUIC event was not written through the shared 3x-ui logger")
+				t.Fatal("TUIC event was not written through the shared PHOENIX logger")
 			}
 		})
 	}

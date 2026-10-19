@@ -212,7 +212,7 @@ export default function SubPage() {
     return items;
   }, [t]);
 
-  const remarkTag = useMemo(() => encodeURIComponent(subTitle || sId || 'OMEGA'), []);
+  const remarkTag = useMemo(() => encodeURIComponent(subTitle || sId || 'PHOENIX'), []);
   const singboxImportUrl = useMemo(
     () => `sing-box://import-remote-profile?url=${encodeURIComponent(subUrl)}#${remarkTag}`,
     [remarkTag],

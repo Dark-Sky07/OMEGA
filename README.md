@@ -1,42 +1,38 @@
 <div align="center">
 
-<img src="./media/omega-banner.png" alt="OMEGA" width="100%">
+<img src="./docs/assets/phoenix-medallion.png" alt="PHOENIX Medallion" width="220">
 
-# OMEGA
+# 🔥 PHOENIX (ققنوس)
 
-**A panel for managing Xray-core servers — built on [3x-ui](https://github.com/MHSanaei/3x-ui) `v3.3.1`, extended with [Resellers (نمایندگی)](#-resellers-نمایندگی), native AmneziaWG, OpenVPN, and L2TP/IPsec daemons.**
+**Reborn from Fire & Ash — Unified Multi-Protocol Proxy & VPN Sovereignty Panel**  
+**Xray-core · OpenVPN · L2TP/IPsec · AmneziaWG · TUIC v5 · MASQUE · XDRIVE · Multi-Reseller Engine**
 
 English · [فارسی](README.fa_IR.md)
 
-[![Release](https://img.shields.io/github/v/release/Dark-Sky07/OMEGA?include_prereleases&label=release&color=blue)](https://github.com/Dark-Sky07/OMEGA/releases)
-[![Build](https://img.shields.io/github/actions/workflow/status/Dark-Sky07/OMEGA/release.yml?label=build)](https://github.com/Dark-Sky07/OMEGA/actions)
-[![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
-[![Base](https://img.shields.io/badge/base-3x--ui%20v3.3.1-informational)](https://github.com/MHSanaei/3x-ui/releases/tag/v3.3.1)
-[![Go](https://img.shields.io/github/go-mod/go-version/Dark-Sky07/OMEGA)](go.mod)
+[![Release](https://img.shields.io/github/v/release/Dark-Sky07/OMEGA?include_prereleases&label=release&color=ff5500)](https://github.com/Dark-Sky07/OMEGA/releases)
+[![Build](https://img.shields.io/github/actions/workflow/status/Dark-Sky07/OMEGA/release.yml?label=build&color=f97316)](https://github.com/Dark-Sky07/OMEGA/actions)
+[![License](https://img.shields.io/badge/license-GPL--3.0-fbbf24.svg)](LICENSE)
+[![Go](https://img.shields.io/github/go-mod/go-version/Dark-Sky07/OMEGA?color=ea580c)](go.mod)
 [![Platforms](https://img.shields.io/badge/platforms-linux%20%7C%20windows-lightgrey)](#supported-platforms)
 
-**Install the latest OMEGA release in one line** — on a fresh server, as `root`:
+<img src="./docs/assets/phoenix-emblem.jpg" alt="PHOENIX Armored Emblem" width="640">
+
+**Install the latest PHOENIX release in one line** — on a fresh server, as `root`:
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
 ```
 
-This is the canonical automatic installer. It resolves the newest OMEGA release from this repository, downloads the matching panel archive and release-managed scripts, and never falls back to the vanilla 3x-ui repository or to an old tag. For an existing installation, use `x-ui update`; it follows the same latest-OMEGA-only path.
-
-> The `main/x-ui.sh` launcher remains available for the management menu and compatibility with existing installs, but new installations should use the direct `install-omega.sh` command above.
+This is the canonical automatic installer. It resolves the newest PHOENIX release from this repository, downloads the matching panel archive and release-managed scripts, and installs the `phoenix` CLI management menu. For an existing installation, run `phoenix update`.
 
 </div>
 
 > [!NOTE]
-> OMEGA is a fork based on 3x-ui v3.3.1. It adds reseller controls, native AmneziaWG, an external OpenVPN daemon,
-> and an external L2TP/IPsec daemon while keeping the panel service name (`x-ui`), install paths
-> (`/usr/local/x-ui`, `/etc/x-ui`), environment variables, and Xray configuration conventions compatible with the
-> upstream project. The OMEGA release version is maintained separately from the upstream core version; see the
-> [latest release](https://github.com/Dark-Sky07/OMEGA/releases/latest) for the current version; the documentation intentionally does not hard-code an older stable tag.
+> Inspired by the myth of the **Phoenix (ققنوس)** — the immortal bird that ignites in solar flame and rises anew from obsidian ash — **PHOENIX** unifies Xray-core, OpenVPN, L2TP/IPsec, AmneziaWG, TUIC v5, MASQUE, and Reseller (نمایندگی) governance in one self-healing control plane while preserving existing database (`/etc/x-ui/x-ui.db`) and service paths for seamless production upgrades.
 
 ---
 
-## :sparkles: What's different from upstream 3x-ui
+## :sparkles: PHOENIX Architecture & Capabilities
 
 | | Change |
 | --- | --- |
@@ -45,15 +41,15 @@ This is the canonical automatic installer. It resolves the newest OMEGA release 
 | ➕ **Added** | **L2TP/IPsec inbounds** — one global local-Linux daemon group (strongSwan + xl2tpd/PPP) uses existing client email/password credentials, persists the IPsec PSK, reconciles daemon config and `chap-secrets` synchronously for single and bulk client operations, recovers orphaned daemons after restart, manages UDP 500/4500/1701 plus IPv4 forwarding/FORWARD/MASQUERADE rules, and reports PPP online/traffic state with per-client quota enforcement. It is not an Xray inbound, does not generate a profile file, and does not include PPTP; the UI shows native client parameters. |
 | ➕ **Added** | **Native AmneziaWG** — real AWG inbounds with generated key material, AWG 3.1 obfuscation settings, peer/client lifecycle, per-client status and traffic, quotas, allowed-IP allocation, subscriptions, reseller scoping, native `.conf` downloads, and QR payloads accepted by the standalone AmneziaWG app. It is implemented as a working protocol path, not a form-only option. |
 | 🛡️ **Safety & lifecycle** | Client/inbound import-export preserves existing data and attachments; reseller visibility requires explicit attachment; OpenVPN and L2TP accounting and quotas use the same client lifecycle; L2TP recovery is idempotent; bulk attach and client operations are supported. |
-| 🔄 **Updates** | The installer and in-panel updater resolve the latest OMEGA release only. Release builds stamp the actual tag into the panel version, validate the latest Xray-core archive before replacement, and keep rollback guards so a failed update does not leave the old installation unusable. |
+| 🔄 **Updates** | The installer and in-panel updater resolve the latest PHOENIX release only. Release builds stamp the actual tag into the panel version, validate the latest Xray-core archive before replacement, and keep rollback guards so a failed update does not leave the old installation unusable. |
 | 🐳 **Docker** | Multi-architecture images are published to [GHCR](https://ghcr.io/dark-sky07/omega) on release tags, with OpenVPN/L2TP device and capability requirements documented in `docker-compose.yml`. |
-| 🎨 **Branding** | Panel name shown as **OMEGA** (sidebar, login page, page titles, API docs, translations). UI branding only; service names and install paths remain unchanged. |
-| 🛠 **Install** | [`install-omega.sh`](install-omega.sh) is the canonical fresh-install entry point; [`x-ui.sh`](x-ui.sh) remains the management/compatibility launcher. Both resolve the latest OMEGA release only, and `x-ui update` never falls back to vanilla 3x-ui. |
-| ✅ **Unchanged** | Everything else — all of 3x-ui v3.3.1 (protocols, transports, nodes, subscriptions, Telegram bot, routing, API, themes, 13 languages). |
+| 🎨 **Branding** | Panel name shown as **PHOENIX** (sidebar, login page, page titles, API docs, translations). UI branding only; service names and install paths remain unchanged. |
+| 🛠 **Install** | [`install-omega.sh`](install-omega.sh) is the canonical fresh-install entry point; [`x-ui.sh`](x-ui.sh) remains the management/compatibility launcher. Both resolve the latest PHOENIX release only, and `phoenix update` never falls back to vanilla PHOENIX. |
+| ✅ **Unchanged** | Everything else — all of PHOENIX v3.3.1 (protocols, transports, nodes, subscriptions, Telegram bot, routing, API, themes, 13 languages). |
 
 ### OpenVPN installation and host checklist
 
-OpenVPN is a host daemon, not an Xray component and not a file inside the `x-ui` release archive. The release installer installs the `openvpn` package, validates `/dev/net/tun`, and aborts instead of silently installing a panel that cannot serve an OpenVPN inbound. It intentionally does not enable a generic `openvpn.service`: OMEGA creates `bin/openvpn/<inbound-id>/openvpn.conf` and starts one daemon per enabled local OpenVPN inbound.
+OpenVPN is a host daemon, not an Xray component and not a file inside the `phoenix` release archive. The release installer installs the `openvpn` package, validates `/dev/net/tun`, and aborts instead of silently installing a panel that cannot serve an OpenVPN inbound. It intentionally does not enable a generic `openvpn.service`: PHOENIX creates `bin/openvpn/<inbound-id>/openvpn.conf` and starts one daemon per enabled local OpenVPN inbound.
 
 To install or repair an existing host with the exact stable release, run as `root`:
 
@@ -70,11 +66,11 @@ test -c /dev/net/tun && echo "TUN is ready"
 systemctl restart x-ui
 ```
 
-The `x-ui update` script shipped in this release resolves the latest stable release tag and runs its matching installer; it no longer downloads an unpinned, possibly stale `main` installer. For an OpenVPN inbound, allow the configured port on the VPS/provider firewall using the selected transport (`udp` or `tcp`). OMEGA enables IPv4 forwarding and maintains exact `INPUT`, `FORWARD`, and `POSTROUTING MASQUERADE` rules for the generated `10.x.x.0/24` tunnel subnet, while preserving unrelated firewall rules. If a profile imports but remains on `Trying to connect`, check `command -v openvpn`, `command -v iptables`, `/dev/net/tun`, the listener with `ss -lunpt`, and `/var/log/x-ui/3xui.log` plus `bin/openvpn/<inbound-id>/openvpn.log`.
+The `phoenix update` script shipped in this release resolves the latest stable release tag and runs its matching installer; it no longer downloads an unpinned, possibly stale `main` installer. For an OpenVPN inbound, allow the configured port on the VPS/provider firewall using the selected transport (`udp` or `tcp`). PHOENIX enables IPv4 forwarding and maintains exact `INPUT`, `FORWARD`, and `POSTROUTING MASQUERADE` rules for the generated `10.x.x.0/24` tunnel subnet, while preserving unrelated firewall rules. If a profile imports but remains on `Trying to connect`, check `command -v openvpn`, `command -v iptables`, `/dev/net/tun`, the listener with `ss -lunpt`, and `/var/log/x-ui/3xui.log` plus `bin/openvpn/<inbound-id>/openvpn.log`.
 
 ### L2TP/IPsec installation and host checklist
 
-L2TP/IPsec is a host daemon, not an Xray protocol. The installer installs and verifies `strongswan`, `xl2tpd`, `ppp`, `iptables`, and `iproute2`, and checks `/dev/ppp`. Only one enabled local L2TP/IPsec inbound is allowed because the daemon group owns UDP 500 (IKE), UDP 4500 (NAT-T), UDP 1701 (L2TP), and ESP protocol 50 for clients without NAT. PPTP is not part of OMEGA.
+L2TP/IPsec is a host daemon, not an Xray protocol. The installer installs and verifies `strongswan`, `xl2tpd`, `ppp`, `iptables`, and `iproute2`, and checks `/dev/ppp`. Only one enabled local L2TP/IPsec inbound is allowed because the daemon group owns UDP 500 (IKE), UDP 4500 (NAT-T), UDP 1701 (L2TP), and ESP protocol 50 for clients without NAT. PPTP is not part of PHOENIX.
 
 The panel writes managed runtime files under `bin/l2tp/<inbound-id>/`, enables IPv4 forwarding, opens the three UDP listeners in iptables, and installs `FORWARD` plus `MASQUERADE` rules for the configured pool. Attach existing clients from the normal Clients page; their email is the PPP username and their password is the MS-CHAPv2 credential. The inbound info view shows the PSK, pool, DNS, and fixed ports. Subscription info shows one native parameter set for every attached client with that subscription ID, and the admin Client Information dialog shows the same values with copy buttons. Configure clients with their native L2TP/IPsec settings; no profile file or synthetic Xray link is generated.
 
@@ -93,7 +89,7 @@ For Docker, the container needs `NET_ADMIN`, `NET_RAW`, `/dev/ppp`, `/dev/net/tu
 
 ### Routing rules for OpenVPN and L2TP/IPsec clients
 
-OpenVPN and L2TP/IPsec are served by host daemons, so their clients' packets used to be forwarded and NATed by the kernel without ever passing through Xray — nothing on the **Xray → Routing** page applied to them. OMEGA now relays that traffic into the core: every enabled local OpenVPN/L2TP inbound gets a loopback `dokodemo-door` TPROXY listener in the generated Xray config, tagged with the inbound's own tag, and the daemons' network managers add `mangle PREROUTING` TPROXY rules (`-i tun<id>` / `-i ppp+`, matched on the pool subnet) that hand new TCP connections and all UDP datagrams to it, plus a `filter INPUT` accept for the marked packets so default-deny firewalls (ufw) do not drop them. Xray sniffs the destination like it does for its native inbounds, so basic and custom rules (domain, IP, port, protocol, `inboundTag` = the inbound's tag, balancers) apply exactly as they do for Xray inbounds. AmneziaWG already enters Xray through its embedded relay and is unaffected.
+OpenVPN and L2TP/IPsec are served by host daemons, so their clients' packets used to be forwarded and NATed by the kernel without ever passing through Xray — nothing on the **Xray → Routing** page applied to them. PHOENIX now relays that traffic into the core: every enabled local OpenVPN/L2TP inbound gets a loopback `dokodemo-door` TPROXY listener in the generated Xray config, tagged with the inbound's own tag, and the daemons' network managers add `mangle PREROUTING` TPROXY rules (`-i tun<id>` / `-i ppp+`, matched on the pool subnet) that hand new TCP connections and all UDP datagrams to it, plus a `filter INPUT` accept for the marked packets so default-deny firewalls (ufw) do not drop them. Xray sniffs the destination like it does for its native inbounds, so basic and custom rules (domain, IP, port, protocol, `inboundTag` = the inbound's tag, balancers) apply exactly as they do for Xray inbounds. AmneziaWG already enters Xray through its embedded relay and is unaffected.
 
 - **Opt-in, per inbound.** The OpenVPN/L2TP inbound forms have a *Route through Xray* switch that is **off by default** (existing inbounds stay on the direct path until you turn it on). Enable it on one inbound first and verify with `iptables -t mangle -S PREROUTING | grep 0x2e01` and a client; turning it off restores the direct `FORWARD`/`MASQUERADE` path. The switch only changes iptables rules and the generated Xray config, never the daemon config, so it does not restart the OpenVPN daemon (saving the L2TP form restarts the L2TP daemon, as any L2TP edit does).
 - **Fail-open.** The divert rules exist only while the running core actually listens on the relay port; when Xray is stopped, restarting, or cannot start transparent sockets, the pool falls back to the direct path within one reconcile round (~10 s) and a warning is logged. Should Xray die right after starting twice in a row with relay listeners configured, they are suspended until the next forced restart.
@@ -104,7 +100,7 @@ OpenVPN and L2TP/IPsec are served by host daemons, so their clients' packets use
 
 - **One global listener:** the panel accepts only one L2TP/IPsec inbound per local host. UDP 500 and 4500 are used by IKE/NAT-T and UDP 1701 by L2TP.
 - **Existing clients:** attach clients from the normal Clients page; email becomes the PPP username and the existing password becomes the MS-CHAPv2 secret. Enable/disable, password edits, attach, detach, bulk delete, and quota enforcement are reconciled without putting L2TP into the Xray configuration.
-- **Managed networking:** OMEGA enables IPv4 forwarding and maintains exact `INPUT`, `FORWARD`, and `POSTROUTING MASQUERADE` rules for the configured pool. Firewall state is persisted so restart and cleanup can reclaim rules safely.
+- **Managed networking:** PHOENIX enables IPv4 forwarding and maintains exact `INPUT`, `FORWARD`, and `POSTROUTING MASQUERADE` rules for the configured pool. Firewall state is persisted so restart and cleanup can reclaim rules safely.
 - **Restart-safe lifecycle:** daemon files live under `bin/l2tp/<inbound-id>/`; strongSwan/xl2tpd are started, stopped, reconciled after settings changes, and orphaned processes are reclaimed after a panel restart.
 - **No profile files:** the panel displays PSK, pool, DNS, and port values as native connection parameters. PPTP is intentionally out of scope.
 
@@ -112,12 +108,12 @@ OpenVPN and L2TP/IPsec are served by host daemons, so their clients' packets use
 
 ## :shield: AmneziaWG
 
-OMEGA's AmneziaWG support is a native, end-to-end protocol path. It is not limited to adding an option to the
+PHOENIX's AmneziaWG support is a native, end-to-end protocol path. It is not limited to adding an option to the
 inbound form:
 
 - **Server and peer lifecycle:** server keys, client keys, allowed-IP allocation, pre-shared keys, keepalive,
   enable/disable, add/edit/delete, attach/detach, bulk operations, and restart-safe reconciliation are handled by
-  the same client/inbound services used by the rest of OMEGA.
+  the same client/inbound services used by the rest of PHOENIX.
 - **AWG parameters:** `Jc`, `Jmin`, `Jmax`, `S1`–`S4`, `H1`–`H4`, `I1`–`I5`, and the AWG 3.1 fields such as
   `HeaderProtectionKey`, `ContentPaddingAddition`, rekey/reject timing, random trailers, and cookie controls are
   validated and passed to the running AmneziaWG engine.
@@ -139,7 +135,7 @@ or archive** in the AmneziaWG app. Do not paste an AmneziaVPN `vpn://` URI into 
 - **Inbound import:** imported inbounds receive local identities while their protocol settings, clients, enabled state,
   and relevant configuration are preserved. Existing data is not replaced or deleted implicitly; destructive attachment
   replacement requires the explicit `replaceAttachments` option.
-- **Release/update path:** `dynamic_latest` resolves the newest OMEGA tag, downloads the matching Xray-core archive,
+- **Release/update path:** `dynamic_latest` resolves the newest PHOENIX tag, downloads the matching Xray-core archive,
   validates the archive and binary before activation, and retains the previous working binary for rollback. Existing
   users are not disconnected until a new binary is ready and validated and a restart is required.
 
@@ -160,7 +156,7 @@ The installer takes care of everything:
 1. installs the required packages (`curl`, `tar`, `socat`, `openssl`, `tzdata`, cron …) plus the host `openvpn`, strongSwan, xl2tpd, PPP, iptables, and iproute2 packages,
 2. verifies that `/dev/net/tun` and `/dev/ppp` are available; installation stops if the VPN prerequisite is not usable,
 3. downloads the packaged release for your architecture (panel **+ Xray-core + geoip/geosite + mtg**),
-4. installs it to `/usr/local/x-ui` and registers the unchanged `x-ui` systemd service,
+4. installs it to `/usr/local/x-ui` and registers the unchanged `phoenix` systemd service,
 5. keeps an existing database/settings when upgrading, and
 6. restarts the panel and prints the access URL.
 
@@ -169,12 +165,12 @@ Defaults: port **2053**, login **admin / admin** — change both right after you
 ### Managing the panel
 
 ```bash
-x-ui              # management menu: start / stop / restart / settings / log / update / uninstall
-x-ui status       # service status
-x-ui settings     # current settings, including the hidden web base path
-x-ui log          # panel log
-x-ui update       # update to the newest OMEGA release (never downgrades to vanilla 3x-ui)
-x-ui uninstall    # full removal (the database in /etc/x-ui is kept; back it up first)
+phoenix           # management menu: start / stop / restart / settings / log / update / uninstall
+phoenix status       # service status
+phoenix settings     # current settings, including the hidden web base path
+phoenix log          # panel log
+phoenix update       # update to the newest PHOENIX release (never downgrades to vanilla PHOENIX)
+phoenix uninstall    # full removal (the database in /etc/x-ui is kept; back it up first)
 ```
 
 ### Manual install
@@ -202,7 +198,7 @@ systemctl daemon-reload && systemctl enable --now x-ui
 ### Upgrade / backup
 
 ```bash
-x-ui update                                   # upgrade in place, settings preserved
+phoenix update                                   # upgrade in place, settings preserved
 cp /etc/x-ui/x-ui.db /root/x-ui-backup.db     # or use Settings → Backup inside the panel
 ```
 
@@ -248,7 +244,7 @@ flowchart LR
 
 | Role | Pages |
 | --- | --- |
-| **Admin** | **Resellers** (list, create/edit, quotas, assign inbounds, assign clients, balance, reset password, report drawer) + everything 3x-ui has |
+| **Admin** | **Resellers** (list, create/edit, quotas, assign inbounds, assign clients, balance, reset password, report drawer) + everything PHOENIX has |
 | **Reseller** | **Report** (usage, cost, balance, per-client rows, ledger), **Profile** (quotas, usage, change password), **Inbounds** and **Clients** (its own only) |
 
 ### API
@@ -280,7 +276,7 @@ And the reseller's own endpoints (reachable with a reseller session):
 
 ## :camera: Screenshots
 
-Panel pages inherited from 3x-ui v3.3.1 (the reseller pages follow the same design):
+Panel pages inherited from PHOENIX v3.3.1 (the reseller pages follow the same design):
 
 <details>
 <summary>Click to expand</summary>
@@ -311,9 +307,9 @@ Panel pages inherited from 3x-ui v3.3.1 (the reseller pages follow the same desi
 
 ## Features
 
-Inherited from 3x-ui v3.3.1, untouched:
+Inherited from PHOENIX v3.3.1, untouched:
 
-- **Multi-protocol inbounds** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, Hysteria2, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel, and TUN. Native AmneziaWG is documented above as an OMEGA addition.
+- **Multi-protocol inbounds** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, Hysteria2, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel, and TUN. Native AmneziaWG is documented above as an PHOENIX addition.
 - **Modern transports & security** — TCP (Raw), mKCP, WebSocket, gRPC, HTTPUpgrade, and XHTTP, secured with TLS, XTLS, and REALITY.
 - **Fallbacks** — serve multiple protocols on a single port (e.g. VLESS and Trojan on 443) using Xray's fallback support.
 - **Per-client management** — traffic quotas, expiry dates, IP limits, live online status, and one-click share links, QR codes, and subscriptions.
@@ -335,7 +331,7 @@ Inherited from 3x-ui v3.3.1, untouched:
 
 ## Database Options
 
-OMEGA/3x-ui supports two backends, chosen during the install:
+PHOENIX/PHOENIX supports two backends, chosen during the install:
 
 - **SQLite** (default) — a single file at `/etc/x-ui/x-ui.db`. Zero setup, ideal for small and medium deployments.
 - **PostgreSQL** — recommended for high client counts or multi-node setups. The installer can install PostgreSQL locally for you, or accept a DSN to an existing server.
@@ -350,7 +346,7 @@ XUI_DB_DSN=postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable
 ### Migrating an existing SQLite install to PostgreSQL
 
 ```bash
-x-ui migrate-db --dsn "postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable"
+phoenix migrate-db --dsn "postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable"
 # then set XUI_DB_TYPE and XUI_DB_DSN in /etc/default/x-ui and restart:
 systemctl restart x-ui
 ```
@@ -359,10 +355,10 @@ The source SQLite file is left untouched; remove it manually once you have verif
 
 ### Docker
 
-OMEGA publishes multi-architecture images to [GHCR](https://ghcr.io/dark-sky07/omega) for release tags. To build the same image locally instead, use the bundled `Dockerfile`:
+PHOENIX publishes multi-architecture images to [GHCR](https://ghcr.io/dark-sky07/omega) for release tags. To build the same image locally instead, use the bundled `Dockerfile`:
 
 ```bash
-git clone https://github.com/Dark-Sky07/OMEGA.git && cd OMEGA
+git clone https://github.com/Dark-Sky07/OMEGA.git && cd PHOENIX
 docker build -t omega-panel .
 
 docker run -d --name omega --restart unless-stopped \
@@ -406,26 +402,26 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 
 Contributions are welcome. Please read the [Contributing Guide](/CONTRIBUTING.md) before opening an issue or pull request.
 
-For anything that is not about the reseller feature or the OMEGA branding, the upstream
-[3x-ui repository](https://github.com/MHSanaei/3x-ui) and its [Wiki](https://github.com/MHSanaei/3x-ui/wiki)
+For anything that is not about the reseller feature or the PHOENIX branding, the upstream
+[PHOENIX repository](https://github.com/Dark-Sky07/OMEGA) and its [Wiki](https://github.com/Dark-Sky07/OMEGA/wiki)
 are the authoritative references.
 
 ## Security notes
 
-- The panel pins the **exact 3x-ui v3.3.1 dependency set** on purpose (`go.mod` / `frontend/package-lock.json`
+- The panel pins the **exact PHOENIX v3.3.1 dependency set** on purpose (`go.mod` / `frontend/package-lock.json`
   are untouched). Advisories published after that release therefore show up in CI's `govulncheck` and
   `npm audit` steps; those two steps report without failing the build. Fixing them would mean changing the
-  pinned dependencies, which is outside the "3x-ui v3.3.1 + resellers only" scope — upstream's newer releases
+  pinned dependencies, which is outside the "PHOENIX v3.3.1 + resellers only" scope — upstream's newer releases
   carry those fixes.
 - Keep the panel on a private port or behind a VPN/HTTPS reverse proxy, change the default `admin/admin` login,
   and rotate reseller passwords from the **Resellers** page whenever one is shared with too many people.
 
 ## Credits & License
 
-- **Upstream project:** [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — this repository is a fork of
-  **3x-ui v3.3.1** and inherits its design, documentation and licence. Thanks to
+- **Upstream project:** [Dark-Sky07/OMEGA](https://github.com/Dark-Sky07/OMEGA) — this repository is a fork of
+  **PHOENIX v3.3.1** and inherits its design, documentation and licence. Thanks to
   [alireza0](https://github.com/alireza0/) and every upstream contributor.
-- **Added here:** reseller (نمایندگی) controls, native AmneziaWG, OpenVPN and L2TP/IPsec integrations, traffic/quota lifecycle support, safe release/update handling, OMEGA branding, and the fork-aware latest-release installer.
+- **Added here:** reseller (نمایندگی) controls, native AmneziaWG, OpenVPN and L2TP/IPsec integrations, traffic/quota lifecycle support, safe release/update handling, PHOENIX branding, and the fork-aware latest-release installer.
 - **Licence:** [GPL-3.0](LICENSE) — same as upstream.
 
 ## Acknowledgment
@@ -435,13 +431,13 @@ are the authoritative references.
 
 ## Community Tools
 
-Tools and integrations built by the community around 3x-ui.
+Tools and integrations built by the community around PHOENIX.
 
-- [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (License: **MIT**): _Manage inbounds, clients, panel settings, and Xray configuration as code with Terraform / OpenTofu._
+- [terraform-provider-PHOENIX](https://github.com/batonogov/terraform-provider-threexui) (License: **MIT**): _Manage inbounds, clients, panel settings, and Xray configuration as code with Terraform / OpenTofu._
 
 ## Support the upstream project
 
-**If this project is helpful to you, you may wish to give it a** :star2: — donations go to the original 3x-ui author:
+**If this project is helpful to you, you may wish to give it a** :star2: — donations go to the original PHOENIX author:
 
 <a href="https://www.buymeacoffee.com/MHSanaei" target="_blank">
 <img src="./media/default-yellow.png" alt="Buy Me A Coffee" style="height: 70px !important;width: 277px !important;" >

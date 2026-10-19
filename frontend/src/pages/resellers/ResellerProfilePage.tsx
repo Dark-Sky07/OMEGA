@@ -273,7 +273,7 @@ export default function ResellerProfilePage() {
                       <Input
                         value={voucherCode}
                         onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
-                        placeholder="OMEGA-XXXX-XXXX"
+                        placeholder="PHOENIX-XXXX-XXXX"
                         style={{ width: 260 }}
                         onPressEnter={redeemVoucher}
                       />

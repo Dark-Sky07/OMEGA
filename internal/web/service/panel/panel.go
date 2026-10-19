@@ -32,14 +32,14 @@ type PanelUpdateInfo struct {
 }
 
 // omegaRepo is the canonical OMEGA project. In-panel updates must only ever
-// pull from this repository — never from the upstream 3x-ui project.
+// pull from this repository — never from the upstream PHOENIX project.
 const omegaRepo = "Dark-Sky07/OMEGA"
 
 const (
 	// panelUpdaterURL is the script the in-panel update button downloads and
 	// runs. It is the very same installer the CLI uses (`x-ui.sh update` →
 	// install-omega.sh), which resolves the latest OMEGA release and restarts
-	// the panel — so an in-panel update can never install upstream 3x-ui.
+	// the panel — so an in-panel update can never install upstream PHOENIX.
 	panelUpdaterURL      = "https://raw.githubusercontent.com/" + omegaRepo + "/main/install-omega.sh"
 	maxPanelUpdaterBytes = 2 << 20
 )
@@ -150,7 +150,7 @@ func downloadPanelUpdater() (string, error) {
 		return "", fmt.Errorf("download panel updater: unexpected HTTP %d", resp.StatusCode)
 	}
 
-	file, err := os.CreateTemp("", "3x-ui-update-*.sh")
+	file, err := os.CreateTemp("", "phoenix-update-*.sh")
 	if err != nil {
 		return "", err
 	}

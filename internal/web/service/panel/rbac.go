@@ -89,7 +89,7 @@ func IsSuperAdmin(u *model.User) bool {
 }
 
 // isReadOnlyPanelPath reports whether a POST endpoint under /panel/api is a
-// read-only query (legacy 3x-ui uses POST for several list/status endpoints).
+// read-only query (legacy PHOENIX uses POST for several list/status endpoints).
 func isReadOnlyPanelPath(path string, method string) bool {
 	if IsReadOnlyAPIRequest(method) {
 		return true

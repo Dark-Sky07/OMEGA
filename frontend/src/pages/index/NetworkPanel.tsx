@@ -21,8 +21,8 @@ interface NetworkPanelProps {
   onOpenHistory: () => void;
 }
 
-const UP_COLOR = '#22d3ee';
-const DOWN_COLOR = '#8b6cff';
+const UP_COLOR = '#fbbf24';
+const DOWN_COLOR = '#ff6a00';
 
 function Speed({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: number; color: string }) {
   return (
