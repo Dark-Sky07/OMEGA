@@ -2,12 +2,17 @@ package service
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/tproxy"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -17,46 +22,42 @@ import (
 
 // Daemon relay: routing OpenVPN and L2TP/IPsec traffic through the core.
 //
-// Those two protocols are served by host daemons, not by Xray, and until now
-// their clients' packets were simply forwarded and NATed by the kernel — so
-// nothing configured on the Routing page ever applied to them. The relay
-// closes that gap without touching the daemons: for every enabled local
-// OpenVPN/L2TP inbound the generated config gets a loopback dokodemo-door
-// inbound in "tproxy" mode, tagged with the inbound's own tag, and the
-// daemons' network managers divert the pool's new TCP connections and UDP
-// datagrams into it with iptables TPROXY (internal/util/tproxy). Xray then
-// sees the original destination, sniffs the domain exactly like it does for
-// its native inbounds, and runs the same router — basic and custom rules,
-// inboundTag matches, balancers, the lot.
+// Those two protocols are served by host daemons, not by Xray. For every
+// enabled local OpenVPN/L2TP inbound that opts into Xray routing (or is
+// referenced by an inboundTag rule in RouterConfig), the generated config
+// receives:
+//  1. A loopback TCP dokodemo-door inbound in "redirect" mode (SO_ORIGINAL_DST)
+//     tagged with the inbound's own tag, with sniffing routeOnly=true so both
+//     domain and IP routing rules match.
+//  2. A companion loopback UDP dokodemo-door inbound on the same port tagged
+//     with "<tag>:dns" that forwards DNS (UDP/53) queries through Xray's
+//     router to the inbound's configured DNS server (default 1.1.1.1:53).
 //
-// Safety properties, in order of importance for a production host:
-//   - Nothing here can restart a daemon: the relay port is not part of the
-//     daemon fingerprints and only affects iptables rules.
-//   - Fail-open: when the relay listener is missing (Xray stopped, feature
-//     suspended, host without TPROXY support) the network managers fall back
-//     to the previous direct path within one reconcile round.
-//   - The relay inbound is only generated when this process can open
-//     transparent sockets and the loopback port is verifiably free, so the
-//     core is never handed an inbound it cannot start; and should it still
-//     die right after starting twice in a row, the relay is suspended.
-//   - Traffic is accounted once: the daemons keep reporting per-inbound and
-//     per-client bytes, and the core's own counters for the relay tag are
-//     discarded (see dropDaemonRelayTraffic).
+// The daemons' network managers redirect TCP (1-65535) and UDP (53) traffic
+// from the VPN subnet into 127.0.0.1:<port> via iptables nat PREROUTING DNAT,
+// and drop QUIC (UDP/443) in FORWARD so browsers fall back to TCP/443.
 
 const (
 	// daemonRelayBasePort is the first loopback port used for relay
 	// listeners: inbound id N gets daemonRelayBasePort+N, bumped past any
-	// port another generated inbound already uses. Deterministic ports keep
-	// the iptables rules stable across config regenerations.
+	// port another generated inbound already uses.
 	daemonRelayBasePort = 63900
 
-	// daemonRelayDokodemoSettings makes the listener accept both transports
-	// and use the kernel-preserved original destination.
-	daemonRelayDokodemoSettings = `{"network":"tcp,udp","followRedirect":true}`
-	// daemonRelayStreamSettings turns the listener into a TPROXY target
-	// (IP_TRANSPARENT + IP_RECVORIGDSTADDR). Also the signature used to
-	// recognise relay inbounds in the running config.
-	daemonRelayStreamSettings = `{"sockopt":{"tproxy":"tproxy"}}`
+	// daemonRelayDokodemoSettings makes the TCP listener recover the kernel's
+	// original pre-DNAT destination via SO_ORIGINAL_DST.
+	daemonRelayDokodemoSettings = `{"network":"tcp","followRedirect":true}`
+	// daemonRelayStreamSettings turns the TCP listener into a REDIRECT/DNAT
+	// target (SO_ORIGINAL_DST). Also the signature used to recognise primary
+	// relay inbounds in the running config.
+	daemonRelayStreamSettings = `{"sockopt":{"tproxy":"redirect"}}`
+	// daemonRelaySniffingSettings enables HTTP/TLS/QUIC/FakeDNS sniffing with
+	// routeOnly=true so Xray's router matches both sniffed domains and the
+	// original destination IP while dialing the real IP if no proxy re-resolves.
+	daemonRelaySniffingSettings = `{"enabled":true,"destOverride":["http","tls","quic","fakedns"],"routeOnly":true}`
+
+	daemonRelayDNSStreamSettings   = `{"sockopt":{}}`
+	daemonRelayDNSSniffingSettings = `{"enabled":false}`
+	daemonRelayDNSTagSuffix        = ":dns"
 
 	// daemonRelayCrashWindow bounds how soon after start a core death counts
 	// as "died on startup" for the crash-loop guard.
@@ -78,16 +79,27 @@ var (
 var daemonRelayListen = json_util.RawMessage(`"` + tproxy.ListenIP + `"`)
 
 // daemonRelaySupported is the capability probe; a variable so tests can run
-// the injection logic on hosts without CAP_NET_ADMIN.
+// the injection logic on hosts without loopback bind privileges.
 var daemonRelaySupported = tproxy.Supported
 
 // isDaemonRelayInbound reports whether a generated inbound is one of the
-// relay listeners produced by injectDaemonRelays.
+// relay listeners produced by injectDaemonRelays (either the primary TCP
+// listener or its companion :dns UDP listener).
 func isDaemonRelayInbound(ib xray.InboundConfig) bool {
-	return ib.Protocol == "dokodemo-door" &&
-		bytes.Equal(ib.Listen, daemonRelayListen) &&
-		bytes.Equal(ib.StreamSettings, json_util.RawMessage(daemonRelayStreamSettings)) &&
-		ib.Port >= daemonRelayBasePort && ib.Port <= 65535
+	if ib.Protocol != "dokodemo-door" || !bytes.Equal(ib.Listen, daemonRelayListen) {
+		return false
+	}
+	if ib.Port < daemonRelayBasePort || ib.Port > 65535 {
+		return false
+	}
+	if bytes.Equal(ib.StreamSettings, json_util.RawMessage(daemonRelayStreamSettings)) {
+		return true
+	}
+	if strings.HasSuffix(ib.Tag, daemonRelayDNSTagSuffix) &&
+		bytes.Equal(ib.StreamSettings, json_util.RawMessage(daemonRelayDNSStreamSettings)) {
+		return true
+	}
+	return false
 }
 
 // configHasDaemonRelay reports whether cfg carries any relay inbound.
@@ -104,9 +116,7 @@ func configHasDaemonRelay(cfg *xray.Config) bool {
 }
 
 // daemonRelayPortFor picks the loopback port for an inbound id, skipping
-// ports already claimed by other inbounds in the generated config. Ids too
-// large for the id-offset scheme fall back to the first free port above the
-// base. Returns 0 when no port is available in the valid range.
+// ports already claimed by other inbounds in the generated config.
 func daemonRelayPortFor(id int, used map[int]struct{}) int {
 	if id <= 0 {
 		return 0
@@ -124,9 +134,7 @@ func daemonRelayPortFor(id int, used map[int]struct{}) int {
 }
 
 // daemonRelayPortAvailable makes sure nothing else on the host owns the
-// loopback port before Xray is asked to bind it. A listener that belongs to
-// this panel's own running relay (same port, relay signature) is fine — that
-// is exactly what a regeneration keeps.
+// loopback port before Xray is asked to bind it.
 func daemonRelayPortAvailable(port int) bool {
 	if p != nil && p.IsRunning() {
 		if cfg := p.GetConfig(); cfg != nil {
@@ -151,12 +159,137 @@ func daemonRelayPortAvailable(port int) bool {
 	return true
 }
 
-// injectDaemonRelays appends one loopback TPROXY dokodemo-door inbound per
-// enabled, local OpenVPN/L2TP inbound that has not opted out. Each relay is
-// tagged with the inbound's own tag so inboundTag rules keep working, and it
-// carries the same sniffing settings as every other generated inbound so
-// domain rules can match. Everything lives only in the generated config and
-// is hot-appliable, so toggling the feature never restarts the core.
+func daemonInboundDNS1(inbound *model.Inbound) string {
+	if inbound != nil && strings.TrimSpace(inbound.Settings) != "" {
+		var parsed struct {
+			DNS1 string `json:"dns1"`
+		}
+		if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err == nil {
+			ip := net.ParseIP(strings.TrimSpace(parsed.DNS1))
+			if ip != nil && ip.To4() != nil {
+				return ip.String()
+			}
+		}
+	}
+	return "1.1.1.1"
+}
+
+func daemonRelayDNSDokodemoSettings(inbound *model.Inbound) string {
+	return fmt.Sprintf(`{"address":%q,"port":53,"network":"udp","followRedirect":false}`, daemonInboundDNS1(inbound))
+}
+
+func daemonInboundOutboundTag(inbound *model.Inbound) string {
+	if inbound == nil || strings.TrimSpace(inbound.Settings) == "" {
+		return ""
+	}
+	var parsed struct {
+		OutboundTag string `json:"outboundTag"`
+	}
+	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil {
+		return ""
+	}
+	return strings.TrimSpace(parsed.OutboundTag)
+}
+
+func routingReferencesInboundTag(raw json_util.RawMessage, tag string) bool {
+	if tag == "" || len(raw) == 0 {
+		return false
+	}
+	var routing map[string]any
+	if err := json.Unmarshal(raw, &routing); err != nil {
+		return false
+	}
+	rules, _ := routing["rules"].([]any)
+	for _, r := range rules {
+		rm, ok := r.(map[string]any)
+		if !ok {
+			continue
+		}
+		if ruleContainsInboundTag(rm, tag) {
+			return true
+		}
+	}
+	return false
+}
+
+func ruleContainsInboundTag(rule map[string]any, tag string) bool {
+	tags, ok := rule["inboundTag"].([]any)
+	if !ok {
+		return false
+	}
+	for _, item := range tags {
+		if s, ok := item.(string); ok && s == tag {
+			return true
+		}
+	}
+	return false
+}
+
+func injectDaemonRelayRouting(cfg *xray.Config, tag string, outboundTag string) {
+	if cfg == nil || tag == "" {
+		return
+	}
+	dnsTag := tag + daemonRelayDNSTagSuffix
+	routing := map[string]any{}
+	if len(cfg.RouterConfig) > 0 {
+		if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+			logger.Warning("daemon relay: routing section is unparsable, skipping routing update:", err)
+			return
+		}
+	}
+	rules, _ := routing["rules"].([]any)
+	changed := false
+	lastMatchingIdx := -1
+	for idx, r := range rules {
+		rm, ok := r.(map[string]any)
+		if !ok {
+			continue
+		}
+		if !ruleContainsInboundTag(rm, tag) {
+			continue
+		}
+		lastMatchingIdx = idx
+		if !ruleContainsInboundTag(rm, dnsTag) {
+			tags, _ := rm["inboundTag"].([]any)
+			rm["inboundTag"] = append(tags, dnsTag)
+			changed = true
+		}
+	}
+	if outboundTag != "" {
+		rule := map[string]any{
+			"type":       "field",
+			"inboundTag": []any{tag, dnsTag},
+		}
+		if routingTagIsBalancer(routing, outboundTag) {
+			rule["balancerTag"] = outboundTag
+		} else {
+			rule["outboundTag"] = outboundTag
+		}
+		if lastMatchingIdx >= 0 {
+			nextRules := make([]any, 0, len(rules)+1)
+			nextRules = append(nextRules, rules[:lastMatchingIdx+1]...)
+			nextRules = append(nextRules, rule)
+			nextRules = append(nextRules, rules[lastMatchingIdx+1:]...)
+			rules = nextRules
+		} else {
+			rules = append([]any{rule}, rules...)
+		}
+		routing["rules"] = rules
+		changed = true
+	}
+	if changed {
+		if newRouting, err := json.Marshal(routing); err == nil {
+			cfg.RouterConfig = json_util.RawMessage(newRouting)
+		} else {
+			logger.Warning("daemon relay: failed to rebuild routing section:", err)
+		}
+	}
+}
+
+// injectDaemonRelays appends a loopback TCP dokodemo-door relay inbound and
+// companion :dns UDP dokodemo-door relay inbound per enabled local OpenVPN or
+// L2TP inbound that has opted into Xray routing or is referenced in
+// RouterConfig.
 func injectDaemonRelays(cfg *xray.Config, inbounds []*model.Inbound) {
 	var wanted []*model.Inbound
 	for _, inbound := range inbounds {
@@ -166,7 +299,7 @@ func injectDaemonRelays(cfg *xray.Config, inbounds []*model.Inbound) {
 		if inbound.Protocol != model.OpenVPN && inbound.Protocol != model.L2TP {
 			continue
 		}
-		if !daemonRelayRoutesThroughXray(inbound) {
+		if !daemonRelayRoutesThroughXray(inbound) && !routingReferencesInboundTag(cfg.RouterConfig, inbound.Tag) {
 			continue
 		}
 		wanted = append(wanted, inbound)
@@ -179,7 +312,7 @@ func injectDaemonRelays(cfg *xray.Config, inbounds []*model.Inbound) {
 	}
 	if !daemonRelaySupported() {
 		if daemonRelayUnsupportedLogged.CompareAndSwap(false, true) {
-			logger.Warning("daemon relay: this process cannot open transparent sockets (needs Linux and CAP_NET_ADMIN); OpenVPN/L2TP traffic stays on the direct path and routing rules will not apply to it")
+			logger.Warning("daemon relay: this process cannot bind loopback relay sockets; OpenVPN/L2TP traffic stays on the direct path and routing rules will not apply to it")
 		}
 		return
 	}
@@ -196,6 +329,11 @@ func injectDaemonRelays(cfg *xray.Config, inbounds []*model.Inbound) {
 			logger.Warning("daemon relay: inbound tag [", inbound.Tag, "] already present in generated config, skipping its relay inbound")
 			continue
 		}
+		dnsTag := inbound.Tag + daemonRelayDNSTagSuffix
+		if _, taken := existingTags[dnsTag]; taken {
+			logger.Warning("daemon relay: DNS inbound tag [", dnsTag, "] already present in generated config, skipping its relay inbound")
+			continue
+		}
 		port := daemonRelayPortFor(inbound.Id, usedPorts)
 		if port == 0 {
 			logger.Warning("daemon relay: no free loopback port for inbound [", inbound.Tag, "], skipping its relay inbound")
@@ -206,25 +344,36 @@ func injectDaemonRelays(cfg *xray.Config, inbounds []*model.Inbound) {
 			continue
 		}
 		existingTags[inbound.Tag] = struct{}{}
+		existingTags[dnsTag] = struct{}{}
 		usedPorts[port] = struct{}{}
-		cfg.InboundConfigs = append(cfg.InboundConfigs, xray.InboundConfig{
-			Listen:         daemonRelayListen,
-			Port:           port,
-			Protocol:       "dokodemo-door",
-			Settings:       json_util.RawMessage(daemonRelayDokodemoSettings),
-			StreamSettings: json_util.RawMessage(daemonRelayStreamSettings),
-			Sniffing:       json_util.RawMessage(amneziawgEgressSniffingSettings),
-			Tag:            inbound.Tag,
-		})
+		cfg.InboundConfigs = append(cfg.InboundConfigs,
+			xray.InboundConfig{
+				Listen:         daemonRelayListen,
+				Port:           port,
+				Protocol:       "dokodemo-door",
+				Settings:       json_util.RawMessage(daemonRelayDokodemoSettings),
+				StreamSettings: json_util.RawMessage(daemonRelayStreamSettings),
+				Sniffing:       json_util.RawMessage(daemonRelaySniffingSettings),
+				Tag:            inbound.Tag,
+			},
+			xray.InboundConfig{
+				Listen:         daemonRelayListen,
+				Port:           port,
+				Protocol:       "dokodemo-door",
+				Settings:       json_util.RawMessage(daemonRelayDNSDokodemoSettings(inbound)),
+				StreamSettings: json_util.RawMessage(daemonRelayDNSStreamSettings),
+				Sniffing:       json_util.RawMessage(daemonRelayDNSSniffingSettings),
+				Tag:            dnsTag,
+			},
+		)
+		injectDaemonRelayRouting(cfg, inbound.Tag, daemonInboundOutboundTag(inbound))
 	}
 }
 
 // DaemonRelayPort returns the loopback port of the relay listener the
 // running core currently exposes for the inbound with this tag, or 0 when
 // there is none (core stopped or not yet listening, feature off or
-// suspended, inbound opted out). The OpenVPN/L2TP reconcile jobs feed this
-// into their network managers every round, which is what makes the whole
-// path fail-open.
+// suspended, inbound opted out).
 func (s *XrayService) DaemonRelayPort(tag string) int {
 	if tag == "" || !s.IsXrayRunning() {
 		return 0
@@ -238,10 +387,6 @@ func (s *XrayService) DaemonRelayPort(tag string) int {
 		if ib.Tag != tag || !isDaemonRelayInbound(ib) {
 			continue
 		}
-		// The config is the intent; the socket is the fact. Never hand out a
-		// port whose listener is not really there (core still starting, or
-		// the bind failed) — a TPROXY rule aimed at a dead port would drop
-		// the clients' traffic instead of relaying it.
 		if !tproxy.ListenerBound(ib.Port) {
 			return 0
 		}
@@ -250,11 +395,80 @@ func (s *XrayService) DaemonRelayPort(tag string) int {
 	return 0
 }
 
+// SyncDaemonInbounds immediately reconciles the running OpenVPN and L2TP
+// daemons and their iptables relay rules against the current database and
+// running Xray relay listeners, so toggling Route through Xray or editing
+// Routing Rules takes effect immediately instead of waiting for the next
+// periodic job tick.
+func (s *XrayService) SyncDaemonInbounds() {
+	var inboundSvc InboundService
+	var clientSvc ClientService
+	inbounds, err := inboundSvc.GetAllInbounds()
+	if err != nil {
+		return
+	}
+	var desiredOvpn []openvpn.Instance
+	var desiredL2TP []l2tp.Instance
+	for _, ib := range inbounds {
+		if ib == nil || !ib.Enable || ib.NodeID != nil {
+			continue
+		}
+		switch ib.Protocol {
+		case model.OpenVPN:
+			dbClients, err := clientSvc.ListForInbound(nil, ib.Id)
+			if err != nil {
+				continue
+			}
+			enableMap := make(map[string]bool, len(ib.ClientStats))
+			for _, ct := range ib.ClientStats {
+				enableMap[strings.ToLower(strings.TrimSpace(ct.Email))] = ct.Enable
+			}
+			emails := make([]string, 0, len(dbClients))
+			for i := range dbClients {
+				c := dbClients[i]
+				if enable, exists := enableMap[strings.ToLower(strings.TrimSpace(c.Email))]; exists && !enable {
+					continue
+				}
+				if !c.Enable {
+					continue
+				}
+				emails = append(emails, c.Email)
+			}
+			if inst, ok := openvpn.InstanceFromInbound(ib, emails); ok {
+				inst.XrayRelayPort = s.DaemonRelayPort(ib.Tag)
+				desiredOvpn = append(desiredOvpn, inst)
+			}
+		case model.L2TP:
+			dbClients, err := clientSvc.ListForInbound(nil, ib.Id)
+			if err != nil {
+				continue
+			}
+			enableMap := make(map[string]bool, len(ib.ClientStats))
+			for _, ct := range ib.ClientStats {
+				enableMap[strings.ToLower(strings.TrimSpace(ct.Email))] = ct.Enable
+			}
+			clients := make([]model.Client, 0, len(dbClients))
+			for _, c := range dbClients {
+				if !c.Enable {
+					continue
+				}
+				if enabled, exists := enableMap[strings.ToLower(strings.TrimSpace(c.Email))]; exists && !enabled {
+					continue
+				}
+				clients = append(clients, c)
+			}
+			if inst, ok := l2tp.InstanceFromInbound(ib, clients); ok {
+				inst.XrayRelayPort = s.DaemonRelayPort(ib.Tag)
+				desiredL2TP = append(desiredL2TP, inst)
+			}
+		}
+	}
+	openvpn.GetManager().Reconcile(desiredOvpn)
+	l2tp.GetManager().Reconcile(desiredL2TP)
+}
+
 // dropDaemonRelayTraffic removes the core's inbound-level counters for relay
-// listeners. The daemons already account that traffic (per inbound and per
-// client, including what never enters Xray such as ICMP), so keeping both
-// would double-count every byte. Relay inbounds have no users, so there are
-// no per-client counters to filter.
+// listeners (both the primary TCP inbound and the companion :dns UDP inbound).
 func dropDaemonRelayTraffic(cfg *xray.Config, traffics []*xray.Traffic) []*xray.Traffic {
 	if cfg == nil || len(traffics) == 0 {
 		return traffics
@@ -280,35 +494,26 @@ func dropDaemonRelayTraffic(cfg *xray.Config, traffics []*xray.Traffic) []*xray.
 	return kept
 }
 
-// noteDaemonRelayCrash is the crash-loop guard. RestartXray calls it (with
-// the package-level lock held) before regenerating the config: when the core
-// died shortly after starting, twice in a row, while relay inbounds were part
-// of its config, the relays are suspended so this feature can never keep a
-// host in a crash loop — traffic falls back to the direct path and the reason
-// is logged. A forced restart (panel start, the UI button) lifts the
-// suspension so an operator can retry after fixing the host.
+// noteDaemonRelayCrash updates the crash-loop guard before a RestartXray
+// attempt.
 func noteDaemonRelayCrash(isForce, crashed bool) {
 	if isForce {
 		daemonRelayStrikes = 0
-		if daemonRelaySuspended.Swap(false) {
-			logger.Info("daemon relay: suspension lifted by a forced restart; OpenVPN/L2TP relay inbounds are generated again")
+		if daemonRelaySuspended.CompareAndSwap(true, false) {
+			logger.Info("daemon relay: suspension cleared by forced Xray restart")
 		}
 		return
 	}
-	if !crashed || p == nil {
+	if !crashed {
 		daemonRelayStrikes = 0
 		return
 	}
-	cfg := p.GetConfig()
-	if !configHasDaemonRelay(cfg) || time.Duration(p.GetUptime())*time.Second > daemonRelayCrashWindow {
+	if p == nil || !configHasDaemonRelay(p.GetConfig()) || p.GetUptime() >= daemonRelayCrashWindow {
 		daemonRelayStrikes = 0
 		return
 	}
 	daemonRelayStrikes++
-	if daemonRelayStrikes < 2 || daemonRelaySuspended.Load() {
-		return
+	if daemonRelayStrikes >= 2 && daemonRelaySuspended.CompareAndSwap(false, true) {
+		logger.Warning("daemon relay: Xray stopped right after starting twice in a row with relay inbounds present; suspending the OpenVPN/L2TP relay so the core can start (a manual Xray restart from the dashboard re-enables it)")
 	}
-	daemonRelaySuspended.Store(true)
-	daemonRelayStrikes = 0
-	logger.Error("daemon relay: xray died shortly after starting twice in a row while OpenVPN/L2TP relay inbounds were configured; suspending them (their traffic takes the direct path, routing rules will not apply) until the next forced restart. Last xray output: ", p.GetResult())
 }

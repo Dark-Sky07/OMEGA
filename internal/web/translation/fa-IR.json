@@ -1430,7 +1430,17 @@
       "discordTestTitle": "تست اتصال دیسکورد",
       "discordTestDesc": "ابتدا تنظیمات را ذخیره کنید، سپس پیام تست بفرستید.",
       "discordTestBtn": "ارسال پیام تست",
-      "discordTestSuccess": "پیام تست به دیسکورد ارسال شد"
+      "discordTestSuccess": "پیام تست به دیسکورد ارسال شد",
+      "cloudBackupProviderGdrive": "گوگل درایو — Google Drive (Service Account / OAuth2)",
+      "cloudBackupGdriveGuide": "راهنمای اتصال به گوگل درایو: (روش ۱ - پیشنهادی) در Google Cloud یک Service Account بسازید، Google Drive API را فعال کنید، پوشه مقصد در گوگل درایو را با ایمیل سرویس‌اکانت (client_email) شیر (Editor) کنید و کل محتوای فایل JSON را در کادر زیر قرار دهید. (روش ۲) توکن OAuth2 Refresh Token را به همراه Client ID و Client Secret وارد کنید.",
+      "cloudBackupGdriveFolder": "شناسه (Folder ID) یا لینک پوشه گوگل درایو",
+      "cloudBackupGdriveFolderDesc": "آیدی پوشه یا لینک کامل پوشه در گوگل درایو (مثلاً https://drive.google.com/drive/folders/1AbCdEf...) را وارد کنید. در صورت خالی بودن در ریشه درایو آپلود می‌شود.",
+      "cloudBackupGdriveCredentials": "فایل JSON سرویس‌اکانت یا OAuth2 Refresh Token",
+      "cloudBackupGdriveCredentialsDesc": "کل محتوای فایل JSON مربوط به Service Account گوگل کلود یا مقدار Refresh Token را اینجا وارد کنید.",
+      "cloudBackupGdriveClientId": "OAuth2 Client ID (اختیاری)",
+      "cloudBackupGdriveClientIdDesc": "فقط در صورتی که به جای فایل JSON سرویس‌اکانت از Refresh Token استفاده می‌کنید لازم است.",
+      "cloudBackupGdriveClientSecret": "OAuth2 Client Secret (اختیاری)",
+      "cloudBackupGdriveClientSecretDesc": "فقط در صورتی که به جای فایل JSON سرویس‌اکانت از Refresh Token استفاده می‌کنید لازم است."
     },
     "xray": {
       "title": "پیکربندی ایکس‌ری",

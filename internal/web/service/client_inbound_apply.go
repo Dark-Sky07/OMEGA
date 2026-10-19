@@ -44,6 +44,7 @@ func reconcileL2TPRuntime(inbound *model.Inbound) error {
 	if !ok {
 		return common.NewError("invalid l2tp settings or credentials")
 	}
+	instance.XrayRelayPort = (&XrayService{}).DaemonRelayPort(inbound.Tag)
 	return l2tp.GetManager().Ensure(instance)
 }
 

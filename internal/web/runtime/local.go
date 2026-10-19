@@ -159,8 +159,9 @@ func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 
 func (l *Local) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
 	if oldIb.Protocol == model.OpenVPN && newIb.Protocol == model.OpenVPN {
-		// The OpenVPN job owns daemon restarts and reads the committed DB
-		// snapshot, so an edit or enable toggle must not stop a live daemon.
+		if !newIb.Enable {
+			openvpn.GetManager().StopInbound(newIb.Id)
+		}
 		return nil
 	}
 	if oldIb.Protocol == model.OpenVPN || newIb.Protocol == model.OpenVPN {
@@ -170,6 +171,13 @@ func (l *Local) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound) 
 			return err
 		}
 		if !newIb.Enable {
+			return nil
+		}
+		return l.AddInbound(ctx, newIb)
+	}
+	if oldIb.Protocol == model.L2TP && newIb.Protocol == model.L2TP {
+		if !newIb.Enable {
+			l2tp.GetManager().Remove(newIb.Id)
 			return nil
 		}
 		return l.AddInbound(ctx, newIb)

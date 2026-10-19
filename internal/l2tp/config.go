@@ -218,6 +218,8 @@ func renderIPUpScript(inst Instance) string {
 		"case \"$iface\" in\n" +
 		"  ''|*[!A-Za-z0-9_.-]*) exit 0 ;;\n" +
 		"esac\n" +
+		"sysctl -w \"net.ipv4.conf.$iface.route_localnet=1\" >/dev/null 2>&1 || true\n" +
+		"sysctl -w \"net.ipv4.conf.$iface.rp_filter=0\" >/dev/null 2>&1 || true\n" +
 		"[ -n \"$peer\" ] || exit 0\n" +
 		"mkdir -p \"$dir\"\n" +
 		"printf '%s\\n' \"$peer\" > \"$dir/$iface\"\n"
