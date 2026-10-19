@@ -19,6 +19,9 @@ func TestIsNewerVersion(t *testing.T) {
 		{"v3.3.4-omega", "3.3.3-omega", true},
 		{"v3.3.3-omega", "3.3.4-omega", false},
 		{"v3.3.10-omega", "3.3.9-omega", true},
+		{"v5.0.0-phoenix", "4.7.3-omega", true},
+		{"v5.0.0-phoenix", "5.0.0-phoenix", false},
+		{"v5.0.1-phoenix", "5.0.0-phoenix", true},
 	}
 
 	for _, tc := range cases {

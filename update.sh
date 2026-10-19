@@ -1339,6 +1339,7 @@ commit_update_transaction() {
     if ! mv "$update_stage_dir" "$xui_folder"; then return 1; fi
 
     if ! install -m 0755 "$update_wrapper_stage" /usr/bin/x-ui; then return 1; fi
+    install -m 0755 "$update_wrapper_stage" /usr/bin/phoenix || true
     rm -f "$service_path"
     if ! cp -a "$update_service_stage" "$service_path"; then return 1; fi
     if [[ "$release" == "alpine" ]]; then

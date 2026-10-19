@@ -1,4 +1,4 @@
-// Package model defines the database models and data structures used by the 3x-ui panel.
+// Package model defines the database models and data structures used by the PHOENIX panel.
 package model
 
 import (
@@ -39,7 +39,7 @@ const (
 	TUIC        Protocol = "tuic"
 )
 
-// User represents a user account in the 3x-ui panel.
+// User represents a user account in the PHOENIX panel.
 type User struct {
 	Id          int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	Username    string `json:"username"`
@@ -506,14 +506,14 @@ func HealMtprotoSecret(settings string) (string, bool) {
 	return string(out), true
 }
 
-// Setting stores key-value configuration settings for the 3x-ui panel.
+// Setting stores key-value configuration settings for the PHOENIX panel.
 type Setting struct {
 	Id    int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
 	Key   string `json:"key" form:"key"`
 	Value string `json:"value" form:"value"`
 }
 
-// Node represents a remote 3x-ui panel registered with the central panel.
+// Node represents a remote PHOENIX panel registered with the central panel.
 // The central panel polls each node's existing /panel/api/server/status
 // endpoint over HTTP using the per-node ApiToken to populate the runtime
 // status fields below.

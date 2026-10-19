@@ -2,41 +2,37 @@
 
 <div align="center">
 
-<img src="./media/omega-banner.png" alt="OMEGA" width="100%">
+<img src="./docs/assets/phoenix-medallion.png" alt="PHOENIX Medallion" width="220">
 
-# OMEGA
+# 🔥 PHOENIX (ققنوس)
 
-**پنل مدیریت سرورهای Xray-core، بر پایه‌ی [3x-ui](https://github.com/MHSanaei/3x-ui) نسخه‌ی `v3.3.1`، با قابلیت‌های [نمایندگی‌ها](#-نمایندگی-نمایندگی)، AmneziaWG native، OpenVPN و L2TP/IPsec.**
+**برخاسته از آتش و خاکستر — پنل یکپارچه و جاودان مدیریت سرورهای پراکسی و VPN**  
+**Xray-core · OpenVPN · L2TP/IPsec · AmneziaWG · TUIC v5 · MASQUE · XDRIVE · سامانه جامع نمایندگی**
 
 [English](README.md) · فارسی
 
-[![Release](https://img.shields.io/github/v/release/Dark-Sky07/OMEGA?include_prereleases&label=release&color=blue)](https://github.com/Dark-Sky07/OMEGA/releases)
-[![Build](https://img.shields.io/github/actions/workflow/status/Dark-Sky07/OMEGA/release.yml?label=build)](https://github.com/Dark-Sky07/OMEGA/actions)
-[![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
-[![Base](https://img.shields.io/badge/base-3x--ui%20v3.3.1-informational)](https://github.com/MHSanaei/3x-ui/releases/tag/v3.3.1)
+[![Release](https://img.shields.io/github/v/release/Dark-Sky07/OMEGA?include_prereleases&label=release&color=ff5500)](https://github.com/Dark-Sky07/OMEGA/releases)
+[![Build](https://img.shields.io/github/actions/workflow/status/Dark-Sky07/OMEGA/release.yml?label=build&color=f97316)](https://github.com/Dark-Sky07/OMEGA/actions)
+[![License](https://img.shields.io/badge/license-GPL--3.0-fbbf24.svg)](LICENSE)
 
-**نصب آخرین release OMEGA با یک دستور** — روی سرور تازه، با کاربر `root`:
+<img src="./docs/assets/phoenix-emblem.jpg" alt="PHOENIX Armored Emblem" width="640">
+
+**نصب آخرین نسخه‌ی PHOENIX با یک دستور** — روی سرور تازه، با کاربر `root`:
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
 ```
 
-این لینک، installer رسمی و خودکار OMEGA است: جدیدترین release همین ریپازیتوری را resolve می‌کند، فایل‌های هماهنگ همان release را می‌گیرد و هرگز به مخزن vanilla 3x-ui یا tag قدیمی fallback نمی‌کند. برای نصب‌های موجود از `x-ui update` استفاده کنید؛ آن هم فقط آخرین مسیر OMEGA را دنبال می‌کند.
-
-`main/x-ui.sh` برای منوی مدیریت و سازگاری با نصب‌های قدیمی حفظ شده است، اما برای نصب جدید همین دستور مستقیم را استفاده کنید.
+این لینک، نصب‌کننده‌ی رسمی و خودکار **PHOENIX** است: جدیدترین نسخه‌ی همین مخزن را دریافت و نصب می‌کند و دستور منوی مدیریت **`phoenix`** را در سیستم ثبت می‌نماید. برای آپدیت سرورهای موجود کافیست دستور `phoenix update` را اجرا کنید.
 
 </div>
 
 > [!NOTE]
-> این پروژه فورکی بر پایه‌ی 3x-ui نسخه‌ی 3.3.1 است. قابلیت نمایندگی، AmneziaWG native، daemon خارجی OpenVPN
-> و daemon خارجی L2TP/IPsec به آن اضافه شده‌اند، اما نام سرویس (`x-ui`)، مسیرهای نصب (`/usr/local/x-ui`،
-> `/etc/x-ui`)، متغیرهای محیطی و قراردادهای کانفیگ Xray با upstream سازگار باقی مانده‌اند. شماره‌ی release مربوط
-> به OMEGA جداگانه مدیریت می‌شود؛ [آخرین release](https://github.com/Dark-Sky07/OMEGA/releases/latest) همیشه
-> نسخه‌ی فعلی را نشان می‌دهد و این مستندات عمداً tag قدیمی را hard-code نمی‌کنند.
+> با الهام از اسطوره‌ی **ققنوس (PHOENIX)** — پرنده‌ی جاودانه‌ای که از دل آتش و خاکستر سر برمی‌آورد — پنل **PHOENIX** هسته‌های Xray-core، OpenVPN، L2TP/IPsec، AmneziaWG، TUIC v5، MASQUE و سامانه‌ی نمایندگی را در یک دژ یکپارچه و خودترمیم‌گر متحد می‌سازد و در عین حال مسیر دیتابیس (`/etc/x-ui/x-ui.db`) و سرویس‌های موجود را بدون کوچک‌ترین اختلال حفظ می‌کند.
 
 ---
 
-## :sparkles: نسبت به 3x-ui اصلی چه فرقی دارد؟
+## :sparkles: معماری و قابلیت‌های PHOENIX
 
 | | تغییر |
 | --- | --- |
@@ -45,11 +41,11 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/instal
 | ➕ **اضافه‌شده** | **اینباندهای L2TP/IPsec** — یک گروه daemon سراسری روی Linux با strongSwan و xl2tpd/PPP که از email/password کلاینت‌های موجود استفاده می‌کند، PSK را پایدار نگه می‌دارد، کانفیگ و `chap-secrets` را در مسیرهای single و bulk به‌صورت synchronous reconcile می‌کند، daemonهای orphan را بعد از restart جمع می‌کند، پورت‌های UDP 500/4500/1701 و ruleهای forwarding/FORWARD/MASQUERADE را مدیریت می‌کند و آمار آنلاین/ترافیک PPP را با enforcement سهمیه‌ی هر کلاینت گزارش می‌دهد. این پروتکل خارج از Xray است، profile فایل و PPTP ندارد و پارامترهای native اتصال در UI نمایش داده می‌شوند. |
 | ➕ **اضافه‌شده** | **AmneziaWG native** — پارامترهای واقعی AWG 3.1، کلید و چرخه‌ی کامل کلاینت، status، handshake، traffic، quota، allowed IP، subscription، reseller، import/export و فایل `.conf`/QR سازگار با اپ مستقل AmneziaWG. این قابلیت فقط یک گزینه‌ی ظاهری در فرم نیست. |
 | 🛡️ **چرخه‌ی امن** | import/export داده‌ی موجود را حفظ می‌کند؛ reseller فقط clientهای صراحتاً attach‌شده را می‌بیند؛ OpenVPN و L2TP accounting و quota دارند؛ recovery L2TP idempotent است و عملیات گروهی attach نیز وجود دارد. |
-| 🔄 **آپدیت** | installer و updater داخل پنل فقط جدیدترین release OMEGA را resolve می‌کنند؛ نسخه‌ی واقعی tag داخل binary stamp می‌شود، Xray قبل از جایگزینی validate می‌شود و rollback guard از خراب شدن نصب قبلی جلوگیری می‌کند. |
+| 🔄 **آپدیت** | installer و updater داخل پنل فقط جدیدترین release PHOENIX را resolve می‌کنند؛ نسخه‌ی واقعی tag داخل binary stamp می‌شود، Xray قبل از جایگزینی validate می‌شود و rollback guard از خراب شدن نصب قبلی جلوگیری می‌کند. |
 | 🐳 **Docker** | image چندمعماری releaseها در [GHCR](https://ghcr.io/dark-sky07/omega) منتشر می‌شود؛ نیازمندی‌های OpenVPN/L2TP در `docker-compose.yml` مستند شده‌اند. |
-| 🎨 **برندینگ** | نام پنل در سایدبار، صفحه‌ی ورود، عنوان صفحه‌ها، مستندات API و ترجمه‌ها **OMEGA** است. فقط برندینگ ظاهری؛ مسیرهای نصب و نام سرویس بدون تغییر باقی مانده‌اند. |
-| 🛠 **نصب** | [`install-omega.sh`](install-omega.sh) مسیر canonical نصب تازه است؛ [`x-ui.sh`](x-ui.sh) برای منوی مدیریت و سازگاری باقی مانده است. هر دو فقط جدیدترین release OMEGA را resolve می‌کنند و `x-ui update` هرگز به 3x-ui خام fallback نمی‌کند. |
-| ✅ **بدون تغییر** | بقیه‌ی همه‌چیز — تمام 3x-ui نسخه‌ی 3.3.1 (پروتکل‌ها، ترنسپورت‌ها، نودها، اشتراک‌ها، ربات تلگرام، روتینگ، API، تم‌ها و ۱۳ زبان). |
+| 🎨 **برندینگ** | نام پنل در سایدبار، صفحه‌ی ورود، عنوان صفحه‌ها، مستندات API و ترجمه‌ها **PHOENIX** است. فقط برندینگ ظاهری؛ مسیرهای نصب و نام سرویس بدون تغییر باقی مانده‌اند. |
+| 🛠 **نصب** | [`install-omega.sh`](install-omega.sh) مسیر canonical نصب تازه است؛ [`x-ui.sh`](x-ui.sh) برای منوی مدیریت و سازگاری باقی مانده است. هر دو فقط جدیدترین release PHOENIX را resolve می‌کنند و `phoenix update` هرگز به PHOENIX خام fallback نمی‌کند. |
+| ✅ **بدون تغییر** | بقیه‌ی همه‌چیز — تمام PHOENIX نسخه‌ی 3.3.1 (پروتکل‌ها، ترنسپورت‌ها، نودها، اشتراک‌ها، ربات تلگرام، روتینگ، API، تم‌ها و ۱۳ زبان). |
 
 ### نصب OpenVPN و چک‌لیست سمت سرور
 
@@ -70,11 +66,11 @@ test -c /dev/net/tun && echo "TUN آماده است"
 systemctl restart x-ui
 ```
 
-اسکریپت `x-ui update` که در این release قرار دارد، آخرین tag پایدار را پیدا و installer همان tag را اجرا می‌کند و دیگر installer قدیمی و بدون tag را از `main` نمی‌گیرد. برای اینباند OpenVPN، پورت تنظیم‌شده را با transport انتخابی (`udp` یا `tcp`) در فایروال ارائه‌دهندهٔ VPS باز کنید. OMEGA forwarding IPv4 را فعال می‌کند و ruleهای دقیق `INPUT`، `FORWARD` و `POSTROUTING MASQUERADE` را برای subnet تونل `10.x.x.0/24` مدیریت می‌کند و ruleهای نامرتبط فایروال را دست نمی‌زند. اگر profile import می‌شود اما روی `Trying to connect` می‌ماند، این موارد را بررسی کنید: `command -v openvpn`، `command -v iptables`، وجود `/dev/net/tun`، خروجی `ss -lunpt`، فایل `/var/log/x-ui/3xui.log` و فایل `bin/openvpn/<inbound-id>/openvpn.log`.
+اسکریپت `phoenix update` که در این release قرار دارد، آخرین tag پایدار را پیدا و installer همان tag را اجرا می‌کند و دیگر installer قدیمی و بدون tag را از `main` نمی‌گیرد. برای اینباند OpenVPN، پورت تنظیم‌شده را با transport انتخابی (`udp` یا `tcp`) در فایروال ارائه‌دهندهٔ VPS باز کنید. PHOENIX forwarding IPv4 را فعال می‌کند و ruleهای دقیق `INPUT`، `FORWARD` و `POSTROUTING MASQUERADE` را برای subnet تونل `10.x.x.0/24` مدیریت می‌کند و ruleهای نامرتبط فایروال را دست نمی‌زند. اگر profile import می‌شود اما روی `Trying to connect` می‌ماند، این موارد را بررسی کنید: `command -v openvpn`، `command -v iptables`، وجود `/dev/net/tun`، خروجی `ss -lunpt`، فایل `/var/log/x-ui/3xui.log` و فایل `bin/openvpn/<inbound-id>/openvpn.log`.
 
 ### نصب و چک‌لیست L2TP/IPsec
 
-L2TP/IPsec daemon سیستم‌عامل است و بخشی از Xray نیست. installer بسته‌های `strongswan`، `xl2tpd`، `ppp`، `iptables` و `iproute2` را نصب و وجود `/dev/ppp` را بررسی می‌کند. فقط یک اینباند محلی فعال مجاز است، چون گروه daemon پورت‌های UDP 500، 4500 و 1701 و همچنین پروتکل ESP با شمارهٔ 50 را در اختیار می‌گیرد. PPTP در OMEGA پیاده‌سازی نشده است.
+L2TP/IPsec daemon سیستم‌عامل است و بخشی از Xray نیست. installer بسته‌های `strongswan`، `xl2tpd`، `ppp`، `iptables` و `iproute2` را نصب و وجود `/dev/ppp` را بررسی می‌کند. فقط یک اینباند محلی فعال مجاز است، چون گروه daemon پورت‌های UDP 500، 4500 و 1701 و همچنین پروتکل ESP با شمارهٔ 50 را در اختیار می‌گیرد. PPTP در PHOENIX پیاده‌سازی نشده است.
 
 فایل‌های runtime زیر `bin/l2tp/<inbound-id>/` ساخته می‌شوند؛ forwarding IPv4، ruleهای `FORWARD` و `MASQUERADE` و listenerهای ثابت هم توسط پنل مدیریت می‌شوند. کلاینت‌های موجود را از صفحهٔ Clients متصل کنید: email نام کاربری PPP و password رمز MS-CHAPv2 است. در صفحهٔ اطلاعات اینباند PSK، pool، DNS و پورت‌ها دیده می‌شود. صفحهٔ Subscription info برای هر کلاینت متصل با همان subscription ID یک مجموعه پارامتر native نشان می‌دهد و پنجرهٔ Client Information مدیر نیز همین مقادیر را با دکمهٔ کپی نمایش می‌دهد. کلاینت را با تنظیمات native L2TP/IPsec پیکربندی کنید؛ profile فایل یا لینک جعلی Xray تولید نمی‌شود.
 
@@ -82,7 +78,7 @@ L2TP/IPsec daemon سیستم‌عامل است و بخشی از Xray نیست. i
 
 ### اعمال قوانین Routing روی کلاینت‌های OpenVPN و L2TP/IPsec
 
-OpenVPN و L2TP/IPsec توسط daemonهای سیستم‌عامل سرویس داده می‌شوند؛ پیش‌تر بسته‌های کلاینت‌های آن‌ها مستقیماً توسط kernel forward و NAT می‌شد و هیچ‌وقت از Xray عبور نمی‌کرد، بنابراین قوانین صفحهٔ **Xray → Routing** روی آن‌ها اثری نداشت. حالا OMEGA این ترافیک را به داخل هسته هدایت می‌کند: برای هر inbound محلیِ فعال OpenVPN/L2TP یک listener از نوع `dokodemo-door` (TPROXY) روی loopback با همان tag خود inbound در کانفیگ تولیدشدهٔ Xray قرار می‌گیرد و مدیر شبکهٔ daemonها ruleهای `mangle PREROUTING` TPROXY (روی `tun<id>` / `ppp+` و subnet همان pool) را اضافه می‌کند تا اتصال‌های TCP جدید و همهٔ datagramهای UDP به آن listener تحویل شوند؛ یک rule `filter INPUT` هم بسته‌های mark‌شده را می‌پذیرد تا فایروال‌های default-deny (مثل ufw) آن‌ها را drop نکنند. Xray مقصد را مثل inboundهای native خودش sniff می‌کند، پس قوانین پایه و سفارشی (domain، IP، port، protocol، `inboundTag` برابر با tag همان inbound و balancerها) دقیقاً مثل inboundهای Xray اعمال می‌شوند. AmneziaWG از قبل از طریق relay داخلی خودش وارد Xray می‌شد و تغییری نکرده است.
+OpenVPN و L2TP/IPsec توسط daemonهای سیستم‌عامل سرویس داده می‌شوند؛ پیش‌تر بسته‌های کلاینت‌های آن‌ها مستقیماً توسط kernel forward و NAT می‌شد و هیچ‌وقت از Xray عبور نمی‌کرد، بنابراین قوانین صفحهٔ **Xray → Routing** روی آن‌ها اثری نداشت. حالا PHOENIX این ترافیک را به داخل هسته هدایت می‌کند: برای هر inbound محلیِ فعال OpenVPN/L2TP یک listener از نوع `dokodemo-door` (TPROXY) روی loopback با همان tag خود inbound در کانفیگ تولیدشدهٔ Xray قرار می‌گیرد و مدیر شبکهٔ daemonها ruleهای `mangle PREROUTING` TPROXY (روی `tun<id>` / `ppp+` و subnet همان pool) را اضافه می‌کند تا اتصال‌های TCP جدید و همهٔ datagramهای UDP به آن listener تحویل شوند؛ یک rule `filter INPUT` هم بسته‌های mark‌شده را می‌پذیرد تا فایروال‌های default-deny (مثل ufw) آن‌ها را drop نکنند. Xray مقصد را مثل inboundهای native خودش sniff می‌کند، پس قوانین پایه و سفارشی (domain، IP، port، protocol، `inboundTag` برابر با tag همان inbound و balancerها) دقیقاً مثل inboundهای Xray اعمال می‌شوند. AmneziaWG از قبل از طریق relay داخلی خودش وارد Xray می‌شد و تغییری نکرده است.
 
 - **Opt-in، برای هر inbound جداگانه.** فرم inboundهای OpenVPN/L2TP یک سوئیچ *مسیریابی از طریق Xray* دارد که **به‌صورت پیش‌فرض خاموش** است (inboundهای قبلی تا وقتی خودتان روشنش نکنید روی مسیر مستقیم می‌مانند). اول روی یک inbound فعالش کنید و با `iptables -t mangle -S PREROUTING | grep 0x2e01` و یک کلاینت واقعی بررسی کنید؛ خاموش کردن آن مسیر مستقیم `FORWARD`/`MASQUERADE` را برمی‌گرداند. این سوئیچ فقط ruleهای iptables و کانفیگ تولیدشدهٔ Xray را عوض می‌کند و به کانفیگ daemon دست نمی‌زند، بنابراین daemon OpenVPN را restart نمی‌کند (ذخیرهٔ فرم L2TP مثل هر ویرایش L2TP، daemon آن را restart می‌کند).
 - **Fail-open.** ruleهای هدایت فقط وقتی وجود دارند که هستهٔ در حال اجرا واقعاً روی پورت relay گوش می‌دهد؛ وقتی Xray متوقف است، در حال restart است یا نمی‌تواند سوکت transparent باز کند، pool ظرف یک دور reconcile (حدود ۱۰ ثانیه) به مسیر مستقیم برمی‌گردد و یک warning لاگ می‌شود. اگر Xray دو بار پشت سر هم بلافاصله بعد از start با listenerهای relay crash کند، relay تا restart اجباری بعدی معلق می‌شود.
@@ -93,7 +89,7 @@ OpenVPN و L2TP/IPsec توسط daemonهای سیستم‌عامل سرویس د�
 
 - **یک listener سراسری:** در هر host محلی فقط یک inbound از نوع L2TP/IPsec مجاز است؛ UDPهای 500 و 4500 برای IKE/NAT-T و UDP 1701 برای L2TP هستند.
 - **کلاینت‌های موجود:** از صفحه‌ی عادی Clients کلاینت را متصل کنید؛ email نام کاربری PPP و password موجود رمز MS-CHAPv2 می‌شود. enable/disable، تغییر password، attach، detach، حذف گروهی و enforcement سهمیه‌ها بدون وارد کردن L2TP به کانفیگ Xray reconcile می‌شوند.
-- **مدیریت شبکه:** OMEGA IPv4 forwarding را فعال و ruleهای دقیق `INPUT`، `FORWARD` و `POSTROUTING MASQUERADE` را برای pool تنظیم‌شده مدیریت می‌کند. وضعیت firewall برای restart و cleanup پایدار می‌ماند.
+- **مدیریت شبکه:** PHOENIX IPv4 forwarding را فعال و ruleهای دقیق `INPUT`، `FORWARD` و `POSTROUTING MASQUERADE` را برای pool تنظیم‌شده مدیریت می‌کند. وضعیت firewall برای restart و cleanup پایدار می‌ماند.
 - **چرخه‌ی امن پس از restart:** فایل‌های daemon زیر `bin/l2tp/<inbound-id>/` قرار می‌گیرند؛ strongSwan و xl2tpd هنگام تغییر تنظیمات reconcile می‌شوند و processهای orphan بعد از restart جمع می‌شوند.
 - **بدون profile فایل:** PSK، pool، DNS و پورت‌ها به‌صورت پارامترهای native اتصال نمایش داده می‌شوند. PPTP عمداً خارج از scope است.
 
@@ -101,7 +97,7 @@ OpenVPN و L2TP/IPsec توسط daemonهای سیستم‌عامل سرویس د�
 
 ## :shield: AmneziaWG
 
-پشتیبانی AmneziaWG در OMEGA یک مسیر native و کامل است و فقط به اضافه کردن یک گزینه به فرم محدود نمی‌شود:
+پشتیبانی AmneziaWG در PHOENIX یک مسیر native و کامل است و فقط به اضافه کردن یک گزینه به فرم محدود نمی‌شود:
 
 - **چرخه‌ی سرور و peer:** کلیدهای سرور و کلاینت، allowed IP، pre-shared key، keepalive، فعال/غیرفعال‌سازی، ساخت/ویرایش/حذف، attach/detach، عملیات bulk و reconcile امن پس از restart.
 - **پارامترهای AWG:** `Jc`، `Jmin`، `Jmax`، `S1` تا `S4`، `H1` تا `H4`، `I1` تا `I5` و گزینه‌های AWG 3.1 مانند `HeaderProtectionKey`، padding، زمان‌بندی rekey/reject، random trailers و cookieها validate و به engine فعال منتقل می‌شوند.
@@ -114,7 +110,7 @@ OpenVPN و L2TP/IPsec توسط daemonهای سیستم‌عامل سرویس د�
 
 - **انتقال کلاینت:** export تنظیمات کلاینت و identity قابل‌حمل attachmentهای inbound را دارد، اما counterهای ترافیک مقصد و IDهای دیتابیس را overwrite نمی‌کند. import ابتدا کل envelope را validate می‌کند، کلاینت را با email پیدا می‌کند، رکورد موجود مقصد را authoritative نگه می‌دارد و به‌صورت پیش‌فرض فقط attachmentهای کمبود را اضافه می‌کند.
 - **Import inbound:** inbound جدید identity محلی می‌گیرد، اما تنظیمات پروتکل، clientها و وضعیت فعال/غیرفعال حفظ می‌شوند. داده‌ی موجود بدون درخواست صریح جایگزین یا حذف نمی‌شود؛ جایگزینی attachmentها فقط با گزینه‌ی explicit `replaceAttachments` ممکن است.
-- **مسیر update:** سیاست `dynamic_latest` جدیدترین tag OMEGA را resolve می‌کند، archive و binary جدید Xray-core را قبل از فعال‌سازی validate می‌کند و binary قبلی را برای rollback نگه می‌دارد. کاربران فعال تا آماده و validate شدن binary جدید و ضرورت restart قطع نمی‌شوند.
+- **مسیر update:** سیاست `dynamic_latest` جدیدترین tag PHOENIX را resolve می‌کند، archive و binary جدید Xray-core را قبل از فعال‌سازی validate می‌کند و binary قبلی را برای rollback نگه می‌دارد. کاربران فعال تا آماده و validate شدن binary جدید و ضرورت restart قطع نمی‌شوند.
 
 ---
 
@@ -133,7 +129,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/instal
 1. نصب پیش‌نیازها (`curl`، `tar`، `socat`، `openssl`، `tzdata`، کرون و …) به‌علاوه‌ی بسته‌های `openvpn`، `strongswan`، `xl2tpd`، `ppp`، `iptables` و `iproute2`
 2. بررسی وجود `/dev/net/tun` و `/dev/ppp`؛ اگر پیش‌نیاز daemonهای VPN قابل استفاده نباشد نصب متوقف می‌شود
 3. دانلود پکیج آماده‌ی معماری سرور (پنل **+ Xray-core + geoip/geosite + mtg**)
-4. نصب در `/usr/local/x-ui` و ساخت سرویس systemd با همان نام `x-ui`
+4. نصب در `/usr/local/x-ui` و ساخت سرویس systemd با همان نام `phoenix`
 5. در آپدیت، **دیتابیس و تنظیمات قبلی حفظ می‌شود**
 6. ری‌استارت پنل و نمایش آدرس ورود
 
@@ -142,12 +138,12 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/instal
 ### مدیریت پنل
 
 ```bash
-x-ui              # منوی مدیریت: شروع / توقف / ری‌استارت / تنظیمات / لاگ / آپدیت / حذف
-x-ui status       # وضعیت سرویس
-x-ui settings     # تنظیمات فعلی و مسیر مخفی ورود
-x-ui log          # لاگ پنل
-x-ui update       # آپدیت به آخرین نسخه‌ی OMEGA (هرگز به نسخه‌ی خام 3x-ui برنمی‌گردد)
-x-ui uninstall    # حذف کامل (دیتابیس در /etc/x-ui می‌ماند؛ قبلش بکاپ بگیرید)
+phoenix           # منوی مدیریت: شروع / توقف / ری‌استارت / تنظیمات / لاگ / آپدیت / حذف
+phoenix status       # وضعیت سرویس
+phoenix settings     # تنظیمات فعلی و مسیر مخفی ورود
+phoenix log          # لاگ پنل
+phoenix update       # آپدیت به آخرین نسخه‌ی PHOENIX (هرگز به نسخه‌ی خام PHOENIX برنمی‌گردد)
+phoenix uninstall    # حذف کامل (دیتابیس در /etc/x-ui می‌ماند؛ قبلش بکاپ بگیرید)
 ```
 
 ### نصب دستی
@@ -174,7 +170,7 @@ systemctl daemon-reload && systemctl enable --now x-ui
 ### آپدیت و بکاپ
 
 ```bash
-x-ui update                                   # آپدیت درجا، تنظیمات حفظ می‌شود
+phoenix update                                   # آپدیت درجا، تنظیمات حفظ می‌شود
 cp /etc/x-ui/x-ui.db /root/x-ui-backup.db     # یا از بخش تنظیمات → بکاپ در خود پنل
 ```
 
@@ -218,7 +214,7 @@ flowchart LR
 
 | نقش | صفحه‌ها |
 | --- | --- |
-| **مدیر** | **نمایندگی‌ها** (لیست، ساخت/ویرایش، سهمیه‌ها، واگذاری ورودی، واگذاری کلاینت، موجودی، بازنشانی رمز، گزارش) + همه‌ی صفحه‌های 3x-ui |
+| **مدیر** | **نمایندگی‌ها** (لیست، ساخت/ویرایش، سهمیه‌ها، واگذاری ورودی، واگذاری کلاینت، موجودی، بازنشانی رمز، گزارش) + همه‌ی صفحه‌های PHOENIX |
 | **نماینده** | **گزارش** (مصرف، هزینه، موجودی، ردیف هر کلاینت، دفتر حساب)، **پروفایل** (سهمیه‌ها، مصرف، تغییر رمز)، **ورودی‌ها** و **کلاینت‌ها** (فقط دارایی خودش) |
 
 ### API
@@ -250,7 +246,7 @@ API مدیریتی سمت مدیر زیر `/panel/api/resellers` است و در 
 
 ## :camera: تصاویر
 
-صفحه‌های ارث‌بری‌شده از 3x-ui نسخه‌ی 3.3.1 (صفحه‌های نمایندگی با همان طراحی ساخته شده‌اند):
+صفحه‌های ارث‌بری‌شده از PHOENIX نسخه‌ی 3.3.1 (صفحه‌های نمایندگی با همان طراحی ساخته شده‌اند):
 
 <details>
 <summary>برای دیدن کلیک کنید</summary>
@@ -274,9 +270,9 @@ API مدیریتی سمت مدیر زیر `/panel/api/resellers` است و در 
 
 ---
 
-## امکانات (ارث‌بری از 3x-ui، دست‌نخورده)
+## امکانات (ارث‌بری از PHOENIX، دست‌نخورده)
 
-- **ورودی‌های چندپروتکلی** — VLESS، VMess، Trojan، Shadowsocks، WireGuard، Hysteria2، HTTP، SOCKS (Mixed)، Dokodemo-door / Tunnel و TUN. AmneziaWG native به‌عنوان قابلیت اضافه‌شده‌ی OMEGA در بخش بالا مستند شده است.
+- **ورودی‌های چندپروتکلی** — VLESS، VMess، Trojan، Shadowsocks، WireGuard، Hysteria2، HTTP، SOCKS (Mixed)، Dokodemo-door / Tunnel و TUN. AmneziaWG native به‌عنوان قابلیت اضافه‌شده‌ی PHOENIX در بخش بالا مستند شده است.
 - **ترنسپورت و امنیت مدرن** — TCP (Raw)، mKCP، WebSocket، gRPC، HTTPUpgrade و XHTTP همراه با TLS، XTLS و REALITY.
 - **فالبک** — اجرای چند پروتکل روی یک پورت (مثلاً VLESS و Trojan روی ۴۴۳) با پشتیبانی fallback در Xray.
 - **مدیریت هر کلاینت** — سهمیه‌ی ترافیک، تاریخ انقضا، محدودیت IP، وضعیت آنلاین زنده و لینک/QR/اشتراک یک‌کلیکی.
@@ -309,7 +305,7 @@ XUI_DB_DSN=postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable
 انتقال از SQLite به PostgreSQL:
 
 ```bash
-x-ui migrate-db --dsn "postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable"
+phoenix migrate-db --dsn "postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable"
 systemctl restart x-ui
 ```
 
@@ -331,15 +327,15 @@ systemctl restart x-ui
 
 ## دونیت و اعتبار
 
-- **پروژه‌ی اصلی:** [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — این ریپازیتوری فورک **3x-ui نسخه‌ی 3.3.1** است
+- **پروژه‌ی اصلی:** [Dark-Sky07/OMEGA](https://github.com/Dark-Sky07/OMEGA) — این ریپازیتوری فورک **PHOENIX نسخه‌ی 3.3.1** است
   و طراحی، مستندات و مجوز آن را به ارث می‌برد. سپاس از [alireza0](https://github.com/alireza0/) و همه‌ی مشارکت‌کنندگان.
-- **اضافه‌شده اینجا:** قابلیت نمایندگی، AmneziaWG native، یکپارچه‌سازی OpenVPN و L2TP/IPsec، accounting و quota چرخه‌ی کلاینت، آپدیت امن، برندینگ OMEGA و نصب‌کننده‌ی فورک‌محورِ آخرین release.
+- **اضافه‌شده اینجا:** قابلیت نمایندگی، AmneziaWG native، یکپارچه‌سازی OpenVPN و L2TP/IPsec، accounting و quota چرخه‌ی کلاینت، آپدیت امن، برندینگ PHOENIX و نصب‌کننده‌ی فورک‌محورِ آخرین release.
 - **مجوز:** [GPL-3.0](LICENSE) — مانند پروژه‌ی اصلی.
 
 <h2 align="center">حمایت از پروژه‌ی اصلی</h2>
 
 <p align="center">
-<b>اگر این پروژه برایتان مفید بود، یک</b> :star2: <b>بدهید — حمایت مالی به نویسنده‌ی اصلی 3x-ui می‌رسد:</b>
+<b>اگر این پروژه برایتان مفید بود، یک</b> :star2: <b>بدهید — حمایت مالی به نویسنده‌ی اصلی PHOENIX می‌رسد:</b>
 </p>
 
 <p align="center">

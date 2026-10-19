@@ -115,7 +115,7 @@ export default function VouchersModal({ open, onOpenChange }: VouchersModalProps
             <Form.Item label={t('resellers.voucherCode', 'Code (optional)')}>
               <Input
                 value={code}
-                placeholder="Auto: OMEGA-XXXX"
+                placeholder="Auto: PHOENIX-XXXX"
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
               />
             </Form.Item>

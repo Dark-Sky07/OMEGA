@@ -1,12 +1,10 @@
 /* ==========================================================================
-   OMEGA "Aurora" design system
+   PHOENIX "Solar Flame & Obsidian Ash" (ققنوس) design system
    --------------------------------------------------------------------------
+   Inspired by the myth of the Phoenix (ققنوس) — immortal rebirth from
+   obsidian ash through crimson flame, molten ember, and solar gold.
    Pure presentation layer: design tokens, self-hosted fonts, the ambient
-   background and a handful of Ant Design surface overrides. Nothing in here
-   changes behaviour — every page keeps its data layer, routes and forms.
-
-   Tokens are exposed as CSS custom properties so page styles and the antd
-   ConfigProvider (see hooks/useTheme.tsx) share one palette.
+   ember background and Ant Design surface overrides.
    ========================================================================== */
 
 :root {
@@ -23,87 +21,87 @@
   --omega-radius-lg: 22px;
   --omega-blur: 18px;
 
-  /* brand --------------------------------------------------------------- */
-  --omega-primary: #6a4df6;
-  --omega-primary-strong: #5a3ee6;
-  --omega-accent: #0ea5e9;
-  --omega-accent-2: #14b8a6;
-  --omega-pink: #ec4899;
+  /* brand (Solar Dawn) -------------------------------------------------- */
+  --omega-primary: #e85002;
+  --omega-primary-strong: #c73e00;
+  --omega-accent: #f59e0b;
+  --omega-accent-2: #dc2626;
+  --omega-pink: #f43f5e;
   --omega-success: #16a34a;
   --omega-warning: #d97706;
-  --omega-error: #e11d48;
-  --omega-info: #2563eb;
-  --omega-gradient: linear-gradient(135deg, #6a4df6 0%, #8b5cf6 45%, #0ea5e9 100%);
-  --omega-gradient-soft: linear-gradient(135deg, rgba(106, 77, 246, 0.16), rgba(14, 165, 233, 0.12));
+  --omega-error: #dc2626;
+  --omega-info: #ea580c;
+  --omega-gradient: linear-gradient(135deg, #dc2626 0%, #f97316 50%, #fbbf24 100%);
+  --omega-gradient-soft: linear-gradient(135deg, rgba(232, 80, 2, 0.16), rgba(245, 158, 11, 0.14));
 
   /* light surfaces ------------------------------------------------------ */
-  --omega-bg: #eef1f8;
-  --omega-glow-1: rgba(106, 77, 246, 0.22);
-  --omega-glow-2: rgba(14, 165, 233, 0.18);
-  --omega-glow-3: rgba(236, 72, 153, 0.12);
-  --omega-surface: rgba(255, 255, 255, 0.78);
+  --omega-bg: #faf5f0;
+  --omega-glow-1: rgba(249, 115, 22, 0.22);
+  --omega-glow-2: rgba(245, 158, 11, 0.18);
+  --omega-glow-3: rgba(220, 38, 38, 0.12);
+  --omega-surface: rgba(255, 252, 248, 0.82);
   --omega-surface-strong: #ffffff;
-  --omega-surface-muted: rgba(15, 23, 42, 0.04);
-  --omega-surface-hover: rgba(15, 23, 42, 0.06);
-  --omega-border: rgba(15, 23, 42, 0.08);
-  --omega-border-strong: rgba(15, 23, 42, 0.14);
-  --omega-text: #0f172a;
-  --omega-text-2: rgba(15, 23, 42, 0.68);
-  --omega-text-3: rgba(15, 23, 42, 0.46);
-  --omega-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 18px 40px -24px rgba(15, 23, 42, 0.25);
-  --omega-shadow-hover: 0 2px 4px rgba(15, 23, 42, 0.05), 0 24px 48px -24px rgba(15, 23, 42, 0.32);
-  --omega-ring: 0 0 0 3px rgba(106, 77, 246, 0.22);
-  --omega-sider-bg: rgba(255, 255, 255, 0.62);
-  --omega-sider-border: rgba(15, 23, 42, 0.08);
-  --omega-highlight: rgba(255, 255, 255, 0.7);
+  --omega-surface-muted: rgba(67, 20, 7, 0.04);
+  --omega-surface-hover: rgba(232, 80, 2, 0.06);
+  --omega-border: rgba(67, 20, 7, 0.09);
+  --omega-border-strong: rgba(67, 20, 7, 0.16);
+  --omega-text: #1c1008;
+  --omega-text-2: rgba(28, 16, 8, 0.7);
+  --omega-text-3: rgba(28, 16, 8, 0.48);
+  --omega-shadow: 0 1px 2px rgba(67, 20, 7, 0.05), 0 18px 40px -24px rgba(180, 50, 0, 0.22);
+  --omega-shadow-hover: 0 2px 4px rgba(67, 20, 7, 0.06), 0 24px 48px -24px rgba(180, 50, 0, 0.28);
+  --omega-ring: 0 0 0 3px rgba(232, 80, 2, 0.24);
+  --omega-sider-bg: rgba(255, 250, 245, 0.72);
+  --omega-sider-border: rgba(67, 20, 7, 0.09);
+  --omega-highlight: rgba(255, 255, 255, 0.75);
 
   color-scheme: light;
 }
 
 body.dark {
-  --omega-primary: #8b6cff;
-  --omega-primary-strong: #7a5cf5;
-  --omega-accent: #22d3ee;
-  --omega-accent-2: #2dd4bf;
+  --omega-primary: #ff6a00;
+  --omega-primary-strong: #ea580c;
+  --omega-accent: #fbbf24;
+  --omega-accent-2: #f97316;
   --omega-success: #34d399;
   --omega-warning: #fbbf24;
   --omega-error: #fb7185;
-  --omega-info: #60a5fa;
-  --omega-gradient: linear-gradient(135deg, #7c5cff 0%, #a78bfa 45%, #22d3ee 100%);
-  --omega-gradient-soft: linear-gradient(135deg, rgba(139, 108, 255, 0.22), rgba(34, 211, 238, 0.14));
+  --omega-info: #ff9e2c;
+  --omega-gradient: linear-gradient(135deg, #e11d48 0%, #ff5500 48%, #fbbf24 100%);
+  --omega-gradient-soft: linear-gradient(135deg, rgba(255, 106, 0, 0.24), rgba(251, 191, 36, 0.14));
 
-  --omega-bg: #070b14;
-  --omega-glow-1: rgba(124, 92, 255, 0.28);
-  --omega-glow-2: rgba(34, 211, 238, 0.16);
-  --omega-glow-3: rgba(236, 72, 153, 0.12);
-  --omega-surface: rgba(17, 24, 39, 0.62);
-  --omega-surface-strong: #0f172a;
-  --omega-surface-muted: rgba(255, 255, 255, 0.04);
-  --omega-surface-hover: rgba(255, 255, 255, 0.06);
-  --omega-border: rgba(148, 163, 184, 0.12);
-  --omega-border-strong: rgba(148, 163, 184, 0.22);
-  --omega-text: #e7ebf3;
-  --omega-text-2: rgba(231, 235, 243, 0.7);
-  --omega-text-3: rgba(231, 235, 243, 0.46);
-  --omega-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 24px 48px -28px rgba(0, 0, 0, 0.7);
-  --omega-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.4), 0 32px 56px -28px rgba(0, 0, 0, 0.8);
-  --omega-ring: 0 0 0 3px rgba(139, 108, 255, 0.28);
-  --omega-sider-bg: rgba(10, 15, 28, 0.72);
-  --omega-sider-border: rgba(148, 163, 184, 0.1);
-  --omega-highlight: rgba(255, 255, 255, 0.05);
+  --omega-bg: #090608;
+  --omega-glow-1: rgba(255, 85, 0, 0.28);
+  --omega-glow-2: rgba(251, 191, 36, 0.16);
+  --omega-glow-3: rgba(225, 29, 72, 0.14);
+  --omega-surface: rgba(24, 14, 17, 0.68);
+  --omega-surface-strong: #140c0f;
+  --omega-surface-muted: rgba(255, 148, 92, 0.045);
+  --omega-surface-hover: rgba(255, 122, 24, 0.08);
+  --omega-border: rgba(255, 148, 92, 0.14);
+  --omega-border-strong: rgba(255, 148, 92, 0.26);
+  --omega-text: #f9f1ec;
+  --omega-text-2: rgba(249, 241, 236, 0.72);
+  --omega-text-3: rgba(249, 241, 236, 0.48);
+  --omega-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 24px 48px -28px rgba(0, 0, 0, 0.78);
+  --omega-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.5), 0 32px 56px -28px rgba(0, 0, 0, 0.85);
+  --omega-ring: 0 0 0 3px rgba(255, 106, 0, 0.3);
+  --omega-sider-bg: rgba(14, 9, 11, 0.78);
+  --omega-sider-border: rgba(255, 140, 66, 0.13);
+  --omega-highlight: rgba(255, 200, 150, 0.06);
 
   color-scheme: dark;
 }
 
 html[data-theme='ultra-dark'] body.dark {
-  --omega-bg: #000000;
-  --omega-glow-1: rgba(124, 92, 255, 0.16);
-  --omega-glow-2: rgba(34, 211, 238, 0.08);
-  --omega-glow-3: rgba(236, 72, 153, 0.06);
-  --omega-surface: rgba(10, 12, 20, 0.72);
-  --omega-surface-strong: #0a0d16;
-  --omega-border: rgba(148, 163, 184, 0.1);
-  --omega-sider-bg: rgba(3, 5, 10, 0.82);
+  --omega-bg: #030203;
+  --omega-glow-1: rgba(255, 85, 0, 0.18);
+  --omega-glow-2: rgba(251, 191, 36, 0.09);
+  --omega-glow-3: rgba(225, 29, 72, 0.08);
+  --omega-surface: rgba(14, 9, 11, 0.78);
+  --omega-surface-strong: #0b0708;
+  --omega-border: rgba(255, 140, 66, 0.12);
+  --omega-sider-bg: rgba(6, 4, 5, 0.88);
 }
 
 /* Persian / Arabic UI: lead with Vazirmatn so digits and Latin fragments
@@ -964,7 +962,7 @@ body.dark .omega-chip.is-protocol {
 .omega-subnav-item.is-active {
   color: #fff;
   background: var(--omega-gradient);
-  box-shadow: 0 8px 18px -10px rgba(106, 77, 246, 0.8);
+  box-shadow: 0 8px 18px -10px rgba(255, 85, 0, 0.85);
 }
 
 .omega-section-card.ant-card > .ant-card-body {

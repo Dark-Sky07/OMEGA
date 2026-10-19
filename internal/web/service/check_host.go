@@ -186,7 +186,7 @@ func (s *CheckHostService) RunCheck(ctx context.Context, target string, mode str
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; OMEGA-Panel/4.7; +https://github.com/Dark-Sky07/OMEGA)")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; PHOENIX-Panel/5.0; +https://github.com/Dark-Sky07/OMEGA)")
 
 	resp, err := s.client().Do(req)
 	if err != nil {
@@ -282,7 +282,7 @@ func (s *CheckHostService) RunCheck(ctx context.Context, target string, mode str
 			break
 		}
 		rReq.Header.Set("Accept", "application/json")
-		rReq.Header.Set("User-Agent", "Mozilla/5.0 (compatible; OMEGA-Panel/4.7; +https://github.com/Dark-Sky07/OMEGA)")
+		rReq.Header.Set("User-Agent", "Mozilla/5.0 (compatible; PHOENIX-Panel/5.0; +https://github.com/Dark-Sky07/OMEGA)")
 		rResp, err := s.client().Do(rReq)
 		if err != nil {
 			continue

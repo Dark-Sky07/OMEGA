@@ -436,7 +436,7 @@ export default function ClientsPage() {
     const msg = await HttpUtil.get('/panel/api/clients/export');
     if (!msg.success || !msg.obj) return;
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    FileManager.downloadTextFile(JSON.stringify(msg.obj, null, 2), `omega-clients-${stamp}.json`, { type: 'application/json' });
+    FileManager.downloadTextFile(JSON.stringify(msg.obj, null, 2), `phoenix-clients-${stamp}.json`, { type: 'application/json' });
   }
 
   function onAdd() {

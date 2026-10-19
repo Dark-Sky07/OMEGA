@@ -51,23 +51,33 @@
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  background: var(--omega-gradient);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 45%, rgba(255, 106, 0, 0.35), rgba(16, 8, 10, 0.94));
   box-shadow:
-    0 12px 26px -12px color-mix(in srgb, var(--omega-primary) 85%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    0 10px 26px -8px color-mix(in srgb, var(--omega-primary) 90%, transparent),
+    0 0 0 1px rgba(255, 179, 71, 0.38);
   color: #fff;
+  overflow: visible;
 }
 
 .brand-mark::after {
   content: '';
   position: absolute;
-  inset: 1px;
-  border-radius: 13px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 55%);
+  inset: -2px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 136, 0, 0.25), transparent 70%);
   pointer-events: none;
+  z-index: -1;
+}
+
+.brand-mark-img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 2px 8px rgba(255, 85, 0, 0.55));
 }
 
 .brand-mark-glyph {
@@ -89,7 +99,10 @@
 .brand-text {
   font-size: 18px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
+  background: linear-gradient(135deg, var(--omega-text) 15%, #ffb347 65%, #ff6a00 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
   color: var(--omega-text);
 }
 

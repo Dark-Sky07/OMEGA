@@ -135,8 +135,8 @@
         "wrongUsernameOrPassword": "Invalid username or password or two-factor code.",
         "successLogin": "You have successfully logged into your account."
       },
-      "asideTitle": "One panel for every tunnel.",
-      "asideText": "Xray, OpenVPN, L2TP/IPsec and AmneziaWG — managed, routed and measured from a single place."
+      "asideTitle": "Reborn from Fire. Immortal across every border.",
+      "asideText": "Like the legendary Phoenix (ققنوس) rising from obsidian ash in solar flame — Xray-core, OpenVPN, L2TP/IPsec, TUIC v5, MASQUE and AmneziaWG united in one sovereign sanctuary."
     },
     "index": {
       "title": "Overview",
@@ -162,7 +162,7 @@
       "xraySwitchClick": "The panel checks the official Xray-core releases and can install the latest compatible release.",
       "xraySwitchClickDesk": "The archive is downloaded and verified before Xray is stopped. A failed update is rolled back automatically.",
       "updatePanel": "Update Panel",
-      "panelUpdateDesc": "This will update OMEGA itself to the latest release and restart the panel service.",
+      "panelUpdateDesc": "This will update PHOENIX itself to the latest release and restart the panel service.",
       "currentPanelVersion": "Current panel version",
       "latestPanelVersion": "Latest panel version",
       "panelUpToDate": "Panel is up to date",
@@ -236,7 +236,7 @@
       "xraySwitchVersionDialogDesc": "This will download and install Xray-core #version# and restart Xray.",
       "xraySwitchVersionPopover": "Xray updated successfully",
       "panelUpdateDialog": "Do you really want to update the panel?",
-      "panelUpdateDialogDesc": "This will update OMEGA to #version# and restart the panel service.",
+      "panelUpdateDialogDesc": "This will update PHOENIX to #version# and restart the panel service.",
       "panelUpdateCheckPopover": "Panel update check failed",
       "panelUpdateStartedPopover": "Panel update started",
       "geofileUpdateDialog": "Do you really want to update the geofile?",
@@ -1184,7 +1184,7 @@
       "subAnnounce": "Announce",
       "subAnnounceDesc": "The announcement text displayed in the VPN client",
       "subThemeDir": "Sub Theme Directory",
-      "subThemeDirDesc": "Absolute path to a folder containing a custom index.html/sub.html subscription page template (e.g. /etc/3x-ui/sub_templates/my-theme/). Leave empty to use the default page.",
+      "subThemeDirDesc": "Absolute path to a folder containing a custom index.html/sub.html subscription page template (e.g. /etc/x-ui/sub_templates/my-theme/). Leave empty to use the default page.",
       "subThemeDirDocs": "Template guide ↗",
       "subEnableRouting": "Enable routing",
       "subEnableRoutingDesc": "Global setting to enable routing in the VPN client. (Only for Happ)",
@@ -1965,7 +1965,7 @@
       "report": "🕰 Scheduled Reports: {{ .RunTime }}\r\n",
       "datetime": "⏰ Date&Time: {{ .DateTime }}\r\n",
       "hostname": "💻 Host: {{ .Hostname }}\r\n",
-      "version": "🚀 OMEGA Version: {{ .Version }}\r\n",
+      "version": "🔥 PHOENIX Version: {{ .Version }}\r\n",
       "xrayVersion": "📡 Xray Version: {{ .XrayVersion }}\r\n",
       "ipv6": "🌐 IPv6: {{ .IPv6 }}\r\n",
       "ipv4": "🌐 IPv4: {{ .IPv4 }}\r\n",

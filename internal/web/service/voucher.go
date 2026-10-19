@@ -36,7 +36,7 @@ func (s *VoucherService) Create(code string, amount float64, trafficGB int64, ma
 	}
 	code = strings.ToUpper(strings.TrimSpace(code))
 	if code == "" {
-		code = fmt.Sprintf("OMEGA-%s-%s", strings.ToUpper(random.NumLower(4)), strings.ToUpper(random.NumLower(4)))
+		code = fmt.Sprintf("PHOENIX-%s-%s", strings.ToUpper(random.NumLower(4)), strings.ToUpper(random.NumLower(4)))
 	}
 	if maxUses <= 0 {
 		maxUses = 1

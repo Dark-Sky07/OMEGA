@@ -76,10 +76,10 @@ describe('reseller navigation', () => {
     sessionState.role = 'admin';
   });
 
-  it('admin sidebar offers the reseller management entry and OMEGA branding', () => {
+  it('admin sidebar offers the reseller management entry and PHOENIX branding', () => {
     renderSidebar();
     expect(menuLabels()).toContain('Resellers');
-    expect(document.querySelector('.brand-text')?.textContent).toBe('OMEGA');
+    expect(document.querySelector('.brand-text')?.textContent).toBe('PHOENIX');
   });
 
   it('reseller sidebar is limited to their own sections', () => {

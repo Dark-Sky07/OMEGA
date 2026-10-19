@@ -135,8 +135,8 @@
         "wrongUsernameOrPassword": "نام کاربری، رمز عبور یا کد دو مرحله‌ای نامعتبر است.",
         "successLogin": "شما با موفقیت به حساب کاربری خود وارد شدید."
       },
-      "asideTitle": "یک پنل برای همه‌ی تونل‌ها.",
-      "asideText": "Xray، OpenVPN، L2TP/IPsec و AmneziaWG — مدیریت، مسیریابی و اندازه‌گیری، همه از یک‌جا."
+      "asideTitle": "برخاسته از آتش و خاکستر؛ جاودانه در هر مرز و مدار.",
+      "asideText": "همچون ققنوس افسانه‌ای که از دل آتش و خاکستر جاودانه سر برمی‌آورد — هسته‌های Xray، OpenVPN، L2TP/IPsec، TUIC v5، MASQUE و AmneziaWG در دژی تسخیرناپذیر و یکپارچه."
     },
     "index": {
       "title": "نمای کلی",
@@ -162,7 +162,7 @@
       "xraySwitchClick": "پنل نسخه‌های رسمی Xray-core را بررسی می‌کند و می‌تواند آخرین نسخه سازگار را نصب کند.",
       "xraySwitchClickDesk": "آرشیو قبل از توقف Xray دانلود و بررسی می‌شود؛ اگر به‌روزرسانی شکست بخورد، نسخه قبلی به‌صورت خودکار برگردانده می‌شود.",
       "updatePanel": "به‌روزرسانی پنل",
-      "panelUpdateDesc": "این عملیات OMEGA را به آخرین نسخه به‌روزرسانی می‌کند و سرویس پنل را مجدداً راه‌اندازی می‌کند.",
+      "panelUpdateDesc": "این عملیات PHOENIX را به آخرین نسخه به‌روزرسانی می‌کند و سرویس پنل را مجدداً راه‌اندازی می‌کند.",
       "currentPanelVersion": "نسخه فعلی پنل",
       "latestPanelVersion": "آخرین نسخه پنل",
       "panelUpToDate": "پنل به‌روز است",
@@ -236,7 +236,7 @@
       "xraySwitchVersionDialogDesc": "Xray-core نسخه #version# دانلود و نصب می‌شود و Xray مجدداً راه‌اندازی خواهد شد.",
       "xraySwitchVersionPopover": "Xray با موفقیت به‌روز شد",
       "panelUpdateDialog": "آیا مطمئن هستید که می‌خواهید پنل را به‌روزرسانی کنید؟",
-      "panelUpdateDialogDesc": "این OMEGA را به نسخه #version# به‌روزرسانی کرده و سرویس پنل را مجدداً راه‌اندازی می‌کند.",
+      "panelUpdateDialogDesc": "این PHOENIX را به نسخه #version# به‌روزرسانی کرده و سرویس پنل را مجدداً راه‌اندازی می‌کند.",
       "panelUpdateCheckPopover": "خطا در بررسی به‌روزرسانی پنل",
       "panelUpdateStartedPopover": "به‌روزرسانی پنل آغاز شد",
       "geofileUpdateDialog": "آیا واقعاً می‌خواهید فایل جغرافیایی را به‌روز کنید؟",
@@ -1182,7 +1182,7 @@
       "subAnnounce": "اعلان",
       "subAnnounceDesc": "متن اعلانی که در کلاینت VPN نمایش داده می‌شود",
       "subThemeDir": "پوشه قالب صفحه اشتراک",
-      "subThemeDirDesc": "مسیر مطلق پوشه‌ای که شامل یک قالب سفارشی (index.html/sub.html) برای صفحه اشتراک است (مثلاً /etc/3x-ui/sub_templates/my-theme/). برای استفاده از صفحه پیش‌فرض خالی بگذارید.",
+      "subThemeDirDesc": "مسیر مطلق پوشه‌ای که شامل یک قالب سفارشی (index.html/sub.html) برای صفحه اشتراک است (مثلاً /etc/x-ui/sub_templates/my-theme/). برای استفاده از صفحه پیش‌فرض خالی بگذارید.",
       "subThemeDirDocs": "راهنمای قالب ↗",
       "subEnableRouting": "فعال‌سازی مسیریابی",
       "subEnableRoutingDesc": "تنظیمات سراسری برای فعال‌سازی مسیریابی در کلاینت VPN. (فقط برای Happ)",
@@ -1912,7 +1912,7 @@
       "report": "🕰 گزارشات‌زمان‌بندی‌شده: {{ .RunTime }}\r\n",
       "datetime": "⏰ تاریخ‌وزمان: {{ .DateTime }}\r\n",
       "hostname": "💻 میزبان: {{ .Hostname }}\r\n",
-      "version": "🚀 نسخه‌پنل: {{ .Version }}\r\n",
+      "version": "🔥 نسخه PHOENIX: {{ .Version }}\r\n",
       "xrayVersion": "📡 نسخه‌هسته: {{ .XrayVersion }}\r\n",
       "ipv6": "🌐 IPv6: {{ .IPv6 }}\r\n",
       "ipv4": "🌐 IPv4: {{ .IPv4 }}\r\n",

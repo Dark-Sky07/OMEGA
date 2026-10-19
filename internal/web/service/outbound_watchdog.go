@@ -232,7 +232,7 @@ func (s *OutboundWatchdogService) notifyFailover(fromTag, toTag string, r outbou
 	if r.CountryCode != "" || r.EgressIP != "" {
 		geo = fmt.Sprintf(" [%s %s]", r.CountryCode, r.EgressIP)
 	}
-	msg := fmt.Sprintf("⚠️ OMEGA Outbound Auto-Failover\nFailed Outbound: %s\nPromoted Outbound: %s (%d ms)%s", fromTag, toTag, r.Delay, geo)
+	msg := fmt.Sprintf("🔥 PHOENIX Outbound Auto-Failover\nFailed Outbound: %s\nPromoted Outbound: %s (%d ms)%s", fromTag, toTag, r.Delay, geo)
 
 	if s.discordService.IsEnabled() {
 		_ = s.discordService.SendEmbed(DiscordEmbed{

@@ -149,7 +149,7 @@ func (s *CertService) IssueSelfSigned(domain string, baseDir string, applyToPane
 	now := time.Now()
 	tpl := &x509.Certificate{
 		SerialNumber: serial,
-		Subject:      pkix.Name{CommonName: clean, Organization: []string{"OMEGA Self-Signed"}},
+		Subject:      pkix.Name{CommonName: clean, Organization: []string{"PHOENIX Self-Signed"}},
 		NotBefore:    now.Add(-5 * time.Minute),
 		NotAfter:     now.AddDate(1, 0, 0),
 		KeyUsage:     x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
