@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
@@ -217,7 +216,7 @@ func (a *APIController) auditMiddleware(c *gin.Context) {
 		Action:    method + " " + relPath,
 		Module:    classifyAuditModule(relPath),
 		Target:    strings.Join(targets, ", "),
-		IP:        common.GetRealClientIP(c),
+		IP:        getRemoteIp(c),
 		Status:    c.Writer.Status(),
 	})
 }
