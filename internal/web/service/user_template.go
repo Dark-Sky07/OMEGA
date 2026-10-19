@@ -54,6 +54,9 @@ func normalizeUserTemplate(tpl *model.UserTemplate) error {
 	if tpl.RenewalMode == 0 {
 		tpl.RenewalDay = 0
 	}
+	if tpl.FixedPrice < 0 {
+		tpl.FixedPrice = 0
+	}
 	if tpl.InboundIds == nil {
 		tpl.InboundIds = []int{}
 	} else {
@@ -148,6 +151,7 @@ func (s *UserTemplateService) Update(id int, tpl *model.UserTemplate) (*model.Us
 	existing.Reset = tpl.Reset
 	existing.RenewalMode = tpl.RenewalMode
 	existing.RenewalDay = tpl.RenewalDay
+	existing.FixedPrice = tpl.FixedPrice
 	existing.Group = tpl.Group
 	existing.InboundIds = tpl.InboundIds
 	existing.UpdatedAt = time.Now().UnixMilli()

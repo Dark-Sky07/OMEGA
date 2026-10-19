@@ -15,8 +15,9 @@ type UserTemplate struct {
 	LimitDevice        int    `json:"limitDevice"`
 	Reset              int    `json:"reset"`       // Renewal period in days
 	RenewalMode        int    `json:"renewalMode"` // 0=rolling, 1=monthly, 2=weekly
-	RenewalDay         int    `json:"renewalDay"`  // Day of month (1-31) or weekday (1-7)
-	Group              string `json:"group" gorm:"size:128"`
+	RenewalDay         int     `json:"renewalDay"`  // Day of month (1-31) or weekday (1-7)
+	FixedPrice         float64 `json:"fixedPrice" gorm:"default:0"`
+	Group              string  `json:"group" gorm:"size:128"`
 	InboundIds         []int  `json:"inboundIds" gorm:"serializer:json"`
 	CreatedAt          int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
 	UpdatedAt          int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`

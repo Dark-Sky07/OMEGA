@@ -14,6 +14,7 @@ export interface UserTemplate {
   reset: number;
   renewalMode: number;
   renewalDay: number;
+  fixedPrice?: number;
   group: string;
   inboundIds: number[];
   createdAt?: number;

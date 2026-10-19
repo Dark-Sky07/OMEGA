@@ -1684,6 +1684,32 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
+        path: '/panel/api/resellers/vouchers',
+        summary: 'List all reseller wallet gift/voucher codes.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/resellers/vouchers/create',
+        summary: 'Create a new single-use or multi-use reseller wallet/traffic gift voucher code.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/resellers/vouchers/delete/:id',
+        summary: 'Delete a reseller gift voucher code by ID.',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/reseller/vouchers/redeem',
+        summary: 'Redeem a gift/voucher code to credit the signed-in reseller wallet balance and/or traffic quota.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/checkHost',
+        summary: 'Run an Iran & international Check-Host TCP port or ICMP ping reachability test against a target host or host:port.',
+      },
+      {
+        method: 'GET',
         path: '/panel/api/setting/admins',
         summary: 'List all panel admin accounts and their RBAC roles/permissions (owner only).',
       },
