@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -549,7 +550,9 @@ func (a *ServerController) checkHost(c *gin.Context) {
 		jsonMsg(c, "", err)
 		return
 	}
-	report, err := a.checkHostService.RunCheck(c.Request.Context(), form.Target, form.Mode)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 22*time.Second)
+	defer cancel()
+	report, err := a.checkHostService.RunCheck(ctx, form.Target, form.Mode)
 	if err != nil {
 		jsonMsg(c, "", err)
 		return

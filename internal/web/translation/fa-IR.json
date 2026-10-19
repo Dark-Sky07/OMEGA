@@ -1260,6 +1260,8 @@
       "checkHostLocation": "موقعیت سرور تست",
       "checkHostStatus": "وضعیت دسترسی",
       "checkHostOpen": "در دسترس (باز)",
+      "checkHostClosedPort": "آی‌پی در دسترس (پورت بسته)",
+      "checkHostPending": "نود شلوغ / در انتظار",
       "checkHostBlocked": "فیلتر / تایم‌اوت",
       "checkHostLatency": "پینگ / تأخیر",
       "checkHostDetail": "جزئیات",

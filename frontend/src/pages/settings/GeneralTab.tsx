@@ -80,6 +80,7 @@ interface CheckHostNodeResult {
   node: string;
   location: string;
   success: boolean;
+  status?: 'ok' | 'closed_port' | 'pending' | 'filtered';
   latencyMs: number;
   message?: string;
 }
@@ -87,6 +88,7 @@ interface CheckHostNodeResult {
 interface CheckHostReport {
   target: string;
   mode: string;
+  permanentLink?: string;
   checkedAt: number;
   nodes: CheckHostNodeResult[];
 }
@@ -124,22 +126,64 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
   const [auditActorType, setAuditActorType] = useState('');
   const [auditModule, setAuditModule] = useState('');
   const [auditSearch, setAuditSearch] = useState('');
-  const [checkHostTarget, setCheckHostTarget] = useState(() => `${window.location.hostname}:443`);
+  const defaultCheckPort = useMemo(() => {
+    if (window.location.port) return window.location.port;
+    if (window.location.protocol === 'https:') return '443';
+    if (allSetting?.webPort && allSetting.webPort > 0) return String(allSetting.webPort);
+    return '443';
+  }, [allSetting?.webPort]);
+
+  const [checkHostTarget, setCheckHostTarget] = useState(() => {
+    const p = window.location.port || (window.location.protocol === 'https:' ? '443' : String(allSetting?.webPort || 443));
+    return `${window.location.hostname}:${p}`;
+  });
   const [checkHostMode, setCheckHostMode] = useState<'tcp' | 'ping'>('tcp');
   const [checkHostLoading, setCheckHostLoading] = useState(false);
   const [checkHostNodes, setCheckHostNodes] = useState<CheckHostNodeResult[]>([]);
+  const [checkHostPermLink, setCheckHostPermLink] = useState('');
+  const [inboundPorts, setInboundPorts] = useState<{ label: string; port: number }[]>([]);
   const [messageApi, messageContextHolder] = message.useMessage();
 
-  async function runCheckHostNow() {
-    if (!checkHostTarget.trim()) return;
+  function extractHostOnly(val: string): string {
+    const trimmed = val.trim().replace(/^https?:\/\//i, '').split('/')[0] || window.location.hostname;
+    if (trimmed.startsWith('[')) {
+      const endBracket = trimmed.indexOf(']');
+      if (endBracket > 0) return trimmed.slice(0, endBracket + 1);
+    }
+    const lastColon = trimmed.lastIndexOf(':');
+    if (lastColon > 0 && trimmed.indexOf(':') === lastColon) {
+      return trimmed.slice(0, lastColon);
+    }
+    return trimmed;
+  }
+
+  function handleCheckHostModeChange(nextMode: 'tcp' | 'ping') {
+    setCheckHostMode(nextMode);
+    const hostOnly = extractHostOnly(checkHostTarget);
+    if (nextMode === 'ping') {
+      setCheckHostTarget(hostOnly);
+    } else if (!checkHostTarget.includes(':') || checkHostTarget.startsWith('[')) {
+      const fallbackPort = inboundPorts[0]?.port ? String(inboundPorts[0].port) : defaultCheckPort;
+      setCheckHostTarget(`${hostOnly}:${fallbackPort}`);
+    }
+  }
+
+  async function runCheckHostNow(overrideTarget?: string, overrideMode?: 'tcp' | 'ping') {
+    const activeMode = overrideMode ?? checkHostMode;
+    const rawTarget = (overrideTarget ?? checkHostTarget).trim();
+    if (!rawTarget) return;
     setCheckHostLoading(true);
     try {
       const msg = await HttpUtil.post('/panel/api/server/checkHost', {
-        target: checkHostTarget.trim(),
-        mode: checkHostMode,
+        target: rawTarget,
+        mode: activeMode,
       }) as ApiMsg<CheckHostReport>;
       if (msg?.success && msg.obj?.nodes) {
         setCheckHostNodes(msg.obj.nodes);
+        setCheckHostPermLink(msg.obj.permanentLink || '');
+        if (msg.obj.target) {
+          setCheckHostTarget(msg.obj.target);
+        }
       }
     } finally {
       setCheckHostLoading(false);
@@ -257,8 +301,18 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
           label: `${ib.tag} (${ib.protocol}@${ib.port})`,
           value: ib.tag,
         })));
+        const seenPorts = new Set<number>();
+        const ports: { label: string; port: number }[] = [];
+        for (const ib of msg.obj) {
+          if (ib.port > 0 && !seenPorts.has(ib.port)) {
+            seenPorts.add(ib.port);
+            ports.push({ label: `${ib.protocol.toUpperCase()} :${ib.port}`, port: ib.port });
+          }
+        }
+        setInboundPorts(ports.slice(0, 6));
       } else {
         setInboundOptions([]);
+        setInboundPorts([]);
       }
     })();
     return () => { cancelled = true; };
@@ -606,7 +660,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
         ),
       },
       {
-        key: '6',
+        key: '7',
         label: catTabLabel(<CloudUploadOutlined />, t('pages.settings.cloudBackupTitle', 'Cloud Backup'), isMobile),
         children: (
           <>
@@ -726,7 +780,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
         ),
       },
       {
-        key: '7',
+        key: '8',
         label: catTabLabel(<ThunderboltOutlined />, t('pages.settings.watchdogTitle', 'Outbound Watchdog'), isMobile),
         children: (
           <>
@@ -801,7 +855,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
         ),
       },
       {
-        key: '8',
+        key: '9',
         label: catTabLabel(<AuditOutlined />, t('pages.settings.auditLogTitle', 'Audit Log'), isMobile),
         children: (
           <div style={{ padding: '12px 0' }}>
@@ -910,7 +964,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
         ),
       },
       {
-        key: '9',
+        key: '10',
         label: catTabLabel(<GlobalOutlined />, t('pages.settings.checkHostTitle', 'Iran Check-Host'), isMobile),
         children: (
           <div style={{ padding: '12px 0' }}>
@@ -919,32 +973,82 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
               title={t('pages.settings.checkHostTitle', 'Iran & International Filtering Check (Check-Host)')}
               description={t('pages.settings.checkHostDesc', 'Test TCP port reachability or ICMP ping from Iranian cities (Tehran, Shiraz, Tabriz, Isfahan) and Frankfurt to detect port/IP filtering.')}
             >
-              <Space wrap>
-                <Input
-                  value={checkHostTarget}
-                  onChange={(e) => setCheckHostTarget(e.target.value)}
-                  placeholder="example.com:443"
-                  style={{ width: 240 }}
-                  onPressEnter={runCheckHostNow}
-                />
-                <Select
-                  value={checkHostMode}
-                  onChange={(v: 'tcp' | 'ping') => setCheckHostMode(v)}
-                  style={{ width: 150 }}
-                  options={[
-                    { value: 'tcp', label: 'TCP Port Check' },
-                    { value: 'ping', label: 'ICMP Ping' },
-                  ]}
-                />
-                <Button
-                  type="primary"
-                  icon={<GlobalOutlined />}
-                  loading={checkHostLoading}
-                  onClick={runCheckHostNow}
-                >
-                  {t('pages.settings.checkHostRunBtn', 'Run Check-Host Test')}
-                </Button>
-              </Space>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <Space wrap>
+                  <Input
+                    value={checkHostTarget}
+                    onChange={(e) => setCheckHostTarget(e.target.value)}
+                    placeholder={checkHostMode === 'ping' ? 'example.com' : `example.com:${defaultCheckPort}`}
+                    style={{ width: 240 }}
+                    onPressEnter={() => runCheckHostNow()}
+                  />
+                  <Select
+                    value={checkHostMode}
+                    onChange={(v: 'tcp' | 'ping') => handleCheckHostModeChange(v)}
+                    style={{ width: 165 }}
+                    options={[
+                      { value: 'tcp', label: 'TCP Port Check' },
+                      { value: 'ping', label: 'ICMP Ping (IP/Host)' },
+                    ]}
+                  />
+                  <Button
+                    type="primary"
+                    icon={<GlobalOutlined />}
+                    loading={checkHostLoading}
+                    onClick={() => runCheckHostNow()}
+                  >
+                    {t('pages.settings.checkHostRunBtn', 'Run Check-Host Test')}
+                  </Button>
+                  {checkHostPermLink ? (
+                    <Button
+                      type="link"
+                      href={checkHostPermLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      check-host.net ↗
+                    </Button>
+                  ) : null}
+                </Space>
+                <Space wrap size={4}>
+                  <Tag
+                    color="blue"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => {
+                      const nextTarget = `${extractHostOnly(checkHostTarget)}:${defaultCheckPort}`;
+                      setCheckHostMode('tcp');
+                      setCheckHostTarget(nextTarget);
+                    }}
+                  >
+                    Panel :{defaultCheckPort}
+                  </Tag>
+                  {inboundPorts.map((ib) => (
+                    <Tag
+                      key={ib.port}
+                      color="geekblue"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => {
+                        const nextTarget = `${extractHostOnly(checkHostTarget)}:${ib.port}`;
+                        setCheckHostMode('tcp');
+                        setCheckHostTarget(nextTarget);
+                      }}
+                    >
+                      {ib.label}
+                    </Tag>
+                  ))}
+                  <Tag
+                    color="purple"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => {
+                      const nextTarget = extractHostOnly(checkHostTarget);
+                      setCheckHostMode('ping');
+                      setCheckHostTarget(nextTarget);
+                    }}
+                  >
+                    ICMP Ping ({extractHostOnly(checkHostTarget)})
+                  </Tag>
+                </Space>
+              </div>
             </SettingListItem>
 
             <Table<CheckHostNodeResult>
@@ -961,12 +1065,28 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                 {
                   title: t('pages.settings.checkHostStatus', 'Reachability'),
                   dataIndex: 'success',
-                  width: 140,
-                  render: (ok: boolean) => (
-                    <Tag color={ok ? 'green' : 'red'}>
-                      {ok ? t('pages.settings.checkHostOpen', 'Reachable (OK)') : t('pages.settings.checkHostBlocked', 'Filtered / Timeout')}
-                    </Tag>
-                  ),
+                  width: 185,
+                  render: (ok: boolean, r: CheckHostNodeResult) => {
+                    if (r.status === 'closed_port') {
+                      return (
+                        <Tag color="cyan">
+                          {t('pages.settings.checkHostClosedPort', 'IP Reachable (Port Closed)')}
+                        </Tag>
+                      );
+                    }
+                    if (r.status === 'pending') {
+                      return (
+                        <Tag color="orange">
+                          {t('pages.settings.checkHostPending', 'Node Busy / Pending')}
+                        </Tag>
+                      );
+                    }
+                    return (
+                      <Tag color={ok ? 'green' : 'red'}>
+                        {ok ? t('pages.settings.checkHostOpen', 'Reachable (OK)') : t('pages.settings.checkHostBlocked', 'Filtered / Timeout')}
+                      </Tag>
+                    );
+                  },
                 },
                 {
                   title: t('pages.settings.checkHostLatency', 'Latency'),
