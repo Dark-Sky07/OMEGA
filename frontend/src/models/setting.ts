@@ -100,6 +100,18 @@ export class AllSetting {
   ldapDefaultTotalGB = 0;
   ldapDefaultExpiryDays = 0;
   ldapDefaultLimitIP = 0;
+
+  cloudBackupEnable = false;
+  cloudBackupProvider = 's3';
+  cloudBackupEndpoint = '';
+  cloudBackupRegion = 'auto';
+  cloudBackupBucket = '';
+  cloudBackupPrefix = 'omega-backups/';
+  cloudBackupAccessKey = '';
+  cloudBackupSecretKey = '';
+  cloudBackupIntervalHours = 12;
+  cloudBackupRetention = 14;
+
   hasTgBotToken = false;
   hasTwoFactorToken = false;
   hasLdapPassword = false;

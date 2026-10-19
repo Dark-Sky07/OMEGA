@@ -124,10 +124,12 @@ type TestOutboundResult struct {
 	// test inbound; TLSMs covers outbound-chain establishment + target TLS
 	// (https URLs only, since xray ACKs the SOCKS CONNECT before dialing
 	// upstream); TTFBMs is request start → first response byte.
-	HTTPStatus int   `json:"httpStatus,omitempty"`
-	ConnectMs  int64 `json:"connectMs,omitempty"`
-	TLSMs      int64 `json:"tlsMs,omitempty"`
-	TTFBMs     int64 `json:"ttfbMs,omitempty"`
+	HTTPStatus  int    `json:"httpStatus,omitempty"`
+	ConnectMs   int64  `json:"connectMs,omitempty"`
+	TLSMs       int64  `json:"tlsMs,omitempty"`
+	TTFBMs      int64  `json:"ttfbMs,omitempty"`
+	EgressIP    string `json:"egressIp,omitempty"`
+	CountryCode string `json:"countryCode,omitempty"`
 
 	Endpoints []TestEndpointResult `json:"endpoints,omitempty"`
 }

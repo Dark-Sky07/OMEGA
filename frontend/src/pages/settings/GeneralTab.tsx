@@ -17,6 +17,7 @@ import {
   ApartmentOutlined,
   BellOutlined,
   ClockCircleOutlined,
+  CloudUploadOutlined,
   GlobalOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
@@ -72,7 +73,20 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
   const [issueEmail, setIssueEmail] = useState('');
   const [issueMode, setIssueMode] = useState<'letsencrypt' | 'selfsigned'>('letsencrypt');
   const [issuing, setIssuing] = useState(false);
+  const [cloudBackingUp, setCloudBackingUp] = useState(false);
   const [messageApi, messageContextHolder] = message.useMessage();
+
+  async function runCloudBackupNow() {
+    setCloudBackingUp(true);
+    try {
+      const msg = await HttpUtil.post('/panel/api/setting/cloudBackup/run', {}) as ApiMsg<{ key?: string }>;
+      if (msg?.success) {
+        messageApi.success(`${t('pages.settings.cloudBackupSuccess', 'Cloud backup uploaded')}: ${msg.obj?.key || ''}`);
+      }
+    } finally {
+      setCloudBackingUp(false);
+    }
+  }
 
   const loadCertStatus = useCallback(async () => {
     const msg = await HttpUtil.get('/panel/api/setting/cert/status', undefined, { silent: true }) as ApiMsg<CertStatusView>;
@@ -468,6 +482,126 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
             <SettingListItem paddings="small" title={t('pages.settings.ldap.defaultIpLimit')}>
               <InputNumber value={allSetting.ldapDefaultLimitIP} min={0} style={{ width: '100%' }}
                 onChange={(v) => updateSetting({ ldapDefaultLimitIP: Number(v) || 0 })} />
+            </SettingListItem>
+          </>
+        ),
+      },
+      {
+        key: '6',
+        label: catTabLabel(<CloudUploadOutlined />, t('pages.settings.cloudBackupTitle', 'Cloud Backup'), isMobile),
+        children: (
+          <>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.cloudBackupEnable', 'Scheduled Cloud Backup')}
+              description={t('pages.settings.cloudBackupEnableDesc', 'Automatically upload database snapshots to S3 / Cloudflare R2 / MinIO or WebDAV and prune older backups.')}
+            >
+              <Space>
+                <Switch
+                  checked={allSetting.cloudBackupEnable}
+                  onChange={(v) => updateSetting({ cloudBackupEnable: v })}
+                />
+                <Button
+                  icon={<CloudUploadOutlined />}
+                  loading={cloudBackingUp}
+                  onClick={runCloudBackupNow}
+                >
+                  {t('pages.settings.cloudBackupRunNow', 'Backup Now')}
+                </Button>
+              </Space>
+            </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.cloudBackupProvider', 'Storage Provider')}>
+              <Select
+                value={allSetting.cloudBackupProvider || 's3'}
+                style={{ width: '100%' }}
+                onChange={(v) => updateSetting({ cloudBackupProvider: v })}
+                options={[
+                  { value: 's3', label: 'S3 / Cloudflare R2 / MinIO (AWS Signature v4)' },
+                  { value: 'webdav', label: 'WebDAV (Nextcloud / Hetzner Storage Box / Koofr)' },
+                ]}
+              />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.cloudBackupEndpoint', 'Endpoint URL')}
+              description={allSetting.cloudBackupProvider === 'webdav'
+                ? 'e.g. https://u12345.your-storagebox.de/'
+                : 'e.g. https://<account-id>.r2.cloudflarestorage.com or https://s3.amazonaws.com'}
+            >
+              <Input
+                value={allSetting.cloudBackupEndpoint}
+                placeholder="https://..."
+                onChange={(e) => updateSetting({ cloudBackupEndpoint: e.target.value })}
+              />
+            </SettingListItem>
+            {allSetting.cloudBackupProvider !== 'webdav' && (
+              <>
+                <SettingListItem paddings="small" title={t('pages.settings.cloudBackupBucket', 'S3 Bucket Name')}>
+                  <Input
+                    value={allSetting.cloudBackupBucket}
+                    placeholder="omega-backups"
+                    onChange={(e) => updateSetting({ cloudBackupBucket: e.target.value })}
+                  />
+                </SettingListItem>
+                <SettingListItem paddings="small" title={t('pages.settings.cloudBackupRegion', 'S3 Region')}>
+                  <Input
+                    value={allSetting.cloudBackupRegion}
+                    placeholder="auto"
+                    onChange={(e) => updateSetting({ cloudBackupRegion: e.target.value })}
+                  />
+                </SettingListItem>
+              </>
+            )}
+            <SettingListItem paddings="small" title={t('pages.settings.cloudBackupPrefix', 'Remote Folder / Prefix')}>
+              <Input
+                value={allSetting.cloudBackupPrefix}
+                placeholder="omega-backups/"
+                onChange={(e) => updateSetting({ cloudBackupPrefix: e.target.value })}
+              />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={allSetting.cloudBackupProvider === 'webdav'
+                ? t('pages.settings.cloudBackupWebdavUser', 'WebDAV Username')
+                : t('pages.settings.cloudBackupAccessKey', 'S3 Access Key ID')}
+            >
+              <Input
+                value={allSetting.cloudBackupAccessKey}
+                onChange={(e) => updateSetting({ cloudBackupAccessKey: e.target.value })}
+              />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={allSetting.cloudBackupProvider === 'webdav'
+                ? t('pages.settings.cloudBackupWebdavPass', 'WebDAV Password')
+                : t('pages.settings.cloudBackupSecretKey', 'S3 Secret Access Key')}
+            >
+              <Input.Password
+                value={allSetting.cloudBackupSecretKey}
+                onChange={(e) => updateSetting({ cloudBackupSecretKey: e.target.value })}
+              />
+            </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.cloudBackupIntervalHours', 'Backup Interval (Hours)')}>
+              <InputNumber
+                value={allSetting.cloudBackupIntervalHours}
+                min={1}
+                max={720}
+                style={{ width: '100%' }}
+                onChange={(v) => updateSetting({ cloudBackupIntervalHours: Number(v) || 12 })}
+              />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.cloudBackupRetention', 'Retention Limit (Max Backups to Keep)')}
+              description={t('pages.settings.cloudBackupRetentionDesc', 'Older backups exceeding this count are automatically deleted (0 = keep all).')}
+            >
+              <InputNumber
+                value={allSetting.cloudBackupRetention}
+                min={0}
+                max={1000}
+                style={{ width: '100%' }}
+                onChange={(v) => updateSetting({ cloudBackupRetention: Number(v) || 0 })}
+              />
             </SettingListItem>
           </>
         ),

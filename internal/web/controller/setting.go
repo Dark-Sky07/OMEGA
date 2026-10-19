@@ -32,9 +32,10 @@ type SettingController struct {
 	userService     panel.UserService
 	panelService    panel.PanelService
 	apiTokenService panel.ApiTokenService
-	xrayService     service.XrayService
-	certService     service.CertService
-	discordService  service.DiscordService
+	xrayService        service.XrayService
+	certService        service.CertService
+	discordService     service.DiscordService
+	cloudBackupService service.CloudBackupService
 }
 
 // NewSettingController creates a new SettingController and initializes its routes.
@@ -61,6 +62,7 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.GET("/cert/status", a.getCertStatus)
 	g.POST("/cert/issue", a.issueCert)
 	g.POST("/discord/test", a.testDiscord)
+	g.POST("/cloudBackup/run", a.runCloudBackup)
 	g.GET("/admins", a.listAdmins)
 	g.POST("/admins/create", a.createAdmin)
 	g.POST("/admins/update/:id", a.updateAdmin)
@@ -249,6 +251,15 @@ func (a *SettingController) issueCert(c *gin.Context) {
 
 func (a *SettingController) testDiscord(c *gin.Context) {
 	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), a.discordService.SendTestMessage())
+}
+
+func (a *SettingController) runCloudBackup(c *gin.Context) {
+	key, err := a.cloudBackupService.BackupNow()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+		return
+	}
+	jsonObj(c, gin.H{"key": key}, nil)
 }
 
 type adminForm struct {

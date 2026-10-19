@@ -68,6 +68,8 @@ export const OutboundTestResultSchema = z.object({
   connectMs: z.number().optional(),
   tlsMs: z.number().optional(),
   ttfbMs: z.number().optional(),
+  egressIp: z.string().optional(),
+  countryCode: z.string().optional(),
   endpoints: z
     .array(
       z.object({

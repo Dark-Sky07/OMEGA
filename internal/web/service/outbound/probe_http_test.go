@@ -468,3 +468,18 @@ func TestProbeThroughSocksTransportFailure(t *testing.T) {
 		t.Errorf("expected transport failure, got %+v", result)
 	}
 }
+
+func TestParseTraceGeo(t *testing.T) {
+	trace := "fl=21f\nh=1.1.1.1\nip=198.51.100.42\nts=1700000000\nloc=de\n"
+	ip, cc := parseTraceGeo(trace)
+	if ip != "198.51.100.42" || cc != "DE" {
+		t.Fatalf("parseTraceGeo(trace) = (%q, %q), want (198.51.100.42, DE)", ip, cc)
+	}
+
+	jsonBody := `{"ip":"203.0.113.7","country_code":"nl"}`
+	ip2, cc2 := parseTraceGeo(jsonBody)
+	if ip2 != "203.0.113.7" || cc2 != "NL" {
+		t.Fatalf("parseTraceGeo(json) = (%q, %q), want (203.0.113.7, NL)", ip2, cc2)
+	}
+}
+

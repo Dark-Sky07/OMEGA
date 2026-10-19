@@ -1113,6 +1113,12 @@ export const sections: readonly Section[] = [
         summary: 'Send a verification embed to the configured Discord Webhook URL and/or Bot channel.',
         response: '{\n  "success": true\n}',
       },
+      {
+        method: 'POST',
+        path: '/panel/api/setting/cloudBackup/run',
+        summary: 'Immediately upload a database snapshot to the configured S3 / Cloudflare R2 / MinIO or WebDAV cloud storage and apply retention cleanup.',
+        response: '{\n  "success": true,\n  "obj": {\n    "key": "omega-backups/x-ui-backup-20261019-120000.db"\n  }\n}',
+      },
     ],
   },
 

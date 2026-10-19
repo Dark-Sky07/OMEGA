@@ -133,6 +133,18 @@ var defaultValueMap = map[string]string{
 	"ldapDefaultTotalGB":    "0",
 	"ldapDefaultExpiryDays": "0",
 	"ldapDefaultLimitIP":    "0",
+
+	// Cloud Backup defaults
+	"cloudBackupEnable":        "false",
+	"cloudBackupProvider":      "s3",
+	"cloudBackupEndpoint":      "",
+	"cloudBackupRegion":        "auto",
+	"cloudBackupBucket":        "",
+	"cloudBackupPrefix":        "omega-backups/",
+	"cloudBackupAccessKey":     "",
+	"cloudBackupSecretKey":     "",
+	"cloudBackupIntervalHours": "12",
+	"cloudBackupRetention":     "14",
 }
 
 // SettingService provides business logic for application settings management.
@@ -825,6 +837,46 @@ func (s *SettingService) GetSubJsonRules() (string, error) {
 
 func (s *SettingService) GetSubJsonFinalMask() (string, error) {
 	return s.getString("subJsonFinalMask")
+}
+
+func (s *SettingService) GetCloudBackupEnable() (bool, error) {
+	return s.getBool("cloudBackupEnable")
+}
+
+func (s *SettingService) GetCloudBackupProvider() (string, error) {
+	return s.getString("cloudBackupProvider")
+}
+
+func (s *SettingService) GetCloudBackupEndpoint() (string, error) {
+	return s.getString("cloudBackupEndpoint")
+}
+
+func (s *SettingService) GetCloudBackupRegion() (string, error) {
+	return s.getString("cloudBackupRegion")
+}
+
+func (s *SettingService) GetCloudBackupBucket() (string, error) {
+	return s.getString("cloudBackupBucket")
+}
+
+func (s *SettingService) GetCloudBackupPrefix() (string, error) {
+	return s.getString("cloudBackupPrefix")
+}
+
+func (s *SettingService) GetCloudBackupAccessKey() (string, error) {
+	return s.getString("cloudBackupAccessKey")
+}
+
+func (s *SettingService) GetCloudBackupSecretKey() (string, error) {
+	return s.getString("cloudBackupSecretKey")
+}
+
+func (s *SettingService) GetCloudBackupIntervalHours() (int, error) {
+	return s.getInt("cloudBackupIntervalHours")
+}
+
+func (s *SettingService) GetCloudBackupRetention() (int, error) {
+	return s.getInt("cloudBackupRetention")
 }
 
 func (s *SettingService) GetSubThemeDir() (string, error) {
