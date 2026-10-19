@@ -90,7 +90,7 @@ export default function SubPage() {
   const [messageApi, messageContextHolder] = message.useMessage();
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
-  const [isMobile, setIsMobile] = useState<boolean>(() => window.innerWidth < 576);
+  const [, setIsMobile] = useState<boolean>(() => window.innerWidth < 576);
   const [lang, setLang] = useState<string>(() => LanguageManager.getLanguage());
 
   useEffect(() => {

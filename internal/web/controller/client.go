@@ -1596,4 +1596,3 @@ func (a *ClientController) deleteTemplate(c *gin.Context) {
 	}
 	jsonMsg(c, I18nWeb(c, "delete"), nil)
 }
-

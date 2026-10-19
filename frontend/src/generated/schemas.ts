@@ -3,6 +3,41 @@ export const SCHEMAS: Record<string, unknown> = {
   "AllSetting": {
     "description": "AllSetting contains all configuration settings for the 3x-ui panel including web server, Telegram bot, and subscription settings.",
     "properties": {
+      "cloudBackupAccessKey": {
+        "type": "string"
+      },
+      "cloudBackupBucket": {
+        "type": "string"
+      },
+      "cloudBackupEnable": {
+        "description": "Cloud Backup (S3 / Cloudflare R2 / MinIO / WebDAV)",
+        "type": "boolean"
+      },
+      "cloudBackupEndpoint": {
+        "type": "string"
+      },
+      "cloudBackupIntervalHours": {
+        "maximum": 720,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "cloudBackupPrefix": {
+        "type": "string"
+      },
+      "cloudBackupProvider": {
+        "type": "string"
+      },
+      "cloudBackupRegion": {
+        "type": "string"
+      },
+      "cloudBackupRetention": {
+        "maximum": 1000,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "cloudBackupSecretKey": {
+        "type": "string"
+      },
       "datepicker": {
         "description": "Date picker format",
         "type": "string"
@@ -104,6 +139,23 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapVlessField": {
         "type": "string"
       },
+      "outboundWatchdogEnable": {
+        "description": "Smart Outbound Auto-Failover Watchdog",
+        "type": "boolean"
+      },
+      "outboundWatchdogFailThreshold": {
+        "maximum": 20,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "outboundWatchdogIntervalSec": {
+        "maximum": 86400,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "outboundWatchdogTags": {
+        "type": "string"
+      },
       "pageSize": {
         "description": "UI settings\nNumber of items per page in lists (0 disables pagination)",
         "maximum": 1000,
@@ -175,6 +227,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "subEncrypt": {
         "description": "Encrypt subscription responses",
         "type": "boolean"
+      },
+      "subExpiredNotice": {
+        "description": "Custom notice shown on the status node when expired/depleted",
+        "type": "string"
       },
       "subJsonEnable": {
         "description": "Enable JSON subscription endpoint",
@@ -252,6 +308,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "subSingboxURI": {
         "description": "sing-box subscription server URI",
         "type": "string"
+      },
+      "subStatusNode": {
+        "description": "Prepend an informational status node to subscription links",
+        "type": "boolean"
       },
       "subSupportUrl": {
         "description": "Subscription support URL",
@@ -376,6 +436,16 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "cloudBackupAccessKey",
+      "cloudBackupBucket",
+      "cloudBackupEnable",
+      "cloudBackupEndpoint",
+      "cloudBackupIntervalHours",
+      "cloudBackupPrefix",
+      "cloudBackupProvider",
+      "cloudBackupRegion",
+      "cloudBackupRetention",
+      "cloudBackupSecretKey",
       "datepicker",
       "discordBotToken",
       "discordChannelId",
@@ -405,6 +475,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserAttr",
       "ldapUserFilter",
       "ldapVlessField",
+      "outboundWatchdogEnable",
+      "outboundWatchdogFailThreshold",
+      "outboundWatchdogIntervalSec",
+      "outboundWatchdogTags",
       "pageSize",
       "panelOutbound",
       "remarkModel",
@@ -422,6 +496,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subEnable",
       "subEnableRouting",
       "subEncrypt",
+      "subExpiredNotice",
       "subJsonEnable",
       "subJsonFinalMask",
       "subJsonMux",
@@ -441,6 +516,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subSingboxEnable",
       "subSingboxPath",
       "subSingboxURI",
+      "subStatusNode",
       "subSupportUrl",
       "subThemeDir",
       "subTitle",
@@ -475,6 +551,41 @@ export const SCHEMAS: Record<string, unknown> = {
   "AllSettingView": {
     "description": "AllSettingView is the browser-safe settings read model. Secret values\nare redacted from the embedded write model and represented by presence\nflags so the UI can show configured/not configured state.",
     "properties": {
+      "cloudBackupAccessKey": {
+        "type": "string"
+      },
+      "cloudBackupBucket": {
+        "type": "string"
+      },
+      "cloudBackupEnable": {
+        "description": "Cloud Backup (S3 / Cloudflare R2 / MinIO / WebDAV)",
+        "type": "boolean"
+      },
+      "cloudBackupEndpoint": {
+        "type": "string"
+      },
+      "cloudBackupIntervalHours": {
+        "maximum": 720,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "cloudBackupPrefix": {
+        "type": "string"
+      },
+      "cloudBackupProvider": {
+        "type": "string"
+      },
+      "cloudBackupRegion": {
+        "type": "string"
+      },
+      "cloudBackupRetention": {
+        "maximum": 1000,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "cloudBackupSecretKey": {
+        "type": "string"
+      },
       "datepicker": {
         "description": "Date picker format",
         "type": "string"
@@ -600,6 +711,23 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapVlessField": {
         "type": "string"
       },
+      "outboundWatchdogEnable": {
+        "description": "Smart Outbound Auto-Failover Watchdog",
+        "type": "boolean"
+      },
+      "outboundWatchdogFailThreshold": {
+        "maximum": 20,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "outboundWatchdogIntervalSec": {
+        "maximum": 86400,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "outboundWatchdogTags": {
+        "type": "string"
+      },
       "pageSize": {
         "description": "UI settings\nNumber of items per page in lists (0 disables pagination)",
         "maximum": 1000,
@@ -671,6 +799,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "subEncrypt": {
         "description": "Encrypt subscription responses",
         "type": "boolean"
+      },
+      "subExpiredNotice": {
+        "description": "Custom notice shown on the status node when expired/depleted",
+        "type": "string"
       },
       "subJsonEnable": {
         "description": "Enable JSON subscription endpoint",
@@ -748,6 +880,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "subSingboxURI": {
         "description": "sing-box subscription server URI",
         "type": "string"
+      },
+      "subStatusNode": {
+        "description": "Prepend an informational status node to subscription links",
+        "type": "boolean"
       },
       "subSupportUrl": {
         "description": "Subscription support URL",
@@ -872,6 +1008,16 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "cloudBackupAccessKey",
+      "cloudBackupBucket",
+      "cloudBackupEnable",
+      "cloudBackupEndpoint",
+      "cloudBackupIntervalHours",
+      "cloudBackupPrefix",
+      "cloudBackupProvider",
+      "cloudBackupRegion",
+      "cloudBackupRetention",
+      "cloudBackupSecretKey",
       "datepicker",
       "discordBotToken",
       "discordChannelId",
@@ -909,6 +1055,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserAttr",
       "ldapUserFilter",
       "ldapVlessField",
+      "outboundWatchdogEnable",
+      "outboundWatchdogFailThreshold",
+      "outboundWatchdogIntervalSec",
+      "outboundWatchdogTags",
       "pageSize",
       "panelOutbound",
       "remarkModel",
@@ -926,6 +1076,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subEnable",
       "subEnableRouting",
       "subEncrypt",
+      "subExpiredNotice",
       "subJsonEnable",
       "subJsonFinalMask",
       "subJsonMux",
@@ -945,6 +1096,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subSingboxEnable",
       "subSingboxPath",
       "subSingboxURI",
+      "subStatusNode",
       "subSupportUrl",
       "subThemeDir",
       "subTitle",
@@ -1220,6 +1372,12 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Subscription identifier",
         "type": "string"
       },
+      "subLastUpdatedAt": {
+        "type": "integer"
+      },
+      "subLastUserAgent": {
+        "type": "string"
+      },
       "tgId": {
         "description": "Telegram user ID for notifications",
         "type": "integer"
@@ -1349,6 +1507,12 @@ export const SCHEMAS: Record<string, unknown> = {
       "subId": {
         "type": "string"
       },
+      "subLastUpdatedAt": {
+        "type": "integer"
+      },
+      "subLastUserAgent": {
+        "type": "string"
+      },
       "tgId": {
         "type": "integer"
       },
@@ -1388,6 +1552,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "reverse",
       "security",
       "subId",
+      "subLastUpdatedAt",
+      "subLastUserAgent",
       "tgId",
       "totalGB",
       "updatedAt",
@@ -2450,10 +2616,28 @@ export const SCHEMAS: Record<string, unknown> = {
   "User": {
     "description": "User represents a user account in the 3x-ui panel.",
     "properties": {
+      "createdAt": {
+        "type": "integer"
+      },
+      "disabled": {
+        "type": "boolean"
+      },
       "id": {
         "type": "integer"
       },
+      "lastLoginAt": {
+        "type": "integer"
+      },
+      "note": {
+        "type": "string"
+      },
       "password": {
+        "type": "string"
+      },
+      "permissions": {
+        "type": "string"
+      },
+      "role": {
         "type": "string"
       },
       "username": {
@@ -2461,8 +2645,14 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "createdAt",
+      "disabled",
       "id",
+      "lastLoginAt",
+      "note",
       "password",
+      "permissions",
+      "role",
       "username"
     ],
     "type": "object"

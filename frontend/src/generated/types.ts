@@ -9,6 +9,16 @@ export type trafficLocalApplyAction = number;
 export type transportBits = number;
 
 export interface AllSetting {
+  cloudBackupAccessKey: string;
+  cloudBackupBucket: string;
+  cloudBackupEnable: boolean;
+  cloudBackupEndpoint: string;
+  cloudBackupIntervalHours: number;
+  cloudBackupPrefix: string;
+  cloudBackupProvider: string;
+  cloudBackupRegion: string;
+  cloudBackupRetention: number;
+  cloudBackupSecretKey: string;
   datepicker: string;
   discordBotToken: string;
   discordChannelId: string;
@@ -38,6 +48,10 @@ export interface AllSetting {
   ldapUserAttr: string;
   ldapUserFilter: string;
   ldapVlessField: string;
+  outboundWatchdogEnable: boolean;
+  outboundWatchdogFailThreshold: number;
+  outboundWatchdogIntervalSec: number;
+  outboundWatchdogTags: string;
   pageSize: number;
   panelOutbound: string;
   remarkModel: string;
@@ -55,6 +69,7 @@ export interface AllSetting {
   subEnable: boolean;
   subEnableRouting: boolean;
   subEncrypt: boolean;
+  subExpiredNotice: string;
   subJsonEnable: boolean;
   subJsonFinalMask: string;
   subJsonMux: string;
@@ -74,6 +89,7 @@ export interface AllSetting {
   subSingboxEnable: boolean;
   subSingboxPath: string;
   subSingboxURI: string;
+  subStatusNode: boolean;
   subSupportUrl: string;
   subThemeDir: string;
   subTitle: string;
@@ -105,6 +121,16 @@ export interface AllSetting {
 }
 
 export interface AllSettingView {
+  cloudBackupAccessKey: string;
+  cloudBackupBucket: string;
+  cloudBackupEnable: boolean;
+  cloudBackupEndpoint: string;
+  cloudBackupIntervalHours: number;
+  cloudBackupPrefix: string;
+  cloudBackupProvider: string;
+  cloudBackupRegion: string;
+  cloudBackupRetention: number;
+  cloudBackupSecretKey: string;
   datepicker: string;
   discordBotToken: string;
   discordChannelId: string;
@@ -142,6 +168,10 @@ export interface AllSettingView {
   ldapUserAttr: string;
   ldapUserFilter: string;
   ldapVlessField: string;
+  outboundWatchdogEnable: boolean;
+  outboundWatchdogFailThreshold: number;
+  outboundWatchdogIntervalSec: number;
+  outboundWatchdogTags: string;
   pageSize: number;
   panelOutbound: string;
   remarkModel: string;
@@ -159,6 +189,7 @@ export interface AllSettingView {
   subEnable: boolean;
   subEnableRouting: boolean;
   subEncrypt: boolean;
+  subExpiredNotice: string;
   subJsonEnable: boolean;
   subJsonFinalMask: string;
   subJsonMux: string;
@@ -178,6 +209,7 @@ export interface AllSettingView {
   subSingboxEnable: boolean;
   subSingboxPath: string;
   subSingboxURI: string;
+  subStatusNode: boolean;
   subSupportUrl: string;
   subThemeDir: string;
   subTitle: string;
@@ -265,6 +297,8 @@ export interface Client {
   reverse?: ClientReverse | null;
   security: string;
   subId: string;
+  subLastUpdatedAt?: number;
+  subLastUserAgent?: string;
   tgId: number;
   totalGB: number;
   updated_at?: number;
@@ -303,6 +337,8 @@ export interface ClientRecord {
   reverse: unknown;
   security: string;
   subId: string;
+  subLastUpdatedAt: number;
+  subLastUserAgent: string;
   tgId: number;
   totalGB: number;
   updatedAt: number;
@@ -559,8 +595,14 @@ export interface TuicServerSettings {
 }
 
 export interface User {
+  createdAt: number;
+  disabled: boolean;
   id: number;
+  lastLoginAt: number;
+  note: string;
   password: string;
+  permissions: string;
+  role: string;
   username: string;
 }
 

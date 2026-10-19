@@ -209,4 +209,3 @@ func ServePWAServiceWorker(c *gin.Context) {
 	c.Header("Cache-Control", "no-cache")
 	c.Data(http.StatusOK, "application/javascript; charset=utf-8", []byte(pwaServiceWorkerJS))
 }
-
