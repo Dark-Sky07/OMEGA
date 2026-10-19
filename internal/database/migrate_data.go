@@ -59,6 +59,7 @@ func migrationModels() []any {
 		&model.SupportTicket{},
 		&model.SupportTicketMessage{},
 		&model.PaymentOrder{},
+		&model.AuditLog{},
 	}
 }
 

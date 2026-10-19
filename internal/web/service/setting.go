@@ -145,6 +145,12 @@ var defaultValueMap = map[string]string{
 	"cloudBackupSecretKey":     "",
 	"cloudBackupIntervalHours": "12",
 	"cloudBackupRetention":     "14",
+
+	// Smart Outbound Watchdog defaults
+	"outboundWatchdogEnable":        "false",
+	"outboundWatchdogTags":          "",
+	"outboundWatchdogIntervalSec":   "120",
+	"outboundWatchdogFailThreshold": "2",
 }
 
 // SettingService provides business logic for application settings management.
@@ -877,6 +883,22 @@ func (s *SettingService) GetCloudBackupIntervalHours() (int, error) {
 
 func (s *SettingService) GetCloudBackupRetention() (int, error) {
 	return s.getInt("cloudBackupRetention")
+}
+
+func (s *SettingService) GetOutboundWatchdogEnable() (bool, error) {
+	return s.getBool("outboundWatchdogEnable")
+}
+
+func (s *SettingService) GetOutboundWatchdogTags() (string, error) {
+	return s.getString("outboundWatchdogTags")
+}
+
+func (s *SettingService) GetOutboundWatchdogIntervalSec() (int, error) {
+	return s.getInt("outboundWatchdogIntervalSec")
+}
+
+func (s *SettingService) GetOutboundWatchdogFailThreshold() (int, error) {
+	return s.getInt("outboundWatchdogFailThreshold")
 }
 
 func (s *SettingService) GetSubThemeDir() (string, error) {

@@ -9,18 +9,23 @@ import {
   Select,
   Space,
   Switch,
+  Table,
   Tabs,
   Tag,
   message,
 } from 'antd';
 import {
   ApartmentOutlined,
+  AuditOutlined,
   BellOutlined,
   ClockCircleOutlined,
   CloudUploadOutlined,
+  DeleteOutlined,
   GlobalOutlined,
+  ReloadOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import type { AllSetting } from '@/models/setting';
 import { HttpUtil, LanguageManager } from '@/utils';
@@ -46,6 +51,29 @@ interface CertStatusView {
   daysLeft?: number;
   expired?: boolean;
   error?: string;
+}
+
+interface WatchdogStatusView {
+  enabled: boolean;
+  activeTag: string;
+  candidateTags?: string[];
+  lastCheckedAt?: number;
+  lastFailoverAt?: number;
+  lastFailoverFrom?: string;
+  lastFailoverTo?: string;
+}
+
+interface AuditLogEntry {
+  id: number;
+  actorType: string;
+  actorId: number;
+  actorName: string;
+  action: string;
+  module: string;
+  target: string;
+  ip: string;
+  status: number;
+  createdAt: number;
 }
 
 interface GeneralTabProps {
@@ -74,7 +102,63 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
   const [issueMode, setIssueMode] = useState<'letsencrypt' | 'selfsigned'>('letsencrypt');
   const [issuing, setIssuing] = useState(false);
   const [cloudBackingUp, setCloudBackingUp] = useState(false);
+  const [watchdogStatus, setWatchdogStatus] = useState<WatchdogStatusView | null>(null);
+  const [watchdogChecking, setWatchdogChecking] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditActorType, setAuditActorType] = useState('');
+  const [auditModule, setAuditModule] = useState('');
+  const [auditSearch, setAuditSearch] = useState('');
   const [messageApi, messageContextHolder] = message.useMessage();
+
+  const loadWatchdogStatus = useCallback(async () => {
+    const msg = await HttpUtil.get('/panel/api/xray/watchdog/status', undefined, { silent: true }) as ApiMsg<WatchdogStatusView>;
+    if (msg?.success && msg.obj) {
+      setWatchdogStatus(msg.obj);
+    }
+  }, []);
+
+  const loadAuditLogs = useCallback(async () => {
+    setAuditLoading(true);
+    try {
+      const msg = await HttpUtil.get('/panel/api/setting/auditLogs', {
+        limit: 200,
+        actorType: auditActorType,
+        module: auditModule,
+        search: auditSearch,
+      }, { silent: true }) as ApiMsg<AuditLogEntry[]>;
+      if (msg?.success && Array.isArray(msg.obj)) {
+        setAuditLogs(msg.obj);
+      }
+    } finally {
+      setAuditLoading(false);
+    }
+  }, [auditActorType, auditModule, auditSearch]);
+
+  useEffect(() => {
+    loadWatchdogStatus();
+    loadAuditLogs();
+  }, [loadWatchdogStatus, loadAuditLogs]);
+
+  async function runWatchdogCheckNow() {
+    setWatchdogChecking(true);
+    try {
+      const msg = await HttpUtil.post('/panel/api/xray/watchdog/check', {}) as ApiMsg<WatchdogStatusView>;
+      if (msg?.success && msg.obj) {
+        setWatchdogStatus(msg.obj);
+        messageApi.success(`${t('pages.settings.watchdogCheckDone', 'Watchdog check completed — Active')}: ${msg.obj.activeTag || '-'}`);
+      }
+    } finally {
+      setWatchdogChecking(false);
+    }
+  }
+
+  async function clearAuditLogsNow() {
+    const msg = await HttpUtil.post('/panel/api/setting/auditLogs/clear', {}) as ApiMsg;
+    if (msg?.success) {
+      setAuditLogs([]);
+    }
+  }
 
   async function runCloudBackupNow() {
     setCloudBackingUp(true);
@@ -604,6 +688,190 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
               />
             </SettingListItem>
           </>
+        ),
+      },
+      {
+        key: '7',
+        label: catTabLabel(<ThunderboltOutlined />, t('pages.settings.watchdogTitle', 'Outbound Watchdog'), isMobile),
+        children: (
+          <>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.outboundWatchdogEnable', 'Smart Outbound Auto-Failover Watchdog')}
+              description={t('pages.settings.outboundWatchdogEnableDesc', 'Automatically health-check candidate outbounds (e.g. multiple Windscribe WireGuard, WARP, or tunnel outbounds) and promote the fastest healthy backup when the active outbound fails.')}
+            >
+              <Space wrap>
+                <Switch
+                  checked={allSetting.outboundWatchdogEnable}
+                  onChange={(v) => updateSetting({ outboundWatchdogEnable: v })}
+                />
+                {watchdogStatus?.activeTag && (
+                  <Tag color="green">
+                    {t('pages.settings.watchdogActiveTag', 'Active Primary')}: {watchdogStatus.activeTag}
+                  </Tag>
+                )}
+                {watchdogStatus?.lastFailoverTo && (
+                  <Tag color="orange">
+                    Last Failover: {watchdogStatus.lastFailoverFrom} → {watchdogStatus.lastFailoverTo}
+                  </Tag>
+                )}
+                <Button
+                  icon={<ThunderboltOutlined />}
+                  loading={watchdogChecking}
+                  onClick={runWatchdogCheckNow}
+                >
+                  {t('pages.settings.watchdogCheckNow', 'Check & Failover Now')}
+                </Button>
+              </Space>
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.outboundWatchdogTags', 'Candidate Outbound Tags (Priority Order)')}
+              description={t('pages.settings.outboundWatchdogTagsDesc', 'Select candidate outbounds in failover priority order (leave empty to automatically monitor all non-direct outbounds).')}
+            >
+              <Select
+                mode="tags"
+                style={{ width: '100%' }}
+                value={allSetting.outboundWatchdogTags ? allSetting.outboundWatchdogTags.split(',').map((s) => s.trim()).filter(Boolean) : []}
+                onChange={(vals: string[]) => updateSetting({ outboundWatchdogTags: vals.join(',') })}
+                options={outboundTagList.map((tag) => ({ label: tag, value: tag }))}
+                placeholder="windscribe-wg-1, windscribe-wg-2"
+              />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.outboundWatchdogIntervalSec', 'Health-Check Interval (Seconds)')}
+            >
+              <InputNumber
+                value={allSetting.outboundWatchdogIntervalSec}
+                min={15}
+                max={86400}
+                style={{ width: '100%' }}
+                onChange={(v) => updateSetting({ outboundWatchdogIntervalSec: Number(v) || 120 })}
+              />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.outboundWatchdogFailThreshold', 'Consecutive Failures Before Failover')}
+            >
+              <InputNumber
+                value={allSetting.outboundWatchdogFailThreshold}
+                min={1}
+                max={20}
+                style={{ width: '100%' }}
+                onChange={(v) => updateSetting({ outboundWatchdogFailThreshold: Number(v) || 2 })}
+              />
+            </SettingListItem>
+          </>
+        ),
+      },
+      {
+        key: '8',
+        label: catTabLabel(<AuditOutlined />, t('pages.settings.auditLogTitle', 'Audit Log'), isMobile),
+        children: (
+          <div style={{ padding: '12px 0' }}>
+            <Space wrap style={{ marginBottom: 12 }}>
+              <Input.Search
+                allowClear
+                placeholder={t('pages.settings.auditSearchPlaceholder', 'Search actor, action, target, IP...')}
+                value={auditSearch}
+                onChange={(e) => setAuditSearch(e.target.value)}
+                onSearch={() => loadAuditLogs()}
+                style={{ width: 240 }}
+              />
+              <Select
+                value={auditActorType}
+                onChange={(v) => setAuditActorType(v)}
+                style={{ width: 150 }}
+                options={[
+                  { value: '', label: t('pages.settings.auditAllActors', 'All Actors') },
+                  { value: 'admin', label: 'Admin' },
+                  { value: 'reseller', label: 'Reseller' },
+                  { value: 'api_token', label: 'API Token' },
+                  { value: 'system', label: 'System / Watchdog' },
+                ]}
+              />
+              <Select
+                value={auditModule}
+                onChange={(v) => setAuditModule(v)}
+                style={{ width: 150 }}
+                options={[
+                  { value: '', label: t('pages.settings.auditAllModules', 'All Modules') },
+                  { value: 'inbounds', label: 'Inbounds' },
+                  { value: 'clients', label: 'Clients' },
+                  { value: 'resellers', label: 'Resellers' },
+                  { value: 'xray', label: 'Xray' },
+                  { value: 'settings', label: 'Settings' },
+                  { value: 'server', label: 'Server' },
+                  { value: 'nodes', label: 'Nodes' },
+                ]}
+              />
+              <Button icon={<ReloadOutlined />} loading={auditLoading} onClick={loadAuditLogs}>
+                {t('pages.settings.auditRefresh', 'Refresh')}
+              </Button>
+              <Button danger icon={<DeleteOutlined />} onClick={clearAuditLogsNow}>
+                {t('pages.settings.auditClear', 'Clear Log')}
+              </Button>
+            </Space>
+            <Table<AuditLogEntry>
+              rowKey="id"
+              size="small"
+              loading={auditLoading}
+              dataSource={auditLogs}
+              pagination={{ pageSize: 15 }}
+              scroll={{ x: true }}
+              columns={[
+                {
+                  title: t('pages.settings.auditTime', 'Time'),
+                  dataIndex: 'createdAt',
+                  width: 170,
+                  render: (v: number) => (v ? new Date(v).toLocaleString() : '-'),
+                },
+                {
+                  title: t('pages.settings.auditActor', 'Actor'),
+                  key: 'actor',
+                  width: 160,
+                  render: (_, r) => (
+                    <Space size={4}>
+                      <Tag color={r.actorType === 'reseller' ? 'purple' : r.actorType === 'system' ? 'orange' : 'blue'}>
+                        {r.actorType}
+                      </Tag>
+                      <span>{r.actorName}</span>
+                    </Space>
+                  ),
+                },
+                {
+                  title: t('pages.settings.auditModule', 'Module'),
+                  dataIndex: 'module',
+                  width: 100,
+                  render: (m: string) => <Tag>{m}</Tag>,
+                },
+                {
+                  title: t('pages.settings.auditAction', 'Action'),
+                  dataIndex: 'action',
+                },
+                {
+                  title: t('pages.settings.auditTarget', 'Target'),
+                  dataIndex: 'target',
+                  render: (v: string) => v || '-',
+                },
+                {
+                  title: 'IP',
+                  dataIndex: 'ip',
+                  width: 130,
+                  render: (v: string) => v || '-',
+                },
+                {
+                  title: 'HTTP',
+                  dataIndex: 'status',
+                  width: 75,
+                  render: (st: number) => (
+                    <Tag color={st >= 200 && st < 400 ? 'green' : 'red'}>{st}</Tag>
+                  ),
+                },
+              ]}
+            />
+          </div>
         ),
       },
     ]} />

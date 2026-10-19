@@ -1119,6 +1119,18 @@ export const sections: readonly Section[] = [
         summary: 'Immediately upload a database snapshot to the configured S3 / Cloudflare R2 / MinIO or WebDAV cloud storage and apply retention cleanup.',
         response: '{\n  "success": true,\n  "obj": {\n    "key": "omega-backups/x-ui-backup-20261019-120000.db"\n  }\n}',
       },
+      {
+        method: 'GET',
+        path: '/panel/api/setting/auditLogs',
+        summary: 'List recent security audit log entries with optional actorType, module, and search filters.',
+        response: '{\n  "success": true,\n  "obj": []\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/setting/auditLogs/clear',
+        summary: 'Clear all recorded security audit log entries.',
+        response: '{\n  "success": true\n}',
+      },
     ],
   },
 
@@ -1312,6 +1324,16 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'url', in: 'body (form)', type: 'string', desc: 'Subscription URL to preview (required).' },
         ],
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/xray/watchdog/status',
+        summary: 'Return the current status of the Smart Outbound Auto-Failover Watchdog (active primary tag, candidates, failure counts, last failover).',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/xray/watchdog/check',
+        summary: 'Immediately probe the active primary outbound and fail over to the fastest healthy candidate if unreachable.',
       },
     ],
   },

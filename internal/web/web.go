@@ -321,6 +321,7 @@ func (s *Server) startTask(restartXray bool) {
 
 	// Outbound subscription auto-refresh (respects per-sub updateInterval)
 	s.cron.AddJob("@every 5m", job.NewOutboundSubscriptionJob())
+	s.cron.AddJob("@every 30s", job.NewOutboundWatchdogJob())
 
 	// check client ips from log file every day
 	s.cron.AddJob("@daily", job.NewClearLogsJob())

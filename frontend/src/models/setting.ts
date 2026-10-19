@@ -112,6 +112,11 @@ export class AllSetting {
   cloudBackupIntervalHours = 12;
   cloudBackupRetention = 14;
 
+  outboundWatchdogEnable = false;
+  outboundWatchdogTags = '';
+  outboundWatchdogIntervalSec = 120;
+  outboundWatchdogFailThreshold = 2;
+
   hasTgBotToken = false;
   hasTwoFactorToken = false;
   hasLdapPassword = false;
