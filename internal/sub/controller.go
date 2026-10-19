@@ -225,6 +225,7 @@ func (a *SUBController) subOpenvpn(c *gin.Context) {
 			safe = "client"
 		}
 		setNoCacheHeaders(c)
+		a.subService.RecordSubAccess(subId, c.Request.UserAgent())
 		c.Header("Content-Disposition", "attachment; filename=\""+safe+".ovpn\"")
 		c.Data(http.StatusOK, "application/x-openvpn-profile", []byte(profile))
 		return
@@ -259,6 +260,7 @@ func (a *SUBController) subs(c *gin.Context) {
 		writeSubError(c, err)
 		return
 	}
+	a.subService.RecordSubAccess(subId, c.Request.UserAgent())
 
 	if isHTML {
 		// L2TP-only subscriptions do not go through GetSubs' Xray traffic
@@ -501,6 +503,7 @@ func (a *SUBController) subJsons(c *gin.Context) {
 	if err != nil || len(jsonSub) == 0 {
 		writeSubError(c, err)
 	} else {
+		a.subService.RecordSubAccess(subId, c.Request.UserAgent())
 		profileUrl := a.subProfileUrl
 		if profileUrl == "" {
 			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
@@ -521,6 +524,7 @@ func (a *SUBController) subClashs(c *gin.Context) {
 	if err != nil || len(clashSub) == 0 {
 		writeSubError(c, err)
 	} else {
+		a.subService.RecordSubAccess(subId, c.Request.UserAgent())
 		profileUrl := a.subProfileUrl
 		if profileUrl == "" {
 			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
@@ -544,6 +548,7 @@ func (a *SUBController) subSingboxs(c *gin.Context) {
 	if err != nil || len(singboxSub) == 0 {
 		writeSubError(c, err)
 	} else {
+		a.subService.RecordSubAccess(subId, c.Request.UserAgent())
 		profileUrl := a.subProfileUrl
 		if profileUrl == "" {
 			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
@@ -566,6 +571,7 @@ func (a *SUBController) subOutlines(c *gin.Context) {
 	if err != nil || len(outlineSub) == 0 {
 		writeSubError(c, err)
 	} else {
+		a.subService.RecordSubAccess(subId, c.Request.UserAgent())
 		profileUrl := a.subProfileUrl
 		if profileUrl == "" {
 			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)

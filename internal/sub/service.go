@@ -187,7 +187,87 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int
 	}
 	traffic, lastOnline := s.AggregateTrafficByEmails(uniqueEmails)
 	traffic.Enable = hasEnabledClient
+	if len(result) > 0 {
+		if statusNodeEnabled, err := s.settingService.GetSubStatusNode(); err == nil && statusNodeEnabled {
+			expiredNotice, _ := s.settingService.GetSubExpiredNotice()
+			if statusLink := BuildStatusNodeLink(traffic, expiredNotice); statusLink != "" {
+				result = append([]string{statusLink}, result...)
+			}
+		}
+	}
 	return result, emails, lastOnline, traffic, nil
+}
+
+// BuildStatusNodeLink constructs a non-routable informational VLESS share link
+// displaying the client's remaining quota and expiry (or an expired/depleted
+// notice) at the top of subscription clients (v2rayNG, Streisand, Hiddify, etc.).
+func BuildStatusNodeLink(traffic xray.ClientTraffic, expiredNotice string) string {
+	used := traffic.Up + traffic.Down
+	nowMs := time.Now().UnixMilli()
+	isDepleted := traffic.Total > 0 && used >= traffic.Total
+	isExpired := traffic.ExpiryTime > 0 && traffic.ExpiryTime <= nowMs
+	isDisabled := !traffic.Enable
+
+	var label string
+	if isDisabled || isDepleted || isExpired {
+		notice := strings.TrimSpace(expiredNotice)
+		if notice == "" {
+			notice = "⚠️ Subscription Expired / Depleted — Please Renew"
+		}
+		label = notice
+	} else {
+		var trafficPart string
+		if traffic.Total > 0 {
+			rem := max(traffic.Total-used, 0)
+			trafficPart = fmt.Sprintf("📊 %s / %s", common.FormatTraffic(rem), common.FormatTraffic(traffic.Total))
+		} else {
+			trafficPart = fmt.Sprintf("📊 %s / ∞", common.FormatTraffic(used))
+		}
+		var expPart string
+		switch {
+		case traffic.ExpiryTime > nowMs:
+			remSec := (traffic.ExpiryTime - nowMs) / 1000
+			days := remSec / 86400
+			hours := (remSec % 86400) / 3600
+			if days > 0 {
+				expPart = fmt.Sprintf("⏳ %dd %dh", days, hours)
+			} else if hours > 0 {
+				expPart = fmt.Sprintf("⏳ %dh", hours)
+			} else {
+				expPart = fmt.Sprintf("⏳ %dm", max(remSec/60, 1))
+			}
+		case traffic.ExpiryTime < 0:
+			days := (-traffic.ExpiryTime / 1000) / 86400
+			expPart = fmt.Sprintf("⏳ %dd (On-Hold)", max(days, 1))
+		default:
+			expPart = "⏳ ∞"
+		}
+		label = fmt.Sprintf("%s | %s", trafficPart, expPart)
+	}
+	return fmt.Sprintf("vless://00000000-0000-0000-0000-000000000000@127.0.0.1:1080?encryption=none&type=tcp#%s", url.PathEscape(label))
+}
+
+// RecordSubAccess persists the timestamp and HTTP User-Agent of the latest
+// subscription fetch for all ClientRecord rows matching subId.
+func (s *SubService) RecordSubAccess(subId string, userAgent string) {
+	subId = strings.TrimSpace(subId)
+	if subId == "" {
+		return
+	}
+	ua := strings.TrimSpace(userAgent)
+	if len(ua) > 255 {
+		ua = ua[:255]
+	}
+	db := database.GetDB()
+	if db == nil {
+		return
+	}
+	_ = db.Model(&model.ClientRecord{}).
+		Where("sub_id = ?", subId).
+		Updates(map[string]any{
+			"sub_last_updated_at": time.Now().UnixMilli(),
+			"sub_last_user_agent": ua,
+		}).Error
 }
 
 // AggregateTrafficByEmails resolves traffic for every email in one

@@ -35,6 +35,8 @@ export const ClientRecordSchema = z.object({
   renewalMode: z.number().optional(),
   renewalDay: z.number().optional(),
   activateBefore: z.number().optional(),
+  subLastUpdatedAt: z.number().optional(),
+  subLastUserAgent: z.string().optional(),
   tgId: z.union([z.number(), z.string()]).optional(),
   group: z.string().optional(),
   comment: z.string().optional(),

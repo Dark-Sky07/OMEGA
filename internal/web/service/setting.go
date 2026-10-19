@@ -82,6 +82,8 @@ var defaultValueMap = map[string]string{
 	"subEncrypt":                  "true",
 	"subShowInfo":                 "true",
 	"subEmailInRemark":            "true",
+	"subStatusNode":               "false",
+	"subExpiredNotice":            "",
 	"subURI":                      "",
 	"subJsonPath":                 "/json/",
 	"subJsonURI":                  "",
@@ -747,6 +749,14 @@ func (s *SettingService) GetSubShowInfo() (bool, error) {
 
 func (s *SettingService) GetSubEmailInRemark() (bool, error) {
 	return s.getBool("subEmailInRemark")
+}
+
+func (s *SettingService) GetSubStatusNode() (bool, error) {
+	return s.getBool("subStatusNode")
+}
+
+func (s *SettingService) GetSubExpiredNotice() (string, error) {
+	return s.getString("subExpiredNotice")
 }
 
 func (s *SettingService) GetPageSize() (int, error) {

@@ -15,19 +15,21 @@ import (
 // so the list payload stays compact even when the panel manages thousands
 // of clients. Modals that need the full record still call /get/:email.
 type ClientSlim struct {
-	Email      string              `json:"email"`
-	SubID      string              `json:"subId"`
-	Enable     bool                `json:"enable"`
-	TotalGB    int64               `json:"totalGB"`
-	ExpiryTime int64               `json:"expiryTime"`
-	LimitIP    int                 `json:"limitIp"`
-	Reset      int                 `json:"reset"`
-	Group      string              `json:"group,omitempty"`
-	Comment    string              `json:"comment,omitempty"`
-	InboundIds []int               `json:"inboundIds"`
-	Traffic    *xray.ClientTraffic `json:"traffic,omitempty"`
-	CreatedAt  int64               `json:"createdAt"`
-	UpdatedAt  int64               `json:"updatedAt"`
+	Email            string              `json:"email"`
+	SubID            string              `json:"subId"`
+	Enable           bool                `json:"enable"`
+	TotalGB          int64               `json:"totalGB"`
+	ExpiryTime       int64               `json:"expiryTime"`
+	LimitIP          int                 `json:"limitIp"`
+	Reset            int                 `json:"reset"`
+	Group            string              `json:"group,omitempty"`
+	Comment          string              `json:"comment,omitempty"`
+	InboundIds       []int               `json:"inboundIds"`
+	Traffic          *xray.ClientTraffic `json:"traffic,omitempty"`
+	SubLastUpdatedAt int64               `json:"subLastUpdatedAt,omitempty"`
+	SubLastUserAgent string              `json:"subLastUserAgent,omitempty"`
+	CreatedAt        int64               `json:"createdAt"`
+	UpdatedAt        int64               `json:"updatedAt"`
 }
 
 // ClientPageParams are the query params accepted by /panel/api/clients/list/paged.
@@ -358,19 +360,21 @@ func buildClientsSummary(all []ClientWithAttachments, onlineSet map[string]struc
 
 func toClientSlim(c ClientWithAttachments) ClientSlim {
 	return ClientSlim{
-		Email:      c.Email,
-		SubID:      c.SubID,
-		Enable:     c.Enable,
-		TotalGB:    c.TotalGB,
-		ExpiryTime: c.ExpiryTime,
-		LimitIP:    c.LimitIP,
-		Reset:      c.Reset,
-		Group:      c.Group,
-		Comment:    c.Comment,
-		InboundIds: c.InboundIds,
-		Traffic:    c.Traffic,
-		CreatedAt:  c.CreatedAt,
-		UpdatedAt:  c.UpdatedAt,
+		Email:            c.Email,
+		SubID:            c.SubID,
+		Enable:           c.Enable,
+		TotalGB:          c.TotalGB,
+		ExpiryTime:       c.ExpiryTime,
+		LimitIP:          c.LimitIP,
+		Reset:            c.Reset,
+		Group:            c.Group,
+		Comment:          c.Comment,
+		InboundIds:       c.InboundIds,
+		Traffic:          c.Traffic,
+		SubLastUpdatedAt: c.SubLastUpdatedAt,
+		SubLastUserAgent: c.SubLastUserAgent,
+		CreatedAt:        c.CreatedAt,
+		UpdatedAt:        c.UpdatedAt,
 	}
 }
 
@@ -378,7 +382,7 @@ func clientMatchesSearch(c ClientWithAttachments, needle string) bool {
 	if needle == "" {
 		return true
 	}
-	candidates := [...]string{c.Email, c.SubID, c.Comment, c.UUID, c.Password, c.Auth}
+	candidates := [...]string{c.Email, c.SubID, c.Comment, c.UUID, c.Password, c.Auth, c.SubLastUserAgent}
 	for _, v := range candidates {
 		if v != "" && strings.Contains(strings.ToLower(v), needle) {
 			return true

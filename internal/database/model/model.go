@@ -647,41 +647,45 @@ type Client struct {
 	// ActivateBefore is the delayed-start activation deadline (ms). While the
 	// client is still un-activated (negative expiryTime) past this timestamp,
 	// the client is treated as expired. 0 disables the deadline.
-	ActivateBefore int64 `json:"activateBefore" form:"activateBefore"`
-	CreatedAt      int64 `json:"created_at,omitempty"` // Creation timestamp
-	UpdatedAt      int64 `json:"updated_at,omitempty"` // Last update timestamp
+	ActivateBefore   int64  `json:"activateBefore" form:"activateBefore"`
+	SubLastUpdatedAt int64  `json:"subLastUpdatedAt,omitempty" form:"subLastUpdatedAt"`
+	SubLastUserAgent string `json:"subLastUserAgent,omitempty" form:"subLastUserAgent"`
+	CreatedAt        int64  `json:"created_at,omitempty"` // Creation timestamp
+	UpdatedAt        int64  `json:"updated_at,omitempty"` // Last update timestamp
 }
 
 type ClientRecord struct {
-	Id             int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	Email          string `json:"email" gorm:"uniqueIndex;not null"`
-	SubID          string `json:"subId" gorm:"index;column:sub_id"`
-	UUID           string `json:"uuid" gorm:"column:uuid"`
-	Password       string `json:"password"`
-	Auth           string `json:"auth"`
-	Flow           string `json:"flow"`
-	Security       string `json:"security"`
-	Reverse        string `json:"reverse" gorm:"column:reverse"`
-	PrivateKey     string `json:"privateKey" gorm:"column:wg_private_key"`
-	PublicKey      string `json:"publicKey" gorm:"column:wg_public_key"`
-	AllowedIPs     string `json:"allowedIPs" gorm:"column:wg_allowed_ips"`
-	PreSharedKey   string `json:"preSharedKey" gorm:"column:wg_pre_shared_key"`
-	KeepAlive      int    `json:"keepAlive" gorm:"column:wg_keep_alive;default:0"`
-	ForwardedPorts string `json:"forwardedPorts" gorm:"column:wg_forwarded_ports"`
-	LimitIP        int    `json:"limitIp" gorm:"column:limit_ip"`
-	TotalGB        int64  `json:"totalGB" gorm:"column:total_gb"`
-	ExpiryTime     int64  `json:"expiryTime" gorm:"column:expiry_time"`
-	Enable         bool   `json:"enable" gorm:"default:true"`
-	TgID           int64  `json:"tgId" gorm:"column:tg_id"`
-	Group          string `json:"group" gorm:"column:group_name;default:''"`
-	Comment        string `json:"comment"`
-	Reset          int    `json:"reset" gorm:"default:0"`
-	LimitDevice    int    `json:"limitDevice" gorm:"column:limit_device;default:0"`
-	RenewalMode    int    `json:"renewalMode" gorm:"column:renewal_mode;default:0"`
-	RenewalDay     int    `json:"renewalDay" gorm:"column:renewal_day;default:0"`
-	ActivateBefore int64  `json:"activateBefore" gorm:"column:activate_before;default:0"`
-	CreatedAt      int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
-	UpdatedAt      int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+	Id               int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Email            string `json:"email" gorm:"uniqueIndex;not null"`
+	SubID            string `json:"subId" gorm:"index;column:sub_id"`
+	UUID             string `json:"uuid" gorm:"column:uuid"`
+	Password         string `json:"password"`
+	Auth             string `json:"auth"`
+	Flow             string `json:"flow"`
+	Security         string `json:"security"`
+	Reverse          string `json:"reverse" gorm:"column:reverse"`
+	PrivateKey       string `json:"privateKey" gorm:"column:wg_private_key"`
+	PublicKey        string `json:"publicKey" gorm:"column:wg_public_key"`
+	AllowedIPs       string `json:"allowedIPs" gorm:"column:wg_allowed_ips"`
+	PreSharedKey     string `json:"preSharedKey" gorm:"column:wg_pre_shared_key"`
+	KeepAlive        int    `json:"keepAlive" gorm:"column:wg_keep_alive;default:0"`
+	ForwardedPorts   string `json:"forwardedPorts" gorm:"column:wg_forwarded_ports"`
+	LimitIP          int    `json:"limitIp" gorm:"column:limit_ip"`
+	TotalGB          int64  `json:"totalGB" gorm:"column:total_gb"`
+	ExpiryTime       int64  `json:"expiryTime" gorm:"column:expiry_time"`
+	Enable           bool   `json:"enable" gorm:"default:true"`
+	TgID             int64  `json:"tgId" gorm:"column:tg_id"`
+	Group            string `json:"group" gorm:"column:group_name;default:''"`
+	Comment          string `json:"comment"`
+	Reset            int    `json:"reset" gorm:"default:0"`
+	LimitDevice      int    `json:"limitDevice" gorm:"column:limit_device;default:0"`
+	RenewalMode      int    `json:"renewalMode" gorm:"column:renewal_mode;default:0"`
+	RenewalDay       int    `json:"renewalDay" gorm:"column:renewal_day;default:0"`
+	ActivateBefore   int64  `json:"activateBefore" gorm:"column:activate_before;default:0"`
+	SubLastUpdatedAt int64  `json:"subLastUpdatedAt" gorm:"column:sub_last_updated_at;default:0"`
+	SubLastUserAgent string `json:"subLastUserAgent" gorm:"column:sub_last_user_agent;default:''"`
+	CreatedAt        int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt        int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
 }
 
 func (ClientRecord) TableName() string { return "clients" }
@@ -789,11 +793,13 @@ func (c *Client) ToRecord() *ClientRecord {
 		Comment:        c.Comment,
 		Reset:          c.Reset,
 		LimitDevice:    c.LimitDevice,
-		RenewalMode:    c.RenewalMode,
-		RenewalDay:     c.RenewalDay,
-		ActivateBefore: c.ActivateBefore,
-		CreatedAt:      c.CreatedAt,
-		UpdatedAt:      c.UpdatedAt,
+		RenewalMode:      c.RenewalMode,
+		RenewalDay:       c.RenewalDay,
+		ActivateBefore:   c.ActivateBefore,
+		SubLastUpdatedAt: c.SubLastUpdatedAt,
+		SubLastUserAgent: c.SubLastUserAgent,
+		CreatedAt:        c.CreatedAt,
+		UpdatedAt:        c.UpdatedAt,
 	}
 	if c.Reverse != nil {
 		if b, err := json.Marshal(c.Reverse); err == nil {
@@ -805,33 +811,35 @@ func (c *Client) ToRecord() *ClientRecord {
 
 func (r *ClientRecord) ToClient() *Client {
 	c := &Client{
-		ID:             r.UUID,
-		Email:          r.Email,
-		SubID:          r.SubID,
-		Password:       r.Password,
-		Auth:           r.Auth,
-		Flow:           r.Flow,
-		Security:       r.Security,
-		PrivateKey:     r.PrivateKey,
-		PublicKey:      r.PublicKey,
-		AllowedIPs:     splitWireguardAllowedIPs(r.AllowedIPs),
-		PreSharedKey:   r.PreSharedKey,
-		KeepAlive:      r.KeepAlive,
-		ForwardedPorts: r.ForwardedPorts,
-		LimitIP:        r.LimitIP,
-		TotalGB:        r.TotalGB,
-		ExpiryTime:     r.ExpiryTime,
-		Enable:         r.Enable,
-		TgID:           r.TgID,
-		Group:          r.Group,
-		Comment:        r.Comment,
-		Reset:          r.Reset,
-		LimitDevice:    r.LimitDevice,
-		RenewalMode:    r.RenewalMode,
-		RenewalDay:     r.RenewalDay,
-		ActivateBefore: r.ActivateBefore,
-		CreatedAt:      r.CreatedAt,
-		UpdatedAt:      r.UpdatedAt,
+		ID:               r.UUID,
+		Email:            r.Email,
+		SubID:            r.SubID,
+		Password:         r.Password,
+		Auth:             r.Auth,
+		Flow:             r.Flow,
+		Security:         r.Security,
+		PrivateKey:       r.PrivateKey,
+		PublicKey:        r.PublicKey,
+		AllowedIPs:       splitWireguardAllowedIPs(r.AllowedIPs),
+		PreSharedKey:     r.PreSharedKey,
+		KeepAlive:        r.KeepAlive,
+		ForwardedPorts:   r.ForwardedPorts,
+		LimitIP:          r.LimitIP,
+		TotalGB:          r.TotalGB,
+		ExpiryTime:       r.ExpiryTime,
+		Enable:           r.Enable,
+		TgID:             r.TgID,
+		Group:            r.Group,
+		Comment:          r.Comment,
+		Reset:            r.Reset,
+		LimitDevice:      r.LimitDevice,
+		RenewalMode:      r.RenewalMode,
+		RenewalDay:       r.RenewalDay,
+		ActivateBefore:   r.ActivateBefore,
+		SubLastUpdatedAt: r.SubLastUpdatedAt,
+		SubLastUserAgent: r.SubLastUserAgent,
+		CreatedAt:        r.CreatedAt,
+		UpdatedAt:        r.UpdatedAt,
 	}
 	if r.Reverse != "" {
 		var rev ClientReverse
