@@ -36,6 +36,7 @@ type SettingController struct {
 	certService        service.CertService
 	discordService     service.DiscordService
 	cloudBackupService service.CloudBackupService
+	auditLogService    service.AuditLogService
 }
 
 // NewSettingController creates a new SettingController and initializes its routes.
@@ -63,6 +64,8 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/cert/issue", a.issueCert)
 	g.POST("/discord/test", a.testDiscord)
 	g.POST("/cloudBackup/run", a.runCloudBackup)
+	g.GET("/auditLogs", a.listAuditLogs)
+	g.POST("/auditLogs/clear", a.clearAuditLogs)
 	g.GET("/admins", a.listAdmins)
 	g.POST("/admins/create", a.createAdmin)
 	g.POST("/admins/update/:id", a.updateAdmin)
@@ -260,6 +263,23 @@ func (a *SettingController) runCloudBackup(c *gin.Context) {
 		return
 	}
 	jsonObj(c, gin.H{"key": key}, nil)
+}
+
+func (a *SettingController) listAuditLogs(c *gin.Context) {
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "200"))
+	actorType := c.Query("actorType")
+	module := c.Query("module")
+	search := c.Query("search")
+	logs, err := a.auditLogService.List(limit, actorType, module, search)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
+		return
+	}
+	jsonObj(c, logs, nil)
+}
+
+func (a *SettingController) clearAuditLogs(c *gin.Context) {
+	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), a.auditLogService.Clear())
 }
 
 type adminForm struct {

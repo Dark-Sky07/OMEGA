@@ -144,6 +144,12 @@ type AllSetting struct {
 	CloudBackupSecretKey     string `json:"cloudBackupSecretKey" form:"cloudBackupSecretKey"`
 	CloudBackupIntervalHours int    `json:"cloudBackupIntervalHours" form:"cloudBackupIntervalHours" validate:"gte=0,lte=720"`
 	CloudBackupRetention     int    `json:"cloudBackupRetention" form:"cloudBackupRetention" validate:"gte=0,lte=1000"`
+
+	// Smart Outbound Auto-Failover Watchdog
+	OutboundWatchdogEnable        bool   `json:"outboundWatchdogEnable" form:"outboundWatchdogEnable"`
+	OutboundWatchdogTags          string `json:"outboundWatchdogTags" form:"outboundWatchdogTags"`
+	OutboundWatchdogIntervalSec   int    `json:"outboundWatchdogIntervalSec" form:"outboundWatchdogIntervalSec" validate:"gte=0,lte=86400"`
+	OutboundWatchdogFailThreshold int    `json:"outboundWatchdogFailThreshold" form:"outboundWatchdogFailThreshold" validate:"gte=0,lte=20"`
 }
 
 // AllSettingView is the browser-safe settings read model. Secret values

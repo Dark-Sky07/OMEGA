@@ -8626,6 +8626,73 @@
         }
       }
     },
+    "/panel/api/setting/auditLogs": {
+      "get": {
+        "tags": [
+          "API Tokens"
+        ],
+        "summary": "List recent security audit log entries with optional actorType, module, and search filters.",
+        "operationId": "get_panel_api_setting_auditLogs",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": []
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/auditLogs/clear": {
+      "post": {
+        "tags": [
+          "API Tokens"
+        ],
+        "summary": "Clear all recorded security audit log entries.",
+        "operationId": "post_panel_api_setting_auditLogs_clear",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/xray/": {
       "post": {
         "tags": [
@@ -9375,6 +9442,66 @@
         ],
         "summary": "Preview a subscription URL: fetch and parse it into outbounds without persisting anything.",
         "operationId": "post_panel_api_xray_outbound_subs_parse",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/xray/watchdog/status": {
+      "get": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Return the current status of the Smart Outbound Auto-Failover Watchdog (active primary tag, candidates, failure counts, last failover).",
+        "operationId": "get_panel_api_xray_watchdog_status",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/xray/watchdog/check": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Immediately probe the active primary outbound and fail over to the fastest healthy candidate if unreachable.",
+        "operationId": "post_panel_api_xray_watchdog_check",
         "responses": {
           "200": {
             "description": "Successful response",
