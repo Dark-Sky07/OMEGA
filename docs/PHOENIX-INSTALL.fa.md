@@ -11,7 +11,7 @@
 روی سرور (اوبونتو/دبیان/آرچ/الپاین/راکی/سن‌اواس …) با کاربر **root**:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/phoenix/main/install-phoenix.sh)
 ```
 
 این لینک همیشه جدیدترین release PHOENIX را پیدا می‌کند و فایل‌های همان release را نصب می‌کند؛ tag قدیمی یا مخزن vanilla PHOENIX fallback نیست.

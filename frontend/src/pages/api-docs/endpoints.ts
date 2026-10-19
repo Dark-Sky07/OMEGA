@@ -1117,7 +1117,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/setting/cloudBackup/run',
         summary: 'Immediately upload a database snapshot to the configured S3 / Cloudflare R2 / MinIO or WebDAV cloud storage and apply retention cleanup.',
-        response: '{\n  "success": true,\n  "obj": {\n    "key": "omega-backups/x-ui-backup-20261019-120000.db"\n  }\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "key": "phoenix-backups/x-ui-backup-20261019-120000.db"\n  }\n}',
       },
       {
         method: 'GET',

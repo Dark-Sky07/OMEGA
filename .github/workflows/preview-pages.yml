@@ -2,7 +2,7 @@
 # no backend) to GitHub Pages so the redesign can be reviewed on any device
 # without touching a real panel. Runs only for the redesign branch.
 #
-# Published at: https://dark-sky07.github.io/OMEGA/  (login)  and  …/OMEGA/panel/
+# Published at: https://dark-sky07.github.io/phoenix/  (login)  and  …/phoenix/panel/
 # Requires: Settings → Pages → Source = GitHub Actions, and the github-pages
 # environment allowing deployments from this branch.
 name: Design preview (Pages)

@@ -9,6 +9,10 @@ plain='\033[0m'
 xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
 xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 
+# PHOENIX repository. PHOENIX_REPO wins; the legacy OMEGA_REPO override is
+# still honoured so existing automation keeps working.
+PHOENIX_REPO="${PHOENIX_REPO:-${OMEGA_REPO:-Dark-Sky07/phoenix}}"
+
 # Don't edit this config
 b_source="${BASH_SOURCE[0]}"
 while [ -h "$b_source" ]; do
@@ -106,7 +110,7 @@ resolve_latest_xray_version() {
 
 stage_latest_xray() {
     local xray_arch archive_url
-    xray_update_version="${OMEGA_XRAY_VERSION:-$(resolve_latest_xray_version)}" || _fail "ERROR: Failed to resolve the latest Xray-core release."
+    xray_update_version="${PHOENIX_XRAY_VERSION:-${OMEGA_XRAY_VERSION:-$(resolve_latest_xray_version)}}" || _fail "ERROR: Failed to resolve the latest Xray-core release."
     case "$(arch)" in
         amd64) xray_arch="64" ;;
         386) xray_arch="32" ;;
@@ -1107,7 +1111,7 @@ stage_update_assets() {
     archive_name="x-ui-linux-$(arch).tar.gz"
     panel_update_archive="${update_stage_root}/${archive_name}"
 
-    if ! download_update_file "$panel_update_archive" "https://github.com/Dark-Sky07/OMEGA/releases/download/${tag_version}/${archive_name}"; then
+    if ! download_update_file "$panel_update_archive" "https://github.com/${PHOENIX_REPO}/releases/download/${tag_version}/${archive_name}"; then
         return 1
     fi
     if ! tar tzf "$panel_update_archive" >/dev/null 2>&1; then
@@ -1138,7 +1142,7 @@ stage_update_assets() {
     fi
 
     update_wrapper_stage="${update_stage_root}/x-ui-wrapper"
-    if ! download_update_file "$update_wrapper_stage" "https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.sh"; then
+    if ! download_update_file "$update_wrapper_stage" "https://raw.githubusercontent.com/${PHOENIX_REPO}/${tag_version}/x-ui.sh"; then
         return 1
     fi
     chmod 0755 "$update_wrapper_stage" || return 1
@@ -1148,7 +1152,7 @@ stage_update_assets() {
         if [[ -f "$update_stage_dir/x-ui.rc" ]]; then
             cp -f "$update_stage_dir/x-ui.rc" "$update_service_stage" || return 1
         else
-            if ! download_update_file "$update_service_stage" "https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.rc"; then
+            if ! download_update_file "$update_service_stage" "https://raw.githubusercontent.com/${PHOENIX_REPO}/${tag_version}/x-ui.rc"; then
                 return 1
             fi
         fi
@@ -1159,9 +1163,9 @@ stage_update_assets() {
             cp -f "$update_stage_dir/x-ui.service" "$update_service_stage" || return 1
         else
             case "$release" in
-                ubuntu|debian|armbian) service_url="https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.service.debian" ;;
-                arch|manjaro|parch) service_url="https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.service.arch" ;;
-                *) service_url="https://raw.githubusercontent.com/Dark-Sky07/OMEGA/${tag_version}/x-ui.service.rhel" ;;
+                ubuntu|debian|armbian) service_url="https://raw.githubusercontent.com/${PHOENIX_REPO}/${tag_version}/x-ui.service.debian" ;;
+                arch|manjaro|parch) service_url="https://raw.githubusercontent.com/${PHOENIX_REPO}/${tag_version}/x-ui.service.arch" ;;
+                *) service_url="https://raw.githubusercontent.com/${PHOENIX_REPO}/${tag_version}/x-ui.service.rhel" ;;
             esac
             if ! download_update_file "$update_service_stage" "$service_url"; then
                 return 1
@@ -1390,10 +1394,10 @@ update_x-ui() {
     echo -e "${green}Current x-ui version: ${current_xui_version:-unknown}${plain}"
     echo -e "${green}Preparing a transactional x-ui update; the live installation will remain untouched until validation completes.${plain}"
 
-    tag_version=$(${curl_bin} -Ls "https://api.github.com/repos/Dark-Sky07/OMEGA/releases?per_page=10" 2>/dev/null | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+    tag_version=$(${curl_bin} -Ls "https://api.github.com/repos/${PHOENIX_REPO}/releases?per_page=10" 2>/dev/null | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     if [[ -z "$tag_version" ]]; then
         echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
-        tag_version=$(${curl_bin} -4 -Ls "https://api.github.com/repos/Dark-Sky07/OMEGA/releases?per_page=10" 2>/dev/null | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        tag_version=$(${curl_bin} -4 -Ls "https://api.github.com/repos/${PHOENIX_REPO}/releases?per_page=10" 2>/dev/null | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     fi
     [[ -n "$tag_version" ]] || _fail "ERROR: Failed to fetch x-ui version; the existing installation was not touched."
     echo -e "Got x-ui latest version: ${tag_version}; staging the installation..."
