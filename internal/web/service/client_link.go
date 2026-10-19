@@ -1,7 +1,10 @@
 package service
 
 import (
+	"fmt"
 	"strings"
+
+	"github.com/google/uuid"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -23,6 +26,33 @@ func (s *ClientService) SyncInboundPreservingExisting(tx *gorm.DB, inboundId int
 func (s *ClientService) syncInbound(tx *gorm.DB, inboundId int, clients []model.Client, preserveExisting bool) error {
 	if tx == nil {
 		tx = database.GetDB()
+	}
+
+	var inbound model.Inbound
+	if err := tx.Select("protocol").Where("id = ?", inboundId).Take(&inbound).Error; err == nil {
+		switch inbound.Protocol {
+		case model.MASQUE:
+			for _, client := range clients {
+				if strings.Contains(client.Email, ":") {
+					return fmt.Errorf("MASQUE: client email %q cannot contain \":\"", client.Email)
+				}
+			}
+		case model.TUIC:
+			seenUUID := make(map[uuid.UUID]string, len(clients))
+			for _, client := range clients {
+				if client.ID == "" {
+					continue
+				}
+				parsedID, parseErr := uuid.Parse(client.ID)
+				if parseErr != nil {
+					return fmt.Errorf("TUIC: invalid client UUID")
+				}
+				if email, exists := seenUUID[parsedID]; exists && !strings.EqualFold(email, client.Email) {
+					return fmt.Errorf("TUIC: duplicate client UUID within inbound")
+				}
+				seenUUID[parsedID] = client.Email
+			}
+		}
 	}
 
 	if err := tx.Where("inbound_id = ?", inboundId).Delete(&model.ClientInbound{}).Error; err != nil {
@@ -139,6 +169,10 @@ func (s *ClientService) syncInbound(tx *gorm.DB, inboundId int, clients []model.
 		}
 		row.Comment = incoming.Comment
 		row.Reset = incoming.Reset
+		row.LimitDevice = incoming.LimitDevice
+		row.RenewalMode = incoming.RenewalMode
+		row.RenewalDay = incoming.RenewalDay
+		row.ActivateBefore = incoming.ActivateBefore
 		if incoming.CreatedAt > 0 && (row.CreatedAt == 0 || incoming.CreatedAt < row.CreatedAt) {
 			row.CreatedAt = incoming.CreatedAt
 		}
@@ -191,6 +225,41 @@ func (s *ClientService) syncInbound(tx *gorm.DB, inboundId int, clients []model.
 	if len(links) > 0 {
 		if err := tx.CreateInBatches(links, 200).Error; err != nil {
 			return err
+		}
+	}
+
+	affected := map[int]struct{}{inboundId: {}}
+	wantedIds := make([]int, 0, len(linked))
+	for id := range linked {
+		wantedIds = append(wantedIds, id)
+	}
+	if len(wantedIds) > 0 {
+		var inboundIDs []int
+		if err := tx.Model(&model.ClientInbound{}).Distinct("inbound_id").Where("client_id IN ?", wantedIds).Pluck("inbound_id", &inboundIDs).Error; err != nil {
+			return err
+		}
+		for _, id := range inboundIDs {
+			affected[id] = struct{}{}
+		}
+	}
+	affectedIDs := make([]int, 0, len(affected))
+	for id := range affected {
+		affectedIDs = append(affectedIDs, id)
+	}
+	if len(affectedIDs) > 0 {
+		var duplicates int64
+		err := tx.Raw(`SELECT COUNT(*) FROM (
+            SELECT ci.inbound_id, LOWER(c.uuid) FROM clients c
+            JOIN client_inbounds ci ON ci.client_id = c.id
+            JOIN inbounds i ON i.id = ci.inbound_id
+            WHERE i.protocol = ? AND c.uuid <> '' AND ci.inbound_id IN ?
+            GROUP BY ci.inbound_id, LOWER(c.uuid) HAVING COUNT(*) > 1
+        ) AS duplicate_uuids`, model.TUIC, affectedIDs).Scan(&duplicates).Error
+		if err != nil {
+			return err
+		}
+		if duplicates > 0 {
+			return fmt.Errorf("TUIC: duplicate client UUID within inbound")
 		}
 	}
 	return nil

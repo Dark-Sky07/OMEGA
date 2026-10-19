@@ -113,7 +113,12 @@
     "apiDocs": "API Belgeleri",
     "logout": "Çıkış Yap",
     "link": "Yönet",
-    "donate": "Bağış Yap"
+    "donate": "Bağış Yap",
+    "groupOverview": "Genel Bakış",
+    "groupManage": "Yönetim",
+    "groupSystem": "Sistem",
+    "collapse": "Kenar çubuğunu daralt",
+    "expand": "Kenar çubuğunu genişlet"
   },
   "pages": {
     "login": {
@@ -126,7 +131,9 @@
         "emptyPassword": "Şifre zorunludur",
         "wrongUsernameOrPassword": "Geçersiz kullanıcı adı, şifre veya iki adımlı doğrulama kodu.",
         "successLogin": "Hesabınıza başarıyla giriş yaptınız."
-      }
+      },
+      "asideTitle": "Tüm tüneller için tek panel.",
+      "asideText": "Xray, OpenVPN, L2TP/IPsec ve AmneziaWG — tek bir yerden yönetin, yönlendirin ve ölçün."
     },
     "index": {
       "title": "Genel Bakış",
@@ -145,7 +152,7 @@
       "xraySwitchClick": "Geçiş yapmak istediğiniz sürümü seçin.",
       "xraySwitchClickDesk": "Dikkatli seçin, eski sürümler mevcut yapılandırmalarla uyumlu olmayabilir.",
       "updatePanel": "Paneli Güncelle",
-      "panelUpdateDesc": "Bu işlem OMEGA'yi en son sürüme güncelleyecek ve panel servisini yeniden başlatacaktır.",
+      "panelUpdateDesc": "Bu işlem PHOENIX'yi en son sürüme güncelleyecek ve panel servisini yeniden başlatacaktır.",
       "currentPanelVersion": "Mevcut panel sürümü",
       "latestPanelVersion": "Panelin en son sürümü",
       "panelUpToDate": "Panel güncel",
@@ -213,7 +220,7 @@
       "xraySwitchVersionDialogDesc": "Bu işlem Xray sürümünü #version# olarak değiştirecektir.",
       "xraySwitchVersionPopover": "Xray başarıyla güncellendi",
       "panelUpdateDialog": "Gerçekten paneli güncellemek istiyor musunuz?",
-      "panelUpdateDialogDesc": "Bu işlem OMEGA'yi #version# sürümüne güncelleyecek ve panel servisini yeniden başlatacaktır.",
+      "panelUpdateDialogDesc": "Bu işlem PHOENIX'yi #version# sürümüne güncelleyecek ve panel servisini yeniden başlatacaktır.",
       "panelUpdateCheckPopover": "Panel güncelleme kontrolü başarısız oldu",
       "panelUpdateStartedPopover": "Panel güncellemesi başlatıldı",
       "geofileUpdateDialog": "Geofile'ı gerçekten güncellemek istiyor musunuz?",
@@ -253,7 +260,12 @@
       "importDatabasePgDesc": "PostgreSQL veritabanınızı geri yüklemek için bir .dump dosyası seçip yüklemek üzere tıklayın. Bu, tüm mevcut verilerin yerini alır.",
       "migrationDownload": "Geçiş Dosyasını İndir",
       "migrationDownloadDesc": "SQLite veritabanınızın taşınabilir .dump (SQL metni) yedeğini indirmek için tıklayın.",
-      "migrationDownloadPgDesc": "PostgreSQL verilerinizden oluşturulan ve bu paneli SQLite üzerinde çalıştırmaya hazır bir .db SQLite veritabanı indirmek için tıklayın."
+      "migrationDownloadPgDesc": "PostgreSQL verilerinizden oluşturulan ve bu paneli SQLite üzerinde çalıştırmaya hazır bir .db SQLite veritabanı indirmek için tıklayın.",
+      "heroSubtitle": "Bu sunucunun ve çalıştırdığı tüm tünellerin canlı durumu.",
+      "services": "Servisler",
+      "network": "Ağ",
+      "resources": "Kaynaklar",
+      "panelProcess": "Panel süreci"
     },
     "inbounds": {
       "title": "Gelen Bağlantılar",
@@ -509,6 +521,8 @@
         "mtgDebug": "Hata ayıklama günlüğü",
         "mtgRouteThroughXray": "Xray üzerinden yönlendir",
         "mtgRouteThroughXrayHint": "Bu proxy'nin Telegram trafiğini Xray üzerinden geçirerek yönlendirme kurallarınıza uymasını sağlayın. mtg yardımcı süreci, bu gelen bağlantının etiketini taşıyan bir loopback SOCKS köprüsü üzerinden çıkış yapar; gelişmiş kurallar için Yönlendirme sekmesinde bu etiketi kullanın.",
+        "daemonRouteThroughXray": "Xray üzerinden yönlendir",
+        "daemonRouteThroughXrayHint": "Bu gelen bağlantının istemci trafiğini (TCP ve UDP) Xray yönlendiricisinden geçirir; böylece yönlendirme kuralları, Xray'in kendi gelen bağlantılarında olduğu gibi buna da uygulanır. Trafik, bu gelen bağlantının etiketini taşıyan bir loopback dinleyicisi üzerinden çekirdeğe girer; özel kurallar için Yönlendirme sekmesinde bu etikete başvurun. Xray çalışmadığında otomatik olarak kapanır (doğrudan yol).",
         "mtgRouteOutbound": "Giden",
         "mtgRouteOutboundHint": "İsteğe bağlı. Telegram trafiğini bu giden bağlantı (veya dengeleyici) üzerinden çıkmaya zorlar. Yönlendirme kurallarınızın karar vermesi için boş bırakın.",
         "mtgRouteOutboundPlaceholder": "Yönlendirme kurallarını kullan",
@@ -629,7 +643,36 @@
           "node": "Düğüm adresi",
           "listen": "Inbound dinleme adresi",
           "custom": "Özel"
-        }
+        },
+        "xdrive": {
+          "service": "Depolama hizmeti",
+          "serviceLocal": "Yerel klasör",
+          "serviceTemplate": "Özel şablon",
+          "remoteFolder": "Uzak klasör",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "Gizli değerler",
+          "secretsDesc": "Şablonun {secret0}, {secret1}, … olarak okuduğu değerler",
+          "template": "Depolama şablonu",
+          "templateInvalid": "Bir JSON nesnesi olmalı",
+          "front": "Fronting adresi",
+          "frontDesc": "Depolama API'sine bağlanmak için isteğe bağlı ana makine veya IP (domain fronting).",
+          "frontPort": "Fronting portu",
+          "segmentBytes": "Segment boyutu (bayt)",
+          "flushInterval": "Gönderim aralığı (ms)",
+          "pollInterval": "Yoklama aralığı (ms)",
+          "maxPollInterval": "Maks. yoklama aralığı (ms)",
+          "eagerWindow": "Erken gönderim penceresi (ms)",
+          "holeTimeout": "Eksik segment zaman aşımı (ms)",
+          "sessionTtl": "Oturum TTL (s)",
+          "concurrency": "Eşzamanlılık"
+        },
+        "masque": {
+          "addressPool": "Adres havuzu",
+          "addressPoolDesc": "Tünel adresleri bu öneklerden atanır — en fazla bir IPv4 ve bir IPv6."
+        },
+        "autoFill": "Otomatik Doldur"
       },
       "info": {
         "mode": "Mod",
@@ -664,7 +707,8 @@
           "requestHeader": "İstek Başlığı",
           "responseHeader": "Yanıt Başlığı"
         }
-      }
+      },
+      "advancedTitle": "Gelişmiş Ayarlar"
     },
     "clients": {
       "tabBasics": "Temel",
@@ -834,7 +878,17 @@
         "bulkAdjusted": "{count} kullanıcı ayarlandı",
         "bulkAdjustedMixed": "{ok} ayarlandı, {skipped} atlandı",
         "delDepleted": "{count} tükenmiş kullanıcı silindi"
-      }
+      },
+      "userTemplates": "User Plan Templates",
+      "userTemplatesDesc": "Reusable client plan presets (quota, duration, on-hold start, IP/device limits, and default inbounds)",
+      "addTemplate": "Add Template",
+      "templateName": "Template Name",
+      "templateNameRequired": "Template name is required",
+      "applyTemplate": "Apply Plan Template",
+      "selectTemplatePlaceholder": "Select a preset template...",
+      "templateApplied": "Template '{{name}}' applied",
+      "revokeSub": "Revoke & Rotate Subscription Link",
+      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?"
     },
     "groups": {
       "title": "Gruplar",
@@ -971,6 +1025,7 @@
     },
     "settings": {
       "title": "Panel Ayarları",
+      "unsaved": "Kaydedilmemiş değişiklikler",
       "save": "Kaydet",
       "infoDesc": "Burada yapılan her değişikliğin kaydedilmesi gerekir. Değişikliklerin uygulanması için paneli yeniden başlatın.",
       "restartPanel": "Paneli Yeniden Başlat",
@@ -1066,7 +1121,7 @@
       "subAnnounce": "Duyuru",
       "subAnnounceDesc": "VPN istemcisinde görüntülenen duyuru metni",
       "subThemeDir": "Abonelik Tema Dizini",
-      "subThemeDirDesc": "Abonelik sayfası için özel bir şablon (index.html/sub.html) içeren klasörün mutlak yolu (örn. /etc/3x-ui/sub_templates/my-theme/). Varsayılan sayfayı kullanmak için boş bırakın.",
+      "subThemeDirDesc": "Abonelik sayfası için özel bir şablon (index.html/sub.html) içeren klasörün mutlak yolu (örn. /etc/x-ui/sub_templates/my-theme/). Varsayılan sayfayı kullanmak için boş bırakın.",
       "subThemeDirDocs": "Şablon kılavuzu ↗",
       "subEnableRouting": "Yönlendirmeyi etkinleştir",
       "subEnableRoutingDesc": "VPN istemcisinde yönlendirmeyi etkinleştirmek için genel ayar. (Yalnızca Happ için)",
@@ -1199,7 +1254,29 @@
         "apiTokenEmpty": "Henüz token yok — botları veya uzak panelleri doğrulamak için bir tane oluşturun.",
         "apiTokenDeleteWarning": "Bu token'ı kullanan tüm bağlantılar anında kimlik doğrulamasını kaybeder.",
         "apiTokenCreatedTitle": "Token Oluşturuldu",
-        "apiTokenCreatedNotice": "Bu token'ı şimdi kopyalayın. Güvenlik nedeniyle okunabilir biçimde saklanmaz ve tekrar gösterilmez."
+        "apiTokenCreatedNotice": "Bu token'ı şimdi kopyalayın. Güvenlik nedeniyle okunabilir biçimde saklanmaz ve tekrar gösterilmez.",
+        "apiTokenScope": "Permissions",
+        "apiTokenScopeFull": "Full access",
+        "apiTokenScopeRead": "Read-only",
+        "apiTokenExpireDays": "Expires in (days)",
+        "apiTokenExpireDaysDesc": "0 means never expires.",
+        "apiTokenExpires": "Expires",
+        "apiTokenExpired": "Expired",
+        "apiTokenLastUsed": "Last used",
+        "multiAdminTitle": "Admins & RBAC",
+        "multiAdminDesc": "Create secondary admin accounts with granular RBAC roles (Superadmin, Custom Admin, Support, or Read-only Viewer).",
+        "addAdmin": "Add Admin",
+        "editAdmin": "Edit Admin Account",
+        "adminRole": "Role",
+        "adminModules": "Allowed Modules",
+        "role_superadmin": "Superadmin (Full Access)",
+        "role_admin": "Custom Admin (Selected Modules)",
+        "role_support": "Support (Clients Read/Write + Inbounds Read)",
+        "role_viewer": "Viewer (Read-only Auditor)",
+        "lastLogin": "Last login",
+        "adminUsernameRequired": "Username is required",
+        "adminPasswordMin": "Password must be at least 4 characters",
+        "adminPasswordLeaveBlank": "Leave blank to keep existing password"
       },
       "toasts": {
         "modifySettings": "Parametreler değiştirildi.",
@@ -1210,7 +1287,47 @@
         "userPassMustBeNotEmpty": "Yeni kullanıcı adı ve şifre boş olamaz.",
         "getOutboundTrafficError": "Giden trafik alınırken hata oluştu.",
         "resetOutboundTrafficError": "Giden trafik sıfırlanırken hata oluştu."
-      }
+      },
+      "tgNotifyUserReport": "İstemcilere kişisel kullanım raporu",
+      "tgNotifyUserReportDesc": "Her rapor zamanında, Telegram'ı bağlı olan her istemciye kişisel kullanım özeti (trafik ve bitiş) de gönderilsin. Varsayılan: kapalı.",
+      "oneClickSslTitle": "One-Click SSL Certificate",
+      "oneClickSslDesc": "Issue a free Let's Encrypt certificate (auto-renewed before expiry) or an instant 1-year self-signed certificate.",
+      "issueCertBtn": "Issue SSL Certificate",
+      "certSelfSigned": "Self-Signed",
+      "certMode": "Certificate Type",
+      "certModeLetsEncrypt": "Let's Encrypt (HTTP-01 on port 80, auto-renewed)",
+      "certModeSelfSigned": "Self-Signed (instant, 1 year, no port 80 needed)",
+      "certDomain": "Domain",
+      "certDomainRequired": "Domain is required",
+      "certEmail": "Contact Email (optional)",
+      "certPort80Notice": "Port 80 must be reachable from the internet and point to this server.",
+      "certIssuedSuccess": "Certificate issued and applied",
+      "discordSettings": "Discord Bot",
+      "discordEnable": "Enable Discord Notifications",
+      "discordEnableDesc": "Send periodic traffic reports, approaching-limit alerts, and login notifications to Discord.",
+      "discordWebhookURL": "Discord Webhook URL",
+      "discordWebhookURLDesc": "Simplest setup: paste a channel Webhook URL.",
+      "discordBotToken": "Discord Bot Token (optional)",
+      "discordBotTokenDesc": "Alternative to Webhook: Bot token from Discord Developer Portal.",
+      "discordChannelId": "Discord Channel ID",
+      "discordChannelIdDesc": "Target channel ID when using a Bot token.",
+      "discordLoginNotify": "Login Notification",
+      "discordLoginNotifyDesc": "Post an embed whenever an admin login succeeds or fails.",
+      "discordTestTitle": "Test Discord Connection",
+      "discordTestDesc": "Save your settings first, then send a verification embed.",
+      "discordTestBtn": "Send Test Embed",
+      "discordTestSuccess": "Test message sent to Discord",
+      "cloudBackupTitle": "Cloud Backup",
+      "cloudBackupProviderGdrive": "Google Drive (Service Account / OAuth2)",
+      "cloudBackupGdriveGuide": "Google Drive Setup: (Method 1 - Recommended) Create a Google Cloud Service Account, enable Google Drive API, share your target Google Drive folder with the service account email, and paste the full JSON key below. (Method 2) Paste your OAuth2 Refresh Token below and enter your OAuth2 Client ID & Client Secret.",
+      "cloudBackupGdriveFolder": "Google Drive Folder ID or Link",
+      "cloudBackupGdriveFolderDesc": "Paste the Google Drive Folder ID or full folder URL (e.g. https://drive.google.com/drive/folders/1AbCdEf...). Leave empty to upload to Drive root.",
+      "cloudBackupGdriveCredentials": "Service Account JSON or OAuth2 Refresh Token",
+      "cloudBackupGdriveCredentialsDesc": "Paste the complete Google Cloud service_account JSON key file, or an OAuth2 Refresh Token (1//0g...).",
+      "cloudBackupGdriveClientId": "OAuth2 Client ID (Optional)",
+      "cloudBackupGdriveClientIdDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
+      "cloudBackupGdriveClientSecret": "OAuth2 Client Secret (Optional)",
+      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key."
     },
     "xray": {
       "title": "Xray Yapılandırmaları",
@@ -1392,7 +1509,10 @@
         "acceptProxyProtocol": "Proxy Protocol Kabul Et",
         "proxyProtocol": "Proxy Protocol",
         "tcpUserTimeoutMs": "TCP User Timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)",
+        "masqueWarpDesc": "Kayıtlı bir ECDSA P-256 anahtarıyla MASQUE üzerinden Cloudflare WARP'a bağlanır; host ve path varsayılan olarak Cloudflare uç noktasıdır.",
+        "masqueWarpPublicKey": "Uç nokta açık anahtarı",
+        "masqueWarpAddress": "Tünel adresleri"
       },
       "outbound": {
         "addOutbound": "Giden Bağlantı Ekle",
@@ -1555,7 +1675,9 @@
         "warpPlusData": "WARP+ Veri",
         "quota": "Kota",
         "usage": "Kullanım",
-        "addOutbound": "Giden Bağlantı Ekle"
+        "addOutbound": "Giden Bağlantı Ekle",
+        "masqueDesc": "MASQUE için ayrı bir WARP cihazı kaydeder; yukarıdaki WireGuard kaydı etkilenmez.",
+        "addMasqueOutbound": "MASQUE üzerinden WARP outbound ekle"
       },
       "dns": {
         "enable": "DNS'yi Etkinleştir",
@@ -1605,6 +1727,23 @@
         "edit": "Sahte DNS'i Düzenle",
         "ipPool": "IP Havuzu Alt Ağı",
         "poolSize": "Havuz Boyutu"
+      },
+      "tuic": {
+        "congestionControl": "Tıkanıklık Kontrolü",
+        "congestionControlHint": "Sunucu ve istemci algoritması. Sunucu değişiklikleri yeniden bağlanınca uygulanır.",
+        "profileOptions": "Client profile options",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP İletim Modu",
+        "udpRelayModeHint": "İstemci UDP modu. Sunucu her ikisini de destekler.",
+        "zeroRttHandshake": "0-RTT El Sıkışması",
+        "logLevel": "Günlük Seviyesi",
+        "logLevelHint": "Bu gelen bağlantı için en düşük günlük seviyesi.",
+        "maxIdleTime": "Maksimum Boşta Kalma Süresi (sn)",
+        "authTimeout": "Kimlik Doğrulama Zaman Aşımı (sn)",
+        "maxUdpRelayPacketSize": "Maksimum UDP Paket Boyutu",
+        "sni": "SNI",
+        "sniHint": "İstemci profilindeki TLS sunucu adı.",
+        "sniRequired": "Sertifika yollarını otomatik doldurmak için alan adı girin."
       }
     }
   },
@@ -1658,7 +1797,7 @@
       "report": "🕰 Planlanmış Raporlar: {{ .RunTime }}\r\n",
       "datetime": "⏰ Tarih ve Saat: {{ .DateTime }}\r\n",
       "hostname": "💻 Host: {{ .Hostname }}\r\n",
-      "version": "🚀 OMEGA Sürümü: {{ .Version }}\r\n",
+      "version": "🚀 PHOENIX Sürümü: {{ .Version }}\r\n",
       "xrayVersion": "📡 Xray Sürümü: {{ .XrayVersion }}\r\n",
       "ipv6": "🌐 IPv6: {{ .IPv6 }}\r\n",
       "ipv4": "🌐 IPv4: {{ .IPv4 }}\r\n",
@@ -1713,7 +1852,21 @@
       "AreYouSure": "Emin misiniz? 🤔",
       "SuccessResetTraffic": "📧 E-posta: {{ .ClientEmail }}\n🏁 Sonuç: ✅ Başarılı",
       "FailedResetTraffic": "📧 E-posta: {{ .ClientEmail }}\n🏁 Sonuç: ❌ Başarısız \n\n🛠️ Hata: [ {{ .ErrorMessage }} ]",
-      "FinishProcess": "🔚 Tüm kullanıcılar için trafik sıfırlama işlemi tamamlandı."
+      "FinishProcess": "🔚 Tüm kullanıcılar için trafik sıfırlama işlemi tamamlandı.",
+      "broadcastPrompt": "Tüm istemcilere gönderilecek mesaj metnini yazın (maks. ~3800 karakter).",
+      "broadcastEmpty": "Mesaj boş. Toplu mesaj metnini gönderin veya İptal'e basın.",
+      "broadcastTooLong": "Mesaj çok uzun. Kısaltın (maks. ~3800 karakter) ve tekrar deneyin.",
+      "broadcastPreview": "📣 Toplu mesaj önizleme — alıcılar: {{ .Count }}",
+      "broadcastCanceled": "Toplu mesaj iptal edildi.",
+      "broadcastRunning": "Başka bir toplu mesaj hâlâ gönderiliyor. Bitmesini bekleyin.",
+      "broadcastDone": "✅ Toplu mesaj tamamlandı: {{ .Sent }} gönderildi, {{ .Failed }} başarısız.",
+      "broadcastNoRecipients": "Bağlı Telegram hesabı olan istemci bulunamadı — gönderilecek kimse yok.",
+      "inviteCreated": "🔗 {{ .Email }} için davet bağlantısı\n(tek kullanım, {{ .Expires }} tarihine kadar geçerli):\n\n{{ .Link }}",
+      "inviteRedeemed": "✅ {{ .Firstname }}, Telegram hesabınız artık {{ .Email }} hesabına bağlı. Aboneliğinizi yönetmek için aşağıdaki düğmeleri kullanın.",
+      "inviteInvalid": "Bu davet bağlantısı geçersiz. Sağlayıcınızdan yeni bir bağlantı isteyin.",
+      "inviteUsed": "Bu davet bağlantısı zaten kullanılmış. Sağlayıcınızdan yeni bir bağlantı isteyin.",
+      "inviteExpired": "Bu davet bağlantısının süresi doldu. Sağlayıcınızdan yeni bir bağlantı isteyin.",
+      "userReport": "📊 Kullanım raporunuz — {{ .DateTime }}"
     },
     "buttons": {
       "closeKeyboard": "❌ Klavyeyi Kapat",
@@ -1758,7 +1911,10 @@
       "change_comment": "⚙️💬 Yorum",
       "change_flow": "⚙️🚦 Flow",
       "ResetAllTraffics": "Tüm Trafikleri Sıfırla",
-      "SortedTrafficUsageReport": "Sıralı Trafik Kullanım Raporu"
+      "SortedTrafficUsageReport": "Sıralı Trafik Kullanım Raporu",
+      "broadcast": "📣 Toplu Mesaj",
+      "confirmBroadcast": "✅ Şimdi gönder",
+      "invite": "🔗 Davet bağlantısı"
     },
     "answers": {
       "successfulOperation": "✅ İşlem başarılı!",
@@ -1783,5 +1939,28 @@
       "chooseClient": "Gelen Bağlantı {{ .Inbound }} için bir Kullanıcı Seçin",
       "chooseInbound": "Bir Gelen Bağlantı Seçin"
     }
+  },
+  "commandPalette": {
+    "open": "Quick search",
+    "placeholder": "Jump to page, search client email / subId, or run an action…",
+    "empty": "No matching pages, clients, or actions.",
+    "groupPages": "Pages",
+    "groupClients": "Clients",
+    "groupInbounds": "Inbounds",
+    "groupActions": "Quick actions",
+    "toggleTheme": "Toggle dark / light theme",
+    "hintNavigate": "navigate",
+    "hintSelect": "select"
+  },
+  "resellers": {
+    "supportTickets": "Support Tickets",
+    "paymentOrders": "Payment Webhook Orders",
+    "ticketsDesc": "Direct support communication between Resellers and Panel Admins",
+    "newTicket": "New Ticket",
+    "ticketSubject": "Subject",
+    "ticketPriority": "Priority",
+    "ticketMessage": "Message",
+    "ticketReplyPlaceholder": "Write a reply...",
+    "ticketSubjectAndMessageRequired": "Subject and message are required"
   }
 }

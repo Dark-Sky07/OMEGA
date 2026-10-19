@@ -1,7 +1,8 @@
 [Unit]
-Description=x-ui Service
+Description=PHOENIX Service
 After=network.target
 Wants=network.target
+StartLimitIntervalSec=0
 
 [Service]
 EnvironmentFile=-/etc/default/x-ui
@@ -12,6 +13,10 @@ ExecStart=/usr/local/x-ui/x-ui
 ExecReload=/bin/kill -USR1 $MAINPID
 Restart=on-failure
 RestartSec=5s
+RestartPreventExitStatus=23
+LimitNOFILE=1048576
+LimitNPROC=65535
+UMask=0027
 
 [Install]
 WantedBy=multi-user.target

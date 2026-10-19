@@ -308,7 +308,7 @@ export const sections: readonly Section[] = [
       {
         method: 'GET',
         path: '/panel/api/server/getPanelUpdateInfo',
-        summary: 'Check whether a newer 3x-ui release is available on GitHub.',
+        summary: 'Check whether a newer PHOENIX release is available on GitHub.',
       },
       {
         method: 'GET',
@@ -785,6 +785,25 @@ export const sections: readonly Section[] = [
         ],
       },
       {
+        method: 'GET',
+        path: '/panel/api/clients/devices/:email',
+        summary: 'List HWID-registered devices for a client (device limit feature). Each entry carries hwid, ip, userAgent, createdAt and lastSeenAt. Only clients with a device limit register devices.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
+        ],
+        response: '{\n  "success": true,\n  "obj": [\n    {\n      "email": "user1",\n      "hwid": "d4f1...",\n      "ip": "203.0.113.7",\n      "userAgent": "v2rayNG/1.9.16",\n      "createdAt": 1700000000000,\n      "lastSeenAt": 1700000500000\n    }\n  ]\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/devices/:email/del',
+        summary: 'Unregister one device (HWID) of a client, freeing a device slot so the user can register another device.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
+        ],
+        body: '{\n  "hwid": "d4f1..."\n}',
+        response: '{\n  "success": true,\n  "obj": { "removed": true }\n}',
+      },
+      {
         method: 'POST',
         path: '/panel/api/clients/onlines',
         summary: 'List the emails of currently connected clients (last seen within the heartbeat window), deduped across every node.',
@@ -857,7 +876,7 @@ export const sections: readonly Section[] = [
     id: 'nodes',
     title: 'Nodes',
     description:
-      'Manage remote 3x-ui panels acting as nodes for a central panel. All endpoints under /panel/api/nodes.',
+      'Manage remote PHOENIX panels acting as nodes for a central panel. All endpoints under /panel/api/nodes.',
     endpoints: [
       {
         method: 'GET',
@@ -1016,7 +1035,7 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/setting/restartPanel',
-        summary: 'Restart the entire 3x-ui process after a 3-second grace period. The connection drops immediately; the panel comes back online ~5-10 seconds later.',
+        summary: 'Restart the entire PHOENIX process after a 3-second grace period. The connection drops immediately; the panel comes back online ~5-10 seconds later.',
       },
       {
         method: 'GET',
@@ -1069,6 +1088,49 @@ export const sections: readonly Section[] = [
         body: '{\n  "enabled": false\n}',
         response: '{\n  "success": true\n}',
       },
+      {
+        method: 'GET',
+        path: '/panel/api/setting/cert/status',
+        summary: 'Inspect the TLS certificate currently configured on the panel (subject, issuer, expiry, days left, self-signed flag).',
+        response: '{\n  "success": true,\n  "obj": {\n    "configured": true,\n    "subject": "panel.example.com",\n    "daysLeft": 62\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/setting/cert/issue',
+        summary: "Issue a Let's Encrypt (RFC 8555 HTTP-01 on port 80, auto-renewed daily) or 1-year self-signed certificate and optionally apply its paths to the panel.",
+        params: [
+          { name: 'domain', in: 'body', type: 'string', desc: 'Hostname (or IP for self-signed) to issue for.' },
+          { name: 'email', in: 'body', type: 'string', optional: true, desc: 'Optional ACME contact email.' },
+          { name: 'mode', in: 'body', type: 'string', optional: true, desc: '"letsencrypt" (default) or "selfsigned".' },
+          { name: 'applyToPanel', in: 'body', type: 'boolean', optional: true, desc: 'Save the new paths to webCertFile / webKeyFile (default true).' },
+        ],
+        body: '{\n  "domain": "panel.example.com",\n  "mode": "letsencrypt",\n  "applyToPanel": true\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "configured": true,\n    "subject": "panel.example.com",\n    "daysLeft": 89\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/setting/discord/test',
+        summary: 'Send a verification embed to the configured Discord Webhook URL and/or Bot channel.',
+        response: '{\n  "success": true\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/setting/cloudBackup/run',
+        summary: 'Immediately upload a database snapshot to the configured S3 / Cloudflare R2 / MinIO or WebDAV cloud storage and apply retention cleanup.',
+        response: '{\n  "success": true,\n  "obj": {\n    "key": "omega-backups/x-ui-backup-20261019-120000.db"\n  }\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/setting/auditLogs',
+        summary: 'List recent security audit log entries with optional actorType, module, and search filters.',
+        response: '{\n  "success": true,\n  "obj": []\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/setting/auditLogs/clear',
+        summary: 'Clear all recorded security audit log entries.',
+        response: '{\n  "success": true\n}',
+      },
     ],
   },
 
@@ -1113,7 +1175,7 @@ export const sections: readonly Section[] = [
         path: '/panel/api/xray/warp/:action',
         summary: 'Manage Cloudflare Warp integration. The action parameter selects the operation.',
         params: [
-          { name: 'action', in: 'path', type: 'string', desc: 'data — return Warp stats (quota, remaining). del — delete Warp data. config — return current Warp config. reg — register a new Warp endpoint (sends privateKey, publicKey). license — set a Warp+ license key (sends license).' },
+          { name: 'action', in: 'path', type: 'string', desc: 'data — return Warp stats (quota, remaining). del — delete Warp data. config — return current Warp config. reg — register a new Warp endpoint (sends privateKey, publicKey). regMasque — register a separate device enrolled for MASQUE and return its warp key pair, addresses and endpoint. license — set a Warp+ license key (sends license).' },
           { name: 'privateKey', in: 'body (form)', type: 'string', desc: 'Required when action=reg.' },
           { name: 'publicKey', in: 'body (form)', type: 'string', desc: 'Required when action=reg.' },
           { name: 'license', in: 'body (form)', type: 'string', desc: 'Required when action=license.' },
@@ -1262,6 +1324,16 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'url', in: 'body (form)', type: 'string', desc: 'Subscription URL to preview (required).' },
         ],
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/xray/watchdog/status',
+        summary: 'Return the current status of the Smart Outbound Auto-Failover Watchdog (active primary tag, candidates, failure counts, last failover).',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/xray/watchdog/check',
+        summary: 'Immediately probe the active primary outbound and fail over to the fastest healthy candidate if unreachable.',
       },
     ],
   },
@@ -1520,6 +1592,143 @@ export const sections: readonly Section[] = [
           'Identity of the caller, so the SPA can render the right navigation: <code>role</code> is <code>admin</code> or <code>reseller</code>.',
         response:
           '{\n  "success": true,\n  "obj": { "role": "reseller", "username": "reseller1", "name": "Ali", "stat": { "clientCount": 12 } }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/revokeSub/:email',
+        summary: 'Revoke and regenerate the subscription token (subId) for the client across all attached inbounds.',
+        params: [{ name: 'email', in: 'path', type: 'string' }],
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/clients/templates',
+        summary: 'List all reusable client plan templates.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/templates/add',
+        summary: 'Create a reusable client plan template.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/templates/update/:id',
+        summary: 'Update an existing client plan template.',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/templates/del/:id',
+        summary: 'Delete a client plan template.',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/resellers/tickets',
+        summary: 'List all reseller support tickets (admin only).',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/resellers/tickets/:id',
+        summary: 'Get a reseller support ticket and its message thread (admin only).',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/resellers/tickets/:id/reply',
+        summary: 'Post an admin reply to a reseller support ticket.',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/resellers/tickets/:id/close',
+        summary: 'Close a reseller support ticket (admin only).',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/resellers/orders',
+        summary: 'List processed payment webhook orders (admin only).',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/resellers/orders/process',
+        summary: 'Manually process an idempotent payment order (reseller deposit, quota top-up, or client renewal).',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/reseller/tickets',
+        summary: 'List the signed-in reseller own support tickets.',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/reseller/tickets/:id',
+        summary: 'Get a support ticket and its message thread owned by the signed-in reseller.',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/reseller/tickets/create',
+        summary: 'Open a new support ticket as the signed-in reseller.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/reseller/tickets/:id/reply',
+        summary: 'Post a reply to a support ticket owned by the signed-in reseller.',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/reseller/tickets/:id/close',
+        summary: 'Close a support ticket owned by the signed-in reseller.',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/resellers/vouchers',
+        summary: 'List all reseller wallet gift/voucher codes.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/resellers/vouchers/create',
+        summary: 'Create a new single-use or multi-use reseller wallet/traffic gift voucher code.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/resellers/vouchers/delete/:id',
+        summary: 'Delete a reseller gift voucher code by ID.',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/reseller/vouchers/redeem',
+        summary: 'Redeem a gift/voucher code to credit the signed-in reseller wallet balance and/or traffic quota.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/checkHost',
+        summary: 'Run an Iran & international Check-Host TCP port or ICMP ping reachability test against a target host or host:port.',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/setting/admins',
+        summary: 'List all panel admin accounts and their RBAC roles/permissions (owner only).',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/setting/admins/create',
+        summary: 'Create a new panel admin account with an RBAC role and granular permissions (owner only).',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/setting/admins/update/:id',
+        summary: 'Update a panel admin account RBAC role, permissions, or status (owner only).',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/setting/admins/delete/:id',
+        summary: 'Delete a secondary panel admin account (owner only).',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
       },
     ],
   },

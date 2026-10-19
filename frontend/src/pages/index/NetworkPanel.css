@@ -1,0 +1,143 @@
+.network-panel .ant-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px 16px;
+}
+
+.net-speeds {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.net-speed {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--omega-radius-sm);
+  background: color-mix(in srgb, var(--net-color) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--net-color) 22%, transparent);
+  min-width: 0;
+}
+
+.net-speed-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--net-color) 18%, transparent);
+  color: var(--net-color);
+  font-size: 16px;
+}
+
+.net-speed-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.net-speed-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--omega-text-3);
+}
+
+.net-speed-value {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--omega-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.net-speed-value small {
+  margin-inline-start: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--omega-text-3);
+}
+
+.net-chart {
+  margin: 0 -6px;
+}
+
+.net-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--omega-border);
+}
+
+.net-stat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.net-stat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: var(--omega-surface-muted);
+  color: var(--omega-text-2);
+  font-size: 13px;
+}
+
+.net-stat-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.net-stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--omega-text-3);
+  white-space: nowrap;
+}
+
+.net-stat-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--omega-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.network-history-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+}
+
+@media (max-width: 768px) {
+  .network-panel .ant-card-body {
+    padding: 14px 14px 12px;
+  }
+
+  .net-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .net-speed-value {
+    font-size: 17px;
+  }
+}

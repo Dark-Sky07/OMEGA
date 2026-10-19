@@ -8,8 +8,8 @@ plain='\033[0m'
 
 cur_dir=$(pwd)
 
-# OMEGA: this installer ships the OMEGA panel (3x-ui v3.3.1 + the Resellers
-# feature) from its own repository. Override OMEGA_REPO to install a different
+# PHOENIX: this installer ships the PHOENIX panel
+# from its own repository. Override OMEGA_REPO to install a different
 # fork/mirror; everything else (service name, paths, panel version) is untouched.
 OMEGA_REPO="${OMEGA_REPO:-Dark-Sky07/OMEGA}"
 
@@ -1465,6 +1465,12 @@ install_x-ui() {
     rm x-ui-linux-$(arch).tar.gz -f
 
     cd x-ui
+    if [[ -f sha256sums.txt ]] && command -v sha256sum >/dev/null 2>&1; then
+        if ! grep '  x-ui$' sha256sums.txt | sha256sum -c --status; then
+            echo -e "${red}SHA-256 checksum verification failed for x-ui binary; aborting installation.${plain}"
+            exit 1
+        fi
+    fi
     # Replace any stale core bundled in the panel archive.
     install_staged_xray
     chmod +x x-ui
@@ -1490,9 +1496,11 @@ install_x-ui() {
         chmod +x bin/mtg-linux-$(arch)
     fi
 
-    # Update x-ui cli and se set permission
+    # Update phoenix / x-ui cli and set permissions
     mv -f /usr/bin/x-ui-temp /usr/bin/x-ui
     chmod +x /usr/bin/x-ui
+    cp -f /usr/bin/x-ui /usr/bin/phoenix
+    chmod +x /usr/bin/phoenix
     mkdir -p /var/log/x-ui
     config_after_install
 
@@ -1598,25 +1606,25 @@ install_x-ui() {
         fi
     fi
 
-    echo -e "${green}x-ui ${tag_version}${plain} installation finished, it is running now..."
+    echo -e "${green}PHOENIX ${tag_version}${plain} installation finished, it is running now..."
     echo -e ""
     echo -e "┌───────────────────────────────────────────────────────┐
-│  ${blue}x-ui control menu usages (subcommands):${plain}              │
+│  ${blue}phoenix control menu usages (subcommands):${plain}           │
 │                                                       │
-│  ${blue}x-ui${plain}              - Admin Management Script          │
-│  ${blue}x-ui start${plain}        - Start                            │
-│  ${blue}x-ui stop${plain}         - Stop                             │
-│  ${blue}x-ui restart${plain}      - Restart                          │
-│  ${blue}x-ui status${plain}       - Current Status                   │
-│  ${blue}x-ui settings${plain}     - Current Settings                 │
-│  ${blue}x-ui enable${plain}       - Enable Autostart on OS Startup   │
-│  ${blue}x-ui disable${plain}      - Disable Autostart on OS Startup  │
-│  ${blue}x-ui log${plain}          - Check logs                       │
-│  ${blue}x-ui banlog${plain}       - Check Fail2ban ban logs          │
-│  ${blue}x-ui update${plain}       - Update                           │
-│  ${blue}x-ui legacy${plain}       - Legacy version                   │
-│  ${blue}x-ui install${plain}      - Install                          │
-│  ${blue}x-ui uninstall${plain}    - Uninstall                        │
+│  ${blue}phoenix${plain}           - Admin Management Script          │
+│  ${blue}phoenix start${plain}     - Start                            │
+│  ${blue}phoenix stop${plain}      - Stop                             │
+│  ${blue}phoenix restart${plain}   - Restart                          │
+│  ${blue}phoenix status${plain}    - Current Status                   │
+│  ${blue}phoenix settings${plain}  - Current Settings                 │
+│  ${blue}phoenix enable${plain}    - Enable Autostart on OS Startup   │
+│  ${blue}phoenix disable${plain}   - Disable Autostart on OS Startup  │
+│  ${blue}phoenix log${plain}       - Check logs                       │
+│  ${blue}phoenix banlog${plain}    - Check Fail2ban ban logs          │
+│  ${blue}phoenix update${plain}    - Update                           │
+│  ${blue}phoenix legacy${plain}    - Legacy version                   │
+│  ${blue}phoenix install${plain}   - Install                          │
+│  ${blue}phoenix uninstall${plain} - Uninstall                        │
 └───────────────────────────────────────────────────────┘"
 }
 

@@ -19,9 +19,10 @@ import {
   Typography,
   message,
 } from 'antd';
-import { ShopOutlined, UserOutlined } from '@ant-design/icons';
+import { CustomerServiceOutlined, GiftOutlined, ShopOutlined, UserOutlined } from '@ant-design/icons';
 
 import AppSidebar from '@/layouts/AppSidebar';
+import { PageHeader } from '@/components/ui';
 import { HttpUtil } from '@/utils';
 import { SizeFormatter } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
@@ -29,6 +30,7 @@ import { keys } from '@/api/queryKeys';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useTheme } from '@/hooks/useTheme';
 import type { ResellerStat } from '@/api/queries/useSession';
+import SupportTicketsModal from './SupportTicketsModal';
 import './ResellersPage.css';
 
 const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
@@ -40,7 +42,26 @@ export default function ResellerProfilePage() {
   const queryClient = useQueryClient();
   const [messageApi, messageContextHolder] = message.useMessage();
   const [saving, setSaving] = useState(false);
+  const [ticketsOpen, setTicketsOpen] = useState(false);
+  const [voucherCode, setVoucherCode] = useState('');
+  const [redeeming, setRedeeming] = useState(false);
   const [passwordForm] = Form.useForm<{ oldPassword: string; newPassword: string; confirmPassword: string }>();
+
+  const redeemVoucher = useCallback(async () => {
+    const code = voucherCode.trim();
+    if (!code) return;
+    setRedeeming(true);
+    try {
+      const msg = await HttpUtil.post('/panel/api/reseller/vouchers/redeem', { code }, JSON_HEADERS as never);
+      if (msg?.success) {
+        messageApi.success(t('resellers.voucherRedeemed', 'Voucher code redeemed successfully!'));
+        setVoucherCode('');
+        queryClient.invalidateQueries({ queryKey: keys.resellers.selfReport() });
+      }
+    } finally {
+      setRedeeming(false);
+    }
+  }, [messageApi, queryClient, t, voucherCode]);
 
   useEffect(() => {
     setMessageInstance(messageApi);
@@ -102,11 +123,23 @@ export default function ResellerProfilePage() {
             {profileQuery.isError ? (
               <Alert type="error" showIcon message={t('somethingWentWrong')} />
             ) : (
+              <>
+              <PageHeader
+                eyebrow={t('menu.groupOverview', 'Overview')}
+                title={t('menu.profile', 'Profile')}
+                subtitle={stat ? <span><strong>{stat.reseller.name || stat.reseller.username}</strong></span> : undefined}
+                badge={stat && (
+                  <span className={`omega-pill ${stat.reseller.enable ? 'is-running' : 'is-error'}`}>
+                    <span className="omega-dot" />
+                    {stat.reseller.enable ? t('enable') : t('disabled')}
+                  </span>
+                )}
+              />
               <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 12]}>
                 <Col xs={24} lg={16}>
                   <Card
                     size="small"
-                    hoverable
+                    className="omega-rise omega-rise-2"
                     title={
                       <Space>
                         <ShopOutlined />
@@ -224,7 +257,61 @@ export default function ResellerProfilePage() {
                     </Form>
                   </Card>
                 </Col>
+
+                <Col span={24}>
+                  <Card
+                    size="small"
+                    hoverable
+                    title={
+                      <Space>
+                        <GiftOutlined />
+                        {t('resellers.redeemVoucherTitle', 'Redeem Gift / Voucher Code')}
+                      </Space>
+                    }
+                  >
+                    <Space wrap>
+                      <Input
+                        value={voucherCode}
+                        onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                        placeholder="PHOENIX-XXXX-XXXX"
+                        style={{ width: 260 }}
+                        onPressEnter={redeemVoucher}
+                      />
+                      <Button type="primary" icon={<GiftOutlined />} loading={redeeming} onClick={redeemVoucher}>
+                        {t('resellers.redeemVoucherBtn', 'Redeem Code')}
+                      </Button>
+                    </Space>
+                  </Card>
+                </Col>
+
+                <Col span={24}>
+                  <Card
+                    size="small"
+                    hoverable
+                    title={
+                      <Space>
+                        <CustomerServiceOutlined />
+                        {t('resellers.supportTickets') || 'Support Tickets'}
+                      </Space>
+                    }
+                  >
+                    <Space direction="vertical" size={8}>
+                      <span style={{ color: 'var(--ant-color-text-secondary)' }}>
+                        {t('resellers.ticketsDesc') || 'Open a support ticket or view replies from the panel administrator.'}
+                      </span>
+                      <Button type="primary" icon={<CustomerServiceOutlined />} onClick={() => setTicketsOpen(true)}>
+                        {t('resellers.supportTickets') || 'Support Tickets'}
+                      </Button>
+                    </Space>
+                  </Card>
+                </Col>
               </Row>
+              <SupportTicketsModal
+                open={ticketsOpen}
+                mode="reseller"
+                onOpenChange={setTicketsOpen}
+              />
+              </>
             )}
           </Layout.Content>
         </Layout>

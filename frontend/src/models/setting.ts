@@ -23,8 +23,16 @@ export class AllSetting {
   tgRunTime = '@daily';
   tgBotBackup = false;
   tgBotLoginNotify = true;
+  tgBotUserReport = false;
   tgCpu = 80;
   tgLang = 'en-US';
+  discordEnable = false;
+  discordWebhookURL = '';
+  discordBotToken = '';
+  discordChannelId = '';
+  discordLoginNotify = true;
+  hasDiscordBotToken?: boolean;
+  hasDiscordWebhookURL?: boolean;
   twoFactorEnable = false;
   twoFactorToken = '';
   xrayTemplateConfig = '';
@@ -42,6 +50,10 @@ export class AllSetting {
   subJsonPath = '/json/';
   subClashEnable = false;
   subClashPath = '/clash/';
+  subSingboxEnable = false;
+  subSingboxPath = '/singbox/';
+  subOutlineEnable = false;
+  subOutlinePath = '/outline/';
   subDomain = '';
   externalTrafficInformEnable = false;
   externalTrafficInformURI = '';
@@ -52,9 +64,13 @@ export class AllSetting {
   subEncrypt = true;
   subShowInfo = true;
   subEmailInRemark = true;
+  subStatusNode = false;
+  subExpiredNotice = '';
   subURI = '';
   subJsonURI = '';
   subClashURI = '';
+  subSingboxURI = '';
+  subOutlineURI = '';
   subClashEnableRouting = false;
   subClashRules = '';
   subJsonMux = '';
@@ -84,6 +100,23 @@ export class AllSetting {
   ldapDefaultTotalGB = 0;
   ldapDefaultExpiryDays = 0;
   ldapDefaultLimitIP = 0;
+
+  cloudBackupEnable = false;
+  cloudBackupProvider = 's3';
+  cloudBackupEndpoint = '';
+  cloudBackupRegion = 'auto';
+  cloudBackupBucket = '';
+  cloudBackupPrefix = 'omega-backups/';
+  cloudBackupAccessKey = '';
+  cloudBackupSecretKey = '';
+  cloudBackupIntervalHours = 12;
+  cloudBackupRetention = 14;
+
+  outboundWatchdogEnable = false;
+  outboundWatchdogTags = '';
+  outboundWatchdogIntervalSec = 120;
+  outboundWatchdogFailThreshold = 2;
+
   hasTgBotToken = false;
   hasTwoFactorToken = false;
   hasLdapPassword = false;

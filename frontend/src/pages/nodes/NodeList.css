@@ -47,15 +47,14 @@
 .node-cards {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 4px;
+  gap: 10px;
 }
 
 .node-card {
-  border: 1px solid var(--ant-color-border-secondary);
-  border-radius: 10px;
-  padding: 12px;
-  background: var(--ant-color-fill-quaternary);
+  border: 1px solid var(--omega-border);
+  border-radius: var(--omega-radius-sm);
+  padding: 12px 14px;
+  background: var(--omega-surface-muted);
   display: flex;
   flex-direction: column;
   gap: 8px;

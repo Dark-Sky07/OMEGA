@@ -117,11 +117,34 @@ function tagFromEndpoint(endpoint: string): string {
   return `windscribe-${safe || 'wireguard'}`.slice(0, 64);
 }
 
+export function uniqueWindscribeTag(baseTag: string, existingTags: Iterable<string> = []): string {
+  const cleaned = (baseTag.trim().replace(/-+$/, '') || 'windscribe-wireguard').slice(0, 64);
+  const taken = new Set(
+    Array.from(existingTags, (tag) => (typeof tag === 'string' ? tag.trim().toLowerCase() : '')).filter(Boolean),
+  );
+  if (!taken.has(cleaned.toLowerCase())) {
+    return cleaned;
+  }
+  for (let suffix = 2; suffix < 10000; suffix += 1) {
+    const tail = `-${suffix}`;
+    const stem = cleaned.slice(0, Math.max(1, 64 - tail.length)).replace(/-+$/, '');
+    const candidate = `${stem}${tail}`;
+    if (!taken.has(candidate.toLowerCase())) {
+      return candidate;
+    }
+  }
+  return `${cleaned.slice(0, 55)}-${Date.now().toString(36).slice(-6)}`;
+}
+
 /**
  * Parse a Windscribe WireGuard profile without ever printing its secret key.
  * The returned object is directly consumable by the WireGuard outbound form.
  */
-export function parseWindscribeConfig(text: string, fileName = ''): ParsedWindscribeConfig {
+export function parseWindscribeConfig(
+  text: string,
+  fileName = '',
+  existingTags: Iterable<string> = [],
+): ParsedWindscribeConfig {
   if (!text.trim()) throw new WindscribeConfigError('WireGuard profile is empty');
   const { iface, peers: rawPeers } = readValues(text);
   const secretKey = iface.privatekey;
@@ -169,7 +192,7 @@ export function parseWindscribeConfig(text: string, fileName = ''): ParsedWindsc
     ? `windscribe-${fileName.replace(/\.[^.]+$/, '').replace(/[^A-Za-z0-9_-]+/g, '-').slice(0, 48)}`
     : tagFromEndpoint(peers[0].endpoint);
   return {
-    tag: tag.replace(/-+$/, '') || 'windscribe-wireguard',
+    tag: uniqueWindscribeTag(tag.replace(/-+$/, '') || 'windscribe-wireguard', existingTags),
     protocol: 'wireguard',
     settings: {
       secretKey,

@@ -1,4 +1,4 @@
-// Package sub provides subscription server functionality for the 3x-ui panel,
+// Package sub provides subscription server functionality for the PHOENIX panel,
 // including HTTP/HTTPS servers for serving subscription links and JSON configurations.
 package sub
 
@@ -16,6 +16,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/controller"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/network"
@@ -79,12 +80,32 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		return nil, err
 	}
 
+	SingboxPath, err := s.settingService.GetSubSingboxPath()
+	if err != nil {
+		return nil, err
+	}
+
+	OutlinePath, err := s.settingService.GetSubOutlinePath()
+	if err != nil {
+		return nil, err
+	}
+
 	subJsonEnable, err := s.settingService.GetSubJsonEnable()
 	if err != nil {
 		return nil, err
 	}
 
 	subClashEnable, err := s.settingService.GetSubClashEnable()
+	if err != nil {
+		return nil, err
+	}
+
+	subSingboxEnable, err := s.settingService.GetSubSingboxEnable()
+	if err != nil {
+		return nil, err
+	}
+
+	subOutlineEnable, err := s.settingService.GetSubOutlineEnable()
 	if err != nil {
 		return nil, err
 	}
@@ -204,6 +225,14 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		if linksPathForAssets != "/assets" {
 			engine.StaticFS(linksPathForAssets, assetsFS)
 		}
+	}
+	engine.GET("/manifest.webmanifest", controller.ServePWAManifest)
+	engine.GET("/sw.js", controller.ServePWAServiceWorker)
+	if basePath != "/" {
+		engine.GET(basePath+"manifest.webmanifest", controller.ServePWAManifest)
+		engine.GET(basePath+"sw.js", controller.ServePWAServiceWorker)
+	}
+	if assetsFS != nil {
 
 		// Browser may resolve subpage assets relative to the request URL —
 		// /sub/<basePath>/<subId>/assets/... — so route those to the same FS.
@@ -230,7 +259,8 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	g := engine.Group("/")
 
 	s.sub = NewSUBController(
-		g, LinksPath, JsonPath, ClashPath, subJsonEnable, subClashEnable, Encrypt, ShowInfo, RemarkModel, SubUpdates,
+		g, LinksPath, JsonPath, ClashPath, SingboxPath, OutlinePath, subJsonEnable, subClashEnable,
+		subSingboxEnable, subOutlineEnable, Encrypt, ShowInfo, RemarkModel, SubUpdates,
 		SubJsonMux, SubJsonRules, SubJsonFinalMask, SubClashEnableRouting, SubClashRules, SubTitle, SubSupportUrl,
 		SubProfileUrl, SubAnnounce, SubEnableRouting, SubRoutingRules)
 

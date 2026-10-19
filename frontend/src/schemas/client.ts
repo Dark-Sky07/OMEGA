@@ -31,6 +31,12 @@ export const ClientRecordSchema = z.object({
   totalGB: z.number().optional(),
   expiryTime: z.number().optional(),
   limitIp: z.number().optional(),
+  limitDevice: z.number().optional(),
+  renewalMode: z.number().optional(),
+  renewalDay: z.number().optional(),
+  activateBefore: z.number().optional(),
+  subLastUpdatedAt: z.number().optional(),
+  subLastUserAgent: z.string().optional(),
   tgId: z.union([z.number(), z.string()]).optional(),
   group: z.string().optional(),
   comment: z.string().optional(),
@@ -81,6 +87,23 @@ export const AwgServerOptionSchema = z.object({
   disableCookies: z.boolean().optional(),
 }).loose();
 
+export const TuicServerOptionSchema = z
+  .object({
+    certificate: z.string().optional(),
+    congestion_control: z.string().optional(),
+    alpn: z.array(z.string()).optional(),
+    udp_relay_mode: z.string().optional(),
+    zero_rtt_handshake: z.boolean().optional(),
+    log_level: z.string().optional(),
+    max_idle_time: z.number().optional(),
+    authentication_timeout: z.number().optional(),
+    max_udp_relay_packet_size: z.number().optional(),
+    sni: z.string().optional(),
+  })
+  .loose();
+
+export type TuicServerOption = z.infer<typeof TuicServerOptionSchema>;
+
 export const InboundOptionSchema = z.object({
   id: z.number(),
   remark: z.string().optional(),
@@ -90,6 +113,7 @@ export const InboundOptionSchema = z.object({
   tlsFlowCapable: z.boolean().optional(),
   ssMethod: z.string().optional(),
   awgServer: AwgServerOptionSchema.nullable().optional(),
+  tuicServer: TuicServerOptionSchema.nullable().optional(),
   nodeAddress: z.string().optional(),
   listen: z.string().optional(),
   shareAddr: z.string().optional(),
@@ -215,6 +239,9 @@ export const ClientFormSchema = z.object({
   delayedDays: z.number().int().min(0),
   reset: z.number().int().min(0),
   limitIp: z.number().int().min(0),
+  limitDevice: z.number().int().min(0),
+  renewalMode: z.number().int().min(0).max(2),
+  renewalDay: z.number().int().min(0).max(28),
   tgId: z.number().int().min(0),
   group: z.string(),
   comment: z.string(),

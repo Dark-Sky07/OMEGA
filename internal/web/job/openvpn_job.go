@@ -18,6 +18,7 @@ import (
 type OpenvpnJob struct {
 	inboundService service.InboundService
 	clientService  service.ClientService
+	xrayService    service.XrayService
 }
 
 // NewOpenvpnJob creates a new openvpn reconcile/traffic job instance.
@@ -79,6 +80,12 @@ func (j *OpenvpnJob) Run() {
 		}
 		inst, ok := openvpn.InstanceFromInbound(ib, clients)
 		if ok {
+			// The relay port is read from the running core every round, so
+			// the network manager follows Xray's actual state: rules go in
+			// once the relay listener exists and come out (falling back to
+			// the direct path) whenever it does not. Never part of the
+			// daemon fingerprint, so this can't restart a daemon.
+			inst.XrayRelayPort = j.xrayService.DaemonRelayPort(ib.Tag)
 			desired = append(desired, inst)
 		}
 	}

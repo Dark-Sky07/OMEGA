@@ -81,6 +81,50 @@ var (
 
 var userStates = make(map[int64]string)
 
+// Broadcast drafts and delivery state. The draft map holds the pending text
+// per admin chat between the preview and the confirm step; running guards
+// against overlapping deliveries (Telegram would rate-limit them anyway).
+var (
+	broadcastMu      sync.Mutex
+	broadcastDrafts  = make(map[int64]string)
+	broadcastRunning = false
+)
+
+// setBroadcastDraft stores the pending broadcast text for an admin chat.
+func setBroadcastDraft(chatId int64, text string) {
+	broadcastMu.Lock()
+	defer broadcastMu.Unlock()
+	broadcastDrafts[chatId] = text
+}
+
+// takeBroadcastDraft returns and clears the pending broadcast text.
+func takeBroadcastDraft(chatId int64) (string, bool) {
+	broadcastMu.Lock()
+	defer broadcastMu.Unlock()
+	text, ok := broadcastDrafts[chatId]
+	delete(broadcastDrafts, chatId)
+	return text, ok
+}
+
+// tryStartBroadcast marks a delivery as in progress; false when one is
+// already running.
+func tryStartBroadcast() bool {
+	broadcastMu.Lock()
+	defer broadcastMu.Unlock()
+	if broadcastRunning {
+		return false
+	}
+	broadcastRunning = true
+	return true
+}
+
+// finishBroadcast clears the in-progress flag.
+func finishBroadcast() {
+	broadcastMu.Lock()
+	defer broadcastMu.Unlock()
+	broadcastRunning = false
+}
+
 // LoginStatus represents the result of a login attempt.
 type LoginStatus byte
 

@@ -66,6 +66,29 @@ function reservedFor(clientId?: string): number[] {
   return out;
 }
 
+interface WarpMasqueRegistration {
+  privateKey: string;
+  publicKey: string;
+  address: string[];
+  endpoint: string;
+}
+
+export function buildWarpMasqueOutbound(reg: WarpMasqueRegistration): Record<string, unknown> {
+  return {
+    tag: 'warp-masque',
+    protocol: 'masque',
+    settings: { address: reg.endpoint, port: 443 },
+    streamSettings: {
+      network: 'masque',
+      security: 'tls',
+      tlsSettings: { serverName: 'consumer-masque.cloudflareclient.com', alpn: ['h3'] },
+      masqueSettings: {
+        warp: { privateKey: reg.privateKey, publicKey: reg.publicKey, address: reg.address },
+      },
+    },
+  };
+}
+
 export default function WarpModal({
   open,
   templateSettings,
@@ -89,6 +112,21 @@ export default function WarpModal({
     if (!list) return -1;
     return list.findIndex((o) => o?.tag === 'warp');
   }, [templateSettings?.outbounds]);
+
+  async function addMasqueOutbound() {
+    setLoading(true);
+    try {
+      const msg = await HttpUtil.post('/panel/api/xray/warp/regMasque') as { success?: boolean; obj?: string };
+      if (!msg?.success || !msg.obj) return;
+      const outbound = buildWarpMasqueOutbound(JSON.parse(msg.obj) as WarpMasqueRegistration);
+      const index = templateSettings?.outbounds?.findIndex((o) => o?.tag === 'warp-masque') ?? -1;
+      if (index >= 0) onResetOutbound({ index, outbound });
+      else onAddOutbound(outbound);
+      onClose();
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const collectConfig = useCallback(
     (data: WarpData | null, config: WarpConfig | null): Record<string, unknown> | null => {
@@ -430,6 +468,18 @@ export default function WarpModal({
           )}
         </>
       )}
+
+      <Divider className="my-10">MASQUE</Divider>
+      <Alert type="info" showIcon title={t('pages.xray.warp.masqueDesc')} />
+      <Button
+        type="primary"
+        className="mt-8"
+        loading={loading}
+        icon={<PlusOutlined />}
+        onClick={addMasqueOutbound}
+      >
+        {t('pages.xray.warp.addMasqueOutbound')}
+      </Button>
       </Modal>
     </>
   );

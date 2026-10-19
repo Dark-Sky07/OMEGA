@@ -24,5 +24,6 @@ export const ExternalProxyEntrySchema = z.object({
   alpn: z.array(AlpnSchema).optional(),
   pinnedPeerCertSha256: z.array(z.string()).optional(),
   echConfigList: z.string().optional(),
+  allowInsecure: z.boolean().optional(),
 });
 export type ExternalProxyEntry = z.infer<typeof ExternalProxyEntrySchema>;

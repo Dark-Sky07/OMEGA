@@ -19,7 +19,7 @@ const (
 	loginResellerKey  = "LOGIN_RESELLER"
 	resellerEpochKey  = "LOGIN_RESELLER_EPOCH"
 	apiAuthUserKey    = "api_auth_user"
-	sessionCookieName = "3x-ui"
+	sessionCookieName = "phoenix"
 )
 
 func init() {
@@ -130,6 +130,12 @@ func GetLoginUser(c *gin.Context) *model.User {
 		if saveErr := s.Save(); saveErr != nil {
 			logger.Warning("session: failed to drop missing user:", saveErr)
 		}
+		return nil
+	}
+	if user.Disabled && user.Id != 1 {
+		s.Delete(loginUserKey)
+		s.Delete(loginEpochKey)
+		_ = s.Save()
 		return nil
 	}
 	if !sessionEpochMatches(s.Get(loginEpochKey), user.LoginEpoch) {

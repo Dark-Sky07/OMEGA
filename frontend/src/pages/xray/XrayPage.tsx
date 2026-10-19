@@ -2,26 +2,33 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  Alert,
   Button,
   Card,
-  Col,
   ConfigProvider,
   FloatButton,
   Layout,
   message,
   Radio,
   Result,
-  Row,
-  Space,
   Spin,
 } from 'antd';
+import {
+  ClusterOutlined,
+  CodeOutlined,
+  DatabaseOutlined,
+  InfoCircleOutlined,
+  SaveOutlined,
+  SendOutlined,
+  SettingOutlined,
+  SwapOutlined,
+} from '@ant-design/icons';
 
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useXraySetting } from '@/hooks/useXraySetting';
 import type { XraySettingsValue } from '@/hooks/useXraySetting';
 import AppSidebar from '@/layouts/AppSidebar';
+import { PageHeader } from '@/components/ui';
 import { JsonEditor } from '@/components/form';
 import { setMessageInstance } from '@/utils/messageBus';
 
@@ -81,6 +88,16 @@ export default function XrayPage() {
   const navigate = useNavigate();
   const sectionSlug = location.hash.replace(/^#/, '');
   const activeSection = SECTION_SLUGS.includes(sectionSlug) ? sectionSlug : 'basic';
+
+  const sections = useMemo(() => [
+    { slug: 'basic', icon: <SettingOutlined />, label: t('pages.xray.basicTemplate') },
+    { slug: 'routing', icon: <SwapOutlined />, label: t('pages.xray.Routings') },
+    { slug: 'outbound', icon: <SendOutlined />, label: t('pages.xray.Outbounds') },
+    { slug: 'balancer', icon: <ClusterOutlined />, label: t('pages.xray.Balancers') },
+    { slug: 'dns', icon: <DatabaseOutlined />, label: 'DNS' },
+    { slug: 'advanced', icon: <CodeOutlined />, label: t('pages.xray.advancedTemplate') },
+  ], [t]);
+  const activeSectionMeta = sections.find((x) => x.slug === activeSection) ?? sections[0];
 
   const mutate = useCallback(
     (mutator: (next: XraySettingsValue) => void) => {
@@ -308,31 +325,47 @@ export default function XrayPage() {
                   extra={<Button type="primary" onClick={fetchAll}>{t('check')}</Button>}
                 />
               ) : (
-                <Row gutter={[isMobile ? 8 : 16, isMobile ? 0 : 12]}>
-                  <Col span={24}>
-                    <Card hoverable>
-                      <Row className="header-row">
-                        <Col xs={24} sm={14} className="header-actions">
-                          <Space>
-                            <Button type="primary" disabled={saveDisabled} onClick={onSaveAll}>
-                              {t('pages.xray.save')}
-                            </Button>
-                          </Space>
-                        </Col>
-                        <Col xs={24} sm={10} className="header-info">
-                          <FloatButton.BackTop target={scrollTarget} visibilityHeight={200} />
-                          <Alert type="warning" showIcon title={t('pages.settings.infoDesc')} />
-                        </Col>
-                      </Row>
-                    </Card>
-                  </Col>
+                <>
+                  <PageHeader
+                    eyebrow={t('menu.groupSystem', 'System')}
+                    title={t('menu.xray')}
+                    subtitle={<span>{activeSectionMeta.icon} {activeSectionMeta.label}</span>}
+                    actions={(
+                      <>
+                        {!saveDisabled && (
+                          <span className="omega-pill is-stop omega-dirty">
+                            <span className="omega-dot" />
+                            {t('pages.settings.unsaved', 'Unsaved changes')}
+                          </span>
+                        )}
+                        <Button type="primary" icon={<SaveOutlined />} disabled={saveDisabled} onClick={onSaveAll}>
+                          {t('pages.xray.save')}
+                        </Button>
+                      </>
+                    )}
+                  >
+                    <p className="omega-note"><InfoCircleOutlined /> {t('pages.settings.infoDesc')}</p>
+                    <nav className="omega-subnav" aria-label={t('menu.xray')}>
+                      {sections.map((x) => (
+                        <button
+                          key={x.slug}
+                          type="button"
+                          className={`omega-subnav-item${x.slug === activeSection ? ' is-active' : ''}`}
+                          onClick={() => navigate(`/xray#${x.slug}`)}
+                        >
+                          {x.icon}
+                          {!isMobile && <span>{x.label}</span>}
+                        </button>
+                      ))}
+                    </nav>
+                  </PageHeader>
 
-                  <Col span={24}>
-                    <Card hoverable>
-                      {sectionBody}
-                    </Card>
-                  </Col>
-                </Row>
+                  <FloatButton.BackTop target={scrollTarget} visibilityHeight={200} />
+
+                  <Card className="omega-section-card xray-card omega-rise omega-rise-2" key={activeSection}>
+                    {sectionBody}
+                  </Card>
+                </>
               )}
             </Spin>
           </Layout.Content>

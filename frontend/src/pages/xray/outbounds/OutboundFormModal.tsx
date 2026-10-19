@@ -21,6 +21,7 @@ import {
   rawOutboundToFormValues,
 } from '@/lib/xray/outbound-form-adapter';
 import { parseOutboundLink } from '@/lib/xray/outbound-link-parser';
+import XDriveForm from '@/lib/xray/forms/transport/XDriveForm';
 import {
   OutboundFormBaseSchema,
   type OutboundFormValues,
@@ -37,6 +38,7 @@ import { antdRule } from '@/utils/zodForm';
 import {
   FLOW_OPTIONS,
   HYSTERIA_NETWORK_OPTION,
+  MASQUE_NETWORK_OPTION,
   NETWORK_OPTIONS,
   PROTOCOL_OPTIONS,
   SERVER_PROTOCOLS,
@@ -45,6 +47,7 @@ import {
   applyNetworkChange,
   buildAddModeValues,
   hysteriaStreamSlice,
+  masqueStreamSlice,
   newStreamSlice,
 } from './outbound-form-helpers';
 import {
@@ -53,6 +56,7 @@ import {
   FreedomFields,
   HttpFields,
   LoopbackFields,
+  MasqueFields,
   ServerTarget,
   ShadowsocksFields,
   SocksFields,
@@ -66,6 +70,7 @@ import {
   HttpUpgradeForm,
   HysteriaForm,
   KcpForm,
+  MasqueForm,
   MuxForm,
   RawForm,
   SockoptForm,
@@ -178,6 +183,16 @@ export default function OutboundFormModal({
     form.setFieldValue('streamSettings', slice);
   }, [protocol, network, security, form]);
 
+  useEffect(() => {
+    if (protocol !== 'masque') return;
+    if (network === 'masque' && security === 'tls') return;
+    const existing = (form.getFieldValue('streamSettings') ?? {}) as Record<string, unknown>;
+    const slice = masqueStreamSlice();
+    if (existing.masqueSettings) slice.masqueSettings = existing.masqueSettings;
+    if (existing.tlsSettings) slice.tlsSettings = existing.tlsSettings;
+    form.setFieldValue('streamSettings', slice);
+  }, [protocol, network, security, form]);
+
   const wgSecretKey = Form.useWatch(['settings', 'secretKey'], form) as string | undefined;
   useEffect(() => {
     if (protocol !== 'wireguard') return;
@@ -199,9 +214,12 @@ export default function OutboundFormModal({
     if ('protocol' in changed && changed.protocol) {
       const next = rawOutboundToFormValues({ protocol: changed.protocol });
       form.setFieldValue('settings', next.settings);
+      const currentNet = form.getFieldValue(['streamSettings', 'network']) ?? '';
       if (changed.protocol === 'hysteria') {
         form.setFieldValue('streamSettings', hysteriaStreamSlice());
-      } else if ((form.getFieldValue(['streamSettings', 'network']) ?? '') === 'hysteria') {
+      } else if (changed.protocol === 'masque') {
+        form.setFieldValue('streamSettings', masqueStreamSlice());
+      } else if (currentNet === 'hysteria' || currentNet === 'masque') {
         form.setFieldValue('streamSettings', { ...newStreamSlice('tcp'), security: 'none' });
       }
     }
@@ -398,8 +416,9 @@ export default function OutboundFormModal({
                     {protocol === 'vless' && <VlessFields />}
                     {protocol === 'trojan' && <TrojanFields />}
                     {protocol === 'shadowsocks' && <ShadowsocksFields />}
-                    {protocol === 'http' && <HttpFields />}
-                    {protocol === 'socks' && <SocksFields />}
+                      {protocol === 'http' && <HttpFields />}
+                      {protocol === 'socks' && <SocksFields />}
+                      {protocol === 'masque' && <MasqueFields />}
 
                     {protocol === 'loopback' && <LoopbackFields />}
                     {protocol === 'blackhole' && <BlackholeFields />}
@@ -495,7 +514,9 @@ export default function OutboundFormModal({
                             options={
                               protocol === 'hysteria'
                                 ? [HYSTERIA_NETWORK_OPTION]
-                                : NETWORK_OPTIONS
+                                : protocol === 'masque'
+                                  ? [MASQUE_NETWORK_OPTION]
+                                  : NETWORK_OPTIONS
                             }
                           />
                         </Form.Item>
@@ -513,6 +534,10 @@ export default function OutboundFormModal({
                         {network === 'xhttp' && <XhttpForm form={form} onXmuxToggle={onXmuxToggle} />}
 
                         {network === 'hysteria' && <HysteriaForm form={form} />}
+
+                        {network === 'xdrive' && <XDriveForm />}
+
+                        {network === 'masque' && <MasqueForm />}
                       </>
                     )}
 
@@ -561,7 +586,7 @@ export default function OutboundFormModal({
                           buttonStyle="solid"
                           onChange={(e) => onSecurityChange(e.target.value as string)}
                         >
-                          {network !== 'hysteria' && <Radio.Button value="none">{t('none')}</Radio.Button>}
+                          {network !== 'hysteria' && network !== 'masque' && <Radio.Button value="none">{t('none')}</Radio.Button>}
                           {tlsAllowed && <Radio.Button value="tls">TLS</Radio.Button>}
                           {realityAllowed && <Radio.Button value="reality">Reality</Radio.Button>}
                         </Radio.Group>

@@ -45,7 +45,7 @@ func setupResellerInboundRouter(t *testing.T) *gin.Engine {
 
 	r := gin.New()
 	store := cookie.NewStore([]byte("reseller-contract-test"))
-	r.Use(sessions.Sessions("3x-ui", store))
+	r.Use(sessions.Sessions("phoenix", store))
 	r.Use(func(c *gin.Context) {
 		s := sessions.Default(c)
 		s.Set("LOGIN_RESELLER", reseller.Id)

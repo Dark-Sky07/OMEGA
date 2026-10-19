@@ -113,7 +113,12 @@
     "apiDocs": "Документация API",
     "logout": "Выход",
     "link": "Управление",
-    "donate": "Поддержать"
+    "donate": "Поддержать",
+    "groupOverview": "Обзор",
+    "groupManage": "Управление",
+    "groupSystem": "Система",
+    "collapse": "Свернуть меню",
+    "expand": "Развернуть меню"
   },
   "pages": {
     "login": {
@@ -126,7 +131,9 @@
         "emptyPassword": "Введите пароль",
         "wrongUsernameOrPassword": "Неверные данные учетной записи.",
         "successLogin": "Вход выполнен успешно"
-      }
+      },
+      "asideTitle": "Одна панель для всех туннелей.",
+      "asideText": "Xray, OpenVPN, L2TP/IPsec и AmneziaWG — управление, маршрутизация и учёт из одного места."
     },
     "index": {
       "title": "Дашборд",
@@ -145,7 +152,7 @@
       "xraySwitchClick": "Выберите нужную версию",
       "xraySwitchClickDesk": "Важно: старые версии могут не поддерживать текущие настройки",
       "updatePanel": "Обновить панель",
-      "panelUpdateDesc": "Это обновит OMEGA до последнего релиза и перезапустит сервис панели.",
+      "panelUpdateDesc": "Это обновит PHOENIX до последнего релиза и перезапустит сервис панели.",
       "currentPanelVersion": "Текущая версия панели",
       "latestPanelVersion": "Последняя версия панели",
       "panelUpToDate": "Панель обновлена",
@@ -213,7 +220,7 @@
       "xraySwitchVersionDialogDesc": "Вы точно хотите сменить версию Xray?",
       "xraySwitchVersionPopover": "Xray успешно обновлён",
       "panelUpdateDialog": "Вы действительно хотите обновить панель?",
-      "panelUpdateDialogDesc": "Это обновит OMEGA до версии #version# и перезапустит сервис панели.",
+      "panelUpdateDialogDesc": "Это обновит PHOENIX до версии #version# и перезапустит сервис панели.",
       "panelUpdateCheckPopover": "Проверка обновления панели не удалась",
       "panelUpdateStartedPopover": "Обновление панели началось",
       "geofileUpdateDialog": "Вы действительно хотите обновить геофайл?",
@@ -253,7 +260,12 @@
       "importDatabasePgDesc": "Нажмите, чтобы выбрать и загрузить файл .dump для восстановления базы данных PostgreSQL. Это заменит все текущие данные.",
       "migrationDownload": "Скачать файл миграции",
       "migrationDownloadDesc": "Нажмите, чтобы скачать переносимый экспорт .dump (текст SQL) вашей базы данных SQLite.",
-      "migrationDownloadPgDesc": "Нажмите, чтобы скачать базу данных SQLite (.db), собранную из ваших данных PostgreSQL и готовую для запуска панели на SQLite."
+      "migrationDownloadPgDesc": "Нажмите, чтобы скачать базу данных SQLite (.db), собранную из ваших данных PostgreSQL и готовую для запуска панели на SQLite.",
+      "heroSubtitle": "Состояние этого сервера и всех его туннелей в реальном времени.",
+      "services": "Сервисы",
+      "network": "Сеть",
+      "resources": "Ресурсы",
+      "panelProcess": "Процесс панели"
     },
     "inbounds": {
       "title": "Входящие",
@@ -508,6 +520,8 @@
         "mtgDebug": "Журнал отладки",
         "mtgRouteThroughXray": "Маршрутизация через Xray",
         "mtgRouteThroughXrayHint": "Направляйте трафик Telegram этого прокси через Xray, чтобы он подчинялся вашим правилам маршрутизации. Сайдкар mtg выходит через локальный SOCKS-мост с тегом этого входящего подключения; используйте этот тег на вкладке «Маршрутизация» для расширенных правил.",
+        "daemonRouteThroughXray": "Маршрутизировать через Xray",
+        "daemonRouteThroughXrayHint": "Пропускать трафик клиентов этого входящего подключения (TCP и UDP) через маршрутизатор Xray, чтобы правила маршрутизации применялись к нему так же, как к собственным входящим Xray. Трафик попадает в ядро через loopback-слушатель с тегом этого подключения; используйте этот тег на вкладке маршрутизации для своих правил. Автоматически отключается (прямой путь), когда Xray не запущен.",
         "mtgRouteOutbound": "Исходящее",
         "mtgRouteOutboundHint": "Необязательно. Принудительно направить трафик Telegram через это исходящее соединение (или балансировщик). Оставьте пустым, чтобы решали ваши правила маршрутизации.",
         "mtgRouteOutboundPlaceholder": "Использовать правила маршрутизации",
@@ -628,7 +642,36 @@
           "node": "Адрес узла",
           "listen": "Адрес прослушивания inbound",
           "custom": "Пользовательская"
-        }
+        },
+        "xdrive": {
+          "service": "Сервис хранилища",
+          "serviceLocal": "Локальная папка",
+          "serviceTemplate": "Свой шаблон",
+          "remoteFolder": "Удалённая папка",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "Секреты",
+          "secretsDesc": "Значения, которые шаблон читает как {secret0}, {secret1}, …",
+          "template": "Шаблон хранилища",
+          "templateInvalid": "Должен быть объект JSON",
+          "front": "Адрес фронтинга",
+          "frontDesc": "Необязательный хост или IP для подключения к API хранилища (domain fronting).",
+          "frontPort": "Порт фронтинга",
+          "segmentBytes": "Размер сегмента (байт)",
+          "flushInterval": "Интервал отправки (мс)",
+          "pollInterval": "Интервал опроса (мс)",
+          "maxPollInterval": "Макс. интервал опроса (мс)",
+          "eagerWindow": "Окно упреждения (мс)",
+          "holeTimeout": "Тайм-аут пропущенного сегмента (мс)",
+          "sessionTtl": "TTL сессии (с)",
+          "concurrency": "Параллелизм"
+        },
+        "masque": {
+          "addressPool": "Пул адресов",
+          "addressPoolDesc": "Адреса туннелей выдаются из этих префиксов — не более одного IPv4 и одного IPv6."
+        },
+        "autoFill": "Автозаполнение"
       },
       "info": {
         "mode": "Режим",
@@ -663,7 +706,8 @@
           "requestHeader": "Заголовок запроса",
           "responseHeader": "Заголовок ответа"
         }
-      }
+      },
+      "advancedTitle": "Дополнительные настройки"
     },
     "clients": {
       "tabBasics": "Основные",
@@ -833,7 +877,17 @@
         "bulkAdjusted": "Изменено клиентов: {count}",
         "bulkAdjustedMixed": "Изменено: {ok}, пропущено: {skipped}",
         "delDepleted": "Удалено исчерпанных клиентов: {count}"
-      }
+      },
+      "userTemplates": "User Plan Templates",
+      "userTemplatesDesc": "Reusable client plan presets (quota, duration, on-hold start, IP/device limits, and default inbounds)",
+      "addTemplate": "Add Template",
+      "templateName": "Template Name",
+      "templateNameRequired": "Template name is required",
+      "applyTemplate": "Apply Plan Template",
+      "selectTemplatePlaceholder": "Select a preset template...",
+      "templateApplied": "Template '{{name}}' applied",
+      "revokeSub": "Revoke & Rotate Subscription Link",
+      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?"
     },
     "groups": {
       "title": "Группы",
@@ -972,6 +1026,7 @@
     },
     "settings": {
       "title": "Настройки",
+      "unsaved": "Несохранённые изменения",
       "save": "Сохранить",
       "infoDesc": "Сохраните изменения и перезапустите панель для их применения.",
       "restartPanel": "Перезапустить панель",
@@ -1067,7 +1122,7 @@
       "subAnnounce": "Объявление",
       "subAnnounceDesc": "Текст объявления, отображаемый в VPN-клиенте",
       "subThemeDir": "Каталог темы подписки",
-      "subThemeDirDesc": "Абсолютный путь к папке с пользовательским шаблоном (index.html/sub.html) для страницы подписки (например, /etc/3x-ui/sub_templates/my-theme/). Оставьте пустым, чтобы использовать страницу по умолчанию.",
+      "subThemeDirDesc": "Абсолютный путь к папке с пользовательским шаблоном (index.html/sub.html) для страницы подписки (например, /etc/x-ui/sub_templates/my-theme/). Оставьте пустым, чтобы использовать страницу по умолчанию.",
       "subThemeDirDocs": "Руководство по шаблонам ↗",
       "subEnableRouting": "Включить маршрутизацию",
       "subEnableRoutingDesc": "Глобальная настройка для включения маршрутизации в VPN-клиенте. (Только для Happ)",
@@ -1200,7 +1255,29 @@
         "apiTokenEmpty": "Токенов пока нет — создайте один для аутентификации ботов или удалённых панелей.",
         "apiTokenDeleteWarning": "Любой клиент, использующий этот токен, немедленно потеряет аутентификацию.",
         "apiTokenCreatedTitle": "Токен создан",
-        "apiTokenCreatedNotice": "Скопируйте этот токен сейчас. В целях безопасности он не хранится в читаемом виде и больше не будет показан."
+        "apiTokenCreatedNotice": "Скопируйте этот токен сейчас. В целях безопасности он не хранится в читаемом виде и больше не будет показан.",
+        "apiTokenScope": "Permissions",
+        "apiTokenScopeFull": "Full access",
+        "apiTokenScopeRead": "Read-only",
+        "apiTokenExpireDays": "Expires in (days)",
+        "apiTokenExpireDaysDesc": "0 means never expires.",
+        "apiTokenExpires": "Expires",
+        "apiTokenExpired": "Expired",
+        "apiTokenLastUsed": "Last used",
+        "multiAdminTitle": "Admins & RBAC",
+        "multiAdminDesc": "Create secondary admin accounts with granular RBAC roles (Superadmin, Custom Admin, Support, or Read-only Viewer).",
+        "addAdmin": "Add Admin",
+        "editAdmin": "Edit Admin Account",
+        "adminRole": "Role",
+        "adminModules": "Allowed Modules",
+        "role_superadmin": "Superadmin (Full Access)",
+        "role_admin": "Custom Admin (Selected Modules)",
+        "role_support": "Support (Clients Read/Write + Inbounds Read)",
+        "role_viewer": "Viewer (Read-only Auditor)",
+        "lastLogin": "Last login",
+        "adminUsernameRequired": "Username is required",
+        "adminPasswordMin": "Password must be at least 4 characters",
+        "adminPasswordLeaveBlank": "Leave blank to keep existing password"
       },
       "toasts": {
         "modifySettings": "Настройки изменены",
@@ -1211,7 +1288,47 @@
         "userPassMustBeNotEmpty": "Новое имя пользователя и новый пароль должны быть заполнены",
         "getOutboundTrafficError": "Ошибка получения трафика исходящего подключения",
         "resetOutboundTrafficError": "Ошибка сброса трафика исходящего подключения"
-      }
+      },
+      "tgNotifyUserReport": "Персональный отчёт об использовании",
+      "tgNotifyUserReportDesc": "К каждому периодическому отчёту отправлять клиентам с привязанным Telegram персональную сводку (трафик и срок действия). По умолчанию выключено.",
+      "oneClickSslTitle": "One-Click SSL Certificate",
+      "oneClickSslDesc": "Issue a free Let's Encrypt certificate (auto-renewed before expiry) or an instant 1-year self-signed certificate.",
+      "issueCertBtn": "Issue SSL Certificate",
+      "certSelfSigned": "Self-Signed",
+      "certMode": "Certificate Type",
+      "certModeLetsEncrypt": "Let's Encrypt (HTTP-01 on port 80, auto-renewed)",
+      "certModeSelfSigned": "Self-Signed (instant, 1 year, no port 80 needed)",
+      "certDomain": "Domain",
+      "certDomainRequired": "Domain is required",
+      "certEmail": "Contact Email (optional)",
+      "certPort80Notice": "Port 80 must be reachable from the internet and point to this server.",
+      "certIssuedSuccess": "Certificate issued and applied",
+      "discordSettings": "Discord Bot",
+      "discordEnable": "Enable Discord Notifications",
+      "discordEnableDesc": "Send periodic traffic reports, approaching-limit alerts, and login notifications to Discord.",
+      "discordWebhookURL": "Discord Webhook URL",
+      "discordWebhookURLDesc": "Simplest setup: paste a channel Webhook URL.",
+      "discordBotToken": "Discord Bot Token (optional)",
+      "discordBotTokenDesc": "Alternative to Webhook: Bot token from Discord Developer Portal.",
+      "discordChannelId": "Discord Channel ID",
+      "discordChannelIdDesc": "Target channel ID when using a Bot token.",
+      "discordLoginNotify": "Login Notification",
+      "discordLoginNotifyDesc": "Post an embed whenever an admin login succeeds or fails.",
+      "discordTestTitle": "Test Discord Connection",
+      "discordTestDesc": "Save your settings first, then send a verification embed.",
+      "discordTestBtn": "Send Test Embed",
+      "discordTestSuccess": "Test message sent to Discord",
+      "cloudBackupTitle": "Cloud Backup",
+      "cloudBackupProviderGdrive": "Google Drive (Service Account / OAuth2)",
+      "cloudBackupGdriveGuide": "Google Drive Setup: (Method 1 - Recommended) Create a Google Cloud Service Account, enable Google Drive API, share your target Google Drive folder with the service account email, and paste the full JSON key below. (Method 2) Paste your OAuth2 Refresh Token below and enter your OAuth2 Client ID & Client Secret.",
+      "cloudBackupGdriveFolder": "Google Drive Folder ID or Link",
+      "cloudBackupGdriveFolderDesc": "Paste the Google Drive Folder ID or full folder URL (e.g. https://drive.google.com/drive/folders/1AbCdEf...). Leave empty to upload to Drive root.",
+      "cloudBackupGdriveCredentials": "Service Account JSON or OAuth2 Refresh Token",
+      "cloudBackupGdriveCredentialsDesc": "Paste the complete Google Cloud service_account JSON key file, or an OAuth2 Refresh Token (1//0g...).",
+      "cloudBackupGdriveClientId": "OAuth2 Client ID (Optional)",
+      "cloudBackupGdriveClientIdDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
+      "cloudBackupGdriveClientSecret": "OAuth2 Client Secret (Optional)",
+      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key."
     },
     "xray": {
       "title": "Настройки Xray",
@@ -1391,7 +1508,10 @@
         "acceptProxyProtocol": "Принимать proxy protocol",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (мс)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (с)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (с)",
+        "masqueWarpDesc": "Подключение к Cloudflare WARP через MASQUE с зарегистрированным ключом ECDSA P-256; host и path по умолчанию указывают на конечную точку Cloudflare.",
+        "masqueWarpPublicKey": "Открытый ключ конечной точки",
+        "masqueWarpAddress": "Адреса туннеля"
       },
       "outbound": {
         "addOutbound": "Создать исходящее подключение",
@@ -1556,7 +1676,9 @@
         "warpPlusData": "WARP+ data",
         "quota": "Квота",
         "usage": "Использование",
-        "addOutbound": "Добавить исходящий"
+        "addOutbound": "Добавить исходящий",
+        "masqueDesc": "Регистрирует отдельное устройство WARP для MASQUE; регистрация WireGuard выше не затрагивается.",
+        "addMasqueOutbound": "Добавить аутбаунд WARP через MASQUE"
       },
       "dns": {
         "enable": "Включить DNS",
@@ -1606,6 +1728,23 @@
         "edit": "Редактировать Fake DNS",
         "ipPool": "Подсеть пула IP",
         "poolSize": "Размер пула"
+      },
+      "tuic": {
+        "congestionControl": "Контроль перегрузок",
+        "congestionControlHint": "Алгоритм сервера и клиента. На сервере меняется после переподключения.",
+        "profileOptions": "Параметры клиентского профиля",
+        "alpn": "ALPN",
+        "udpRelayMode": "Режим ретрансляции UDP",
+        "udpRelayModeHint": "Режим UDP для клиента. Сервер поддерживает оба.",
+        "zeroRttHandshake": "0-RTT рукопожатие",
+        "logLevel": "Уровень логирования",
+        "logLevelHint": "Минимальный уровень сообщений в логах этого инбаунда.",
+        "maxIdleTime": "Макс. время простоя (сек)",
+        "authTimeout": "Таймаут аутентификации (сек)",
+        "maxUdpRelayPacketSize": "Макс. размер пакета UDP",
+        "sni": "SNI",
+        "sniHint": "Имя сервера для TLS в клиентском профиле.",
+        "sniRequired": "Укажите домен для автозаполнения."
       }
     }
   },
@@ -1714,7 +1853,21 @@
       "AreYouSure": "Вы уверены? 🤔",
       "SuccessResetTraffic": "📧 Почта: {{ .ClientEmail }}\n🏁 Результат: ✅ Успешно",
       "FailedResetTraffic": "📧 Почта: {{ .ClientEmail }}\n🏁 Результат: ❌ Неудача \n\n🛠️ Ошибка: [ {{ .ErrorMessage }} ]",
-      "FinishProcess": "🔚 Сброс трафика завершён для всех клиентов."
+      "FinishProcess": "🔚 Сброс трафика завершён для всех клиентов.",
+      "broadcastPrompt": "Отправьте текст сообщения для рассылки всем клиентам (макс. ~3800 символов).",
+      "broadcastEmpty": "Сообщение пустое. Отправьте текст рассылки или нажмите «Отмена».",
+      "broadcastTooLong": "Сообщение слишком длинное. Сократите его (макс. ~3800 символов) и попробуйте снова.",
+      "broadcastPreview": "📣 Предпросмотр рассылки — получателей: {{ .Count }}",
+      "broadcastCanceled": "Рассылка отменена.",
+      "broadcastRunning": "Другая рассылка ещё выполняется. Дождитесь её завершения.",
+      "broadcastDone": "✅ Рассылка завершена: {{ .Sent }} доставлено, {{ .Failed }} с ошибкой.",
+      "broadcastNoRecipients": "Клиентов с привязанным Telegram-аккаунтом не найдено — отправлять некого.",
+      "inviteCreated": "🔗 Ссылка-приглашение для {{ .Email }}\n(одноразовая, действует до {{ .Expires }}):\n\n{{ .Link }}",
+      "inviteRedeemed": "✅ {{ .Firstname }}, ваш Telegram привязан к {{ .Email }}. Используйте кнопки ниже для управления подпиской.",
+      "inviteInvalid": "Эта ссылка-приглашение недействительна. Запросите новую у своего провайдера.",
+      "inviteUsed": "Эта ссылка-приглашение уже использована. Запросите новую у своего провайдера.",
+      "inviteExpired": "Срок действия этой ссылки-приглашения истёк. Запросите новую у своего провайдера.",
+      "userReport": "📊 Ваш отчёт об использовании — {{ .DateTime }}"
     },
     "buttons": {
       "closeKeyboard": "❌ Закрыть клавиатуру",
@@ -1759,7 +1912,10 @@
       "change_comment": "⚙️💬 Комментарий",
       "change_flow": "⚙️🚦 Flow",
       "ResetAllTraffics": "Сбросить весь трафик",
-      "SortedTrafficUsageReport": "Отсортированный отчет об использовании трафика"
+      "SortedTrafficUsageReport": "Отсортированный отчет об использовании трафика",
+      "broadcast": "📣 Рассылка",
+      "confirmBroadcast": "✅ Отправить",
+      "invite": "🔗 Ссылка-приглашение"
     },
     "answers": {
       "successfulOperation": "✅ Успешно!",
@@ -1784,5 +1940,28 @@
       "chooseClient": "Выберите клиента для входящего подключения {{ .Inbound }}",
       "chooseInbound": "Выберите входящее подключение"
     }
+  },
+  "commandPalette": {
+    "open": "Quick search",
+    "placeholder": "Jump to page, search client email / subId, or run an action…",
+    "empty": "No matching pages, clients, or actions.",
+    "groupPages": "Pages",
+    "groupClients": "Clients",
+    "groupInbounds": "Inbounds",
+    "groupActions": "Quick actions",
+    "toggleTheme": "Toggle dark / light theme",
+    "hintNavigate": "navigate",
+    "hintSelect": "select"
+  },
+  "resellers": {
+    "supportTickets": "Support Tickets",
+    "paymentOrders": "Payment Webhook Orders",
+    "ticketsDesc": "Direct support communication between Resellers and Panel Admins",
+    "newTicket": "New Ticket",
+    "ticketSubject": "Subject",
+    "ticketPriority": "Priority",
+    "ticketMessage": "Message",
+    "ticketReplyPlaceholder": "Write a reply...",
+    "ticketSubjectAndMessageRequired": "Subject and message are required"
   }
 }

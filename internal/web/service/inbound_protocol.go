@@ -64,6 +64,7 @@ var nodeEligibleProtocols = map[model.Protocol]bool{
 	model.Shadowsocks: true,
 	model.Hysteria:    true,
 	model.WireGuard:   true,
+	model.MASQUE:      true,
 }
 
 // isNodeEligibleProtocol reports whether protocol may be assigned to a node.

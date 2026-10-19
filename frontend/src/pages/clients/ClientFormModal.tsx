@@ -18,7 +18,7 @@ import {
   Tooltip,
   message,
 } from 'antd';
-import { EyeOutlined, ReloadOutlined, RetweetOutlined } from '@ant-design/icons';
+import { EyeOutlined, ReloadOutlined, RetweetOutlined, SettingOutlined, DisconnectOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { HttpUtil, RandomUtil } from '@/utils';
@@ -26,13 +26,15 @@ import { formatInboundLabel } from '@/lib/inbounds/label';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
 import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
+import { useUserTemplates } from '@/hooks/useUserTemplates';
+import UserTemplatesModal from './UserTemplatesModal';
 import { ClientFormSchema, ClientCreateFormSchema } from '@/schemas/client';
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 const VMESS_SECURITY_OPTIONS = ['auto', 'aes-128-gcm', 'chacha20-poly1305', 'none', 'zero'] as const;
 
 const MULTI_CLIENT_PROTOCOLS = new Set([
-  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'wireguard', 'amneziawg', 'openvpn', 'l2tp',
+  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'wireguard', 'amneziawg', 'openvpn', 'l2tp', 'masque', 'tuic',
 ]);
 
 const CLIENT_FORM_MODAL_Z_INDEX = 1000;
@@ -93,6 +95,10 @@ interface FormState {
   delayedDays: number;
   reset: number;
   limitIp: number;
+  limitDevice: number;
+  renewalMode: number;
+  renewalDay: number;
+  activateBefore: Dayjs | null;
   tgId: number;
   group: string;
   comment: string;
@@ -123,6 +129,10 @@ function emptyForm(): FormState {
     delayedDays: 0,
     reset: 0,
     limitIp: 0,
+    limitDevice: 0,
+    renewalMode: 0,
+    renewalDay: 0,
+    activateBefore: null,
     tgId: 0,
     group: '',
     comment: '',
@@ -203,6 +213,59 @@ export default function ClientFormModal({
   const [ipsLoading, setIpsLoading] = useState(false);
   const [ipsClearing, setIpsClearing] = useState(false);
   const [ipsModalOpen, setIpsModalOpen] = useState(false);
+  const [revokingSub, setRevokingSub] = useState(false);
+  const [templatesModalOpen, setTemplatesModalOpen] = useState(false);
+  const { templates, reload: reloadTemplates } = useUserTemplates(open);
+
+  function applyTemplate(tplId: number) {
+    const tpl = templates.find((item) => item.id === tplId);
+    if (!tpl) return;
+    setForm((prev) => {
+      const next = { ...prev };
+      next.totalGB = bytesToGB(tpl.totalGB || 0);
+      next.limitIp = tpl.limitIp || 0;
+      next.limitDevice = tpl.limitDevice || 0;
+      next.reset = tpl.reset || 0;
+      next.renewalMode = tpl.renewalMode || 0;
+      next.renewalDay = tpl.renewalDay || 0;
+      if (tpl.group) next.group = tpl.group;
+      if (tpl.delayedStart) {
+        next.delayedStart = true;
+        next.delayedDays = tpl.expireDurationDays || 0;
+        next.expiryDate = null;
+        next.activateBefore =
+          tpl.activateBeforeDays > 0 ? dayjs().add(tpl.activateBeforeDays, 'day') : null;
+      } else {
+        next.delayedStart = false;
+        next.delayedDays = 0;
+        next.expiryDate =
+          tpl.expireDurationDays > 0 ? dayjs().add(tpl.expireDurationDays, 'day') : null;
+        next.activateBefore = null;
+      }
+      if (!isEdit && Array.isArray(tpl.inboundIds) && tpl.inboundIds.length > 0) {
+        const validSet = new Set((inbounds || []).map((ib) => ib.id));
+        next.inboundIds = tpl.inboundIds.filter((id) => validSet.has(id));
+      }
+      return next;
+    });
+    messageApi.success(t('pages.clients.templateApplied', { name: tpl.name }));
+  }
+
+  async function onRevokeSub() {
+    if (!isEdit || !client?.email) return;
+    setRevokingSub(true);
+    try {
+      const msg = await HttpUtil.post(
+        `/panel/api/clients/revokeSub/${encodeURIComponent(client.email)}`,
+      );
+      if (msg?.success && msg.obj && typeof (msg.obj as { subId?: string }).subId === 'string') {
+        const newSubId = (msg.obj as { subId: string }).subId;
+        update('subId', newSubId);
+      }
+    } finally {
+      setRevokingSub(false);
+    }
+  }
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -227,6 +290,10 @@ export default function ClientFormModal({
         totalGB: bytesToGB(client.totalGB || 0),
         reset: Number(client.reset) || 0,
         limitIp: client.limitIp || 0,
+        limitDevice: client.limitDevice || 0,
+        renewalMode: client.renewalMode || 0,
+        renewalDay: client.renewalDay || 0,
+        activateBefore: client.activateBefore && client.activateBefore > 0 ? dayjs(client.activateBefore) : null,
         tgId: Number(client.tgId) || 0,
         group: client.group || '',
         comment: client.comment || '',
@@ -434,6 +501,9 @@ export default function ClientFormModal({
       delayedDays: form.delayedDays,
       reset: form.reset,
       limitIp: form.limitIp,
+      limitDevice: form.limitDevice,
+      renewalMode: form.renewalMode,
+      renewalDay: form.renewalMode > 0 ? form.renewalDay : 0,
       tgId: form.tgId,
       group: form.group,
       comment: form.comment,
@@ -452,6 +522,7 @@ export default function ClientFormModal({
       email: form.email.trim(),
       subId: form.subId,
       id: form.uuid,
+      uuid: form.uuid,
       password: form.password,
       auth: form.auth,
       flow: showFlow ? (form.flow || '') : '',
@@ -460,6 +531,13 @@ export default function ClientFormModal({
       expiryTime,
       reset: Number(form.reset) || 0,
       limitIp: Number(form.limitIp) || 0,
+      limitDevice: Number(form.limitDevice) || 0,
+      renewalMode: Number(form.renewalMode) || 0,
+      renewalDay: form.renewalMode > 0 ? Number(form.renewalDay) || 0 : 0,
+      // Activation deadline only applies to delayed-start clients. Cleared
+      // (0) otherwise so a stale value can never expire a running client.
+      activateBefore:
+        form.delayedStart && form.activateBefore ? form.activateBefore.valueOf() : 0,
       tgId: Number(form.tgId) || 0,
       group: form.group,
       comment: form.comment,
@@ -561,6 +639,32 @@ export default function ClientFormModal({
                 children: (
                   <>
                     <Row gutter={16}>
+                      <Col xs={24}>
+                        <Form.Item label={t('pages.clients.applyTemplate')}>
+                          <Space.Compact style={{ display: 'flex' }}>
+                            <Select
+                              allowClear
+                              placeholder={t('pages.clients.selectTemplatePlaceholder')}
+                              style={{ flex: 1 }}
+                              options={templates.map((tpl) => ({
+                                value: tpl.id,
+                                label: tpl.name,
+                              }))}
+                              onChange={(val) => {
+                                if (typeof val === 'number') applyTemplate(val);
+                              }}
+                            />
+                            <Tooltip title={t('pages.clients.userTemplates')}>
+                              <Button
+                                icon={<SettingOutlined />}
+                                onClick={() => setTemplatesModalOpen(true)}
+                              />
+                            </Tooltip>
+                          </Space.Compact>
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                    <Row gutter={16}>
                       <Col xs={24} md={12}>
                         <Form.Item label={t('pages.clients.email')} required>
                           <Space.Compact style={{ display: 'flex' }}>
@@ -595,6 +699,12 @@ export default function ClientFormModal({
                               </Tooltip>
                             )}
                           </Space.Compact>
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} md={6}>
+                        <Form.Item label={t('pages.clients.limitDevice')} tooltip={t('pages.clients.limitDeviceDesc')}>
+                          <InputNumber value={form.limitDevice} min={0} style={{ width: '100%' }}
+                            onChange={(v) => update('limitDevice', Number(v) || 0)} />
                         </Form.Item>
                       </Col>
                     </Row>
@@ -636,6 +746,57 @@ export default function ClientFormModal({
                             onChange={(v) => update('reset', Number(v) || 0)} />
                         </Form.Item>
                       </Col>
+                    </Row>
+
+                    <Row gutter={16}>
+                      <Col xs={24} md={8}>
+                        <Form.Item label={t('pages.clients.renewalMode')} tooltip={t('pages.clients.renewalModeDesc')}>
+                          <Select
+                            value={form.renewalMode}
+                            onChange={(v: number) => {
+                              update('renewalMode', v);
+                              update('renewalDay', 0);
+                            }}
+                            options={[
+                              { value: 0, label: t('pages.clients.renewalRolling') },
+                              { value: 1, label: t('pages.clients.renewalMonthly') },
+                              { value: 2, label: t('pages.clients.renewalWeekly') },
+                            ]}
+                          />
+                        </Form.Item>
+                      </Col>
+                      {form.renewalMode === 1 && (
+                        <Col xs={24} md={8}>
+                          <Form.Item label={t('pages.clients.renewalDay')} tooltip={t('pages.clients.renewalDayDesc')}>
+                            <InputNumber value={form.renewalDay} min={0} max={28} style={{ width: '100%' }}
+                              onChange={(v) => update('renewalDay', Number(v) || 0)} />
+                          </Form.Item>
+                        </Col>
+                      )}
+                      {form.renewalMode === 2 && (
+                        <Col xs={24} md={8}>
+                          <Form.Item label={t('pages.clients.renewalWeekday')} tooltip={t('pages.clients.renewalWeekdayDesc')}>
+                            <Select
+                              value={form.renewalDay}
+                              onChange={(v: number) => update('renewalDay', v)}
+                              options={[0, 1, 2, 3, 4, 5, 6].map((d) => ({
+                                value: d,
+                                label: t(`pages.clients.weekday${d}`),
+                              }))}
+                            />
+                          </Form.Item>
+                        </Col>
+                      )}
+                      {form.delayedStart && (
+                        <Col xs={24} md={8}>
+                          <Form.Item label={t('pages.clients.activateBefore')} tooltip={t('pages.clients.activateBeforeDesc')}>
+                            <DateTimePicker
+                              value={form.activateBefore}
+                              onChange={(d) => update('activateBefore', d || null)}
+                            />
+                          </Form.Item>
+                        </Col>
+                      )}
                     </Row>
 
                     <Row gutter={16}>
@@ -737,6 +898,23 @@ export default function ClientFormModal({
                           <Space.Compact style={{ display: 'flex' }}>
                             <Input value={form.subId} style={{ flex: 1 }} onChange={(e) => update('subId', e.target.value)} />
                             <Button icon={<ReloadOutlined />} onClick={() => update('subId', RandomUtil.randomLowerAndNum(16))} />
+                            {isEdit && (
+                              <Popconfirm
+                                title={t('pages.clients.revokeSubConfirm')}
+                                okText={t('confirm')}
+                                cancelText={t('cancel')}
+                                zIndex={CLIENT_IP_LOG_MODAL_Z_INDEX}
+                                onConfirm={onRevokeSub}
+                              >
+                                <Tooltip title={t('pages.clients.revokeSub')}>
+                                  <Button
+                                    danger
+                                    icon={<DisconnectOutlined />}
+                                    loading={revokingSub}
+                                  />
+                                </Tooltip>
+                              </Popconfirm>
+                            )}
                           </Space.Compact>
                         </Form.Item>
                       </Col>
@@ -910,6 +1088,14 @@ export default function ClientFormModal({
           <Tag>{t('tgbot.noIpRecord')}</Tag>
         )}
       </Modal>
+
+      <UserTemplatesModal
+        open={templatesModalOpen}
+        inbounds={inbounds}
+        groups={groups}
+        onOpenChange={setTemplatesModalOpen}
+        onChanged={reloadTemplates}
+      />
     </>
   );
 }

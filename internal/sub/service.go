@@ -19,6 +19,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -186,7 +187,87 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int
 	}
 	traffic, lastOnline := s.AggregateTrafficByEmails(uniqueEmails)
 	traffic.Enable = hasEnabledClient
+	if len(result) > 0 {
+		if statusNodeEnabled, err := s.settingService.GetSubStatusNode(); err == nil && statusNodeEnabled {
+			expiredNotice, _ := s.settingService.GetSubExpiredNotice()
+			if statusLink := BuildStatusNodeLink(traffic, expiredNotice); statusLink != "" {
+				result = append([]string{statusLink}, result...)
+			}
+		}
+	}
 	return result, emails, lastOnline, traffic, nil
+}
+
+// BuildStatusNodeLink constructs a non-routable informational VLESS share link
+// displaying the client's remaining quota and expiry (or an expired/depleted
+// notice) at the top of subscription clients (v2rayNG, Streisand, Hiddify, etc.).
+func BuildStatusNodeLink(traffic xray.ClientTraffic, expiredNotice string) string {
+	used := traffic.Up + traffic.Down
+	nowMs := time.Now().UnixMilli()
+	isDepleted := traffic.Total > 0 && used >= traffic.Total
+	isExpired := traffic.ExpiryTime > 0 && traffic.ExpiryTime <= nowMs
+	isDisabled := !traffic.Enable
+
+	var label string
+	if isDisabled || isDepleted || isExpired {
+		notice := strings.TrimSpace(expiredNotice)
+		if notice == "" {
+			notice = "⚠️ Subscription Expired / Depleted — Please Renew"
+		}
+		label = notice
+	} else {
+		var trafficPart string
+		if traffic.Total > 0 {
+			rem := max(traffic.Total-used, 0)
+			trafficPart = fmt.Sprintf("📊 %s / %s", common.FormatTraffic(rem), common.FormatTraffic(traffic.Total))
+		} else {
+			trafficPart = fmt.Sprintf("📊 %s / ∞", common.FormatTraffic(used))
+		}
+		var expPart string
+		switch {
+		case traffic.ExpiryTime > nowMs:
+			remSec := (traffic.ExpiryTime - nowMs) / 1000
+			days := remSec / 86400
+			hours := (remSec % 86400) / 3600
+			if days > 0 {
+				expPart = fmt.Sprintf("⏳ %dd %dh", days, hours)
+			} else if hours > 0 {
+				expPart = fmt.Sprintf("⏳ %dh", hours)
+			} else {
+				expPart = fmt.Sprintf("⏳ %dm", max(remSec/60, 1))
+			}
+		case traffic.ExpiryTime < 0:
+			days := (-traffic.ExpiryTime / 1000) / 86400
+			expPart = fmt.Sprintf("⏳ %dd (On-Hold)", max(days, 1))
+		default:
+			expPart = "⏳ ∞"
+		}
+		label = fmt.Sprintf("%s | %s", trafficPart, expPart)
+	}
+	return fmt.Sprintf("vless://00000000-0000-0000-0000-000000000000@127.0.0.1:1080?encryption=none&type=tcp#%s", url.PathEscape(label))
+}
+
+// RecordSubAccess persists the timestamp and HTTP User-Agent of the latest
+// subscription fetch for all ClientRecord rows matching subId.
+func (s *SubService) RecordSubAccess(subId string, userAgent string) {
+	subId = strings.TrimSpace(subId)
+	if subId == "" {
+		return
+	}
+	ua := strings.TrimSpace(userAgent)
+	if len(ua) > 255 {
+		ua = ua[:255]
+	}
+	db := database.GetDB()
+	if db == nil {
+		return
+	}
+	_ = db.Model(&model.ClientRecord{}).
+		Where("sub_id = ?", subId).
+		Updates(map[string]any{
+			"sub_last_updated_at": time.Now().UnixMilli(),
+			"sub_last_user_agent": ua,
+		}).Error
 }
 
 // AggregateTrafficByEmails resolves traffic for every email in one
@@ -283,7 +364,7 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 		JOIN client_inbounds ON client_inbounds.inbound_id = inbounds.id
 		JOIN clients ON clients.id = client_inbounds.client_id
 		WHERE
-			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria','amneziawg')
+			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria','amneziawg','masque','tuic')
 			AND clients.sub_id = ? AND inbounds.enable = ?
 	)`, subId, true).Order("sub_sort_index ASC").Order("id ASC").Find(&inbounds).Error
 	if err != nil {
@@ -498,6 +579,10 @@ func mergeStreamFromMaster(childStream, masterStream string) string {
 // (socks, http, mixed, wireguard, dokodemo, tunnel). The returned string may
 // contain multiple `\n`-separated URLs when the inbound has externalProxy set.
 func (s *SubService) GetLink(inbound *model.Inbound, email string) string {
+	inbound = resolveInboundSmartStreamSettings(inbound, email)
+	if network, _ := unmarshalStreamSettings(inbound.StreamSettings)["network"].(string); network == "xdrive" {
+		return ""
+	}
 	switch inbound.Protocol {
 	case "vmess":
 		return s.genVmessLink(inbound, email)
@@ -513,8 +598,90 @@ func (s *SubService) GetLink(inbound *model.Inbound, email string) string {
 		return s.genMtprotoLink(inbound, email)
 	case model.AmneziaWG:
 		return s.genAmneziaWGLink(inbound, email)
+	case model.TUIC:
+		return s.genTuicLink(inbound, email)
 	}
 	return ""
+}
+
+func joinHostPort(host string, port int) string {
+	return net.JoinHostPort(strings.Trim(host, "[]"), fmt.Sprintf("%d", port))
+}
+
+func (s *SubService) genTuicLink(inbound *model.Inbound, email string) string {
+	if inbound.Protocol != model.TUIC {
+		return ""
+	}
+	inst, ok := tuic.InstanceFromInbound(inbound)
+	if !ok {
+		return ""
+	}
+	var client *tuic.TuicClientSettings
+	for _, c := range inst.Clients {
+		if c.Email == email {
+			client = &c
+			break
+		}
+	}
+	if client == nil && len(inst.Clients) > 0 && email == "" {
+		client = &inst.Clients[0]
+	}
+	if client == nil || client.UUID == "" || client.Password == "" {
+		return ""
+	}
+
+	params := make(map[string]string)
+	cc := inst.CongestionControl
+	if cc == "" {
+		cc = "bbr"
+	}
+	params["congestion_control"] = cc
+
+	if len(inst.ALPN) > 0 {
+		params["alpn"] = strings.Join(inst.ALPN, ",")
+	}
+	if inst.SNI != "" {
+		params["sni"] = inst.SNI
+	}
+	if inst.UDPRelayMode != "" {
+		params["udp_relay_mode"] = inst.UDPRelayMode
+	}
+	params["allow_insecure"] = "0"
+
+	stream := unmarshalStreamSettings(inbound.StreamSettings)
+	externalProxies, _ := stream["externalProxy"].([]any)
+	if len(externalProxies) > 0 {
+		links := make([]string, 0, len(externalProxies))
+		for _, externalProxy := range externalProxies {
+			ep, ok := externalProxy.(map[string]any)
+			if !ok {
+				continue
+			}
+			dest, _ := ep["dest"].(string)
+			portF, okPort := ep["port"].(float64)
+			if dest == "" || !okPort {
+				continue
+			}
+			epRemark, _ := ep["remark"].(string)
+			epParams := cloneStringMap(params)
+			if sni, ok := externalProxySNI(ep); ok {
+				epParams["sni"] = sni
+			}
+			if alpn, ok := externalProxyALPN(ep["alpn"]); ok {
+				epParams["alpn"] = alpn
+			}
+			if ai, ok := ep["allowInsecure"].(bool); ok && ai {
+				epParams["allow_insecure"] = "1"
+			}
+			link := fmt.Sprintf("tuic://%s:%s@%s", encodeUserinfo(client.UUID), encodeUserinfo(client.Password), joinHostPort(dest, int(portF)))
+			links = append(links, buildLinkWithParams(link, epParams, s.genRemark(inbound, email, epRemark)))
+		}
+		return strings.Join(links, "\n")
+	}
+
+	host := s.resolveInboundAddress(inbound)
+	link := fmt.Sprintf("tuic://%s:%s@%s", encodeUserinfo(client.UUID), encodeUserinfo(client.Password), joinHostPort(host, inbound.Port))
+	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
 }
 
 // genMtprotoLink builds a Telegram proxy deep link for an mtproto inbound:
@@ -1615,6 +1782,15 @@ func cloneStringMap(source map[string]string) map[string]string {
 }
 
 func (s *SubService) genRemark(inbound *model.Inbound, email string, extra string) string {
+	if s.remarkModel == "" {
+		out := make([]string, 0, 3)
+		for _, p := range []string{inbound.Remark, extra, email} {
+			if p != "" {
+				out = append(out, p)
+			}
+		}
+		return strings.Join(out, "-")
+	}
 	separationChar := string(s.remarkModel[0])
 	orderChars := s.remarkModel[1:]
 	orders := map[byte]string{
@@ -2259,6 +2435,8 @@ type PageData struct {
 	SubUrl        string
 	SubJsonUrl    string
 	SubClashUrl   string
+	SubSingboxUrl string
+	SubOutlineUrl string
 	SubTitle      string
 	SubSupportUrl string
 	Result        []string
@@ -2311,14 +2489,16 @@ func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string,
 
 // BuildURLs constructs absolute subscription and JSON subscription URLs for a given subscription ID.
 // It prioritizes configured URIs, then individual settings, and finally falls back to request-derived components.
-func (s *SubService) BuildURLs(subPath, subJsonPath, subClashPath, subId string) (subURL, subJsonURL, subClashURL string) {
+func (s *SubService) BuildURLs(subPath, subJsonPath, subClashPath, subSingboxPath, subOutlinePath, subId string) (subURL, subJsonURL, subClashURL, subSingboxURL, subOutlineURL string) {
 	if subId == "" {
-		return "", "", ""
+		return "", "", "", "", ""
 	}
 
 	configuredSubURI, _ := s.settingService.GetSubURI()
 	configuredSubJsonURI, _ := s.settingService.GetSubJsonURI()
 	configuredSubClashURI, _ := s.settingService.GetSubClashURI()
+	configuredSubSingboxURI, _ := s.settingService.GetSubSingboxURI()
+	configuredSubOutlineURI, _ := s.settingService.GetSubOutlineURI()
 
 	// Same base as the panel's Client Information page; s.address is the
 	// subscriber's host already normalized away from any loopback/bind IP.
@@ -2340,8 +2520,10 @@ func (s *SubService) BuildURLs(subPath, subJsonPath, subClashPath, subId string)
 
 	subJsonURL = s.buildSingleURL(configuredSubJsonURI, jsonClashBase, subJsonPath, subId)
 	subClashURL = s.buildSingleURL(configuredSubClashURI, jsonClashBase, subClashPath, subId)
+	subSingboxURL = s.buildSingleURL(configuredSubSingboxURI, jsonClashBase, subSingboxPath, subId)
+	subOutlineURL = s.buildSingleURL(configuredSubOutlineURI, jsonClashBase, subOutlinePath, subId)
 
-	return subURL, subJsonURL, subClashURL
+	return subURL, subJsonURL, subClashURL, subSingboxURL, subOutlineURL
 }
 
 // extractBaseFromURI extracts scheme://host from a configured URI.
@@ -2374,7 +2556,7 @@ func (s *SubService) joinPathWithID(basePath, subId string) string {
 
 // BuildPageData parses header and prepares the template view model.
 // BuildPageData constructs page data for rendering the subscription information page.
-func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray.ClientTraffic, lastOnline int64, subs []string, emails []string, subURL, subJsonURL, subClashURL string, basePath string, subTitle string, subSupportUrl string) PageData {
+func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray.ClientTraffic, lastOnline int64, subs []string, emails []string, subURL, subJsonURL, subClashURL, subSingboxURL, subOutlineURL string, basePath string, subTitle string, subSupportUrl string) PageData {
 	download := common.FormatTraffic(traffic.Down)
 	upload := common.FormatTraffic(traffic.Up)
 	total := "∞"
@@ -2410,6 +2592,8 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 		SubUrl:        subURL,
 		SubJsonUrl:    subJsonURL,
 		SubClashUrl:   subClashURL,
+		SubSingboxUrl: subSingboxURL,
+		SubOutlineUrl: subOutlineURL,
 		SubTitle:      subTitle,
 		SubSupportUrl: subSupportUrl,
 		Result:        subs,

@@ -26,8 +26,10 @@
 }
 
 .api-docs-page .content-area {
-  padding: 16px;
-  max-width: 100%;
+  padding: 28px 28px 40px;
+  max-width: 1520px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 @media (max-width: 768px) {
@@ -38,14 +40,18 @@
 }
 
 .api-docs-page .docs-wrapper {
-  background: var(--bg-card);
-  border-radius: 8px;
-  border: 1px solid var(--ant-color-border-secondary);
   overflow: hidden;
+  padding: 4px 8px;
 }
 
 .api-docs-page .swagger-ui {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-sans);
+}
+
+.api-docs-page .swagger-ui .info .title,
+.api-docs-page .swagger-ui .opblock-tag {
+  font-family: var(--font-sans);
+  letter-spacing: -0.01em;
 }
 
 /* ──────────────────────────────────────────────────────────────────

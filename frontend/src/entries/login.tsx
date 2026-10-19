@@ -1,6 +1,10 @@
 import { createRoot } from 'react-dom/client';
 import { message } from 'antd';
 import 'antd/dist/reset.css';
+import '@fontsource-variable/inter';
+import '@fontsource-variable/vazirmatn';
+import '@fontsource-variable/jetbrains-mono';
+import '@/styles/theme.css';
 
 import { setupAxios } from '@/api/axios-init';
 import { applyDocumentTitle } from '@/utils';

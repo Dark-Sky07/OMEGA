@@ -12,6 +12,12 @@ export type Protocol = z.infer<typeof ProtocolSchema>;
 export const SubLinkProviderSchema = z.unknown();
 export type SubLinkProvider = z.infer<typeof SubLinkProviderSchema>;
 
+export const closeWriterSchema = z.unknown();
+export type closeWriter = z.infer<typeof closeWriterSchema>;
+
+export const readDeadlinerSchema = z.unknown();
+export type readDeadliner = z.infer<typeof readDeadlinerSchema>;
+
 export const trafficLocalApplyActionSchema = z.number().int();
 export type trafficLocalApplyAction = z.infer<typeof trafficLocalApplyActionSchema>;
 
@@ -19,7 +25,22 @@ export const transportBitsSchema = z.number().int();
 export type transportBits = z.infer<typeof transportBitsSchema>;
 
 export const AllSettingSchema = z.object({
+  cloudBackupAccessKey: z.string(),
+  cloudBackupBucket: z.string(),
+  cloudBackupEnable: z.boolean(),
+  cloudBackupEndpoint: z.string(),
+  cloudBackupIntervalHours: z.number().int().min(0).max(720),
+  cloudBackupPrefix: z.string(),
+  cloudBackupProvider: z.string(),
+  cloudBackupRegion: z.string(),
+  cloudBackupRetention: z.number().int().min(0).max(1000),
+  cloudBackupSecretKey: z.string(),
   datepicker: z.string(),
+  discordBotToken: z.string(),
+  discordChannelId: z.string(),
+  discordEnable: z.boolean(),
+  discordLoginNotify: z.boolean(),
+  discordWebhookURL: z.string(),
   expireDiff: z.number().int().min(0),
   externalTrafficInformEnable: z.boolean(),
   externalTrafficInformURI: z.string(),
@@ -43,6 +64,10 @@ export const AllSettingSchema = z.object({
   ldapUserAttr: z.string(),
   ldapUserFilter: z.string(),
   ldapVlessField: z.string(),
+  outboundWatchdogEnable: z.boolean(),
+  outboundWatchdogFailThreshold: z.number().int().min(0).max(20),
+  outboundWatchdogIntervalSec: z.number().int().min(0).max(86400),
+  outboundWatchdogTags: z.string(),
   pageSize: z.number().int().min(0).max(1000),
   panelOutbound: z.string(),
   remarkModel: z.string(),
@@ -60,6 +85,7 @@ export const AllSettingSchema = z.object({
   subEnable: z.boolean(),
   subEnableRouting: z.boolean(),
   subEncrypt: z.boolean(),
+  subExpiredNotice: z.string(),
   subJsonEnable: z.boolean(),
   subJsonFinalMask: z.string(),
   subJsonMux: z.string(),
@@ -68,11 +94,18 @@ export const AllSettingSchema = z.object({
   subJsonURI: z.string(),
   subKeyFile: z.string(),
   subListen: z.string(),
+  subOutlineEnable: z.boolean(),
+  subOutlinePath: z.string(),
+  subOutlineURI: z.string(),
   subPath: z.string(),
   subPort: z.number().int().min(1).max(65535),
   subProfileUrl: z.string(),
   subRoutingRules: z.string(),
   subShowInfo: z.boolean(),
+  subSingboxEnable: z.boolean(),
+  subSingboxPath: z.string(),
+  subSingboxURI: z.string(),
+  subStatusNode: z.boolean(),
   subSupportUrl: z.string(),
   subThemeDir: z.string(),
   subTitle: z.string(),
@@ -85,6 +118,7 @@ export const AllSettingSchema = z.object({
   tgBotLoginNotify: z.boolean(),
   tgBotProxy: z.string(),
   tgBotToken: z.string(),
+  tgBotUserReport: z.boolean(),
   tgCpu: z.number().int().min(0).max(100),
   tgLang: z.string(),
   tgRunTime: z.string(),
@@ -104,11 +138,28 @@ export const AllSettingSchema = z.object({
 export type AllSetting = z.infer<typeof AllSettingSchema>;
 
 export const AllSettingViewSchema = z.object({
+  cloudBackupAccessKey: z.string(),
+  cloudBackupBucket: z.string(),
+  cloudBackupEnable: z.boolean(),
+  cloudBackupEndpoint: z.string(),
+  cloudBackupIntervalHours: z.number().int().min(0).max(720),
+  cloudBackupPrefix: z.string(),
+  cloudBackupProvider: z.string(),
+  cloudBackupRegion: z.string(),
+  cloudBackupRetention: z.number().int().min(0).max(1000),
+  cloudBackupSecretKey: z.string(),
   datepicker: z.string(),
+  discordBotToken: z.string(),
+  discordChannelId: z.string(),
+  discordEnable: z.boolean(),
+  discordLoginNotify: z.boolean(),
+  discordWebhookURL: z.string(),
   expireDiff: z.number().int().min(0),
   externalTrafficInformEnable: z.boolean(),
   externalTrafficInformURI: z.string(),
   hasApiToken: z.boolean(),
+  hasDiscordBotToken: z.boolean(),
+  hasDiscordWebhookURL: z.boolean(),
   hasLdapPassword: z.boolean(),
   hasNordSecret: z.boolean(),
   hasTgBotToken: z.boolean(),
@@ -134,6 +185,10 @@ export const AllSettingViewSchema = z.object({
   ldapUserAttr: z.string(),
   ldapUserFilter: z.string(),
   ldapVlessField: z.string(),
+  outboundWatchdogEnable: z.boolean(),
+  outboundWatchdogFailThreshold: z.number().int().min(0).max(20),
+  outboundWatchdogIntervalSec: z.number().int().min(0).max(86400),
+  outboundWatchdogTags: z.string(),
   pageSize: z.number().int().min(0).max(1000),
   panelOutbound: z.string(),
   remarkModel: z.string(),
@@ -151,6 +206,7 @@ export const AllSettingViewSchema = z.object({
   subEnable: z.boolean(),
   subEnableRouting: z.boolean(),
   subEncrypt: z.boolean(),
+  subExpiredNotice: z.string(),
   subJsonEnable: z.boolean(),
   subJsonFinalMask: z.string(),
   subJsonMux: z.string(),
@@ -159,11 +215,18 @@ export const AllSettingViewSchema = z.object({
   subJsonURI: z.string(),
   subKeyFile: z.string(),
   subListen: z.string(),
+  subOutlineEnable: z.boolean(),
+  subOutlinePath: z.string(),
+  subOutlineURI: z.string(),
   subPath: z.string(),
   subPort: z.number().int().min(1).max(65535),
   subProfileUrl: z.string(),
   subRoutingRules: z.string(),
   subShowInfo: z.boolean(),
+  subSingboxEnable: z.boolean(),
+  subSingboxPath: z.string(),
+  subSingboxURI: z.string(),
+  subStatusNode: z.boolean(),
   subSupportUrl: z.string(),
   subThemeDir: z.string(),
   subTitle: z.string(),
@@ -176,6 +239,7 @@ export const AllSettingViewSchema = z.object({
   tgBotLoginNotify: z.boolean(),
   tgBotProxy: z.string(),
   tgBotToken: z.string(),
+  tgBotUserReport: z.boolean(),
   tgCpu: z.number().int().min(0).max(100),
   tgLang: z.string(),
   tgRunTime: z.string(),
@@ -204,8 +268,12 @@ export type AmneziaWGLogs = z.infer<typeof AmneziaWGLogsSchema>;
 export const ApiTokenSchema = z.object({
   createdAt: z.number().int(),
   enabled: z.boolean(),
+  expiresAt: z.number().int(),
   id: z.number().int(),
+  lastUsedAt: z.number().int(),
   name: z.string(),
+  prefix: z.string(),
+  scope: z.string(),
   token: z.string(),
 });
 export type ApiToken = z.infer<typeof ApiTokenSchema>;
@@ -213,13 +281,18 @@ export type ApiToken = z.infer<typeof ApiTokenSchema>;
 export const ApiTokenViewSchema = z.object({
   createdAt: z.number().int(),
   enabled: z.boolean(),
+  expiresAt: z.number().int(),
   id: z.number().int(),
+  lastUsedAt: z.number().int(),
   name: z.string(),
+  prefix: z.string(),
+  scope: z.string(),
   token: z.string().optional(),
 });
 export type ApiTokenView = z.infer<typeof ApiTokenViewSchema>;
 
 export const ClientSchema = z.object({
+  activateBefore: z.number().int(),
   allowedIPs: z.array(z.string()).optional(),
   allowedIPsByInbound: z.record(z.number().int(), z.array(z.string())).optional(),
   auth: z.string().optional(),
@@ -233,15 +306,20 @@ export const ClientSchema = z.object({
   group: z.string().optional(),
   id: z.string().optional(),
   keepAlive: z.number().int().optional(),
+  limitDevice: z.number().int(),
   limitIp: z.number().int(),
   password: z.string().optional(),
   preSharedKey: z.string().optional(),
   privateKey: z.string().optional(),
   publicKey: z.string().optional(),
+  renewalDay: z.number().int(),
+  renewalMode: z.number().int(),
   reset: z.number().int(),
   reverse: z.lazy(() => ClientReverseSchema).nullable().optional(),
   security: z.string(),
   subId: z.string(),
+  subLastUpdatedAt: z.number().int().optional(),
+  subLastUserAgent: z.string().optional(),
   tgId: z.number().int(),
   totalGB: z.number().int(),
   updated_at: z.number().int().optional(),
@@ -257,6 +335,7 @@ export const ClientInboundSchema = z.object({
 export type ClientInbound = z.infer<typeof ClientInboundSchema>;
 
 export const ClientRecordSchema = z.object({
+  activateBefore: z.number().int(),
   allowedIPs: z.string(),
   auth: z.string(),
   comment: z.string(),
@@ -269,15 +348,20 @@ export const ClientRecordSchema = z.object({
   group: z.string(),
   id: z.number().int(),
   keepAlive: z.number().int(),
+  limitDevice: z.number().int(),
   limitIp: z.number().int(),
   password: z.string(),
   preSharedKey: z.string(),
   privateKey: z.string(),
   publicKey: z.string(),
+  renewalDay: z.number().int(),
+  renewalMode: z.number().int(),
   reset: z.number().int(),
   reverse: z.unknown(),
   security: z.string(),
   subId: z.string(),
+  subLastUpdatedAt: z.number().int(),
+  subLastUserAgent: z.string(),
   tgId: z.number().int(),
   totalGB: z.number().int(),
   updatedAt: z.number().int(),
@@ -330,7 +414,7 @@ export const InboundSchema = z.object({
   nodeId: z.number().int().nullable().optional(),
   originNodeGuid: z.string().optional(),
   port: z.number().int().min(0).max(65535),
-  protocol: z.enum(['vmess', 'vless', 'trojan', 'shadowsocks', 'wireguard', 'amneziawg', 'hysteria', 'http', 'mixed', 'tunnel', 'tun', 'mtproto', 'openvpn', 'l2tp']),
+  protocol: z.enum(['vmess', 'vless', 'trojan', 'shadowsocks', 'wireguard', 'amneziawg', 'hysteria', 'http', 'mixed', 'tunnel', 'tun', 'mtproto', 'openvpn', 'l2tp', 'masque', 'tuic']),
   remark: z.string(),
   settings: z.unknown(),
   shareAddr: z.string(),
@@ -380,6 +464,7 @@ export const InboundOptionSchema = z.object({
   ssMethod: z.string(),
   tag: z.string(),
   tlsFlowCapable: z.boolean(),
+  tuicServer: z.lazy(() => TuicServerSettingsSchema).nullable().optional(),
 });
 export type InboundOption = z.infer<typeof InboundOptionSchema>;
 
@@ -529,9 +614,37 @@ export const SettingSchema = z.object({
 });
 export type Setting = z.infer<typeof SettingSchema>;
 
-export const UserSchema = z.object({
-  id: z.number().int(),
+export const TuicClientSettingsSchema = z.object({
+  email: z.string(),
   password: z.string(),
+  uuid: z.string(),
+});
+export type TuicClientSettings = z.infer<typeof TuicClientSettingsSchema>;
+
+export const TuicServerSettingsSchema = z.object({
+  alpn: z.array(z.string()),
+  authentication_timeout: z.number().int(),
+  certificate: z.string(),
+  congestion_control: z.string(),
+  log_level: z.string(),
+  max_idle_time: z.number().int(),
+  max_udp_relay_packet_size: z.number().int(),
+  private_key: z.string(),
+  sni: z.string().optional(),
+  udp_relay_mode: z.string(),
+  zero_rtt_handshake: z.boolean(),
+});
+export type TuicServerSettings = z.infer<typeof TuicServerSettingsSchema>;
+
+export const UserSchema = z.object({
+  createdAt: z.number().int(),
+  disabled: z.boolean(),
+  id: z.number().int(),
+  lastLoginAt: z.number().int(),
+  note: z.string(),
+  password: z.string(),
+  permissions: z.string(),
+  role: z.string(),
   username: z.string(),
 });
 export type User = z.infer<typeof UserSchema>;

@@ -113,7 +113,12 @@
     "apiDocs": "Документація API",
     "logout": "Вийти",
     "link": "Керувати",
-    "donate": "Підтримати"
+    "donate": "Підтримати",
+    "groupOverview": "Огляд",
+    "groupManage": "Керування",
+    "groupSystem": "Система",
+    "collapse": "Згорнути меню",
+    "expand": "Розгорнути меню"
   },
   "pages": {
     "login": {
@@ -126,7 +131,9 @@
         "emptyPassword": "Потрібен пароль",
         "wrongUsernameOrPassword": "Невірне ім’я користувача, пароль або код двофакторної аутентифікації.",
         "successLogin": "Ви успішно увійшли до свого облікового запису."
-      }
+      },
+      "asideTitle": "Одна панель для всіх тунелів.",
+      "asideText": "Xray, OpenVPN, L2TP/IPsec та AmneziaWG — керування, маршрутизація й облік з одного місця."
     },
     "index": {
       "title": "Огляд",
@@ -145,7 +152,7 @@
       "xraySwitchClick": "Виберіть версію, на яку ви хочете перейти.",
       "xraySwitchClickDesk": "Вибирайте уважно, оскільки старіші версії можуть бути несумісними з поточними конфігураціями.",
       "updatePanel": "Оновити панель",
-      "panelUpdateDesc": "Це оновить OMEGA до останнього релізу та перезапустить сервіс панелі.",
+      "panelUpdateDesc": "Це оновить PHOENIX до останнього релізу та перезапустить сервіс панелі.",
       "currentPanelVersion": "Поточна версія панелі",
       "latestPanelVersion": "Остання версія панелі",
       "panelUpToDate": "Панель оновлено",
@@ -213,7 +220,7 @@
       "xraySwitchVersionDialogDesc": "Це змінить версію Xray на #version#.",
       "xraySwitchVersionPopover": "Xray успішно оновлено",
       "panelUpdateDialog": "Ви дійсно хочете оновити панель?",
-      "panelUpdateDialogDesc": "Це оновить OMEGA до #version# та перезапустить сервіс панелі.",
+      "panelUpdateDialogDesc": "Це оновить PHOENIX до #version# та перезапустить сервіс панелі.",
       "panelUpdateCheckPopover": "Перевірка оновлення панелі не вдалася",
       "panelUpdateStartedPopover": "Розпочато оновлення панелі",
       "geofileUpdateDialog": "Ви дійсно хочете оновити геофайл?",
@@ -253,7 +260,12 @@
       "importDatabasePgDesc": "Натисніть, щоб вибрати та завантажити файл .dump для відновлення бази даних PostgreSQL. Це замінить усі поточні дані.",
       "migrationDownload": "Завантажити файл міграції",
       "migrationDownloadDesc": "Натисніть, щоб завантажити переносний експорт .dump (текст SQL) вашої бази даних SQLite.",
-      "migrationDownloadPgDesc": "Натисніть, щоб завантажити базу даних SQLite (.db), створену з ваших даних PostgreSQL і готову для запуску панелі на SQLite."
+      "migrationDownloadPgDesc": "Натисніть, щоб завантажити базу даних SQLite (.db), створену з ваших даних PostgreSQL і готову для запуску панелі на SQLite.",
+      "heroSubtitle": "Стан цього сервера та всіх його тунелів у реальному часі.",
+      "services": "Сервіси",
+      "network": "Мережа",
+      "resources": "Ресурси",
+      "panelProcess": "Процес панелі"
     },
     "inbounds": {
       "title": "Вхідні",
@@ -508,6 +520,8 @@
         "mtgDebug": "Журнал налагодження",
         "mtgRouteThroughXray": "Маршрутизація через Xray",
         "mtgRouteThroughXrayHint": "Спрямуйте трафік Telegram цього проксі через Xray, щоб він підкорявся вашим правилам маршрутизації. Сайдкар mtg виходить через локальний SOCKS-міст із тегом цього вхідного підключення; використовуйте цей тег на вкладці «Маршрутизація» для розширених правил.",
+        "daemonRouteThroughXray": "Маршрутизувати через Xray",
+        "daemonRouteThroughXrayHint": "Пропускати трафік клієнтів цього вхідного з'єднання (TCP і UDP) через маршрутизатор Xray, щоб правила маршрутизації застосовувалися до нього так само, як до власних вхідних Xray. Трафік потрапляє в ядро через loopback-слухач із тегом цього з'єднання; використовуйте цей тег на вкладці маршрутизації для власних правил. Автоматично вимикається (прямий шлях), коли Xray не запущено.",
         "mtgRouteOutbound": "Вихідне",
         "mtgRouteOutboundHint": "Необов'язково. Примусово спрямувати трафік Telegram через це вихідне з'єднання (або балансувальник). Залиште порожнім, щоб вирішували ваші правила маршрутизації.",
         "mtgRouteOutboundPlaceholder": "Використовувати правила маршрутизації",
@@ -628,7 +642,36 @@
           "node": "Адреса вузла",
           "listen": "Адреса прослуховування inbound",
           "custom": "Користувацька"
-        }
+        },
+        "xdrive": {
+          "service": "Сервіс сховища",
+          "serviceLocal": "Локальна тека",
+          "serviceTemplate": "Власний шаблон",
+          "remoteFolder": "Віддалена тека",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "Секрети",
+          "secretsDesc": "Значення, які шаблон читає як {secret0}, {secret1}, …",
+          "template": "Шаблон сховища",
+          "templateInvalid": "Має бути об'єкт JSON",
+          "front": "Адреса фронтингу",
+          "frontDesc": "Необов'язковий хост або IP для підключення до API сховища (domain fronting).",
+          "frontPort": "Порт фронтингу",
+          "segmentBytes": "Розмір сегмента (байт)",
+          "flushInterval": "Інтервал надсилання (мс)",
+          "pollInterval": "Інтервал опитування (мс)",
+          "maxPollInterval": "Макс. інтервал опитування (мс)",
+          "eagerWindow": "Вікно випередження (мс)",
+          "holeTimeout": "Тайм-аут пропущеного сегмента (мс)",
+          "sessionTtl": "TTL сесії (с)",
+          "concurrency": "Паралельність"
+        },
+        "masque": {
+          "addressPool": "Пул адрес",
+          "addressPoolDesc": "Адреси тунелів видаються з цих префіксів — не більше одного IPv4 та одного IPv6."
+        },
+        "autoFill": "Автозаповнення"
       },
       "info": {
         "mode": "Режим",
@@ -663,7 +706,8 @@
           "requestHeader": "Заголовок запиту",
           "responseHeader": "Заголовок відповіді"
         }
-      }
+      },
+      "advancedTitle": "Додаткові налаштування"
     },
     "clients": {
       "tabBasics": "Основні",
@@ -833,7 +877,17 @@
         "bulkAdjusted": "Змінено клієнтів: {count}",
         "bulkAdjustedMixed": "Змінено: {ok}, пропущено: {skipped}",
         "delDepleted": "Видалено вичерпаних клієнтів: {count}"
-      }
+      },
+      "userTemplates": "User Plan Templates",
+      "userTemplatesDesc": "Reusable client plan presets (quota, duration, on-hold start, IP/device limits, and default inbounds)",
+      "addTemplate": "Add Template",
+      "templateName": "Template Name",
+      "templateNameRequired": "Template name is required",
+      "applyTemplate": "Apply Plan Template",
+      "selectTemplatePlaceholder": "Select a preset template...",
+      "templateApplied": "Template '{{name}}' applied",
+      "revokeSub": "Revoke & Rotate Subscription Link",
+      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?"
     },
     "groups": {
       "title": "Групи",
@@ -972,6 +1026,7 @@
     },
     "settings": {
       "title": "Параметри панелі",
+      "unsaved": "Незбережені зміни",
       "save": "Зберегти",
       "infoDesc": "Кожна внесена тут зміна повинна бути збережена. Перезапустіть панель, щоб застосувати зміни.",
       "restartPanel": "Перезапустити панель",
@@ -1067,7 +1122,7 @@
       "subAnnounce": "Оголошення",
       "subAnnounceDesc": "Текст оголошення, що відображається у VPN-клієнті",
       "subThemeDir": "Каталог теми підписки",
-      "subThemeDirDesc": "Абсолютний шлях до теки з користувацьким шаблоном (index.html/sub.html) для сторінки підписки (наприклад, /etc/3x-ui/sub_templates/my-theme/). Залиште порожнім, щоб використовувати сторінку за замовчуванням.",
+      "subThemeDirDesc": "Абсолютний шлях до теки з користувацьким шаблоном (index.html/sub.html) для сторінки підписки (наприклад, /etc/x-ui/sub_templates/my-theme/). Залиште порожнім, щоб використовувати сторінку за замовчуванням.",
       "subThemeDirDocs": "Посібник із шаблонів ↗",
       "subEnableRouting": "Увімкнути маршрутизацію",
       "subEnableRoutingDesc": "Глобальне налаштування для увімкнення маршрутизації у VPN-клієнті. (Тільки для Happ)",
@@ -1200,7 +1255,29 @@
         "apiTokenEmpty": "Поки немає токенів — створіть один для автентифікації ботів або віддалених панелей.",
         "apiTokenDeleteWarning": "Будь-який клієнт, що використовує цей токен, негайно втратить автентифікацію.",
         "apiTokenCreatedTitle": "Токен створено",
-        "apiTokenCreatedNotice": "Скопіюйте цей токен зараз. З міркувань безпеки він не зберігається у читабельному вигляді й більше не відображатиметься."
+        "apiTokenCreatedNotice": "Скопіюйте цей токен зараз. З міркувань безпеки він не зберігається у читабельному вигляді й більше не відображатиметься.",
+        "apiTokenScope": "Permissions",
+        "apiTokenScopeFull": "Full access",
+        "apiTokenScopeRead": "Read-only",
+        "apiTokenExpireDays": "Expires in (days)",
+        "apiTokenExpireDaysDesc": "0 means never expires.",
+        "apiTokenExpires": "Expires",
+        "apiTokenExpired": "Expired",
+        "apiTokenLastUsed": "Last used",
+        "multiAdminTitle": "Admins & RBAC",
+        "multiAdminDesc": "Create secondary admin accounts with granular RBAC roles (Superadmin, Custom Admin, Support, or Read-only Viewer).",
+        "addAdmin": "Add Admin",
+        "editAdmin": "Edit Admin Account",
+        "adminRole": "Role",
+        "adminModules": "Allowed Modules",
+        "role_superadmin": "Superadmin (Full Access)",
+        "role_admin": "Custom Admin (Selected Modules)",
+        "role_support": "Support (Clients Read/Write + Inbounds Read)",
+        "role_viewer": "Viewer (Read-only Auditor)",
+        "lastLogin": "Last login",
+        "adminUsernameRequired": "Username is required",
+        "adminPasswordMin": "Password must be at least 4 characters",
+        "adminPasswordLeaveBlank": "Leave blank to keep existing password"
       },
       "toasts": {
         "modifySettings": "Параметри було змінено.",
@@ -1211,7 +1288,47 @@
         "userPassMustBeNotEmpty": "Нове ім'я користувача та пароль порожні",
         "getOutboundTrafficError": "Помилка отримання вихідного трафіку",
         "resetOutboundTrafficError": "Помилка скидання вихідного трафіку"
-      }
+      },
+      "tgNotifyUserReport": "Персональний звіт про використання",
+      "tgNotifyUserReportDesc": "До кожного періодичного звіту надсилати клієнтам із прив’язаним Telegram персональну зведення (трафік і термін дії). За замовчуванням вимкнено.",
+      "oneClickSslTitle": "One-Click SSL Certificate",
+      "oneClickSslDesc": "Issue a free Let's Encrypt certificate (auto-renewed before expiry) or an instant 1-year self-signed certificate.",
+      "issueCertBtn": "Issue SSL Certificate",
+      "certSelfSigned": "Self-Signed",
+      "certMode": "Certificate Type",
+      "certModeLetsEncrypt": "Let's Encrypt (HTTP-01 on port 80, auto-renewed)",
+      "certModeSelfSigned": "Self-Signed (instant, 1 year, no port 80 needed)",
+      "certDomain": "Domain",
+      "certDomainRequired": "Domain is required",
+      "certEmail": "Contact Email (optional)",
+      "certPort80Notice": "Port 80 must be reachable from the internet and point to this server.",
+      "certIssuedSuccess": "Certificate issued and applied",
+      "discordSettings": "Discord Bot",
+      "discordEnable": "Enable Discord Notifications",
+      "discordEnableDesc": "Send periodic traffic reports, approaching-limit alerts, and login notifications to Discord.",
+      "discordWebhookURL": "Discord Webhook URL",
+      "discordWebhookURLDesc": "Simplest setup: paste a channel Webhook URL.",
+      "discordBotToken": "Discord Bot Token (optional)",
+      "discordBotTokenDesc": "Alternative to Webhook: Bot token from Discord Developer Portal.",
+      "discordChannelId": "Discord Channel ID",
+      "discordChannelIdDesc": "Target channel ID when using a Bot token.",
+      "discordLoginNotify": "Login Notification",
+      "discordLoginNotifyDesc": "Post an embed whenever an admin login succeeds or fails.",
+      "discordTestTitle": "Test Discord Connection",
+      "discordTestDesc": "Save your settings first, then send a verification embed.",
+      "discordTestBtn": "Send Test Embed",
+      "discordTestSuccess": "Test message sent to Discord",
+      "cloudBackupTitle": "Cloud Backup",
+      "cloudBackupProviderGdrive": "Google Drive (Service Account / OAuth2)",
+      "cloudBackupGdriveGuide": "Google Drive Setup: (Method 1 - Recommended) Create a Google Cloud Service Account, enable Google Drive API, share your target Google Drive folder with the service account email, and paste the full JSON key below. (Method 2) Paste your OAuth2 Refresh Token below and enter your OAuth2 Client ID & Client Secret.",
+      "cloudBackupGdriveFolder": "Google Drive Folder ID or Link",
+      "cloudBackupGdriveFolderDesc": "Paste the Google Drive Folder ID or full folder URL (e.g. https://drive.google.com/drive/folders/1AbCdEf...). Leave empty to upload to Drive root.",
+      "cloudBackupGdriveCredentials": "Service Account JSON or OAuth2 Refresh Token",
+      "cloudBackupGdriveCredentialsDesc": "Paste the complete Google Cloud service_account JSON key file, or an OAuth2 Refresh Token (1//0g...).",
+      "cloudBackupGdriveClientId": "OAuth2 Client ID (Optional)",
+      "cloudBackupGdriveClientIdDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
+      "cloudBackupGdriveClientSecret": "OAuth2 Client Secret (Optional)",
+      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key."
     },
     "xray": {
       "title": "Xray конфігурації",
@@ -1391,7 +1508,10 @@
         "acceptProxyProtocol": "Приймати proxy protocol",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (мс)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (с)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (с)",
+        "masqueWarpDesc": "Підключення до Cloudflare WARP через MASQUE із зареєстрованим ключем ECDSA P-256; host і path за замовчуванням вказують на кінцеву точку Cloudflare.",
+        "masqueWarpPublicKey": "Відкритий ключ кінцевої точки",
+        "masqueWarpAddress": "Адреси тунелю"
       },
       "outbound": {
         "addOutbound": "Додати вихідний",
@@ -1556,7 +1676,9 @@
         "warpPlusData": "WARP+ data",
         "quota": "Квота",
         "usage": "Використання",
-        "addOutbound": "Додати вихідний"
+        "addOutbound": "Додати вихідний",
+        "masqueDesc": "Реєструє окремий пристрій WARP для MASQUE; реєстрація WireGuard вище не змінюється.",
+        "addMasqueOutbound": "Додати аутбаунд WARP через MASQUE"
       },
       "dns": {
         "enable": "Увімкнути DNS",
@@ -1606,6 +1728,23 @@
         "edit": "Редагувати підроблений DNS",
         "ipPool": "Підмережа IP-пулу",
         "poolSize": "Розмір пулу"
+      },
+      "tuic": {
+        "congestionControl": "Контроль перевантаження",
+        "congestionControlHint": "Алгоритм сервера й клієнта. На сервері змінюється після перепідключення.",
+        "profileOptions": "Client profile options",
+        "alpn": "ALPN",
+        "udpRelayMode": "Режим ретрансляції UDP",
+        "udpRelayModeHint": "Режим UDP для клієнта. Сервер підтримує обидва.",
+        "zeroRttHandshake": "0-RTT рукостискання",
+        "logLevel": "Рівень журналювання",
+        "logLevelHint": "Мінімальний рівень повідомлень у логах цього інбаунду.",
+        "maxIdleTime": "Макс. час простою (сек)",
+        "authTimeout": "Таймаут автентифікації (сек)",
+        "maxUdpRelayPacketSize": "Макс. розмір пакета UDP",
+        "sni": "SNI",
+        "sniHint": "Ім’я сервера для TLS у профілі клієнта.",
+        "sniRequired": "Укажіть домен для автозаповнення."
       }
     }
   },
@@ -1659,7 +1798,7 @@
       "report": "🕰 Заплановані звіти: {{ .RunTime }}\r\n",
       "datetime": "⏰ Дата й час: {{ .DateTime }}\r\n",
       "hostname": "💻 Хост: {{ .Hostname }}\r\n",
-      "version": "🚀 OMEGA Версія: {{ .Version }}\r\n",
+      "version": "🚀 PHOENIX Версія: {{ .Version }}\r\n",
       "xrayVersion": "📡 Xray Версія: {{ .XrayVersion }}\r\n",
       "ipv6": "🌐 IPv6: {{ .IPv6 }}\r\n",
       "ipv4": "🌐 IPv4: {{ .IPv4 }}\r\n",
@@ -1714,7 +1853,21 @@
       "AreYouSure": "Ви впевнені? 🤔",
       "SuccessResetTraffic": "📧 Електронна пошта: {{ .ClientEmail }}\n🏁 Результат: ✅ Успішно",
       "FailedResetTraffic": "📧 Електронна пошта: {{ .ClientEmail }}\n🏁 Результат: ❌ Невдача \n\n🛠️ Помилка: [ {{ .ErrorMessage }} ]",
-      "FinishProcess": "🔚 Процес скидання трафіку завершено для всіх клієнтів."
+      "FinishProcess": "🔚 Процес скидання трафіку завершено для всіх клієнтів.",
+      "broadcastPrompt": "Надішліть текст повідомлення для розсилки всім клієнтам (макс. ~3800 символів).",
+      "broadcastEmpty": "Повідомлення порожнє. Надішліть текст розсилки або натисніть «Скасувати».",
+      "broadcastTooLong": "Повідомлення задовге. Скоротіть його (макс. ~3800 символів) і спробуйте ще раз.",
+      "broadcastPreview": "📣 Попередній перегляд розсилки — отримувачів: {{ .Count }}",
+      "broadcastCanceled": "Розсилку скасовано.",
+      "broadcastRunning": "Інша розсилка ще виконується. Дочекайтеся завершення.",
+      "broadcastDone": "✅ Розсилку завершено: {{ .Sent }} надіслано, {{ .Failed }} з помилкою.",
+      "broadcastNoRecipients": "Клієнтів із прив’язаним Telegram-аккаунтом не знайдено — надсилати немає кому.",
+      "inviteCreated": "🔗 Посилання-запрошення для {{ .Email }}\n(одноразове, дійсне до {{ .Expires }}):\n\n{{ .Link }}",
+      "inviteRedeemed": "✅ {{ .Firstname }}, ваш Telegram прив’язано до {{ .Email }}. Скористайтеся кнопками нижче для керування підпискою.",
+      "inviteInvalid": "Це посилання-запрошення недійсне. Запитайте нове у свого провайдера.",
+      "inviteUsed": "Це посилання-запрошення вже використано. Запитайте нове у свого провайдера.",
+      "inviteExpired": "Термін дії цього посилання-запрошення минув. Запитайте нове у свого провайдера.",
+      "userReport": "📊 Ваш звіт про використання — {{ .DateTime }}"
     },
     "buttons": {
       "closeKeyboard": "❌ Закрити клавіатуру",
@@ -1759,7 +1912,10 @@
       "change_comment": "⚙️💬 Коментар",
       "change_flow": "⚙️🚦 Flow",
       "ResetAllTraffics": "Скинути весь трафік",
-      "SortedTrafficUsageReport": "Відсортований звіт про використання трафіку"
+      "SortedTrafficUsageReport": "Відсортований звіт про використання трафіку",
+      "broadcast": "📣 Розсилка",
+      "confirmBroadcast": "✅ Надіслати зараз",
+      "invite": "🔗 Посилання-запрошення"
     },
     "answers": {
       "successfulOperation": "✅ Операція успішна!",
@@ -1784,5 +1940,28 @@
       "chooseClient": "Виберіть клієнта для Вхідного {{ .Inbound }}",
       "chooseInbound": "Виберіть Вхідний"
     }
+  },
+  "commandPalette": {
+    "open": "Quick search",
+    "placeholder": "Jump to page, search client email / subId, or run an action…",
+    "empty": "No matching pages, clients, or actions.",
+    "groupPages": "Pages",
+    "groupClients": "Clients",
+    "groupInbounds": "Inbounds",
+    "groupActions": "Quick actions",
+    "toggleTheme": "Toggle dark / light theme",
+    "hintNavigate": "navigate",
+    "hintSelect": "select"
+  },
+  "resellers": {
+    "supportTickets": "Support Tickets",
+    "paymentOrders": "Payment Webhook Orders",
+    "ticketsDesc": "Direct support communication between Resellers and Panel Admins",
+    "newTicket": "New Ticket",
+    "ticketSubject": "Subject",
+    "ticketPriority": "Priority",
+    "ticketMessage": "Message",
+    "ticketReplyPlaceholder": "Write a reply...",
+    "ticketSubjectAndMessageRequired": "Subject and message are required"
   }
 }

@@ -113,7 +113,12 @@
     "apiDocs": "توثيق API",
     "logout": "تسجيل خروج",
     "link": "إدارة",
-    "donate": "تبرع"
+    "donate": "تبرع",
+    "groupOverview": "نظرة عامة",
+    "groupManage": "الإدارة",
+    "groupSystem": "النظام",
+    "collapse": "طيّ الشريط الجانبي",
+    "expand": "توسيع الشريط الجانبي"
   },
   "pages": {
     "login": {
@@ -126,7 +131,9 @@
         "emptyPassword": "الباسورد مطلوب",
         "wrongUsernameOrPassword": "اسم المستخدم أو كلمة المرور أو كود المصادقة الثنائية غير صحيح.",
         "successLogin": "لقد تم تسجيل الدخول إلى حسابك بنجاح."
-      }
+      },
+      "asideTitle": "لوحة واحدة لكل الأنفاق.",
+      "asideText": "Xray وOpenVPN وL2TP/IPsec وAmneziaWG — إدارة وتوجيه وقياس من مكان واحد."
     },
     "index": {
       "title": "نظرة عامة",
@@ -145,7 +152,7 @@
       "xraySwitchClick": "اختار النسخة اللي عايز تتحول لها.",
       "xraySwitchClickDesk": "اختار بحذر، النسخ القديمة ممكن ما تتوافقش مع الإعدادات الحالية.",
       "updatePanel": "تحديث البانل",
-      "panelUpdateDesc": "ده هيحدث OMEGA لآخر إصدار وهيعيد تشغيل خدمة البانل.",
+      "panelUpdateDesc": "ده هيحدث PHOENIX لآخر إصدار وهيعيد تشغيل خدمة البانل.",
       "currentPanelVersion": "إصدار البانل الحالي",
       "latestPanelVersion": "أحدث إصدار للبانل",
       "panelUpToDate": "البانل محدث لآخر إصدار",
@@ -213,7 +220,7 @@
       "xraySwitchVersionDialogDesc": "سيؤدي هذا إلى تغيير إصدار Xray إلى #version#.",
       "xraySwitchVersionPopover": "تم تحديث Xray بنجاح",
       "panelUpdateDialog": "هل فعلاً عايز تحدث البانل؟",
-      "panelUpdateDialogDesc": "ده هيحدث OMEGA للإصدار #version# وهيعيد تشغيل البانل.",
+      "panelUpdateDialogDesc": "ده هيحدث PHOENIX للإصدار #version# وهيعيد تشغيل البانل.",
       "panelUpdateCheckPopover": "فشل التحقق من تحديث البانل",
       "panelUpdateStartedPopover": "بدأ تحديث البانل",
       "geofileUpdateDialog": "هل تريد حقًا تحديث ملف الجغرافيا؟",
@@ -253,7 +260,12 @@
       "importDatabasePgDesc": "انقر لاختيار ورفع ملف .dump لاستعادة قاعدة بيانات PostgreSQL. سيؤدي هذا إلى استبدال جميع البيانات الحالية.",
       "migrationDownload": "تنزيل ملف الترحيل",
       "migrationDownloadDesc": "انقر لتنزيل تصدير .dump محمول (نص SQL) لقاعدة بيانات SQLite الخاصة بك.",
-      "migrationDownloadPgDesc": "انقر لتنزيل قاعدة بيانات SQLite بامتداد .db مبنية من بيانات PostgreSQL الخاصة بك، جاهزة لتشغيل هذه اللوحة على SQLite."
+      "migrationDownloadPgDesc": "انقر لتنزيل قاعدة بيانات SQLite بامتداد .db مبنية من بيانات PostgreSQL الخاصة بك، جاهزة لتشغيل هذه اللوحة على SQLite.",
+      "heroSubtitle": "الحالة الحيّة لهذا الخادم ولكل نفق يشغّله.",
+      "services": "الخدمات",
+      "network": "الشبكة",
+      "resources": "الموارد",
+      "panelProcess": "عملية اللوحة"
     },
     "inbounds": {
       "title": "الواردات",
@@ -508,6 +520,8 @@
         "mtgDebug": "سجل التصحيح",
         "mtgRouteThroughXray": "التوجيه عبر Xray",
         "mtgRouteThroughXrayHint": "أرسل حركة Telegram لهذا البروكسي عبر Xray ليتبع قواعد التوجيه لديك. يتصل وسيط mtg عبر جسر SOCKS محلي يحمل وسم هذا الاتصال الوارد؛ استخدم ذلك الوسم في تبويب التوجيه للقواعد المتقدمة.",
+        "daemonRouteThroughXray": "التوجيه عبر Xray",
+        "daemonRouteThroughXrayHint": "تمرير حركة عملاء هذا المدخل (TCP وUDP) عبر موجّه Xray بحيث تنطبق عليها قواعد التوجيه تمامًا كما تنطبق على مداخل Xray نفسها. تدخل الحركة إلى النواة عبر مستمع محلي موسوم بوسم هذا المدخل؛ استخدم هذا الوسم في تبويب التوجيه للقواعد المخصصة. يتم التعطيل تلقائيًا (مسار مباشر) كلما لم يكن Xray قيد التشغيل.",
         "mtgRouteOutbound": "الصادر",
         "mtgRouteOutboundHint": "اختياري. إجبار حركة Telegram على الخروج عبر هذا الصادر (أو الموازِن). اتركه فارغًا لتقرر قواعد التوجيه.",
         "mtgRouteOutboundPlaceholder": "استخدام قواعد التوجيه",
@@ -628,7 +642,36 @@
           "node": "عنوان العقدة",
           "listen": "عنوان استماع الوارد",
           "custom": "مخصص"
-        }
+        },
+        "xdrive": {
+          "service": "خدمة التخزين",
+          "serviceLocal": "مجلد محلي",
+          "serviceTemplate": "قالب مخصص",
+          "remoteFolder": "المجلد البعيد",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "الأسرار",
+          "secretsDesc": "قيم يقرؤها القالب باسم {secret0} و{secret1} …",
+          "template": "قالب التخزين",
+          "templateInvalid": "يجب أن يكون كائن JSON",
+          "front": "عنوان الواجهة (Front)",
+          "frontDesc": "مضيف أو IP اختياري يُتصل عبره بواجهة API التخزين (domain fronting).",
+          "frontPort": "منفذ الواجهة (Front)",
+          "segmentBytes": "حجم المقطع (بايت)",
+          "flushInterval": "فاصل الإرسال (ms)",
+          "pollInterval": "فاصل الاستطلاع (ms)",
+          "maxPollInterval": "أقصى فاصل استطلاع (ms)",
+          "eagerWindow": "نافذة الإرسال المبكر (ms)",
+          "holeTimeout": "مهلة المقطع المفقود (ms)",
+          "sessionTtl": "مدة صلاحية الجلسة (s)",
+          "concurrency": "التزامن"
+        },
+        "masque": {
+          "addressPool": "مجمّع العناوين",
+          "addressPoolDesc": "تُخصَّص عناوين النفق من هذه البادئات — بحد أقصى IPv4 واحد و IPv6 واحد."
+        },
+        "autoFill": "الملء التلقائي"
       },
       "info": {
         "mode": "الوضع",
@@ -663,7 +706,8 @@
           "requestHeader": "رأس الطلب",
           "responseHeader": "رأس الرد"
         }
-      }
+      },
+      "advancedTitle": "الإعدادات المتقدمة"
     },
     "clients": {
       "tabBasics": "أساسي",
@@ -833,7 +877,17 @@
         "bulkAdjusted": "تم تعديل {count} عميل",
         "bulkAdjustedMixed": "{ok} تم تعديلهم، {skipped} تم تخطيهم",
         "delDepleted": "تم حذف {count} عميل منتهٍ"
-      }
+      },
+      "userTemplates": "User Plan Templates",
+      "userTemplatesDesc": "Reusable client plan presets (quota, duration, on-hold start, IP/device limits, and default inbounds)",
+      "addTemplate": "Add Template",
+      "templateName": "Template Name",
+      "templateNameRequired": "Template name is required",
+      "applyTemplate": "Apply Plan Template",
+      "selectTemplatePlaceholder": "Select a preset template...",
+      "templateApplied": "Template '{{name}}' applied",
+      "revokeSub": "Revoke & Rotate Subscription Link",
+      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?"
     },
     "groups": {
       "title": "المجموعات",
@@ -972,6 +1026,7 @@
     },
     "settings": {
       "title": "إعدادات البانل",
+      "unsaved": "تغييرات غير محفوظة",
       "save": "حفظ",
       "infoDesc": "كل تغيير هتعمله هنا لازم يتخزن. ياريت تعيد تشغيل البانل عشان التعديلات تتفعل.",
       "restartPanel": "إعادة تشغيل اللوحة",
@@ -1067,7 +1122,7 @@
       "subAnnounce": "إعلان",
       "subAnnounceDesc": "نص الإعلان المعروض في عميل VPN",
       "subThemeDir": "مجلد قالب الاشتراك",
-      "subThemeDirDesc": "المسار المطلق لمجلد يحتوي على قالب مخصص (index.html/sub.html) لصفحة الاشتراك (مثل /etc/3x-ui/sub_templates/my-theme/). اتركه فارغًا لاستخدام الصفحة الافتراضية.",
+      "subThemeDirDesc": "المسار المطلق لمجلد يحتوي على قالب مخصص (index.html/sub.html) لصفحة الاشتراك (مثل /etc/x-ui/sub_templates/my-theme/). اتركه فارغًا لاستخدام الصفحة الافتراضية.",
       "subThemeDirDocs": "دليل القالب ↗",
       "subEnableRouting": "تفعيل التوجيه",
       "subEnableRoutingDesc": "إعداد عام لتمكين التوجيه (Routing) في عميل VPN. (فقط لـ Happ)",
@@ -1200,7 +1255,29 @@
         "apiTokenEmpty": "لا توجد رموز بعد — أنشئ واحدًا لمصادقة الروبوتات أو اللوحات البعيدة.",
         "apiTokenDeleteWarning": "أي عميل يستخدم هذا الرمز سيفقد المصادقة فورًا.",
         "apiTokenCreatedTitle": "تم إنشاء الرمز",
-        "apiTokenCreatedNotice": "انسخ هذا الرمز الآن. لأسباب أمنية لا يتم تخزينه بصيغة قابلة للقراءة ولن يتم عرضه مرة أخرى."
+        "apiTokenCreatedNotice": "انسخ هذا الرمز الآن. لأسباب أمنية لا يتم تخزينه بصيغة قابلة للقراءة ولن يتم عرضه مرة أخرى.",
+        "apiTokenScope": "Permissions",
+        "apiTokenScopeFull": "Full access",
+        "apiTokenScopeRead": "Read-only",
+        "apiTokenExpireDays": "Expires in (days)",
+        "apiTokenExpireDaysDesc": "0 means never expires.",
+        "apiTokenExpires": "Expires",
+        "apiTokenExpired": "Expired",
+        "apiTokenLastUsed": "Last used",
+        "multiAdminTitle": "Admins & RBAC",
+        "multiAdminDesc": "Create secondary admin accounts with granular RBAC roles (Superadmin, Custom Admin, Support, or Read-only Viewer).",
+        "addAdmin": "Add Admin",
+        "editAdmin": "Edit Admin Account",
+        "adminRole": "Role",
+        "adminModules": "Allowed Modules",
+        "role_superadmin": "Superadmin (Full Access)",
+        "role_admin": "Custom Admin (Selected Modules)",
+        "role_support": "Support (Clients Read/Write + Inbounds Read)",
+        "role_viewer": "Viewer (Read-only Auditor)",
+        "lastLogin": "Last login",
+        "adminUsernameRequired": "Username is required",
+        "adminPasswordMin": "Password must be at least 4 characters",
+        "adminPasswordLeaveBlank": "Leave blank to keep existing password"
       },
       "toasts": {
         "modifySettings": "تم تغيير المعلمات.",
@@ -1211,7 +1288,47 @@
         "userPassMustBeNotEmpty": "اسم المستخدم والباسورد الجديدين فاضيين",
         "getOutboundTrafficError": "خطأ في الحصول على حركات المرور الصادرة",
         "resetOutboundTrafficError": "خطأ في إعادة تعيين حركات المرور الصادرة"
-      }
+      },
+      "tgNotifyUserReport": "تقرير الاستخدام الشخصي للعملاء",
+      "tgNotifyUserReportDesc": "في كل موعد تقرير، تُرسل لكل عميل مرتبط حسابه على تيليجرام ملخص استخدام شخصي (الحركة وانتهاء الصلاحية). معطّل افتراضيًا.",
+      "oneClickSslTitle": "One-Click SSL Certificate",
+      "oneClickSslDesc": "Issue a free Let's Encrypt certificate (auto-renewed before expiry) or an instant 1-year self-signed certificate.",
+      "issueCertBtn": "Issue SSL Certificate",
+      "certSelfSigned": "Self-Signed",
+      "certMode": "Certificate Type",
+      "certModeLetsEncrypt": "Let's Encrypt (HTTP-01 on port 80, auto-renewed)",
+      "certModeSelfSigned": "Self-Signed (instant, 1 year, no port 80 needed)",
+      "certDomain": "Domain",
+      "certDomainRequired": "Domain is required",
+      "certEmail": "Contact Email (optional)",
+      "certPort80Notice": "Port 80 must be reachable from the internet and point to this server.",
+      "certIssuedSuccess": "Certificate issued and applied",
+      "discordSettings": "Discord Bot",
+      "discordEnable": "Enable Discord Notifications",
+      "discordEnableDesc": "Send periodic traffic reports, approaching-limit alerts, and login notifications to Discord.",
+      "discordWebhookURL": "Discord Webhook URL",
+      "discordWebhookURLDesc": "Simplest setup: paste a channel Webhook URL.",
+      "discordBotToken": "Discord Bot Token (optional)",
+      "discordBotTokenDesc": "Alternative to Webhook: Bot token from Discord Developer Portal.",
+      "discordChannelId": "Discord Channel ID",
+      "discordChannelIdDesc": "Target channel ID when using a Bot token.",
+      "discordLoginNotify": "Login Notification",
+      "discordLoginNotifyDesc": "Post an embed whenever an admin login succeeds or fails.",
+      "discordTestTitle": "Test Discord Connection",
+      "discordTestDesc": "Save your settings first, then send a verification embed.",
+      "discordTestBtn": "Send Test Embed",
+      "discordTestSuccess": "Test message sent to Discord",
+      "cloudBackupTitle": "Cloud Backup",
+      "cloudBackupProviderGdrive": "Google Drive (Service Account / OAuth2)",
+      "cloudBackupGdriveGuide": "Google Drive Setup: (Method 1 - Recommended) Create a Google Cloud Service Account, enable Google Drive API, share your target Google Drive folder with the service account email, and paste the full JSON key below. (Method 2) Paste your OAuth2 Refresh Token below and enter your OAuth2 Client ID & Client Secret.",
+      "cloudBackupGdriveFolder": "Google Drive Folder ID or Link",
+      "cloudBackupGdriveFolderDesc": "Paste the Google Drive Folder ID or full folder URL (e.g. https://drive.google.com/drive/folders/1AbCdEf...). Leave empty to upload to Drive root.",
+      "cloudBackupGdriveCredentials": "Service Account JSON or OAuth2 Refresh Token",
+      "cloudBackupGdriveCredentialsDesc": "Paste the complete Google Cloud service_account JSON key file, or an OAuth2 Refresh Token (1//0g...).",
+      "cloudBackupGdriveClientId": "OAuth2 Client ID (Optional)",
+      "cloudBackupGdriveClientIdDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
+      "cloudBackupGdriveClientSecret": "OAuth2 Client Secret (Optional)",
+      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key."
     },
     "xray": {
       "title": "إعدادات Xray",
@@ -1391,7 +1508,10 @@
         "acceptProxyProtocol": "قبول proxy protocol",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (ثانية)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (ثانية)",
+        "masqueWarpDesc": "الاتصال بـ Cloudflare WARP عبر MASQUE بمفتاح ECDSA P-256 مسجَّل؛ يكون host و path افتراضيًا نقطة نهاية Cloudflare.",
+        "masqueWarpPublicKey": "المفتاح العام لنقطة النهاية",
+        "masqueWarpAddress": "عناوين النفق"
       },
       "outbound": {
         "addOutbound": "أضف مخرج",
@@ -1556,7 +1676,9 @@
         "warpPlusData": "بيانات WARP+",
         "quota": "الحصة",
         "usage": "الاستخدام",
-        "addOutbound": "إضافة صادر"
+        "addOutbound": "إضافة صادر",
+        "masqueDesc": "يسجّل جهاز WARP منفصلًا مخصصًا لـ MASQUE؛ ولا يتأثر تسجيل WireGuard أعلاه.",
+        "addMasqueOutbound": "إضافة outbound لـ WARP عبر MASQUE"
       },
       "dns": {
         "enable": "فعل DNS",
@@ -1606,6 +1728,23 @@
         "edit": "عدل Fake DNS",
         "ipPool": "نطاق IP Pool",
         "poolSize": "حجم المجموعة"
+      },
+      "tuic": {
+        "congestionControl": "التحكم في الازدحام",
+        "congestionControlHint": "خوارزمية الخادم والعميل. تسري تغييرات الخادم بعد إعادة الاتصال.",
+        "profileOptions": "Client profile options",
+        "alpn": "ALPN",
+        "udpRelayMode": "وضع ترحيل UDP",
+        "udpRelayModeHint": "وضع UDP للعميل. يدعم الخادم كلا الوضعين.",
+        "zeroRttHandshake": "مصافحة 0-RTT",
+        "logLevel": "مستوى السجل",
+        "logLevelHint": "أدنى مستوى للسجل لهذا الاتصال الوارد.",
+        "maxIdleTime": "أقصى وقت خمول (ثوانٍ)",
+        "authTimeout": "مهلة المصادقة (ثوانٍ)",
+        "maxUdpRelayPacketSize": "أقصى حجم لحزمة UDP",
+        "sni": "SNI",
+        "sniHint": "اسم خادم TLS في ملف إعداد العميل.",
+        "sniRequired": "أدخل نطاقًا لملء مسارات الشهادة تلقائيًا."
       }
     }
   },
@@ -1659,7 +1798,7 @@
       "report": "🕰 التقارير المجدولة: {{ .RunTime }}\r\n",
       "datetime": "⏰ التاريخ والوقت: {{ .DateTime }}\r\n",
       "hostname": "💻 المضيف: {{ .Hostname }}\r\n",
-      "version": "🚀 نسخة OMEGA: {{ .Version }}\r\n",
+      "version": "🚀 نسخة PHOENIX: {{ .Version }}\r\n",
       "xrayVersion": "📡 نسخة Xray: {{ .XrayVersion }}\r\n",
       "ipv6": "🌐 IPv6: {{ .IPv6 }}\r\n",
       "ipv4": "🌐 IPv4: {{ .IPv4 }}\r\n",
@@ -1714,7 +1853,21 @@
       "AreYouSure": "إنت متأكد؟ 🤔",
       "SuccessResetTraffic": "📧 البريد الإلكتروني: {{ .ClientEmail }}\n🏁 النتيجة: ✅ تم بنجاح",
       "FailedResetTraffic": "📧 البريد الإلكتروني: {{ .ClientEmail }}\n🏁 النتيجة: ❌ فشل \n\n🛠️ الخطأ: [ {{ .ErrorMessage }} ]",
-      "FinishProcess": "🔚 عملية إعادة ضبط الترافيك خلصت لكل العملاء."
+      "FinishProcess": "🔚 عملية إعادة ضبط الترافيك خلصت لكل العملاء.",
+      "broadcastPrompt": "أرسل نص الرسالة لإرسالها إلى جميع العملاء (بحد أقصى ~3800 حرف).",
+      "broadcastEmpty": "الرسالة فارغة. أرسل نص الرسالة أو اضغط إلغاء.",
+      "broadcastTooLong": "الرسالة طويلة جدًا. اختصرها (بحد أقصى ~3800 حرف) وأعد المحاولة.",
+      "broadcastPreview": "📣 معاينة الإرسال الجماعي — المستلمون: {{ .Count }}",
+      "broadcastCanceled": "تم إلغاء الإرسال الجماعي.",
+      "broadcastRunning": "لا يزال هناك إرسال جماعي آخر قيد التنفيذ. انتظر انتهاءه.",
+      "broadcastDone": "✅ اكتمل الإرسال الجماعي: {{ .Sent }} تم إرسالها، {{ .Failed }} فشلت.",
+      "broadcastNoRecipients": "لم يتم العثور على أي عميل بحساب تيليجرام مرتبط — لا يوجد ما يُرسل.",
+      "inviteCreated": "🔗 رابط الدعوة لـ {{ .Email }}\n(لمرة واحدة، صالح حتى {{ .Expires }}):\n\n{{ .Link }}",
+      "inviteRedeemed": "✅ {{ .Firstname }}، تم ربط حسابك على تيليجرام بـ {{ .Email }}. استخدم الأزرار أدناه لإدارة اشتراكك.",
+      "inviteInvalid": "رابط الدعوة هذا غير صالح. اطلب من مزوّدك رابطًا جديدًا.",
+      "inviteUsed": "رابط الدعوة هذا مستخدم بالفعل. اطلب من مزوّدك رابطًا جديدًا.",
+      "inviteExpired": "انتهت صلاحية رابط الدعوة هذا. اطلب من مزوّدك رابطًا جديدًا.",
+      "userReport": "📊 تقرير استخدامك — {{ .DateTime }}"
     },
     "buttons": {
       "closeKeyboard": "❌ اقفل الكيبورد",
@@ -1759,7 +1912,10 @@
       "change_comment": "⚙️💬 تعليق",
       "change_flow": "⚙️🚦 Flow",
       "ResetAllTraffics": "إعادة ضبط جميع الترافيك",
-      "SortedTrafficUsageReport": "تقرير استخدام الترافيك المرتب"
+      "SortedTrafficUsageReport": "تقرير استخدام الترافيك المرتب",
+      "broadcast": "📣 إرسال جماعي",
+      "confirmBroadcast": "✅ إرسال الآن",
+      "invite": "🔗 رابط دعوة"
     },
     "answers": {
       "successfulOperation": "✅ العملية نجحت!",
@@ -1784,5 +1940,28 @@
       "chooseClient": "اختار عميل للإدخال {{ .Inbound }}",
       "chooseInbound": "اختار الإدخال"
     }
+  },
+  "commandPalette": {
+    "open": "Quick search",
+    "placeholder": "Jump to page, search client email / subId, or run an action…",
+    "empty": "No matching pages, clients, or actions.",
+    "groupPages": "Pages",
+    "groupClients": "Clients",
+    "groupInbounds": "Inbounds",
+    "groupActions": "Quick actions",
+    "toggleTheme": "Toggle dark / light theme",
+    "hintNavigate": "navigate",
+    "hintSelect": "select"
+  },
+  "resellers": {
+    "supportTickets": "Support Tickets",
+    "paymentOrders": "Payment Webhook Orders",
+    "ticketsDesc": "Direct support communication between Resellers and Panel Admins",
+    "newTicket": "New Ticket",
+    "ticketSubject": "Subject",
+    "ticketPriority": "Priority",
+    "ticketMessage": "Message",
+    "ticketReplyPlaceholder": "Write a reply...",
+    "ticketSubjectAndMessageRequired": "Subject and message are required"
   }
 }

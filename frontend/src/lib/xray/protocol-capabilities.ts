@@ -9,7 +9,7 @@ const TLS_ELIGIBLE_PROTOCOLS = ['vmess', 'vless', 'trojan', 'shadowsocks'];
 const TLS_NETWORKS = ['tcp', 'ws', 'http', 'grpc', 'httpupgrade', 'xhttp'];
 const REALITY_ELIGIBLE_PROTOCOLS = ['vless', 'trojan'];
 const REALITY_NETWORKS = ['tcp', 'http', 'grpc', 'xhttp'];
-const STREAM_PROTOCOLS = ['vmess', 'vless', 'trojan', 'shadowsocks', 'hysteria', 'wireguard', 'tunnel'];
+const STREAM_PROTOCOLS = ['vmess', 'vless', 'trojan', 'shadowsocks', 'hysteria', 'wireguard', 'tunnel', 'masque'];
 const VISION_FLOW = 'xtls-rprx-vision';
 const SS_2022_PREFIX = '2022';
 const SS_BLAKE3_CHACHA20 = '2022-blake3-chacha20-poly1305';
@@ -29,7 +29,7 @@ export interface CapabilityShadowsocksSlice extends CapabilityProtocolSlice {
 }
 
 export function canEnableTls(values: CapabilityProtocolSlice): boolean {
-  if (values.protocol === 'hysteria') return true;
+  if (values.protocol === 'hysteria' || values.protocol === 'masque') return true;
   if (!TLS_ELIGIBLE_PROTOCOLS.includes(values.protocol)) return false;
   return TLS_NETWORKS.includes(values.streamSettings?.network ?? '');
 }
@@ -71,7 +71,13 @@ export function canEnableStream(values: { protocol: string }): boolean {
 // so the Xray sniffing block does not apply to them. Every other inbound
 // supports sniffing.
 export function canEnableSniffing(values: { protocol: string }): boolean {
-  return values.protocol !== 'mtproto' && values.protocol !== 'openvpn' && values.protocol !== 'l2tp' && values.protocol !== 'amneziawg';
+  return (
+    values.protocol !== 'mtproto' &&
+    values.protocol !== 'openvpn' &&
+    values.protocol !== 'l2tp' &&
+    values.protocol !== 'amneziawg' &&
+    values.protocol !== 'tuic'
+  );
 }
 
 // Vision seed applies only when XTLS Vision (TCP/TLS) flow is selected

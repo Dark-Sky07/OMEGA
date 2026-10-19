@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -34,6 +35,7 @@ type ServerController struct {
 	settingService     service.SettingService
 	panelService       panel.PanelService
 	xrayMetricsService service.XrayMetricsService
+	checkHostService   service.CheckHostService
 }
 
 // NewServerController creates a new ServerController, initializes routes, and starts background tasks.
@@ -89,6 +91,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/importDB", a.importDB)
 	g.POST("/getNewEchCert", a.getNewEchCert)
 	g.POST("/clientIps", a.setClientIps)
+	g.POST("/checkHost", a.checkHost)
 }
 
 // startTask registers the @2s ticker that refreshes server status, samples
@@ -536,4 +539,23 @@ func (a *ServerController) setClientIps(c *gin.Context) {
 	}
 	err := (&service.InboundService{}).MergeInboundClientIps(ips)
 	jsonMsg(c, "Client IPs merged", err)
+}
+
+func (a *ServerController) checkHost(c *gin.Context) {
+	var form struct {
+		Target string `json:"target" form:"target"`
+		Mode   string `json:"mode" form:"mode"`
+	}
+	if err := c.ShouldBind(&form); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 22*time.Second)
+	defer cancel()
+	report, err := a.checkHostService.RunCheck(ctx, form.Target, form.Mode)
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, report, nil)
 }

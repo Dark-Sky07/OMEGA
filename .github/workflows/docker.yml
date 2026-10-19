@@ -1,4 +1,4 @@
-name: Release 3X-UI for Docker
+name: Release PHOENIX for Docker
 
 permissions:
   contents: read
@@ -46,7 +46,7 @@ jobs:
         if: ${{ env.DOCKER_HUB_USERNAME != '' && env.DOCKER_HUB_TOKEN != '' }}
         uses: docker/metadata-action@v6
         with:
-          images: hsanaeii/3x-ui
+          images: darksky07/phoenix
           tags: |
             type=ref,event=branch
             type=ref,event=tag

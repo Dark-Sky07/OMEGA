@@ -113,7 +113,12 @@
     "apiDocs": "Dokumentasi API",
     "logout": "Keluar",
     "link": "Kelola",
-    "donate": "Donasi"
+    "donate": "Donasi",
+    "groupOverview": "Ringkasan",
+    "groupManage": "Kelola",
+    "groupSystem": "Sistem",
+    "collapse": "Ciutkan bilah sisi",
+    "expand": "Perluas bilah sisi"
   },
   "pages": {
     "login": {
@@ -126,7 +131,9 @@
         "emptyPassword": "Kata Sandi diperlukan",
         "wrongUsernameOrPassword": "Username, kata sandi, atau kode dua faktor tidak valid.",
         "successLogin": "Anda telah berhasil masuk ke akun Anda."
-      }
+      },
+      "asideTitle": "Satu panel untuk semua tunnel.",
+      "asideText": "Xray, OpenVPN, L2TP/IPsec, dan AmneziaWG — dikelola, dirutekan, dan diukur dari satu tempat."
     },
     "index": {
       "title": "Ikhtisar",
@@ -145,7 +152,7 @@
       "xraySwitchClick": "Pilih versi yang ingin Anda pindah.",
       "xraySwitchClickDesk": "Pilih dengan hati-hati, karena versi yang lebih lama mungkin tidak kompatibel dengan konfigurasi saat ini.",
       "updatePanel": "Perbarui Panel",
-      "panelUpdateDesc": "Ini akan memperbarui OMEGA ke rilis terbaru dan me-restart layanan panel.",
+      "panelUpdateDesc": "Ini akan memperbarui PHOENIX ke rilis terbaru dan me-restart layanan panel.",
       "currentPanelVersion": "Versi panel saat ini",
       "latestPanelVersion": "Versi panel terbaru",
       "panelUpToDate": "Panel sudah terbaru",
@@ -213,7 +220,7 @@
       "xraySwitchVersionDialogDesc": "Ini akan mengubah versi Xray ke #version#.",
       "xraySwitchVersionPopover": "Xray berhasil diperbarui",
       "panelUpdateDialog": "Apakah Anda benar-benar ingin memperbarui panel?",
-      "panelUpdateDialogDesc": "Ini akan memperbarui OMEGA ke #version# dan me-restart layanan panel.",
+      "panelUpdateDialogDesc": "Ini akan memperbarui PHOENIX ke #version# dan me-restart layanan panel.",
       "panelUpdateCheckPopover": "Pemeriksaan pembaruan panel gagal",
       "panelUpdateStartedPopover": "Pembaruan panel dimulai",
       "geofileUpdateDialog": "Apakah Anda yakin ingin memperbarui geofile?",
@@ -253,7 +260,12 @@
       "importDatabasePgDesc": "Klik untuk memilih dan mengunggah berkas .dump guna memulihkan basis data PostgreSQL Anda. Ini menggantikan semua data saat ini.",
       "migrationDownload": "Unduh migrasi",
       "migrationDownloadDesc": "Klik untuk mengunduh ekspor .dump (teks SQL) portabel dari basis data SQLite Anda.",
-      "migrationDownloadPgDesc": "Klik untuk mengunduh basis data SQLite .db yang dibuat dari data PostgreSQL Anda, siap menjalankan panel ini di SQLite."
+      "migrationDownloadPgDesc": "Klik untuk mengunduh basis data SQLite .db yang dibuat dari data PostgreSQL Anda, siap menjalankan panel ini di SQLite.",
+      "heroSubtitle": "Status langsung server ini dan semua tunnel yang dijalankannya.",
+      "services": "Layanan",
+      "network": "Jaringan",
+      "resources": "Sumber daya",
+      "panelProcess": "Proses panel"
     },
     "inbounds": {
       "title": "Inbound",
@@ -508,6 +520,8 @@
         "mtgDebug": "Log debug",
         "mtgRouteThroughXray": "Rutekan melalui Xray",
         "mtgRouteThroughXrayHint": "Kirim lalu lintas Telegram proxy ini melalui Xray agar mengikuti aturan routing Anda. Sidecar mtg keluar lewat bridge SOCKS loopback yang diberi tag sama dengan inbound ini; rujuk tag tersebut di tab Routing untuk aturan lanjutan.",
+        "daemonRouteThroughXray": "Rutekan melalui Xray",
+        "daemonRouteThroughXrayHint": "Alihkan lalu lintas klien inbound ini (TCP dan UDP) melalui router Xray sehingga aturan Routing berlaku padanya persis seperti pada inbound milik Xray. Lalu lintas masuk ke core melalui listener loopback yang diberi tag inbound ini; rujuk tag tersebut di tab Routing untuk aturan kustom. Otomatis nonaktif (jalur langsung) saat Xray tidak berjalan.",
         "mtgRouteOutbound": "Outbound",
         "mtgRouteOutboundHint": "Opsional. Paksa lalu lintas Telegram keluar melalui outbound (atau balancer) ini. Biarkan kosong agar aturan routing yang menentukan.",
         "mtgRouteOutboundPlaceholder": "Gunakan aturan routing",
@@ -628,7 +642,36 @@
           "node": "Alamat node",
           "listen": "Alamat listen inbound",
           "custom": "Kustom"
-        }
+        },
+        "xdrive": {
+          "service": "Layanan penyimpanan",
+          "serviceLocal": "Folder lokal",
+          "serviceTemplate": "Template kustom",
+          "remoteFolder": "Folder jarak jauh",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "Rahasia",
+          "secretsDesc": "Nilai yang dibaca template sebagai {secret0}, {secret1}, …",
+          "template": "Template penyimpanan",
+          "templateInvalid": "Harus berupa objek JSON",
+          "front": "Alamat fronting",
+          "frontDesc": "Host atau IP opsional untuk menghubungi API penyimpanan (domain fronting).",
+          "frontPort": "Port fronting",
+          "segmentBytes": "Ukuran segmen (byte)",
+          "flushInterval": "Interval pengiriman (ms)",
+          "pollInterval": "Interval polling (ms)",
+          "maxPollInterval": "Interval polling maks. (ms)",
+          "eagerWindow": "Jendela kirim awal (ms)",
+          "holeTimeout": "Batas waktu segmen hilang (ms)",
+          "sessionTtl": "TTL sesi (s)",
+          "concurrency": "Konkurensi"
+        },
+        "masque": {
+          "addressPool": "Kumpulan alamat",
+          "addressPoolDesc": "Alamat terowongan diberikan dari prefiks ini — maksimal satu IPv4 dan satu IPv6."
+        },
+        "autoFill": "Isi Otomatis"
       },
       "info": {
         "mode": "Mode",
@@ -663,7 +706,8 @@
           "requestHeader": "Header Permintaan",
           "responseHeader": "Header Respons"
         }
-      }
+      },
+      "advancedTitle": "Pengaturan Lanjutan"
     },
     "clients": {
       "tabBasics": "Dasar",
@@ -833,7 +877,17 @@
         "bulkAdjusted": "{count} klien disesuaikan",
         "bulkAdjustedMixed": "{ok} disesuaikan, {skipped} dilewati",
         "delDepleted": "{count} klien habis dihapus"
-      }
+      },
+      "userTemplates": "User Plan Templates",
+      "userTemplatesDesc": "Reusable client plan presets (quota, duration, on-hold start, IP/device limits, and default inbounds)",
+      "addTemplate": "Add Template",
+      "templateName": "Template Name",
+      "templateNameRequired": "Template name is required",
+      "applyTemplate": "Apply Plan Template",
+      "selectTemplatePlaceholder": "Select a preset template...",
+      "templateApplied": "Template '{{name}}' applied",
+      "revokeSub": "Revoke & Rotate Subscription Link",
+      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?"
     },
     "groups": {
       "title": "Grup",
@@ -972,6 +1026,7 @@
     },
     "settings": {
       "title": "Pengaturan Panel",
+      "unsaved": "Perubahan belum disimpan",
       "save": "Simpan",
       "infoDesc": "Setiap perubahan yang dibuat di sini perlu disimpan. Harap restart panel untuk menerapkan perubahan.",
       "restartPanel": "Mulai ulang panel",
@@ -1067,7 +1122,7 @@
       "subAnnounce": "Pengumuman",
       "subAnnounceDesc": "Teks pengumuman yang ditampilkan di klien VPN",
       "subThemeDir": "Direktori Tema Langganan",
-      "subThemeDirDesc": "Path absolut ke folder yang berisi template kustom (index.html/sub.html) untuk halaman langganan (mis. /etc/3x-ui/sub_templates/my-theme/). Biarkan kosong untuk menggunakan halaman default.",
+      "subThemeDirDesc": "Path absolut ke folder yang berisi template kustom (index.html/sub.html) untuk halaman langganan (mis. /etc/x-ui/sub_templates/my-theme/). Biarkan kosong untuk menggunakan halaman default.",
       "subThemeDirDocs": "Panduan templat ↗",
       "subEnableRouting": "Aktifkan perutean",
       "subEnableRoutingDesc": "Pengaturan global untuk mengaktifkan perutean (routing) di klien VPN. (Hanya untuk Happ)",
@@ -1200,7 +1255,29 @@
         "apiTokenEmpty": "Belum ada token — buat satu untuk mengautentikasi bot atau panel jarak jauh.",
         "apiTokenDeleteWarning": "Setiap pemanggil yang menggunakan token ini akan berhenti terautentikasi segera.",
         "apiTokenCreatedTitle": "Token dibuat",
-        "apiTokenCreatedNotice": "Salin token ini sekarang. Demi keamanan, token tidak disimpan dalam bentuk yang dapat dibaca dan tidak akan ditampilkan lagi."
+        "apiTokenCreatedNotice": "Salin token ini sekarang. Demi keamanan, token tidak disimpan dalam bentuk yang dapat dibaca dan tidak akan ditampilkan lagi.",
+        "apiTokenScope": "Permissions",
+        "apiTokenScopeFull": "Full access",
+        "apiTokenScopeRead": "Read-only",
+        "apiTokenExpireDays": "Expires in (days)",
+        "apiTokenExpireDaysDesc": "0 means never expires.",
+        "apiTokenExpires": "Expires",
+        "apiTokenExpired": "Expired",
+        "apiTokenLastUsed": "Last used",
+        "multiAdminTitle": "Admins & RBAC",
+        "multiAdminDesc": "Create secondary admin accounts with granular RBAC roles (Superadmin, Custom Admin, Support, or Read-only Viewer).",
+        "addAdmin": "Add Admin",
+        "editAdmin": "Edit Admin Account",
+        "adminRole": "Role",
+        "adminModules": "Allowed Modules",
+        "role_superadmin": "Superadmin (Full Access)",
+        "role_admin": "Custom Admin (Selected Modules)",
+        "role_support": "Support (Clients Read/Write + Inbounds Read)",
+        "role_viewer": "Viewer (Read-only Auditor)",
+        "lastLogin": "Last login",
+        "adminUsernameRequired": "Username is required",
+        "adminPasswordMin": "Password must be at least 4 characters",
+        "adminPasswordLeaveBlank": "Leave blank to keep existing password"
       },
       "toasts": {
         "modifySettings": "Parameter telah diubah.",
@@ -1211,7 +1288,47 @@
         "userPassMustBeNotEmpty": "Username dan password baru tidak boleh kosong",
         "getOutboundTrafficError": "Gagal mendapatkan lalu lintas keluar",
         "resetOutboundTrafficError": "Gagal mereset lalu lintas keluar"
-      }
+      },
+      "tgNotifyUserReport": "Laporan penggunaan pribadi ke klien",
+      "tgNotifyUserReportDesc": "Pada setiap waktu laporan, kirim juga ke setiap klien dengan Telegram tertaut ringkasan penggunaan pribadi (trafik dan kedaluwarsa). Bawaan: mati.",
+      "oneClickSslTitle": "One-Click SSL Certificate",
+      "oneClickSslDesc": "Issue a free Let's Encrypt certificate (auto-renewed before expiry) or an instant 1-year self-signed certificate.",
+      "issueCertBtn": "Issue SSL Certificate",
+      "certSelfSigned": "Self-Signed",
+      "certMode": "Certificate Type",
+      "certModeLetsEncrypt": "Let's Encrypt (HTTP-01 on port 80, auto-renewed)",
+      "certModeSelfSigned": "Self-Signed (instant, 1 year, no port 80 needed)",
+      "certDomain": "Domain",
+      "certDomainRequired": "Domain is required",
+      "certEmail": "Contact Email (optional)",
+      "certPort80Notice": "Port 80 must be reachable from the internet and point to this server.",
+      "certIssuedSuccess": "Certificate issued and applied",
+      "discordSettings": "Discord Bot",
+      "discordEnable": "Enable Discord Notifications",
+      "discordEnableDesc": "Send periodic traffic reports, approaching-limit alerts, and login notifications to Discord.",
+      "discordWebhookURL": "Discord Webhook URL",
+      "discordWebhookURLDesc": "Simplest setup: paste a channel Webhook URL.",
+      "discordBotToken": "Discord Bot Token (optional)",
+      "discordBotTokenDesc": "Alternative to Webhook: Bot token from Discord Developer Portal.",
+      "discordChannelId": "Discord Channel ID",
+      "discordChannelIdDesc": "Target channel ID when using a Bot token.",
+      "discordLoginNotify": "Login Notification",
+      "discordLoginNotifyDesc": "Post an embed whenever an admin login succeeds or fails.",
+      "discordTestTitle": "Test Discord Connection",
+      "discordTestDesc": "Save your settings first, then send a verification embed.",
+      "discordTestBtn": "Send Test Embed",
+      "discordTestSuccess": "Test message sent to Discord",
+      "cloudBackupTitle": "Cloud Backup",
+      "cloudBackupProviderGdrive": "Google Drive (Service Account / OAuth2)",
+      "cloudBackupGdriveGuide": "Google Drive Setup: (Method 1 - Recommended) Create a Google Cloud Service Account, enable Google Drive API, share your target Google Drive folder with the service account email, and paste the full JSON key below. (Method 2) Paste your OAuth2 Refresh Token below and enter your OAuth2 Client ID & Client Secret.",
+      "cloudBackupGdriveFolder": "Google Drive Folder ID or Link",
+      "cloudBackupGdriveFolderDesc": "Paste the Google Drive Folder ID or full folder URL (e.g. https://drive.google.com/drive/folders/1AbCdEf...). Leave empty to upload to Drive root.",
+      "cloudBackupGdriveCredentials": "Service Account JSON or OAuth2 Refresh Token",
+      "cloudBackupGdriveCredentialsDesc": "Paste the complete Google Cloud service_account JSON key file, or an OAuth2 Refresh Token (1//0g...).",
+      "cloudBackupGdriveClientId": "OAuth2 Client ID (Optional)",
+      "cloudBackupGdriveClientIdDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
+      "cloudBackupGdriveClientSecret": "OAuth2 Client Secret (Optional)",
+      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key."
     },
     "xray": {
       "title": "Konfigurasi Xray",
@@ -1391,7 +1508,10 @@
         "acceptProxyProtocol": "Terima proxy protocol",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (d)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (d)",
+        "masqueWarpDesc": "Terhubung ke Cloudflare WARP melalui MASQUE dengan kunci ECDSA P-256 yang terdaftar; host dan path default ke endpoint Cloudflare.",
+        "masqueWarpPublicKey": "Kunci publik endpoint",
+        "masqueWarpAddress": "Alamat terowongan"
       },
       "outbound": {
         "addOutbound": "Tambahkan Keluar",
@@ -1556,7 +1676,9 @@
         "warpPlusData": "Data WARP+",
         "quota": "Kuota",
         "usage": "Penggunaan",
-        "addOutbound": "Tambah outbound"
+        "addOutbound": "Tambah outbound",
+        "masqueDesc": "Mendaftarkan perangkat WARP terpisah untuk MASQUE; pendaftaran WireGuard di atas tidak terpengaruh.",
+        "addMasqueOutbound": "Tambah outbound WARP melalui MASQUE"
       },
       "dns": {
         "enable": "Aktifkan DNS",
@@ -1606,6 +1728,23 @@
         "edit": "Edit DNS Palsu",
         "ipPool": "Subnet Kumpulan IP",
         "poolSize": "Ukuran Kolam"
+      },
+      "tuic": {
+        "congestionControl": "Kontrol Kemacetan",
+        "congestionControlHint": "Algoritma server dan klien. Perubahan server berlaku setelah terhubung ulang.",
+        "profileOptions": "Client profile options",
+        "alpn": "ALPN",
+        "udpRelayMode": "Mode Relai UDP",
+        "udpRelayModeHint": "Mode UDP klien. Server mendukung keduanya.",
+        "zeroRttHandshake": "Jabat Tangan 0-RTT",
+        "logLevel": "Tingkat Log",
+        "logLevelHint": "Level log minimum untuk inbound ini.",
+        "maxIdleTime": "Waktu Diam Maks (dtk)",
+        "authTimeout": "Batas Waktu Otentikasi (dtk)",
+        "maxUdpRelayPacketSize": "Ukuran Paket UDP Maks",
+        "sni": "SNI",
+        "sniHint": "Nama server TLS dalam profil klien.",
+        "sniRequired": "Masukkan domain untuk mengisi jalur sertifikat otomatis."
       }
     }
   },
@@ -1659,7 +1798,7 @@
       "report": "🕰 Laporan Terjadwal: {{ .RunTime }}\r\n",
       "datetime": "⏰ Tanggal & Waktu: {{ .DateTime }}\r\n",
       "hostname": "💻 Host: {{ .Hostname }}\r\n",
-      "version": "🚀 Versi OMEGA: {{ .Version }}\r\n",
+      "version": "🚀 Versi PHOENIX: {{ .Version }}\r\n",
       "xrayVersion": "📡 Versi Xray: {{ .XrayVersion }}\r\n",
       "ipv6": "🌐 IPv6: {{ .IPv6 }}\r\n",
       "ipv4": "🌐 IPv4: {{ .IPv4 }}\r\n",
@@ -1714,7 +1853,21 @@
       "AreYouSure": "Apakah kamu yakin? 🤔",
       "SuccessResetTraffic": "📧 Email: {{ .ClientEmail }}\n🏁 Hasil: ✅ Berhasil",
       "FailedResetTraffic": "📧 Email: {{ .ClientEmail }}\n🏁 Hasil: ❌ Gagal \n\n🛠️ Kesalahan: [ {{ .ErrorMessage }} ]",
-      "FinishProcess": "🔚 Proses reset traffic selesai untuk semua klien."
+      "FinishProcess": "🔚 Proses reset traffic selesai untuk semua klien.",
+      "broadcastPrompt": "Kirim teks pesan untuk disiarkan ke semua klien (maks. ~3800 karakter).",
+      "broadcastEmpty": "Pesan kosong. Kirim teks siaran, atau tekan Batal.",
+      "broadcastTooLong": "Pesan terlalu panjang. Pendekkan (maks. ~3800 karakter) dan coba lagi.",
+      "broadcastPreview": "📣 Pratinjau siaran — penerima: {{ .Count }}",
+      "broadcastCanceled": "Siaran dibatalkan.",
+      "broadcastRunning": "Siaran lain masih dikirim. Tunggu hingga selesai.",
+      "broadcastDone": "✅ Siaran selesai: {{ .Sent }} terkirim, {{ .Failed }} gagal.",
+      "broadcastNoRecipients": "Tidak ada klien dengan akun Telegram yang tertaut — tidak ada yang dikirim.",
+      "inviteCreated": "🔗 Tautan undangan untuk {{ .Email }}\n(satu kali pakai, berlaku hingga {{ .Expires }}):\n\n{{ .Link }}",
+      "inviteRedeemed": "✅ {{ .Firstname }}, Telegram Anda kini tertaut ke {{ .Email }}. Gunakan tombol di bawah untuk mengelola langganan Anda.",
+      "inviteInvalid": "Tautan undangan ini tidak valid. Minta tautan baru dari penyedia Anda.",
+      "inviteUsed": "Tautan undangan ini sudah pernah digunakan. Minta tautan baru dari penyedia Anda.",
+      "inviteExpired": "Tautan undangan ini sudah kedaluwarsa. Minta tautan baru dari penyedia Anda.",
+      "userReport": "📊 Laporan penggunaan Anda — {{ .DateTime }}"
     },
     "buttons": {
       "closeKeyboard": "❌ Tutup Papan Ketik",
@@ -1759,7 +1912,10 @@
       "change_comment": "⚙️💬 Komentar",
       "change_flow": "⚙️🚦 Flow",
       "ResetAllTraffics": "Reset Semua Lalu Lintas",
-      "SortedTrafficUsageReport": "Laporan Penggunaan Lalu Lintas yang Terurut"
+      "SortedTrafficUsageReport": "Laporan Penggunaan Lalu Lintas yang Terurut",
+      "broadcast": "📣 Siaran",
+      "confirmBroadcast": "✅ Kirim sekarang",
+      "invite": "🔗 Tautan undangan"
     },
     "answers": {
       "successfulOperation": "✅ Operasi berhasil!",
@@ -1784,5 +1940,28 @@
       "chooseClient": "Pilih Klien untuk Inbound {{ .Inbound }}",
       "chooseInbound": "Pilih Inbound"
     }
+  },
+  "commandPalette": {
+    "open": "Quick search",
+    "placeholder": "Jump to page, search client email / subId, or run an action…",
+    "empty": "No matching pages, clients, or actions.",
+    "groupPages": "Pages",
+    "groupClients": "Clients",
+    "groupInbounds": "Inbounds",
+    "groupActions": "Quick actions",
+    "toggleTheme": "Toggle dark / light theme",
+    "hintNavigate": "navigate",
+    "hintSelect": "select"
+  },
+  "resellers": {
+    "supportTickets": "Support Tickets",
+    "paymentOrders": "Payment Webhook Orders",
+    "ticketsDesc": "Direct support communication between Resellers and Panel Admins",
+    "newTicket": "New Ticket",
+    "ticketSubject": "Subject",
+    "ticketPriority": "Priority",
+    "ticketMessage": "Message",
+    "ticketReplyPlaceholder": "Write a reply...",
+    "ticketSubjectAndMessageRequired": "Subject and message are required"
   }
 }

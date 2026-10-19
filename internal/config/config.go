@@ -1,4 +1,4 @@
-// Package config provides configuration management utilities for the 3x-ui panel,
+// Package config provides configuration management utilities for the PHOENIX panel,
 // including version information, logging levels, database paths, and environment variable handling.
 package config
 
@@ -31,15 +31,17 @@ const (
 	Error   LogLevel = "error"
 )
 
-// GetVersion returns the version string of the 3x-ui application.
+// GetVersion returns the version string of the PHOENIX application.
 func GetVersion() string {
 	return strings.TrimSpace(version)
 }
 
-// GetName returns the name of the 3x-ui application.
+// GetName returns the name of the PHOENIX application.
 func GetName() string {
 	return strings.TrimSpace(name)
 }
+
+const dbFileBaseName = "x-ui"
 
 // GetLogLevel returns the current logging level based on environment variables or defaults to Info.
 func GetLogLevel() LogLevel {
@@ -103,7 +105,7 @@ func GetDBFolderPath() string {
 
 // GetDBPath returns the full path to the database file.
 func GetDBPath() string {
-	return fmt.Sprintf("%s/%s.db", GetDBFolderPath(), GetName())
+	return fmt.Sprintf("%s/%s.db", GetDBFolderPath(), dbFileBaseName)
 }
 
 // GetDBKind returns the configured database backend: "sqlite" (default) or "postgres".
@@ -145,7 +147,7 @@ func GetLogFolder() string {
 	// scatters a log/ directory through the source tree (one per tested package).
 	// Redirect test runs to a shared temp folder so the source tree stays clean.
 	if testing.Testing() {
-		return filepath.Join(os.TempDir(), "3x-ui-test-log")
+		return filepath.Join(os.TempDir(), "phoenix-test-log")
 	}
 	if runtime.GOOS == "windows" {
 		return filepath.Join(".", "log")
@@ -182,9 +184,9 @@ func init() {
 		return
 	}
 	oldDBFolder := "/etc/x-ui"
-	oldDBPath := fmt.Sprintf("%s/%s.db", oldDBFolder, GetName())
+	oldDBPath := fmt.Sprintf("%s/%s.db", oldDBFolder, dbFileBaseName)
 	newDBFolder := GetDBFolderPath()
-	newDBPath := fmt.Sprintf("%s/%s.db", newDBFolder, GetName())
+	newDBPath := fmt.Sprintf("%s/%s.db", newDBFolder, dbFileBaseName)
 	_, err := os.Stat(newDBPath)
 	if err == nil {
 		return // new exists

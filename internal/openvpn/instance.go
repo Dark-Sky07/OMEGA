@@ -42,6 +42,14 @@ type Instance struct {
 	// becomes one certificate (CN = email) and one management-interface
 	// identity, which is also how per-client traffic is attributed.
 	Clients []string
+
+	// XrayRelayPort is the loopback TPROXY listener Xray currently exposes
+	// for this inbound (0 = none). When set, the network manager diverts
+	// the pool's TCP/UDP traffic into Xray so the panel's routing rules apply
+	// to it. It is deliberately not part of fingerprint(): it only changes
+	// iptables rules, never the daemon config, so it must never restart a
+	// daemon with live sessions.
+	XrayRelayPort int
 }
 
 // fingerprint changes whenever any value that ends up in the generated

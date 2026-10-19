@@ -22,6 +22,7 @@ import {
   AndroidOutlined,
   AppleOutlined,
   CopyOutlined,
+  DesktopOutlined,
   DownOutlined,
   DownloadOutlined,
   MoonFilled,
@@ -36,6 +37,7 @@ import { isPostQuantumLink } from '@/lib/xray/inbound-link';
 import { LinkTags, parseLinkParts } from '@/lib/xray/link-label';
 import { setMessageInstance } from '@/utils/messageBus';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
+import { usePwaInstall } from '@/hooks/usePwaInstall';
 import SubUsageSummary from './SubUsageSummary';
 import './SubPage.css';
 
@@ -84,10 +86,11 @@ const isActive = (() => {
 export default function SubPage() {
   const { t } = useTranslation();
   const { isDark, isUltra, toggleTheme, toggleUltra, antdThemeConfig } = useTheme();
+  const { installable, promptInstall } = usePwaInstall();
   const [messageApi, messageContextHolder] = message.useMessage();
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
-  const [isMobile, setIsMobile] = useState<boolean>(() => window.innerWidth < 576);
+  const [, setIsMobile] = useState<boolean>(() => window.innerWidth < 576);
   const [lang, setLang] = useState<string>(() => LanguageManager.getLanguage());
 
   useEffect(() => {
@@ -209,31 +212,70 @@ export default function SubPage() {
     return items;
   }, [t]);
 
+  const remarkTag = useMemo(() => encodeURIComponent(subTitle || sId || 'PHOENIX'), []);
+  const singboxImportUrl = useMemo(
+    () => `sing-box://import-remote-profile?url=${encodeURIComponent(subUrl)}#${remarkTag}`,
+    [remarkTag],
+  );
+  const hiddifyImportUrl = useMemo(
+    () => `hiddify://import/${subUrl}#${remarkTag}`,
+    [remarkTag],
+  );
+  const clashImportUrl = useMemo(
+    () =>
+      `clash://install-config?url=${encodeURIComponent(subClashUrl || subUrl)}&name=${remarkTag}`,
+    [remarkTag],
+  );
+  const karingImportUrl = useMemo(
+    () => `karing://install-config?url=${encodeURIComponent(subUrl)}&name=${remarkTag}`,
+    [remarkTag],
+  );
+  const nekoImportUrl = useMemo(
+    () => `sn://subscription?url=${encodeURIComponent(subUrl)}&name=${remarkTag}`,
+    [remarkTag],
+  );
+
   const androidMenuItems = useMemo(() => [
-    {
-      key: 'android-v2box',
-      label: 'V2Box',
-      onClick: () => open(`v2box://install-sub?url=${encodeURIComponent(subUrl)}&name=${encodeURIComponent(sId)}`),
-    },
     {
       key: 'android-v2rayng',
       label: 'V2RayNG',
       onClick: () => open(`v2rayng://install-config?url=${encodeURIComponent(subUrl)}`),
     },
-    { key: 'android-singbox', label: 'Sing-box', onClick: () => copy(subUrl) },
+    { key: 'android-hiddify', label: 'Hiddify', onClick: () => open(hiddifyImportUrl) },
+    { key: 'android-singbox', label: 'Sing-box (SFA)', onClick: () => open(singboxImportUrl) },
+    { key: 'android-clash', label: 'Clash Meta / FlClash', onClick: () => open(clashImportUrl) },
+    { key: 'android-karing', label: 'Karing', onClick: () => open(karingImportUrl) },
+    { key: 'android-neko', label: 'Exclave / NekoBox', onClick: () => open(nekoImportUrl) },
+    {
+      key: 'android-v2box',
+      label: 'V2Box',
+      onClick: () => open(`v2box://install-sub?url=${encodeURIComponent(subUrl)}&name=${encodeURIComponent(sId)}`),
+    },
     { key: 'android-v2raytun', label: 'V2RayTun', onClick: () => copy(subUrl) },
     { key: 'android-npvtunnel', label: 'NPV Tunnel', onClick: () => copy(subUrl) },
     { key: 'android-happ', label: 'Happ', onClick: () => open(`happ://add/${subUrl}`) },
-  ], [copy, open]);
+  ], [copy, open, hiddifyImportUrl, singboxImportUrl, clashImportUrl, karingImportUrl, nekoImportUrl]);
 
   const iosMenuItems = useMemo(() => [
     { key: 'ios-shadowrocket', label: 'Shadowrocket', onClick: () => open(shadowrocketUrl) },
-    { key: 'ios-v2box', label: 'V2Box', onClick: () => open(v2boxUrl) },
     { key: 'ios-streisand', label: 'Streisand', onClick: () => open(streisandUrl) },
+    { key: 'ios-singbox', label: 'Sing-box (SFI)', onClick: () => open(singboxImportUrl) },
+    { key: 'ios-hiddify', label: 'Hiddify', onClick: () => open(hiddifyImportUrl) },
+    { key: 'ios-karing', label: 'Karing', onClick: () => open(karingImportUrl) },
+    { key: 'ios-v2box', label: 'V2Box', onClick: () => open(v2boxUrl) },
     { key: 'ios-v2raytun', label: 'V2RayTun', onClick: () => copy(subUrl) },
     { key: 'ios-npvtunnel', label: 'NPV Tunnel', onClick: () => copy(subUrl) },
     { key: 'ios-happ', label: 'Happ', onClick: () => open(happUrl) },
-  ], [copy, open, shadowrocketUrl, v2boxUrl, streisandUrl, happUrl]);
+  ], [copy, open, shadowrocketUrl, v2boxUrl, streisandUrl, happUrl, singboxImportUrl, hiddifyImportUrl, karingImportUrl]);
+
+  const desktopMenuItems = useMemo(() => [
+    { key: 'desktop-hiddify', label: 'Hiddify (Win / Mac / Linux)', onClick: () => open(hiddifyImportUrl) },
+    { key: 'desktop-clash', label: 'Clash Verge / FlClash', onClick: () => open(clashImportUrl) },
+    { key: 'desktop-singbox', label: 'Sing-box Desktop', onClick: () => open(singboxImportUrl) },
+    { key: 'desktop-karing', label: 'Karing Desktop', onClick: () => open(karingImportUrl) },
+    { key: 'desktop-throne', label: 'Throne / NekoRay', onClick: () => open(nekoImportUrl) },
+    { key: 'desktop-v2rayn', label: 'v2rayN (Copy Sub URL)', onClick: () => copy(subUrl) },
+  ], [copy, open, hiddifyImportUrl, clashImportUrl, singboxImportUrl, karingImportUrl, nekoImportUrl]);
 
   const langMenuItems = useMemo(
     () => (LanguageManager.supportedLanguages as { value: string; name: string; icon: string }[]).map((l) => ({
@@ -259,6 +301,18 @@ export default function SubPage() {
 
   const cardExtra = (
     <Space size={8} align="center">
+      {installable && (
+        <Tooltip title="Install Web App (PWA)">
+          <Button
+            shape="circle"
+            size="large"
+            className="toolbar-btn"
+            aria-label="Install Web App"
+            icon={<DownloadOutlined />}
+            onClick={() => void promptInstall()}
+          />
+        </Tooltip>
+      )}
       <Button
         shape="circle"
         size="large"
@@ -601,17 +655,24 @@ export default function SubPage() {
 
                 {hasSubscriptionLinks && (
                   <Row gutter={[8, 8]} justify="center" className="apps-row">
-                    <Col xs={24} sm={12} className="app-col">
+                    <Col xs={24} sm={8} className="app-col">
                       <Dropdown trigger={['click']} menu={{ items: androidMenuItems }}>
-                        <Button block={isMobile} size="large" type="primary">
+                        <Button block size="large" type="primary">
                           <AndroidOutlined /> Android <DownOutlined />
                         </Button>
                       </Dropdown>
                     </Col>
-                    <Col xs={24} sm={12} className="app-col">
+                    <Col xs={24} sm={8} className="app-col">
                       <Dropdown trigger={['click']} menu={{ items: iosMenuItems }}>
-                        <Button block={isMobile} size="large" type="primary">
+                        <Button block size="large" type="primary">
                           <AppleOutlined /> iOS <DownOutlined />
+                        </Button>
+                      </Dropdown>
+                    </Col>
+                    <Col xs={24} sm={8} className="app-col">
+                      <Dropdown trigger={['click']} menu={{ items: desktopMenuItems }}>
+                        <Button block size="large" type="primary">
+                          <DesktopOutlined /> Desktop <DownOutlined />
                         </Button>
                       </Dropdown>
                     </Col>

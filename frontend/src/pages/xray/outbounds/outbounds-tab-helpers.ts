@@ -11,6 +11,8 @@ export function outboundAddresses(o: OutboundRow): string[] {
       return serverObj ? serverObj.map((s) => `${s.address}:${s.port}`) : [];
     }
     case Protocols.VLESS:
+    case Protocols.Hysteria:
+    case Protocols.Masque:
       return [`${settings?.address || ''}:${settings?.port || ''}`];
     case Protocols.HTTP:
     case Protocols.Socks:

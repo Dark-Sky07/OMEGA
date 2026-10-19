@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Input, InputNumber, Select, Space, Switch, Tabs } from 'antd';
-import { BellOutlined, SettingOutlined } from '@ant-design/icons';
-import { LanguageManager } from '@/utils';
+import { Button, Input, InputNumber, Select, Space, Switch, Tabs, message } from 'antd';
+import { ApiOutlined, BellOutlined, SettingOutlined } from '@ant-design/icons';
+import { HttpUtil, LanguageManager } from '@/utils';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -144,6 +144,20 @@ function NotifyTimeField({ value, onChange }: { value: string; onChange: (v: str
 export default function TelegramTab({ allSetting, updateSetting }: TelegramTabProps) {
   const { t } = useTranslation();
   const { isMobile } = useMediaQuery();
+  const [testingDiscord, setTestingDiscord] = useState(false);
+  const [messageApi, messageContextHolder] = message.useMessage();
+
+  async function testDiscord() {
+    setTestingDiscord(true);
+    try {
+      const msg = await HttpUtil.post('/panel/api/setting/discord/test') as { success?: boolean };
+      if (msg?.success) {
+        messageApi.success(t('pages.settings.discordTestSuccess') || 'Test message sent to Discord');
+      }
+    } finally {
+      setTestingDiscord(false);
+    }
+  }
 
   const langOptions = useMemo(
     () => LanguageManager.supportedLanguages.map((l: { value: string; name: string; icon: string }) => ({
@@ -159,7 +173,9 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
   );
 
   return (
-    <Tabs defaultActiveKey="1" items={[
+    <>
+      {messageContextHolder}
+      <Tabs defaultActiveKey="1" items={[
       {
         key: '1',
         label: catTabLabel(<SettingOutlined />, t('pages.settings.panelSettings'), isMobile),
@@ -215,6 +231,9 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
             <SettingListItem paddings="small" title={t('pages.settings.tgNotifyLogin')} description={t('pages.settings.tgNotifyLoginDesc')}>
               <Switch checked={allSetting.tgBotLoginNotify} onChange={(v) => updateSetting({ tgBotLoginNotify: v })} />
             </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.tgNotifyUserReport')} description={t('pages.settings.tgNotifyUserReportDesc')}>
+              <Switch checked={allSetting.tgBotUserReport} onChange={(v) => updateSetting({ tgBotUserReport: v })} />
+            </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.tgNotifyCpu')} description={t('pages.settings.tgNotifyCpuDesc')}>
               <InputNumber value={allSetting.tgCpu} min={0} max={100} style={{ width: '100%' }}
                 onChange={(v) => updateSetting({ tgCpu: Number(v) || 0 })} />
@@ -222,6 +241,79 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
           </>
         ),
       },
+      {
+        key: '3',
+        label: catTabLabel(<ApiOutlined />, t('pages.settings.discordSettings') || 'Discord Bot', isMobile),
+        children: (
+          <>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.discordEnable') || 'Enable Discord Notifications'}
+              description={t('pages.settings.discordEnableDesc') || 'Send periodic traffic reports, approaching-limit alerts, and login notifications to Discord.'}
+            >
+              <Switch checked={allSetting.discordEnable} onChange={(v) => updateSetting({ discordEnable: v })} />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.discordWebhookURL') || 'Discord Webhook URL'}
+              description={
+                allSetting.hasDiscordWebhookURL
+                  ? 'Configured; leave blank to keep current webhook URL.'
+                  : (t('pages.settings.discordWebhookURLDesc') || 'Simplest setup: paste a channel Webhook URL.')
+              }
+            >
+              <Input.Password
+                value={allSetting.discordWebhookURL}
+                placeholder={allSetting.hasDiscordWebhookURL ? 'Configured - enter a new URL to replace' : 'https://discord.com/api/webhooks/...'}
+                onChange={(e) => updateSetting({ discordWebhookURL: e.target.value })}
+              />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.discordBotToken') || 'Discord Bot Token (optional)'}
+              description={
+                allSetting.hasDiscordBotToken
+                  ? 'Configured; leave blank to keep current token.'
+                  : (t('pages.settings.discordBotTokenDesc') || 'Alternative to Webhook: Bot token from Discord Developer Portal.')
+              }
+            >
+              <Input.Password
+                value={allSetting.discordBotToken}
+                placeholder={allSetting.hasDiscordBotToken ? 'Configured - enter a new token to replace' : ''}
+                onChange={(e) => updateSetting({ discordBotToken: e.target.value })}
+              />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.discordChannelId') || 'Discord Channel ID'}
+              description={t('pages.settings.discordChannelIdDesc') || 'Target channel ID when using a Bot token.'}
+            >
+              <Input
+                value={allSetting.discordChannelId}
+                placeholder="123456789012345678"
+                onChange={(e) => updateSetting({ discordChannelId: e.target.value })}
+              />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.discordLoginNotify') || 'Login Notification'}
+              description={t('pages.settings.discordLoginNotifyDesc') || 'Post an embed whenever an admin login succeeds or fails.'}
+            >
+              <Switch checked={allSetting.discordLoginNotify} onChange={(v) => updateSetting({ discordLoginNotify: v })} />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.discordTestTitle') || 'Test Discord Connection'}
+              description={t('pages.settings.discordTestDesc') || 'Save your settings first, then send a verification embed.'}
+            >
+              <Button loading={testingDiscord} onClick={testDiscord}>
+                {t('pages.settings.discordTestBtn') || 'Send Test Embed'}
+              </Button>
+            </SettingListItem>
+          </>
+        ),
+      },
     ]} />
+    </>
   );
 }

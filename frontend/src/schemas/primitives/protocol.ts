@@ -15,6 +15,8 @@ export const ProtocolSchema = z.enum([
   'mtproto',
   'openvpn',
   'l2tp',
+  'masque',
+  'tuic',
 ]);
 export type Protocol = z.infer<typeof ProtocolSchema>;
 
@@ -39,4 +41,6 @@ export const Protocols = Object.freeze({
   MTPROTO: 'mtproto',
   OPENVPN: 'openvpn',
   L2TP: 'l2tp',
+  MASQUE: 'masque',
+  TUIC: 'tuic',
 });

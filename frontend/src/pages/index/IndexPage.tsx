@@ -1,19 +1,14 @@
-import { lazy, useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
   Card,
-  Col,
   ConfigProvider,
   Layout,
   message,
   Modal,
   Result,
-  Row,
-  Space,
   Spin,
-  Statistic,
-  Tag,
   Tooltip,
 } from 'antd';
 import {
@@ -21,12 +16,8 @@ import {
   ControlOutlined,
   CloudServerOutlined,
   CloudDownloadOutlined,
-  CloudUploadOutlined,
-  ArrowUpOutlined,
-  ArrowDownOutlined,
   AreaChartOutlined,
   GlobalOutlined,
-  SwapOutlined,
   EyeOutlined,
   EyeInvisibleOutlined,
   ThunderboltOutlined,
@@ -35,18 +26,22 @@ import {
   ForkOutlined,
   CopyOutlined,
   GithubOutlined,
+  HddOutlined,
+  ReloadOutlined,
+  RocketOutlined,
+  SwapOutlined,
 } from '@ant-design/icons';
 
-import { HttpUtil, SizeFormatter, TimeFormatter, ClipboardManager, FileManager } from '@/utils';
+import { HttpUtil, SizeFormatter, TimeFormatter, ClipboardManager, FileManager, CPUFormatter } from '@/utils';
 import { useTheme } from '@/hooks/useTheme';
 import { useStatusQuery } from '@/api/queries/useStatusQuery';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import AppSidebar from '@/layouts/AppSidebar';
 import { LazyMount } from '@/components/utility';
 import { setMessageInstance } from '@/utils/messageBus';
-import StatusCard from './StatusCard';
-import XrayStatusCard from './XrayStatusCard';
-import DaemonStatusCard from './DaemonStatusCard';
+import ResourceTile from './ResourceTile';
+import ServicePanel from './ServicePanel';
+import NetworkPanel from './NetworkPanel';
 import type { PanelUpdateInfo } from './PanelUpdateModal';
 const JsonEditor = lazy(() => import('@/components/form/JsonEditor'));
 const PanelUpdateModal = lazy(() => import('./PanelUpdateModal'));
@@ -58,6 +53,50 @@ const XrayLogModal = lazy(() => import('./XrayLogModal'));
 const AmneziaWGLogModal = lazy(() => import('./AmneziaWGLogModal'));
 const VersionModal = lazy(() => import('./VersionModal'));
 import './IndexPage.css';
+
+const NET_HISTORY_POINTS = 60;
+
+type StateKind = 'running' | 'stop' | 'error' | 'unknown';
+function stateKind(state: string): StateKind {
+  return state === 'running' || state === 'stop' || state === 'error' ? state : 'unknown';
+}
+
+/** Small key/value tile used in the overview's bottom row. */
+function InfoTile({
+  icon,
+  label,
+  value,
+  hint,
+  onClick,
+  className = '',
+}: {
+  icon: React.ReactNode;
+  label: React.ReactNode;
+  value: React.ReactNode;
+  hint?: React.ReactNode;
+  onClick?: () => void;
+  className?: string;
+}) {
+  const content = (
+    <>
+      <span className="info-tile-icon">{icon}</span>
+      <span className="info-tile-copy">
+        <span className="info-tile-label">{label}</span>
+        <span className="info-tile-value">{value}</span>
+        {hint && <span className="info-tile-hint">{hint}</span>}
+      </span>
+    </>
+  );
+  const cls = `info-tile ${onClick ? 'is-clickable' : ''} ${className}`.trim();
+  if (onClick) {
+    return (
+      <button type="button" className={cls} onClick={onClick}>
+        {content}
+      </button>
+    );
+  }
+  return <div className={cls}>{content}</div>;
+}
 
 export default function IndexPage() {
   const { t } = useTranslation();
@@ -197,6 +236,43 @@ export default function IndexPage() {
 
   const pageClass = `index-page ${isDark ? 'is-dark' : ''} ${isUltra ? 'is-ultra' : ''}`.trim();
 
+  // Rolling throughput history for the network sparkline (one sample per poll).
+  const [netHistory, setNetHistory] = useState<{ up: number[]; down: number[] }>({ up: [], down: [] });
+  const lastSampleRef = useRef<{ up: number; down: number } | null>(null);
+  useEffect(() => {
+    if (!fetched || fetchError) return;
+    const sample = { up: status.netIO.up, down: status.netIO.down };
+    const prev = lastSampleRef.current;
+    if (prev && prev.up === sample.up && prev.down === sample.down) return;
+    lastSampleRef.current = sample;
+    setNetHistory((h) => ({
+      up: [...h.up, sample.up].slice(-NET_HISTORY_POINTS),
+      down: [...h.down, sample.down].slice(-NET_HISTORY_POINTS),
+    }));
+  }, [status.netIO.up, status.netIO.down, fetched, fetchError]);
+
+  const openvpnHandlers = useMemo(() => ({
+    onStart: startOpenVPN, onStop: stopOpenVPN, onRestart: restartOpenVPN, onUpdate: updateOpenVPN,
+  }), [startOpenVPN, stopOpenVPN, restartOpenVPN, updateOpenVPN]);
+  const l2tpHandlers = useMemo(() => ({
+    onStart: startL2TP, onStop: stopL2TP, onRestart: restartL2TP, onUpdate: updateL2TP,
+  }), [startL2TP, stopL2TP, restartL2TP, updateL2TP]);
+
+  const xrayVersionLabel = status.xray.version && status.xray.version !== 'Unknown' ? `v${status.xray.version}` : '';
+  const services: { key: string; name: string; state: string }[] = [
+    { key: 'xray', name: 'Xray', state: status.xray.state },
+    { key: 'openvpn', name: 'OpenVPN', state: status.openvpn.state },
+    { key: 'l2tp', name: 'L2TP', state: status.l2tp.state },
+  ];
+
+  const cpuDetails = (
+    <>
+      <div><b>{t('pages.index.logicalProcessors')}:</b> {status.logicalPro}</div>
+      <div><b>{t('pages.index.frequency')}:</b> {CPUFormatter.cpuSpeedFormat(status.cpuSpeedMhz)}</div>
+      <div><b>Load:</b> {status.loads.join(' / ')}</div>
+    </>
+  );
+
   return (
     <ConfigProvider theme={antdThemeConfig}>
       {messageContextHolder}
@@ -221,284 +297,162 @@ export default function IndexPage() {
                   extra={<Button type="primary" onClick={refresh}>{t('refresh')}</Button>}
                 />
               ) : (
-                <Row gutter={[isMobile ? 8 : 16, 12]}>
-                  <Col span={24}>
-                    <StatusCard status={status} isMobile={isMobile} />
-                  </Col>
+                <div className="dash">
+                  <header className="dash-hero omega-rise">
+                    <div className="dash-hero-copy">
+                      <span className="omega-eyebrow">
+                        <span className="omega-kicker">OMEGA</span>
+                        {displayVersion && <span className="dash-hero-version">v{displayVersion}</span>}
+                      </span>
+                      <h1 className="omega-page-title">{t('pages.index.title')}</h1>
+                      <p className="omega-page-subtitle">{t('pages.index.heroSubtitle', 'Live health of this server and every tunnel it runs.')}</p>
+                      <div className="dash-hero-pills">
+                        {services.map((svc) => (
+                          <span key={svc.key} className={`omega-pill is-${stateKind(svc.state)}`}>
+                            <span className="omega-dot" />
+                            {svc.name}
+                            {svc.key === 'xray' && xrayVersionLabel && <em>{xrayVersionLabel}</em>}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="dash-hero-actions">
+                      {panelUpdateInfo.updateAvailable && (
+                        <Button type="primary" icon={<RocketOutlined />} onClick={openPanelVersion} className="dash-update-btn">
+                          {t('update')} {panelUpdateInfo.latestVersion}
+                        </Button>
+                      )}
+                      <Tooltip title={t('pages.index.restartXray')}>
+                        <Button icon={<ReloadOutlined />} onClick={restartXray}>{isMobile ? null : t('pages.index.restartXray')}</Button>
+                      </Tooltip>
+                      <Tooltip title={t('pages.index.logs')}>
+                        <Button icon={<BarsOutlined />} onClick={() => setLogsOpen(true)}>{isMobile ? null : t('pages.index.logs')}</Button>
+                      </Tooltip>
+                      <Tooltip title={t('pages.index.config')}>
+                        <Button icon={<ControlOutlined />} onClick={openConfig}>{isMobile ? null : t('pages.index.config')}</Button>
+                      </Tooltip>
+                      <Tooltip title={t('pages.index.backupTitle')}>
+                        <Button icon={<CloudServerOutlined />} onClick={() => setBackupOpen(true)}>{isMobile ? null : t('pages.index.backupTitle')}</Button>
+                      </Tooltip>
+                    </div>
+                  </header>
 
-                  <Col xs={24} lg={12}>
-                    <XrayStatusCard
+                  <section className="dash-resources omega-rise omega-rise-1" aria-label={t('pages.index.resources', 'Resources')}>
+                    <ResourceTile
+                      label={t('pages.index.cpu')}
+                      icon={<ThunderboltOutlined />}
+                      percent={status.cpu.percent}
+                      value={CPUFormatter.cpuCoreFormat(status.cpuCores)}
+                      caption={`${t('pages.index.frequency')}: ${CPUFormatter.cpuSpeedFormat(status.cpuSpeedMhz)}`}
+                      details={cpuDetails}
+                      size={isMobile ? 'compact' : 'default'}
+                    />
+                    <ResourceTile
+                      label={t('pages.index.memory')}
+                      icon={<DatabaseOutlined />}
+                      percent={status.mem.percent}
+                      value={SizeFormatter.sizeFormat(status.mem.current)}
+                      caption={`/ ${SizeFormatter.sizeFormat(status.mem.total)}`}
+                      size={isMobile ? 'compact' : 'default'}
+                    />
+                    <ResourceTile
+                      label={t('pages.index.swap')}
+                      icon={<SwapOutlined />}
+                      percent={status.swap.percent}
+                      value={SizeFormatter.sizeFormat(status.swap.current)}
+                      caption={`/ ${SizeFormatter.sizeFormat(status.swap.total)}`}
+                      size={isMobile ? 'compact' : 'default'}
+                    />
+                    <ResourceTile
+                      label={t('pages.index.storage')}
+                      icon={<HddOutlined />}
+                      percent={status.disk.percent}
+                      value={SizeFormatter.sizeFormat(status.disk.current)}
+                      caption={`/ ${SizeFormatter.sizeFormat(status.disk.total)}`}
+                      size={isMobile ? 'compact' : 'default'}
+                    />
+                  </section>
+
+                  <section className="dash-main omega-rise omega-rise-2">
+                    <ServicePanel
                       status={status}
-                      isMobile={isMobile}
                       accessLogEnable={accessLogEnable}
                       onStopXray={stopXray}
                       onRestartXray={restartXray}
                       onOpenXrayLogs={() => setXrayLogsOpen(true)}
                       onOpenAmneziaWGLogs={() => setAmneziaWGLogsOpen(true)}
-                      onOpenLogs={() => setLogsOpen(true)}
                       onOpenVersionSwitch={() => setVersionOpen(true)}
-                    />
-                  </Col>
-
-                  <Col xs={24} lg={12}>
-                    <DaemonStatusCard
-                      title="OpenVPN"
-                      status={status.openvpn}
-                      isMobile={isMobile}
-                      onStop={stopOpenVPN}
-                      onStart={startOpenVPN}
-                      onRestart={restartOpenVPN}
-                      onUpdate={updateOpenVPN}
                       onOpenLogs={() => setLogsOpen(true)}
+                      openvpn={openvpnHandlers}
+                      l2tp={l2tpHandlers}
                     />
-                  </Col>
-
-                  <Col xs={24} lg={12}>
-                    <DaemonStatusCard
-                      title="L2TP / IPsec"
-                      status={status.l2tp}
-                      isMobile={isMobile}
-                      onStop={stopL2TP}
-                      onStart={startL2TP}
-                      onRestart={restartL2TP}
-                      onUpdate={updateL2TP}
-                      onOpenLogs={() => setLogsOpen(true)}
+                    <NetworkPanel
+                      status={status}
+                      upHistory={netHistory.up}
+                      downHistory={netHistory.down}
+                      onOpenHistory={() => setSysHistoryOpen(true)}
                     />
-                  </Col>
+                  </section>
 
-                  <Col xs={24} lg={12}>
-                    <Card
-                      title={t('menu.link')}
-                      hoverable
-                      actions={[
-                        <Space className="action" key="logs" onClick={() => setLogsOpen(true)}>
-                          <BarsOutlined />
-                          {!isMobile && <span>{t('pages.index.logs')}</span>}
-                        </Space>,
-                        <Space className="action" key="config" onClick={openConfig}>
-                          <ControlOutlined />
-                          {!isMobile && <span>{t('pages.index.config')}</span>}
-                        </Space>,
-                        <Space className="action" key="backup" onClick={() => setBackupOpen(true)}>
-                          <CloudServerOutlined />
-                          {!isMobile && <span>{t('pages.index.backupTitle')}</span>}
-                        </Space>,
-                      ]}
-                    />
-                  </Col>
-
-                  <Col xs={24} lg={12}>
-                    <Card
-                      title={
-                        <Space>
-                          <span>OMEGA</span>
-                          {isMobile && displayVersion && (
-                            <Tag color={panelUpdateInfo.updateAvailable ? 'orange' : 'green'}>
-                              {panelUpdateInfo.updateAvailable
-                                ? `v${panelUpdateInfo.latestVersion}`
-                                : `v${displayVersion}`}
-                            </Tag>
-                          )}
-                        </Space>
-                      }
-                      hoverable
-                      actions={[
-                        <Space className="action" key="github" onClick={openGithub}>
-                          <GithubOutlined />
-                          {!isMobile && <span>Dark-Sky07</span>}
-                        </Space>,
-                        <Space
-                          key="panel-version"
-                          className={`action ${panelUpdateInfo.updateAvailable ? 'action-update' : ''}`}
-                          onClick={openPanelVersion}
-                        >
-                          <CloudDownloadOutlined />
-                          {!isMobile && (
-                            <span>
-                              {panelUpdateInfo.updateAvailable
-                                ? `${t('update')} ${panelUpdateInfo.latestVersion}`
-                                : `v${displayVersion}`}
-                            </span>
-                          )}
-                        </Space>,
-                      ]}
-                    />
-                  </Col>
-
-                  <Col xs={24} lg={12}>
-                    <Card
-                      title={t('pages.index.charts')}
-                      hoverable
-                      actions={[
-                        <Space
-                          className="action"
-                          key="sys-history"
-                          onClick={() => setSysHistoryOpen(true)}
-                        >
-                          <AreaChartOutlined />
-                          {!isMobile && <span>{t('pages.index.systemHistoryTitle')}</span>}
-                        </Space>,
-                        <Space
-                          className="action"
-                          key="xray-metrics"
-                          onClick={() => setXrayMetricsOpen(true)}
-                        >
-                          <AreaChartOutlined />
-                          {!isMobile && <span>{t('pages.index.xrayMetricsTitle')}</span>}
-                        </Space>,
-                      ]}
-                    />
-                  </Col>
-
-                  <Col xs={24} lg={12}>
-                    <Card title={t('pages.index.operationHours')} hoverable>
-                      <Row gutter={isMobile ? [8, 8] : 0}>
-                        <Col span={12}>
-                          <Statistic
-                            title="Xray"
-                            value={TimeFormatter.formatSecond(status.appStats.uptime)}
-                            prefix={<ThunderboltOutlined />}
-                          />
-                        </Col>
-                        <Col span={12}>
-                          <Statistic
-                            title="OS"
-                            value={TimeFormatter.formatSecond(status.uptime)}
-                            prefix={<DesktopOutlined />}
-                          />
-                        </Col>
-                      </Row>
+                  <section className="dash-info omega-rise omega-rise-3">
+                    <Card className="info-card" title={<span className="omega-eyebrow">{t('pages.index.operationHours')}</span>}>
+                      <div className="info-grid">
+                        <InfoTile icon={<ThunderboltOutlined />} label="Xray" value={TimeFormatter.formatSecond(status.appStats.uptime)} />
+                        <InfoTile icon={<DesktopOutlined />} label="OS" value={TimeFormatter.formatSecond(status.uptime)} />
+                      </div>
                     </Card>
-                  </Col>
 
-                  <Col xs={24} lg={12}>
-                    <Card title={t('usage')} hoverable>
-                      <Row gutter={isMobile ? [8, 8] : 0}>
-                        <Col span={12}>
-                          <Statistic
-                            title={t('pages.index.memory')}
-                            value={SizeFormatter.sizeFormat(status.appStats.mem)}
-                            prefix={<DatabaseOutlined />}
-                          />
-                        </Col>
-                        <Col span={12}>
-                          <Statistic
-                            title={t('pages.index.threads')}
-                            value={status.appStats.threads}
-                            prefix={<ForkOutlined />}
-                          />
-                        </Col>
-                      </Row>
+                    <Card className="info-card" title={<span className="omega-eyebrow">{t('pages.index.panelProcess', 'Panel process')}</span>}>
+                      <div className="info-grid">
+                        <InfoTile icon={<DatabaseOutlined />} label={t('pages.index.memory')} value={SizeFormatter.sizeFormat(status.appStats.mem)} />
+                        <InfoTile icon={<ForkOutlined />} label={t('pages.index.threads')} value={status.appStats.threads} />
+                      </div>
                     </Card>
-                  </Col>
 
-                  <Col xs={24} lg={12}>
-                    <Card title={t('pages.index.overallSpeed')} hoverable>
-                      <Row gutter={isMobile ? [8, 8] : 0}>
-                        <Col span={12}>
-                          <Statistic
-                            title={t('pages.index.upload')}
-                            value={SizeFormatter.sizeFormat(status.netIO.up)}
-                            prefix={<ArrowUpOutlined />}
-                            suffix="/s"
-                          />
-                        </Col>
-                        <Col span={12}>
-                          <Statistic
-                            title={t('pages.index.download')}
-                            value={SizeFormatter.sizeFormat(status.netIO.down)}
-                            prefix={<ArrowDownOutlined />}
-                            suffix="/s"
-                          />
-                        </Col>
-                      </Row>
-                    </Card>
-                  </Col>
-
-                  <Col xs={24} lg={12}>
-                    <Card title={t('pages.index.totalData')} hoverable>
-                      <Row gutter={isMobile ? [8, 8] : 0}>
-                        <Col span={12}>
-                          <Statistic
-                            title={t('pages.index.sent')}
-                            value={SizeFormatter.sizeFormat(status.netTraffic.sent)}
-                            prefix={<CloudUploadOutlined />}
-                          />
-                        </Col>
-                        <Col span={12}>
-                          <Statistic
-                            title={t('pages.index.received')}
-                            value={SizeFormatter.sizeFormat(status.netTraffic.recv)}
-                            prefix={<CloudDownloadOutlined />}
-                          />
-                        </Col>
-                      </Row>
-                    </Card>
-                  </Col>
-
-                  <Col xs={24} lg={12}>
                     <Card
-                      title={t('pages.index.ipAddresses')}
-                      hoverable
-                      extra={
-                        <Tooltip
-                          title={t('pages.index.toggleIpVisibility')}
-                          placement={isMobile ? 'topRight' : 'top'}
-                        >
-                          {showIp ? (
-                            <EyeOutlined
-                              className="ip-toggle-icon"
-                              onClick={() => setShowIp(false)}
-                            />
-                          ) : (
-                            <EyeInvisibleOutlined
-                              className="ip-toggle-icon"
-                              onClick={() => setShowIp(true)}
-                            />
-                          )}
+                      className="info-card"
+                      title={<span className="omega-eyebrow">{t('pages.index.ipAddresses')}</span>}
+                      extra={(
+                        <Tooltip title={t('pages.index.toggleIpVisibility')} placement={isMobile ? 'topRight' : 'top'}>
+                          <button
+                            type="button"
+                            className="omega-icon-btn ip-toggle-btn"
+                            aria-label={t('pages.index.toggleIpVisibility')}
+                            aria-pressed={showIp}
+                            onClick={() => setShowIp((v) => !v)}
+                          >
+                            {showIp ? <EyeOutlined className="ip-toggle-icon" /> : <EyeInvisibleOutlined className="ip-toggle-icon" />}
+                          </button>
                         </Tooltip>
-                      }
+                      )}
                     >
-                      <Row className={showIp ? 'ip-visible' : 'ip-hidden'} gutter={isMobile ? [8, 8] : 0}>
-                        <Col span={isMobile ? 24 : 12}>
-                          <Statistic
-                            title="IPv4"
-                            value={status.publicIP.ipv4}
-                            prefix={<GlobalOutlined />}
-                          />
-                        </Col>
-                        <Col span={isMobile ? 24 : 12}>
-                          <Statistic
-                            title="IPv6"
-                            value={status.publicIP.ipv6}
-                            prefix={<GlobalOutlined />}
-                          />
-                        </Col>
-                      </Row>
+                      <div className={`info-grid ${showIp ? 'ip-visible' : 'ip-hidden'}`}>
+                        <InfoTile icon={<GlobalOutlined />} label="IPv4" value={<span className="ip-value">{status.publicIP.ipv4 || '—'}</span>} />
+                        <InfoTile icon={<GlobalOutlined />} label="IPv6" value={<span className="ip-value">{status.publicIP.ipv6 || '—'}</span>} />
+                      </div>
                     </Card>
-                  </Col>
 
-                  <Col xs={24} lg={12}>
-                    <Card title={t('pages.index.connectionCount')} hoverable>
-                      <Row gutter={isMobile ? [8, 8] : 0}>
-                        <Col span={12}>
-                          <Statistic
-                            title="TCP"
-                            value={status.tcpCount}
-                            prefix={<SwapOutlined />}
-                          />
-                        </Col>
-                        <Col span={12}>
-                          <Statistic
-                            title="UDP"
-                            value={status.udpCount}
-                            prefix={<SwapOutlined />}
-                          />
-                        </Col>
-                      </Row>
+                    <Card className="info-card" title={<span className="omega-eyebrow">{t('pages.index.charts')}</span>}>
+                      <div className="info-grid">
+                        <InfoTile icon={<AreaChartOutlined />} label={t('pages.index.charts')} value={t('pages.index.systemHistoryTitle')} onClick={() => setSysHistoryOpen(true)} />
+                        <InfoTile icon={<AreaChartOutlined />} label="Xray" value={t('pages.index.xrayMetricsTitle')} onClick={() => setXrayMetricsOpen(true)} />
+                      </div>
                     </Card>
-                  </Col>
-                </Row>
+
+                    <Card className="info-card" title={<span className="omega-eyebrow">OMEGA</span>}>
+                      <div className="info-grid">
+                        <InfoTile
+                          icon={<CloudDownloadOutlined />}
+                          label={panelUpdateInfo.updateAvailable ? t('update') : t('pages.index.upToDate')}
+                          value={panelUpdateInfo.updateAvailable ? `v${panelUpdateInfo.latestVersion}` : `v${displayVersion}`}
+                          onClick={openPanelVersion}
+                          className={panelUpdateInfo.updateAvailable ? 'is-update' : ''}
+                        />
+                        <InfoTile icon={<GithubOutlined />} label="GitHub" value="Dark-Sky07" onClick={openGithub} />
+                      </div>
+                    </Card>
+                  </section>
+                </div>
               )}
             </Spin>
           </Layout.Content>

@@ -99,7 +99,7 @@ jobs:
         run: mkdir -p internal/web/dist && touch internal/web/dist/.gitkeep
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
-      # OMEGA is pinned to the exact 3x-ui v3.3.1 dependency set on purpose, so
+      # PHOENIX pins its dependency set on purpose, so
       # advisories disclosed after that release are expected to appear here.
       # Keep the report, don't fail the pipeline on it (see README, "Security").
       - name: Run govulncheck

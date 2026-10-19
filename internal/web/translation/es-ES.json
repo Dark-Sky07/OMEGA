@@ -113,7 +113,12 @@
     "apiDocs": "Documentación de la API",
     "logout": "Cerrar Sesión",
     "link": "Gestionar",
-    "donate": "Donar"
+    "donate": "Donar",
+    "groupOverview": "Resumen",
+    "groupManage": "Gestión",
+    "groupSystem": "Sistema",
+    "collapse": "Contraer barra lateral",
+    "expand": "Expandir barra lateral"
   },
   "pages": {
     "login": {
@@ -126,7 +131,9 @@
         "emptyPassword": "Por favor ingresa la contraseña.",
         "wrongUsernameOrPassword": "Nombre de usuario, contraseña o código de dos factores incorrecto.",
         "successLogin": "Has iniciado sesión en tu cuenta correctamente."
-      }
+      },
+      "asideTitle": "Un panel para todos los túneles.",
+      "asideText": "Xray, OpenVPN, L2TP/IPsec y AmneziaWG: gestionados, enrutados y medidos desde un solo lugar."
     },
     "index": {
       "title": "Estado del Sistema",
@@ -145,7 +152,7 @@
       "xraySwitchClick": "Elige la versión a la que deseas cambiar.",
       "xraySwitchClickDesk": "Elige sabiamente, ya que las versiones anteriores pueden no ser compatibles con las configuraciones actuales.",
       "updatePanel": "Actualizar panel",
-      "panelUpdateDesc": "Esto actualizará OMEGA a la última versión y reiniciará el servicio del panel.",
+      "panelUpdateDesc": "Esto actualizará PHOENIX a la última versión y reiniciará el servicio del panel.",
       "currentPanelVersion": "Versión actual del panel",
       "latestPanelVersion": "Última versión del panel",
       "panelUpToDate": "El panel está actualizado",
@@ -213,7 +220,7 @@
       "xraySwitchVersionDialogDesc": "Esto cambiará la versión de Xray a #version#.",
       "xraySwitchVersionPopover": "Xray se actualizó correctamente",
       "panelUpdateDialog": "¿Deseas actualizar el panel?",
-      "panelUpdateDialogDesc": "Esto actualizará OMEGA a la versión #version# y reiniciará el servicio del panel.",
+      "panelUpdateDialogDesc": "Esto actualizará PHOENIX a la versión #version# y reiniciará el servicio del panel.",
       "panelUpdateCheckPopover": "Fallo al comprobar actualización del panel",
       "panelUpdateStartedPopover": "Actualización del panel iniciada",
       "geofileUpdateDialog": "¿Realmente deseas actualizar el geofichero?",
@@ -253,7 +260,12 @@
       "importDatabasePgDesc": "Haz clic para seleccionar y subir un archivo .dump y restaurar tu base de datos PostgreSQL. Esto reemplaza todos los datos actuales.",
       "migrationDownload": "Descargar migración",
       "migrationDownloadDesc": "Haz clic para descargar una exportación portable .dump (texto SQL) de tu base de datos SQLite.",
-      "migrationDownloadPgDesc": "Haz clic para descargar una base de datos SQLite .db creada a partir de tus datos de PostgreSQL, lista para ejecutar este panel en SQLite."
+      "migrationDownloadPgDesc": "Haz clic para descargar una base de datos SQLite .db creada a partir de tus datos de PostgreSQL, lista para ejecutar este panel en SQLite.",
+      "heroSubtitle": "Estado en vivo de este servidor y de todos sus túneles.",
+      "services": "Servicios",
+      "network": "Red",
+      "resources": "Recursos",
+      "panelProcess": "Proceso del panel"
     },
     "inbounds": {
       "title": "Entradas",
@@ -508,6 +520,8 @@
         "mtgDebug": "Registro de depuración",
         "mtgRouteThroughXray": "Enrutar a través de Xray",
         "mtgRouteThroughXrayHint": "Envía el tráfico de Telegram de este proxy a través de Xray para que siga tus reglas de enrutamiento. El sidecar mtg sale por un puente SOCKS local con la etiqueta de esta entrada; usa esa etiqueta en la pestaña Enrutamiento para reglas avanzadas.",
+        "daemonRouteThroughXray": "Enrutar a través de Xray",
+        "daemonRouteThroughXrayHint": "Desvía el tráfico de los clientes de esta entrada (TCP y UDP) a través del enrutador de Xray para que las reglas de enrutamiento se le apliquen igual que a las entradas propias de Xray. El tráfico entra al núcleo por un oyente local etiquetado con la etiqueta de esta entrada; usa esa etiqueta en la pestaña Enrutamiento para reglas personalizadas. Se desactiva automáticamente (ruta directa) cuando Xray no está en ejecución.",
         "mtgRouteOutbound": "Salida",
         "mtgRouteOutboundHint": "Opcional. Fuerza el tráfico de Telegram a salir por esta salida (o balanceador). Déjalo vacío para que decidan tus reglas de enrutamiento.",
         "mtgRouteOutboundPlaceholder": "Usar reglas de enrutamiento",
@@ -628,7 +642,36 @@
           "node": "Dirección del nodo",
           "listen": "Dirección de escucha del inbound",
           "custom": "Personalizada"
-        }
+        },
+        "xdrive": {
+          "service": "Servicio de almacenamiento",
+          "serviceLocal": "Carpeta local",
+          "serviceTemplate": "Plantilla personalizada",
+          "remoteFolder": "Carpeta remota",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "Secretos",
+          "secretsDesc": "Valores que la plantilla lee como {secret0}, {secret1}, …",
+          "template": "Plantilla de almacenamiento",
+          "templateInvalid": "Debe ser un objeto JSON",
+          "front": "Dirección de fronting",
+          "frontDesc": "Host o IP opcional a través del cual se conecta a la API de almacenamiento (domain fronting).",
+          "frontPort": "Puerto de fronting",
+          "segmentBytes": "Tamaño de segmento (bytes)",
+          "flushInterval": "Intervalo de envío (ms)",
+          "pollInterval": "Intervalo de sondeo (ms)",
+          "maxPollInterval": "Intervalo máximo de sondeo (ms)",
+          "eagerWindow": "Ventana anticipada (ms)",
+          "holeTimeout": "Tiempo de espera de segmento perdido (ms)",
+          "sessionTtl": "TTL de sesión (s)",
+          "concurrency": "Concurrencia"
+        },
+        "masque": {
+          "addressPool": "Pool de direcciones",
+          "addressPoolDesc": "Las direcciones del túnel se asignan de estos prefijos: como máximo uno IPv4 y uno IPv6."
+        },
+        "autoFill": "Autocompletar"
       },
       "info": {
         "mode": "Modo",
@@ -663,7 +706,8 @@
           "requestHeader": "Encabezado de solicitud",
           "responseHeader": "Encabezado de respuesta"
         }
-      }
+      },
+      "advancedTitle": "Configuración avanzada"
     },
     "clients": {
       "tabBasics": "Básico",
@@ -833,7 +877,17 @@
         "bulkAdjusted": "{count} clientes ajustados",
         "bulkAdjustedMixed": "{ok} ajustados, {skipped} omitidos",
         "delDepleted": "{count} clientes agotados eliminados"
-      }
+      },
+      "userTemplates": "User Plan Templates",
+      "userTemplatesDesc": "Reusable client plan presets (quota, duration, on-hold start, IP/device limits, and default inbounds)",
+      "addTemplate": "Add Template",
+      "templateName": "Template Name",
+      "templateNameRequired": "Template name is required",
+      "applyTemplate": "Apply Plan Template",
+      "selectTemplatePlaceholder": "Select a preset template...",
+      "templateApplied": "Template '{{name}}' applied",
+      "revokeSub": "Revoke & Rotate Subscription Link",
+      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?"
     },
     "groups": {
       "title": "Grupos",
@@ -972,6 +1026,7 @@
     },
     "settings": {
       "title": "Configuraciones",
+      "unsaved": "Cambios sin guardar",
       "save": "Guardar",
       "infoDesc": "Cada cambio realizado aquí debe ser guardado. Por favor, reinicie el panel para aplicar los cambios.",
       "restartPanel": "Reiniciar panel",
@@ -1067,7 +1122,7 @@
       "subAnnounce": "Anuncio",
       "subAnnounceDesc": "El texto del anuncio mostrado en el cliente VPN",
       "subThemeDir": "Directorio del tema de suscripción",
-      "subThemeDirDesc": "Ruta absoluta a una carpeta que contiene una plantilla personalizada (index.html/sub.html) para la página de suscripción (p. ej. /etc/3x-ui/sub_templates/my-theme/). Déjalo vacío para usar la página predeterminada.",
+      "subThemeDirDesc": "Ruta absoluta a una carpeta que contiene una plantilla personalizada (index.html/sub.html) para la página de suscripción (p. ej. /etc/x-ui/sub_templates/my-theme/). Déjalo vacío para usar la página predeterminada.",
       "subThemeDirDocs": "Guía de plantillas ↗",
       "subEnableRouting": "Habilitar enrutamiento",
       "subEnableRoutingDesc": "Configuración global para habilitar el enrutamiento en el cliente VPN. (Solo para Happ)",
@@ -1200,7 +1255,29 @@
         "apiTokenEmpty": "Aún no hay tokens — crea uno para autenticar bots o paneles remotos.",
         "apiTokenDeleteWarning": "Cualquier cliente que use este token dejará de autenticarse inmediatamente.",
         "apiTokenCreatedTitle": "Token creado",
-        "apiTokenCreatedNotice": "Copia este token ahora. Por seguridad, no se almacena de forma legible y no se volverá a mostrar."
+        "apiTokenCreatedNotice": "Copia este token ahora. Por seguridad, no se almacena de forma legible y no se volverá a mostrar.",
+        "apiTokenScope": "Permissions",
+        "apiTokenScopeFull": "Full access",
+        "apiTokenScopeRead": "Read-only",
+        "apiTokenExpireDays": "Expires in (days)",
+        "apiTokenExpireDaysDesc": "0 means never expires.",
+        "apiTokenExpires": "Expires",
+        "apiTokenExpired": "Expired",
+        "apiTokenLastUsed": "Last used",
+        "multiAdminTitle": "Admins & RBAC",
+        "multiAdminDesc": "Create secondary admin accounts with granular RBAC roles (Superadmin, Custom Admin, Support, or Read-only Viewer).",
+        "addAdmin": "Add Admin",
+        "editAdmin": "Edit Admin Account",
+        "adminRole": "Role",
+        "adminModules": "Allowed Modules",
+        "role_superadmin": "Superadmin (Full Access)",
+        "role_admin": "Custom Admin (Selected Modules)",
+        "role_support": "Support (Clients Read/Write + Inbounds Read)",
+        "role_viewer": "Viewer (Read-only Auditor)",
+        "lastLogin": "Last login",
+        "adminUsernameRequired": "Username is required",
+        "adminPasswordMin": "Password must be at least 4 characters",
+        "adminPasswordLeaveBlank": "Leave blank to keep existing password"
       },
       "toasts": {
         "modifySettings": "Los parámetros han sido modificados.",
@@ -1211,7 +1288,47 @@
         "userPassMustBeNotEmpty": "El nuevo nombre de usuario y la nueva contraseña no pueden estar vacíos",
         "getOutboundTrafficError": "Error al obtener el tráfico saliente",
         "resetOutboundTrafficError": "Error al reiniciar el tráfico saliente"
-      }
+      },
+      "tgNotifyUserReport": "Informe de uso personal a los clientes",
+      "tgNotifyUserReportDesc": "En cada informe periódico, enviar también a cada cliente con Telegram vinculado un resumen personal de uso (tráfico y caducidad). Desactivado por defecto.",
+      "oneClickSslTitle": "One-Click SSL Certificate",
+      "oneClickSslDesc": "Issue a free Let's Encrypt certificate (auto-renewed before expiry) or an instant 1-year self-signed certificate.",
+      "issueCertBtn": "Issue SSL Certificate",
+      "certSelfSigned": "Self-Signed",
+      "certMode": "Certificate Type",
+      "certModeLetsEncrypt": "Let's Encrypt (HTTP-01 on port 80, auto-renewed)",
+      "certModeSelfSigned": "Self-Signed (instant, 1 year, no port 80 needed)",
+      "certDomain": "Domain",
+      "certDomainRequired": "Domain is required",
+      "certEmail": "Contact Email (optional)",
+      "certPort80Notice": "Port 80 must be reachable from the internet and point to this server.",
+      "certIssuedSuccess": "Certificate issued and applied",
+      "discordSettings": "Discord Bot",
+      "discordEnable": "Enable Discord Notifications",
+      "discordEnableDesc": "Send periodic traffic reports, approaching-limit alerts, and login notifications to Discord.",
+      "discordWebhookURL": "Discord Webhook URL",
+      "discordWebhookURLDesc": "Simplest setup: paste a channel Webhook URL.",
+      "discordBotToken": "Discord Bot Token (optional)",
+      "discordBotTokenDesc": "Alternative to Webhook: Bot token from Discord Developer Portal.",
+      "discordChannelId": "Discord Channel ID",
+      "discordChannelIdDesc": "Target channel ID when using a Bot token.",
+      "discordLoginNotify": "Login Notification",
+      "discordLoginNotifyDesc": "Post an embed whenever an admin login succeeds or fails.",
+      "discordTestTitle": "Test Discord Connection",
+      "discordTestDesc": "Save your settings first, then send a verification embed.",
+      "discordTestBtn": "Send Test Embed",
+      "discordTestSuccess": "Test message sent to Discord",
+      "cloudBackupTitle": "Cloud Backup",
+      "cloudBackupProviderGdrive": "Google Drive (Service Account / OAuth2)",
+      "cloudBackupGdriveGuide": "Google Drive Setup: (Method 1 - Recommended) Create a Google Cloud Service Account, enable Google Drive API, share your target Google Drive folder with the service account email, and paste the full JSON key below. (Method 2) Paste your OAuth2 Refresh Token below and enter your OAuth2 Client ID & Client Secret.",
+      "cloudBackupGdriveFolder": "Google Drive Folder ID or Link",
+      "cloudBackupGdriveFolderDesc": "Paste the Google Drive Folder ID or full folder URL (e.g. https://drive.google.com/drive/folders/1AbCdEf...). Leave empty to upload to Drive root.",
+      "cloudBackupGdriveCredentials": "Service Account JSON or OAuth2 Refresh Token",
+      "cloudBackupGdriveCredentialsDesc": "Paste the complete Google Cloud service_account JSON key file, or an OAuth2 Refresh Token (1//0g...).",
+      "cloudBackupGdriveClientId": "OAuth2 Client ID (Optional)",
+      "cloudBackupGdriveClientIdDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
+      "cloudBackupGdriveClientSecret": "OAuth2 Client Secret (Optional)",
+      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key."
     },
     "xray": {
       "title": "Xray Configuración",
@@ -1391,7 +1508,10 @@
         "acceptProxyProtocol": "Aceptar proxy protocol",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)",
+        "masqueWarpDesc": "Conecta a Cloudflare WARP mediante MASQUE con una clave ECDSA P-256 registrada; host y path usan por defecto el endpoint de Cloudflare.",
+        "masqueWarpPublicKey": "Clave pública del endpoint",
+        "masqueWarpAddress": "Direcciones del túnel"
       },
       "outbound": {
         "addOutbound": "Agregar salida",
@@ -1556,7 +1676,9 @@
         "warpPlusData": "Datos WARP+",
         "quota": "Cuota",
         "usage": "Uso",
-        "addOutbound": "Añadir salida"
+        "addOutbound": "Añadir salida",
+        "masqueDesc": "Registra un dispositivo WARP aparte inscrito para MASQUE; el registro de WireGuard de arriba no se ve afectado.",
+        "addMasqueOutbound": "Añadir outbound de WARP sobre MASQUE"
       },
       "dns": {
         "enable": "Habilitar DNS",
@@ -1606,6 +1728,23 @@
         "edit": "Editar DNS Falso",
         "ipPool": "Subred del grupo de IP",
         "poolSize": "Tamaño del grupo"
+      },
+      "tuic": {
+        "congestionControl": "Control de congestión",
+        "congestionControlHint": "Algoritmo del servidor y cliente. Los cambios del servidor se aplican al reconectar.",
+        "profileOptions": "Client profile options",
+        "alpn": "ALPN",
+        "udpRelayMode": "Modo de retransmisión UDP",
+        "udpRelayModeHint": "Modo UDP del cliente. El servidor admite ambos.",
+        "zeroRttHandshake": "Apretón de manos 0-RTT",
+        "logLevel": "Nivel de registro",
+        "logLevelHint": "Nivel mínimo de registro de esta entrada.",
+        "maxIdleTime": "Tiempo máx. de inactividad (s)",
+        "authTimeout": "Tiempo de espera de autenticación (s)",
+        "maxUdpRelayPacketSize": "Tamaño máx. de paquete UDP",
+        "sni": "SNI",
+        "sniHint": "Nombre del servidor TLS en el perfil del cliente.",
+        "sniRequired": "Introduce un dominio para completar las rutas del certificado."
       }
     }
   },
@@ -1714,7 +1853,21 @@
       "AreYouSure": "¿Estás seguro? 🤔",
       "SuccessResetTraffic": "📧 Correo: {{ .ClientEmail }}\n🏁 Resultado: ✅ Éxito",
       "FailedResetTraffic": "📧 Correo: {{ .ClientEmail }}\n🏁 Resultado: ❌ Fallido \n\n🛠️ Error: [ {{ .ErrorMessage }} ]",
-      "FinishProcess": "🔚 Proceso de reinicio de tráfico finalizado para todos los clientes."
+      "FinishProcess": "🔚 Proceso de reinicio de tráfico finalizado para todos los clientes.",
+      "broadcastPrompt": "Envía el texto del mensaje para transmitirlo a todos los clientes (máx. ~3800 caracteres).",
+      "broadcastEmpty": "El mensaje está vacío. Envía el texto o pulsa Cancelar.",
+      "broadcastTooLong": "El mensaje es demasiado largo. Acórtalo (máx. ~3800 caracteres) e inténtalo de nuevo.",
+      "broadcastPreview": "📣 Vista previa de la difusión — destinatarios: {{ .Count }}",
+      "broadcastCanceled": "Difusión cancelada.",
+      "broadcastRunning": "Todavía se está enviando otra difusión. Espera a que termine.",
+      "broadcastDone": "✅ Difusión finalizada: {{ .Sent }} enviados, {{ .Failed }} fallidos.",
+      "broadcastNoRecipients": "No se encontró ningún cliente con una cuenta de Telegram vinculada — nada que enviar.",
+      "inviteCreated": "🔗 Enlace de invitación para {{ .Email }}\n(un solo uso, válido hasta {{ .Expires }}):\n\n{{ .Link }}",
+      "inviteRedeemed": "✅ {{ .Firstname }}, tu Telegram ya está vinculado a {{ .Email }}. Usa los botones de abajo para gestionar tu suscripción.",
+      "inviteInvalid": "Este enlace de invitación no es válido. Pídele uno nuevo a tu proveedor.",
+      "inviteUsed": "Este enlace de invitación ya fue usado. Pídele uno nuevo a tu proveedor.",
+      "inviteExpired": "Este enlace de invitación ha caducado. Pídele uno nuevo a tu proveedor.",
+      "userReport": "📊 Tu informe de uso — {{ .DateTime }}"
     },
     "buttons": {
       "closeKeyboard": "❌ Cerrar Teclado",
@@ -1759,7 +1912,10 @@
       "change_comment": "⚙️💬 Comentario",
       "change_flow": "⚙️🚦 Flow",
       "ResetAllTraffics": "Reiniciar todo el tráfico",
-      "SortedTrafficUsageReport": "Informe de uso de tráfico ordenado"
+      "SortedTrafficUsageReport": "Informe de uso de tráfico ordenado",
+      "broadcast": "📣 Difusión",
+      "confirmBroadcast": "✅ Enviar ahora",
+      "invite": "🔗 Enlace de invitación"
     },
     "answers": {
       "successfulOperation": "✅ ¡Exitosa!",
@@ -1784,5 +1940,28 @@
       "chooseClient": "Elige un Cliente para Inbound {{ .Inbound }}",
       "chooseInbound": "Elige un Inbound"
     }
+  },
+  "commandPalette": {
+    "open": "Quick search",
+    "placeholder": "Jump to page, search client email / subId, or run an action…",
+    "empty": "No matching pages, clients, or actions.",
+    "groupPages": "Pages",
+    "groupClients": "Clients",
+    "groupInbounds": "Inbounds",
+    "groupActions": "Quick actions",
+    "toggleTheme": "Toggle dark / light theme",
+    "hintNavigate": "navigate",
+    "hintSelect": "select"
+  },
+  "resellers": {
+    "supportTickets": "Support Tickets",
+    "paymentOrders": "Payment Webhook Orders",
+    "ticketsDesc": "Direct support communication between Resellers and Panel Admins",
+    "newTicket": "New Ticket",
+    "ticketSubject": "Subject",
+    "ticketPriority": "Priority",
+    "ticketMessage": "Message",
+    "ticketReplyPlaceholder": "Write a reply...",
+    "ticketSubjectAndMessageRequired": "Subject and message are required"
   }
 }

@@ -13,5 +13,11 @@ export const OpenvpnInboundSettingsSchema = z.object({
   pushDNS: z.boolean().default(true),
   dns1: z.string().default('1.1.1.1'),
   dns2: z.string().default('8.8.8.8'),
+  // Divert the clients' TCP/UDP traffic through the Xray router (loopback
+  // DNAT relay tagged with the inbound tag) so the Routing page applies to
+  // it.
+  routeThroughXray: z.boolean().default(false),
+  outboundTag: z.string().optional(),
+  clients: z.array(z.any()).optional(),
 });
 export type OpenvpnInboundSettings = z.infer<typeof OpenvpnInboundSettingsSchema>;

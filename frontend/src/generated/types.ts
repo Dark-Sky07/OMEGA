@@ -3,11 +3,28 @@ export type OnlineAPISupport = number;
 export type ProcessState = string;
 export type Protocol = string;
 export type SubLinkProvider = unknown;
+export type closeWriter = unknown;
+export type readDeadliner = unknown;
 export type trafficLocalApplyAction = number;
 export type transportBits = number;
 
 export interface AllSetting {
+  cloudBackupAccessKey: string;
+  cloudBackupBucket: string;
+  cloudBackupEnable: boolean;
+  cloudBackupEndpoint: string;
+  cloudBackupIntervalHours: number;
+  cloudBackupPrefix: string;
+  cloudBackupProvider: string;
+  cloudBackupRegion: string;
+  cloudBackupRetention: number;
+  cloudBackupSecretKey: string;
   datepicker: string;
+  discordBotToken: string;
+  discordChannelId: string;
+  discordEnable: boolean;
+  discordLoginNotify: boolean;
+  discordWebhookURL: string;
   expireDiff: number;
   externalTrafficInformEnable: boolean;
   externalTrafficInformURI: string;
@@ -31,6 +48,10 @@ export interface AllSetting {
   ldapUserAttr: string;
   ldapUserFilter: string;
   ldapVlessField: string;
+  outboundWatchdogEnable: boolean;
+  outboundWatchdogFailThreshold: number;
+  outboundWatchdogIntervalSec: number;
+  outboundWatchdogTags: string;
   pageSize: number;
   panelOutbound: string;
   remarkModel: string;
@@ -48,6 +69,7 @@ export interface AllSetting {
   subEnable: boolean;
   subEnableRouting: boolean;
   subEncrypt: boolean;
+  subExpiredNotice: string;
   subJsonEnable: boolean;
   subJsonFinalMask: string;
   subJsonMux: string;
@@ -56,11 +78,18 @@ export interface AllSetting {
   subJsonURI: string;
   subKeyFile: string;
   subListen: string;
+  subOutlineEnable: boolean;
+  subOutlinePath: string;
+  subOutlineURI: string;
   subPath: string;
   subPort: number;
   subProfileUrl: string;
   subRoutingRules: string;
   subShowInfo: boolean;
+  subSingboxEnable: boolean;
+  subSingboxPath: string;
+  subSingboxURI: string;
+  subStatusNode: boolean;
   subSupportUrl: string;
   subThemeDir: string;
   subTitle: string;
@@ -73,6 +102,7 @@ export interface AllSetting {
   tgBotLoginNotify: boolean;
   tgBotProxy: string;
   tgBotToken: string;
+  tgBotUserReport: boolean;
   tgCpu: number;
   tgLang: string;
   tgRunTime: string;
@@ -91,11 +121,28 @@ export interface AllSetting {
 }
 
 export interface AllSettingView {
+  cloudBackupAccessKey: string;
+  cloudBackupBucket: string;
+  cloudBackupEnable: boolean;
+  cloudBackupEndpoint: string;
+  cloudBackupIntervalHours: number;
+  cloudBackupPrefix: string;
+  cloudBackupProvider: string;
+  cloudBackupRegion: string;
+  cloudBackupRetention: number;
+  cloudBackupSecretKey: string;
   datepicker: string;
+  discordBotToken: string;
+  discordChannelId: string;
+  discordEnable: boolean;
+  discordLoginNotify: boolean;
+  discordWebhookURL: string;
   expireDiff: number;
   externalTrafficInformEnable: boolean;
   externalTrafficInformURI: string;
   hasApiToken: boolean;
+  hasDiscordBotToken: boolean;
+  hasDiscordWebhookURL: boolean;
   hasLdapPassword: boolean;
   hasNordSecret: boolean;
   hasTgBotToken: boolean;
@@ -121,6 +168,10 @@ export interface AllSettingView {
   ldapUserAttr: string;
   ldapUserFilter: string;
   ldapVlessField: string;
+  outboundWatchdogEnable: boolean;
+  outboundWatchdogFailThreshold: number;
+  outboundWatchdogIntervalSec: number;
+  outboundWatchdogTags: string;
   pageSize: number;
   panelOutbound: string;
   remarkModel: string;
@@ -138,6 +189,7 @@ export interface AllSettingView {
   subEnable: boolean;
   subEnableRouting: boolean;
   subEncrypt: boolean;
+  subExpiredNotice: string;
   subJsonEnable: boolean;
   subJsonFinalMask: string;
   subJsonMux: string;
@@ -146,11 +198,18 @@ export interface AllSettingView {
   subJsonURI: string;
   subKeyFile: string;
   subListen: string;
+  subOutlineEnable: boolean;
+  subOutlinePath: string;
+  subOutlineURI: string;
   subPath: string;
   subPort: number;
   subProfileUrl: string;
   subRoutingRules: string;
   subShowInfo: boolean;
+  subSingboxEnable: boolean;
+  subSingboxPath: string;
+  subSingboxURI: string;
+  subStatusNode: boolean;
   subSupportUrl: string;
   subThemeDir: string;
   subTitle: string;
@@ -163,6 +222,7 @@ export interface AllSettingView {
   tgBotLoginNotify: boolean;
   tgBotProxy: string;
   tgBotToken: string;
+  tgBotUserReport: boolean;
   tgCpu: number;
   tgLang: string;
   tgRunTime: string;
@@ -189,20 +249,29 @@ export interface AmneziaWGLogs {
 export interface ApiToken {
   createdAt: number;
   enabled: boolean;
+  expiresAt: number;
   id: number;
+  lastUsedAt: number;
   name: string;
+  prefix: string;
+  scope: string;
   token: string;
 }
 
 export interface ApiTokenView {
   createdAt: number;
   enabled: boolean;
+  expiresAt: number;
   id: number;
+  lastUsedAt: number;
   name: string;
+  prefix: string;
+  scope: string;
   token?: string;
 }
 
 export interface Client {
+  activateBefore: number;
   allowedIPs?: string[];
   allowedIPsByInbound?: Record<number, string[]>;
   auth?: string;
@@ -216,15 +285,20 @@ export interface Client {
   group?: string;
   id?: string;
   keepAlive?: number;
+  limitDevice: number;
   limitIp: number;
   password?: string;
   preSharedKey?: string;
   privateKey?: string;
   publicKey?: string;
+  renewalDay: number;
+  renewalMode: number;
   reset: number;
   reverse?: ClientReverse | null;
   security: string;
   subId: string;
+  subLastUpdatedAt?: number;
+  subLastUserAgent?: string;
   tgId: number;
   totalGB: number;
   updated_at?: number;
@@ -238,6 +312,7 @@ export interface ClientInbound {
 }
 
 export interface ClientRecord {
+  activateBefore: number;
   allowedIPs: string;
   auth: string;
   comment: string;
@@ -250,15 +325,20 @@ export interface ClientRecord {
   group: string;
   id: number;
   keepAlive: number;
+  limitDevice: number;
   limitIp: number;
   password: string;
   preSharedKey: string;
   privateKey: string;
   publicKey: string;
+  renewalDay: number;
+  renewalMode: number;
   reset: number;
   reverse: unknown;
   security: string;
   subId: string;
+  subLastUpdatedAt: number;
+  subLastUserAgent: string;
   tgId: number;
   totalGB: number;
   updatedAt: number;
@@ -353,6 +433,7 @@ export interface InboundOption {
   ssMethod: string;
   tag: string;
   tlsFlowCapable: boolean;
+  tuicServer?: TuicServerSettings | null;
 }
 
 export interface L2TPInboundOption {
@@ -493,9 +574,35 @@ export interface Setting {
   value: string;
 }
 
-export interface User {
-  id: number;
+export interface TuicClientSettings {
+  email: string;
   password: string;
+  uuid: string;
+}
+
+export interface TuicServerSettings {
+  alpn: string[];
+  authentication_timeout: number;
+  certificate: string;
+  congestion_control: string;
+  log_level: string;
+  max_idle_time: number;
+  max_udp_relay_packet_size: number;
+  private_key: string;
+  sni?: string;
+  udp_relay_mode: string;
+  zero_rtt_handshake: boolean;
+}
+
+export interface User {
+  createdAt: number;
+  disabled: boolean;
+  id: number;
+  lastLoginAt: number;
+  note: string;
+  password: string;
+  permissions: string;
+  role: string;
   username: string;
 }
 

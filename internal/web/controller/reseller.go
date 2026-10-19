@@ -1,11 +1,16 @@
 package controller
 
 import (
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
 	"strconv"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,6 +27,9 @@ type resellerForm struct {
 type ResellerController struct {
 	BaseController
 	resellerService service.ResellerService
+	ticketService   service.TicketService
+	webhookService  service.PaymentWebhookService
+	voucherService  service.VoucherService
 }
 
 // NewResellerController wires the admin reseller routes.
@@ -51,6 +59,15 @@ func (a *ResellerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/assignClients", a.assignClients)
 	g.POST("/unassignClients", a.unassignClients)
 	g.POST("/balance", a.balance)
+	g.GET("/tickets", a.listTickets)
+	g.GET("/tickets/:id", a.getTicket)
+	g.POST("/tickets/:id/reply", a.replyTicket)
+	g.POST("/tickets/:id/close", a.closeTicket)
+	g.GET("/orders", a.listOrders)
+	g.POST("/orders/process", a.processOrder)
+	g.GET("/vouchers", a.listVouchers)
+	g.POST("/vouchers/create", a.createVoucher)
+	g.POST("/vouchers/delete/:id", a.deleteVoucher)
 }
 
 func (a *ResellerController) list(c *gin.Context) {
@@ -402,4 +419,160 @@ func (a *ResellerController) balance(c *gin.Context) {
 		return
 	}
 	jsonObj(c, stat, nil)
+}
+
+func (a *ResellerController) listTickets(c *gin.Context) {
+	rows, err := a.ticketService.ListForAdmin(c.Query("status"))
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, rows, nil)
+}
+
+func (a *ResellerController) getTicket(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		jsonMsg(c, "", errors.New("invalid ticket id"))
+		return
+	}
+	t, msgs, err := a.ticketService.GetTicketWithMessages(id, 0)
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, gin.H{
+		"ticket":   t,
+		"messages": msgs,
+	}, nil)
+}
+
+func (a *ResellerController) replyTicket(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		jsonMsg(c, "", errors.New("invalid ticket id"))
+		return
+	}
+	var form struct {
+		Message string `json:"message"`
+	}
+	if err := c.ShouldBindJSON(&form); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	sender := "admin"
+	if u := session.GetLoginUser(c); u != nil && u.Username != "" {
+		sender = u.Username
+	}
+	msg, err := a.ticketService.ReplyTicket(id, "admin", sender, form.Message, 0)
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, msg, nil)
+}
+
+func (a *ResellerController) closeTicket(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		jsonMsg(c, "", errors.New("invalid ticket id"))
+		return
+	}
+	jsonMsg(c, "", a.ticketService.CloseTicket(id, 0))
+}
+
+func (a *ResellerController) listOrders(c *gin.Context) {
+	rows, err := a.webhookService.ListOrders(200)
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, rows, nil)
+}
+
+func (a *ResellerController) processOrder(c *gin.Context) {
+	var payload service.PaymentWebhookPayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	order, err := a.webhookService.ProcessWebhook(payload)
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, order, nil)
+}
+
+func (a *ResellerController) listVouchers(c *gin.Context) {
+	rows, err := a.voucherService.List()
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, rows, nil)
+}
+
+func (a *ResellerController) createVoucher(c *gin.Context) {
+	var form struct {
+		Code      string  `json:"code"`
+		Amount    float64 `json:"amount"`
+		TrafficGB int64   `json:"trafficGB"`
+		MaxUses   int     `json:"maxUses"`
+		ExpiresAt int64   `json:"expiresAt"`
+		Note      string  `json:"note"`
+	}
+	if err := c.ShouldBindJSON(&form); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	v, err := a.voucherService.Create(form.Code, form.Amount, form.TrafficGB, form.MaxUses, form.ExpiresAt, form.Note)
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, v, nil)
+}
+
+func (a *ResellerController) deleteVoucher(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		jsonMsg(c, "", errors.New("invalid voucher id"))
+		return
+	}
+	jsonMsg(c, "", a.voucherService.Delete(id))
+}
+
+// HandlePublicPaymentWebhook processes HMAC-SHA256 signed external payment
+// gateway callbacks (POST <basePath>/api/payment/webhook).
+func HandlePublicPaymentWebhook(c *gin.Context) {
+	var settingSvc service.SettingService
+	secretBytes, err := settingSvc.GetSecret()
+	secret := string(secretBytes)
+	if err != nil || secret == "" {
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "msg": "webhook secret not available"})
+		return
+	}
+	rawBody, err := io.ReadAll(io.LimitReader(c.Request.Body, 1<<20))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "msg": "invalid body"})
+		return
+	}
+	sig := c.GetHeader("X-Omega-Signature")
+	if !service.VerifyPaymentWebhookHMAC(rawBody, sig, secret) {
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "msg": "invalid webhook HMAC signature"})
+		return
+	}
+	var payload service.PaymentWebhookPayload
+	if err := json.Unmarshal(rawBody, &payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "msg": "invalid JSON payload"})
+		return
+	}
+	var svc service.PaymentWebhookService
+	order, err := svc.ProcessWebhook(payload)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "msg": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "obj": order})
 }

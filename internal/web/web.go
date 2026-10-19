@@ -1,4 +1,4 @@
-// Package web provides the main web server implementation for the 3x-ui panel,
+// Package web provides the main web server implementation for the PHOENIX panel,
 // including HTTP/HTTPS serving, routing, templates, and background job scheduling.
 package web
 
@@ -21,6 +21,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
+	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/controller"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/job"
@@ -99,7 +100,7 @@ func EmbeddedDist() embed.FS {
 	return distFS
 }
 
-// Server represents the main web server for the 3x-ui panel with controllers, services, and scheduled jobs.
+// Server represents the main web server for the PHOENIX panel with controllers, services, and scheduled jobs.
 type Server struct {
 	httpServer *http.Server
 	listener   net.Listener
@@ -189,7 +190,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		sessionOptions.MaxAge = sessionMaxAge * 60 // minutes -> seconds
 	}
 	store.Options(sessionOptions)
-	engine.Use(sessions.Sessions("3x-ui", store))
+	engine.Use(sessions.Sessions("phoenix", store))
 	engine.Use(func(c *gin.Context) {
 		c.Set("base_path", basePath)
 	})
@@ -230,6 +231,9 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	s.index = controller.NewIndexController(g)
 	s.panel = controller.NewXUIController(g)
 	g.GET("/panel/api/openapi.json", controller.ServeOpenAPISpec)
+	g.GET("/manifest.webmanifest", controller.ServePWAManifest)
+	g.GET("/sw.js", controller.ServePWAServiceWorker)
+	g.POST("/api/payment/webhook", controller.HandlePublicPaymentWebhook)
 	s.api = controller.NewAPIController(g)
 
 	// Initialize WebSocket hub
@@ -294,6 +298,10 @@ func (s *Server) startTask(restartXray bool) {
 	s.cron.AddJob("@every 10s", awgJob)
 	go awgJob.Run()
 
+	tuicJob := job.NewTuicJob()
+	s.cron.AddJob("@every 10s", tuicJob)
+	go tuicJob.Run()
+
 	// Reconcile openvpn daemons and scrape their per-client traffic
 	ovpnJob := job.NewOpenvpnJob()
 	s.cron.AddJob("@every 10s", ovpnJob)
@@ -313,9 +321,12 @@ func (s *Server) startTask(restartXray bool) {
 
 	// Outbound subscription auto-refresh (respects per-sub updateInterval)
 	s.cron.AddJob("@every 5m", job.NewOutboundSubscriptionJob())
+	s.cron.AddJob("@every 30s", job.NewOutboundWatchdogJob())
 
 	// check client ips from log file every day
 	s.cron.AddJob("@daily", job.NewClearLogsJob())
+	s.cron.AddJob("@daily", job.NewCertRenewJob())
+	s.cron.AddJob("@every 15m", job.NewCloudBackupJob())
 	s.cron.AddJob("@hourly", job.NewWarpIpJob())
 
 	// Inbound traffic reset jobs
@@ -327,6 +338,8 @@ func (s *Server) startTask(restartXray bool) {
 	s.cron.AddJob("@weekly", job.NewPeriodicTrafficResetJob("weekly"))
 	// Run once a month, midnight, first of month
 	s.cron.AddJob("@monthly", job.NewPeriodicTrafficResetJob("monthly"))
+	// Expire delayed-start clients that never activated before their deadline
+	s.cron.AddJob("@every 1m", job.NewActivateBeforeJob())
 
 	// LDAP sync scheduling
 	if ldapEnabled, _ := s.settingService.GetLdapEnable(); ldapEnabled {
@@ -342,7 +355,8 @@ func (s *Server) startTask(restartXray bool) {
 	// Make a traffic condition every day, 8:30
 	var entry cron.EntryID
 	isTgbotenabled, err := s.settingService.GetTgbotEnabled()
-	if (err == nil) && (isTgbotenabled) {
+	isDiscordEnabled, _ := s.settingService.GetDiscordEnable()
+	if (err == nil && isTgbotenabled) || isDiscordEnabled {
 		runtime, err := s.settingService.GetTgbotRuntime()
 		if err != nil {
 			logger.Warningf("Add NewStatsNotifyJob: failed to load runtime: %v; using default @daily", err)
@@ -402,8 +416,9 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	// The closures bridge into XrayService (which owns the running xray
 	// process state) without forcing the runtime package to import service.
 	runtime.SetManager(runtime.NewManager(runtime.LocalDeps{
-		APIPort:        func() int { return s.xrayService.GetXrayAPIPort() },
-		SetNeedRestart: func() { s.xrayService.SetToNeedRestart() },
+		APIPort:         func() int { return s.xrayService.GetXrayAPIPort() },
+		SetNeedRestart:  func() { s.xrayService.SetToNeedRestart() },
+		DaemonRelayPort: func(tag string) int { return s.xrayService.DaemonRelayPort(tag) },
 	}))
 
 	engine, err := s.initRouter()
@@ -486,15 +501,24 @@ func (s *Server) StopPanelOnly() error {
 
 func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	s.cancel()
+	var err1 error
+	var err2 error
+	if s.cron != nil {
+		<-s.cron.Stop().Done()
+	}
 	if stopXray {
-		s.xrayService.StopXray()
+		tuic.GetManager().StopAll()
+		if err := job.NewTuicJob().FlushStoppedTraffic(); err != nil {
+			logger.Warning("persist final TUIC traffic on shutdown failed:", err)
+			err2 = err
+		}
+		if err := s.xrayService.StopXray(); err != nil && !strings.Contains(err.Error(), "xray is not running") {
+			err2 = common.Combine(err2, err)
+		}
 		mtproto.GetManager().StopAll()
 		amneziawgnet.GetManager().StopAll()
 		openvpn.GetManager().StopAll()
 		l2tp.GetManager().StopAll()
-	}
-	if s.cron != nil {
-		s.cron.Stop()
 	}
 	if err := service.PersistSystemMetrics(); err != nil {
 		logger.Warning("persist system metrics on shutdown failed:", err)
@@ -509,15 +533,13 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	if s.wsHub != nil {
 		s.wsHub.Stop()
 	}
-	var err1 error
-	var err2 error
 	if s.httpServer != nil {
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer shutdownCancel()
 		err1 = s.httpServer.Shutdown(shutdownCtx)
 	}
 	if s.listener != nil {
-		err2 = s.listener.Close()
+		err1 = common.Combine(err1, s.listener.Close())
 	}
 	return common.Combine(err1, err2)
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -32,6 +33,41 @@ func writeSubError(c *gin.Context, err error) {
 	c.Status(http.StatusInternalServerError)
 }
 
+// requestHwid extracts the client-device identifier from a subscription
+// request: `?hwid=` query parameter first (what apps append), then the
+// `X-Hwid` / `Hwid` headers. Empty string means the client sent none.
+func requestHwid(c *gin.Context) string {
+	if v := strings.TrimSpace(c.Query("hwid")); v != "" {
+		return v
+	}
+	if v := strings.TrimSpace(c.GetHeader("X-Hwid")); v != "" {
+		return v
+	}
+	return strings.TrimSpace(c.GetHeader("Hwid"))
+}
+
+// enforceDeviceLimit gates a subscription request on per-client HWID limits.
+// Returns false (and writes 403) when the device is not allowed. Requests
+// without a HWID always pass — enforcement is opt-in per client via
+// limitDevice and per device via the HWID the app sends.
+func (a *SUBController) enforceDeviceLimit(c *gin.Context, subId string) bool {
+	hwid := requestHwid(c)
+	if hwid == "" {
+		return true
+	}
+	err := a.subService.EnforceDeviceLimit(subId, hwid, c.ClientIP(), c.Request.UserAgent())
+	if err == nil {
+		return true
+	}
+	if errors.Is(err, service.ErrDeviceLimitReached) {
+		c.Header("Subscription-Status", "device_limit_reached=true")
+		c.String(http.StatusForbidden, "device limit reached")
+		return false
+	}
+	logger.Warning("sub: device registration failed:", err)
+	return true
+}
+
 // cachedSubTemplate holds a parsed custom subscription template together with
 // the modification time of the file it was parsed from, so the cache can be
 // invalidated when an admin edits the template on disk.
@@ -51,15 +87,21 @@ type SUBController struct {
 	subPath          string
 	subJsonPath      string
 	subClashPath     string
+	subSingboxPath   string
+	subOutlinePath   string
 	jsonEnabled      bool
 	clashEnabled     bool
+	singboxEnabled   bool
+	outlineEnabled   bool
 	subEncrypt       bool
 	updateInterval   string
 
-	subService      *SubService
-	subJsonService  *SubJsonService
-	subClashService *SubClashService
-	settingService  service.SettingService
+	subService        *SubService
+	subJsonService    *SubJsonService
+	subClashService   *SubClashService
+	subSingboxService *SubSingboxService
+	subOutlineService *SubOutlineService
+	settingService    service.SettingService
 
 	subTemplateMu    sync.RWMutex
 	subTemplateCache map[string]*cachedSubTemplate
@@ -71,8 +113,12 @@ func NewSUBController(
 	subPath string,
 	jsonPath string,
 	clashPath string,
+	singboxPath string,
+	outlinePath string,
 	jsonEnabled bool,
 	clashEnabled bool,
+	singboxEnabled bool,
+	outlineEnabled bool,
 	encrypt bool,
 	showInfo bool,
 	rModel string,
@@ -100,14 +146,20 @@ func NewSUBController(
 		subPath:          subPath,
 		subJsonPath:      jsonPath,
 		subClashPath:     clashPath,
+		subSingboxPath:   singboxPath,
+		subOutlinePath:   outlinePath,
 		jsonEnabled:      jsonEnabled,
 		clashEnabled:     clashEnabled,
+		singboxEnabled:   singboxEnabled,
+		outlineEnabled:   outlineEnabled,
 		subEncrypt:       encrypt,
 		updateInterval:   update,
 
-		subService:      sub,
-		subJsonService:  NewSubJsonService(jsonMux, jsonRules, jsonFinalMask, sub),
-		subClashService: NewSubClashService(clashEnableRouting, clashRules, sub),
+		subService:        sub,
+		subJsonService:    NewSubJsonService(jsonMux, jsonRules, jsonFinalMask, sub),
+		subClashService:   NewSubClashService(clashEnableRouting, clashRules, sub),
+		subSingboxService: NewSubSingboxService(sub),
+		subOutlineService: NewSubOutlineService(sub),
 
 		subTemplateCache: map[string]*cachedSubTemplate{},
 	}
@@ -131,6 +183,16 @@ func (a *SUBController) initRouter(g *gin.RouterGroup) {
 		gClash := g.Group(a.subClashPath)
 		gClash.GET(":subid", a.subClashs)
 		gClash.HEAD(":subid", a.subClashs)
+	}
+	if a.singboxEnabled {
+		gSingbox := g.Group(a.subSingboxPath)
+		gSingbox.GET(":subid", a.subSingboxs)
+		gSingbox.HEAD(":subid", a.subSingboxs)
+	}
+	if a.outlineEnabled {
+		gOutline := g.Group(a.subOutlinePath)
+		gOutline.GET(":subid", a.subOutlines)
+		gOutline.HEAD(":subid", a.subOutlines)
 	}
 }
 
@@ -163,6 +225,7 @@ func (a *SUBController) subOpenvpn(c *gin.Context) {
 			safe = "client"
 		}
 		setNoCacheHeaders(c)
+		a.subService.RecordSubAccess(subId, c.Request.UserAgent())
 		c.Header("Content-Disposition", "attachment; filename=\""+safe+".ovpn\"")
 		c.Data(http.StatusOK, "application/x-openvpn-profile", []byte(profile))
 		return
@@ -173,6 +236,9 @@ func (a *SUBController) subOpenvpn(c *gin.Context) {
 // subs handles HTTP requests for subscription links, returning either HTML page or base64-encoded subscription data.
 func (a *SUBController) subs(c *gin.Context) {
 	subId := c.Param("subid")
+	if !a.enforceDeviceLimit(c, subId) {
+		return
+	}
 	scheme, host, hostWithPort, hostHeader := a.subService.ResolveRequest(c)
 	subs, emails, lastOnline, traffic, err := a.subService.GetSubs(subId, host)
 
@@ -194,6 +260,7 @@ func (a *SUBController) subs(c *gin.Context) {
 		writeSubError(c, err)
 		return
 	}
+	a.subService.RecordSubAccess(subId, c.Request.UserAgent())
 
 	if isHTML {
 		// L2TP-only subscriptions do not go through GetSubs' Xray traffic
@@ -207,24 +274,30 @@ func (a *SUBController) subs(c *gin.Context) {
 			traffic.Enable = len(emails) > 0
 		}
 
-		subURL, subJsonURL, subClashURL := a.subService.BuildURLs(a.subPath, a.subJsonPath, a.subClashPath, subId)
+		subURL, subJsonURL, subClashURL, subSingboxURL, subOutlineURL := a.subService.BuildURLs(a.subPath, a.subJsonPath, a.subClashPath, a.subSingboxPath, a.subOutlinePath, subId)
 		if !a.jsonEnabled {
 			subJsonURL = ""
 		}
 		if !a.clashEnabled {
 			subClashURL = ""
 		}
+		if !a.singboxEnabled {
+			subSingboxURL = ""
+		}
+		if !a.outlineEnabled {
+			subOutlineURL = ""
+		}
 		if len(subs) == 0 {
 			// L2TP-only subscriptions have no Xray-compatible subscription
 			// URL. Keep the page native-parameters-only.
-			subURL, subJsonURL, subClashURL = "", "", ""
+			subURL, subJsonURL, subClashURL, subSingboxURL, subOutlineURL = "", "", "", "", ""
 		}
 		basePath, exists := c.Get("base_path")
 		if !exists {
 			basePath = "/"
 		}
 		basePathStr := basePath.(string)
-		page := a.subService.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, emails, subURL, subJsonURL, subClashURL, basePathStr, a.subTitle, a.subSupportUrl)
+		page := a.subService.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, emails, subURL, subJsonURL, subClashURL, subSingboxURL, subOutlineURL, basePathStr, a.subTitle, a.subSupportUrl)
 		page.L2TP = l2tpConnections
 		if ovpnEmails, oErr := a.subService.GetOpenvpnEmailsBySubId(subId); oErr == nil {
 			page.Openvpn = len(ovpnEmails) > 0
@@ -359,7 +432,8 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 	)
 	escapedBase := jsEscape.Replace(basePath)
 
-	inject := []byte(`<script>window.X_UI_BASE_PATH="` + escapedBase + `";` +
+	inject := []byte(`<link rel="manifest" href="` + escapedBase + `manifest.webmanifest"><meta name="theme-color" content="#ff5500">` +
+		`<script>window.X_UI_BASE_PATH="` + escapedBase + `";` +
 		`window.__SUB_PAGE_DATA__=` + string(subDataJSON) + `;</script></head>`)
 	out := bytes.Replace(body, []byte("</head>"), inject, 1)
 
@@ -421,11 +495,15 @@ func (a *SUBController) loadSubTemplate(themeDir string) (*template.Template, er
 // subJsons handles HTTP requests for JSON subscription configurations.
 func (a *SUBController) subJsons(c *gin.Context) {
 	subId := c.Param("subid")
+	if !a.enforceDeviceLimit(c, subId) {
+		return
+	}
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	jsonSub, header, err := a.subJsonService.GetJson(subId, host)
 	if err != nil || len(jsonSub) == 0 {
 		writeSubError(c, err)
 	} else {
+		a.subService.RecordSubAccess(subId, c.Request.UserAgent())
 		profileUrl := a.subProfileUrl
 		if profileUrl == "" {
 			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
@@ -438,11 +516,15 @@ func (a *SUBController) subJsons(c *gin.Context) {
 
 func (a *SUBController) subClashs(c *gin.Context) {
 	subId := c.Param("subid")
+	if !a.enforceDeviceLimit(c, subId) {
+		return
+	}
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	clashSub, header, err := a.subClashService.GetClash(subId, host)
 	if err != nil || len(clashSub) == 0 {
 		writeSubError(c, err)
 	} else {
+		a.subService.RecordSubAccess(subId, c.Request.UserAgent())
 		profileUrl := a.subProfileUrl
 		if profileUrl == "" {
 			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
@@ -453,6 +535,49 @@ func (a *SUBController) subClashs(c *gin.Context) {
 			c.Writer.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename*=UTF-8''%s`, url.PathEscape(a.subTitle)))
 		}
 		c.Data(200, "application/yaml; charset=utf-8", []byte(clashSub))
+	}
+}
+
+func (a *SUBController) subSingboxs(c *gin.Context) {
+	subId := c.Param("subid")
+	if !a.enforceDeviceLimit(c, subId) {
+		return
+	}
+	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
+	singboxSub, header, err := a.subSingboxService.GetSingbox(subId, host)
+	if err != nil || len(singboxSub) == 0 {
+		writeSubError(c, err)
+	} else {
+		a.subService.RecordSubAccess(subId, c.Request.UserAgent())
+		profileUrl := a.subProfileUrl
+		if profileUrl == "" {
+			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
+		}
+		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules)
+		if a.subTitle != "" {
+			c.Writer.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename*=UTF-8''%s`, url.PathEscape(a.subTitle)))
+		}
+		c.Data(200, "application/json; charset=utf-8", []byte(singboxSub))
+	}
+}
+
+func (a *SUBController) subOutlines(c *gin.Context) {
+	subId := c.Param("subid")
+	if !a.enforceDeviceLimit(c, subId) {
+		return
+	}
+	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
+	outlineSub, header, err := a.subOutlineService.GetOutline(subId, host)
+	if err != nil || len(outlineSub) == 0 {
+		writeSubError(c, err)
+	} else {
+		a.subService.RecordSubAccess(subId, c.Request.UserAgent())
+		profileUrl := a.subProfileUrl
+		if profileUrl == "" {
+			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
+		}
+		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules)
+		c.Data(200, "text/plain; charset=utf-8", []byte(outlineSub))
 	}
 }
 

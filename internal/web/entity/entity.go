@@ -1,4 +1,4 @@
-// Package entity defines data structures and entities used by the web layer of the 3x-ui panel.
+// Package entity defines data structures and entities used by the web layer of the PHOENIX panel.
 package entity
 
 import (
@@ -18,7 +18,7 @@ type Msg struct {
 	Obj     any    `json:"obj"`     // Optional data object
 }
 
-// AllSetting contains all configuration settings for the 3x-ui panel including web server, Telegram bot, and subscription settings.
+// AllSetting contains all configuration settings for the PHOENIX panel including web server, Telegram bot, and subscription settings.
 type AllSetting struct {
 	// Web server settings
 	WebListen         string `json:"webListen" form:"webListen"`                                     // Web server listen IP address
@@ -47,8 +47,16 @@ type AllSetting struct {
 	TgRunTime        string `json:"tgRunTime" form:"tgRunTime"`                  // Cron schedule for Telegram notifications
 	TgBotBackup      bool   `json:"tgBotBackup" form:"tgBotBackup"`              // Enable database backup via Telegram
 	TgBotLoginNotify bool   `json:"tgBotLoginNotify" form:"tgBotLoginNotify"`    // Send login notifications
+	TgBotUserReport  bool   `json:"tgBotUserReport" form:"tgBotUserReport"`      // Send personal periodic usage reports to clients
 	TgCpu            int    `json:"tgCpu" form:"tgCpu" validate:"gte=0,lte=100"` // CPU usage threshold for alerts (percent)
 	TgLang           string `json:"tgLang" form:"tgLang"`                        // Telegram bot language
+
+	// Discord bot / webhook notifications
+	DiscordEnable      bool   `json:"discordEnable" form:"discordEnable"`
+	DiscordWebhookURL  string `json:"discordWebhookURL" form:"discordWebhookURL"`
+	DiscordBotToken    string `json:"discordBotToken" form:"discordBotToken"`
+	DiscordChannelId   string `json:"discordChannelId" form:"discordChannelId"`
+	DiscordLoginNotify bool   `json:"discordLoginNotify" form:"discordLoginNotify"`
 
 	// Security settings
 	TimeLocation    string `json:"timeLocation" form:"timeLocation"`       // Time zone location
@@ -77,12 +85,20 @@ type AllSetting struct {
 	SubEncrypt                  bool   `json:"subEncrypt" form:"subEncrypt"`                                   // Encrypt subscription responses
 	SubShowInfo                 bool   `json:"subShowInfo" form:"subShowInfo"`                                 // Show client information in subscriptions
 	SubEmailInRemark            bool   `json:"subEmailInRemark" form:"subEmailInRemark"`                       // Include email in subscription remark/name
+	SubStatusNode               bool   `json:"subStatusNode" form:"subStatusNode"`                             // Prepend an informational status node to subscription links
+	SubExpiredNotice            string `json:"subExpiredNotice" form:"subExpiredNotice"`                       // Custom notice shown on the status node when expired/depleted
 	SubURI                      string `json:"subURI" form:"subURI"`                                           // Subscription server URI
 	SubJsonPath                 string `json:"subJsonPath" form:"subJsonPath"`                                 // Path for JSON subscription endpoint
 	SubJsonURI                  string `json:"subJsonURI" form:"subJsonURI"`                                   // JSON subscription server URI
 	SubClashEnable              bool   `json:"subClashEnable" form:"subClashEnable"`                           // Enable Clash/Mihomo subscription endpoint
 	SubClashPath                string `json:"subClashPath" form:"subClashPath"`                               // Path for Clash/Mihomo subscription endpoint
 	SubClashURI                 string `json:"subClashURI" form:"subClashURI"`                                 // Clash/Mihomo subscription server URI
+	SubSingboxEnable            bool   `json:"subSingboxEnable" form:"subSingboxEnable"`                       // Enable sing-box subscription endpoint
+	SubSingboxPath              string `json:"subSingboxPath" form:"subSingboxPath"`                           // Path for sing-box subscription endpoint
+	SubSingboxURI               string `json:"subSingboxURI" form:"subSingboxURI"`                             // sing-box subscription server URI
+	SubOutlineEnable            bool   `json:"subOutlineEnable" form:"subOutlineEnable"`                       // Enable Outline (SIP002 ss://) subscription endpoint
+	SubOutlinePath              string `json:"subOutlinePath" form:"subOutlinePath"`                           // Path for Outline subscription endpoint
+	SubOutlineURI               string `json:"subOutlineURI" form:"subOutlineURI"`                             // Outline subscription server URI
 	SubClashEnableRouting       bool   `json:"subClashEnableRouting" form:"subClashEnableRouting"`             // Enable global routing rules for Clash/Mihomo
 	SubClashRules               string `json:"subClashRules" form:"subClashRules"`                             // Clash/Mihomo global routing rules
 	SubJsonMux                  string `json:"subJsonMux" form:"subJsonMux"`                                   // JSON subscription mux configuration
@@ -116,6 +132,24 @@ type AllSetting struct {
 
 	// WARP
 	WarpUpdateInterval int `json:"warpUpdateInterval" form:"warpUpdateInterval" validate:"gte=0"`
+
+	// Cloud Backup (S3 / Cloudflare R2 / MinIO / WebDAV)
+	CloudBackupEnable        bool   `json:"cloudBackupEnable" form:"cloudBackupEnable"`
+	CloudBackupProvider      string `json:"cloudBackupProvider" form:"cloudBackupProvider"`
+	CloudBackupEndpoint      string `json:"cloudBackupEndpoint" form:"cloudBackupEndpoint"`
+	CloudBackupRegion        string `json:"cloudBackupRegion" form:"cloudBackupRegion"`
+	CloudBackupBucket        string `json:"cloudBackupBucket" form:"cloudBackupBucket"`
+	CloudBackupPrefix        string `json:"cloudBackupPrefix" form:"cloudBackupPrefix"`
+	CloudBackupAccessKey     string `json:"cloudBackupAccessKey" form:"cloudBackupAccessKey"`
+	CloudBackupSecretKey     string `json:"cloudBackupSecretKey" form:"cloudBackupSecretKey"`
+	CloudBackupIntervalHours int    `json:"cloudBackupIntervalHours" form:"cloudBackupIntervalHours" validate:"gte=0,lte=720"`
+	CloudBackupRetention     int    `json:"cloudBackupRetention" form:"cloudBackupRetention" validate:"gte=0,lte=1000"`
+
+	// Smart Outbound Auto-Failover Watchdog
+	OutboundWatchdogEnable        bool   `json:"outboundWatchdogEnable" form:"outboundWatchdogEnable"`
+	OutboundWatchdogTags          string `json:"outboundWatchdogTags" form:"outboundWatchdogTags"`
+	OutboundWatchdogIntervalSec   int    `json:"outboundWatchdogIntervalSec" form:"outboundWatchdogIntervalSec" validate:"gte=0,lte=86400"`
+	OutboundWatchdogFailThreshold int    `json:"outboundWatchdogFailThreshold" form:"outboundWatchdogFailThreshold" validate:"gte=0,lte=20"`
 }
 
 // AllSettingView is the browser-safe settings read model. Secret values
@@ -124,12 +158,14 @@ type AllSetting struct {
 type AllSettingView struct {
 	AllSetting
 
-	HasTgBotToken     bool `json:"hasTgBotToken"`
-	HasTwoFactorToken bool `json:"hasTwoFactorToken"`
-	HasLdapPassword   bool `json:"hasLdapPassword"`
-	HasApiToken       bool `json:"hasApiToken"`
-	HasWarpSecret     bool `json:"hasWarpSecret"`
-	HasNordSecret     bool `json:"hasNordSecret"`
+	HasTgBotToken        bool `json:"hasTgBotToken"`
+	HasDiscordBotToken   bool `json:"hasDiscordBotToken"`
+	HasDiscordWebhookURL bool `json:"hasDiscordWebhookURL"`
+	HasTwoFactorToken    bool `json:"hasTwoFactorToken"`
+	HasLdapPassword      bool `json:"hasLdapPassword"`
+	HasApiToken          bool `json:"hasApiToken"`
+	HasWarpSecret        bool `json:"hasWarpSecret"`
+	HasNordSecret        bool `json:"hasNordSecret"`
 }
 
 // CheckValid validates all settings in the AllSetting struct, checking IP addresses, ports, SSL certificates, and other configuration values.
@@ -191,6 +227,8 @@ func (s *AllSetting) CheckValid() error {
 		{"subscription path", s.SubPath},
 		{"subscription JSON path", s.SubJsonPath},
 		{"subscription Clash path", s.SubClashPath},
+		{"subscription sing-box path", s.SubSingboxPath},
+		{"subscription Outline path", s.SubOutlinePath},
 	} {
 		if pathHasForbiddenChar(p.value) {
 			return common.NewError("URI path contains an invalid character:", p.name)
@@ -222,6 +260,20 @@ func (s *AllSetting) CheckValid() error {
 	}
 	if !strings.HasSuffix(s.SubClashPath, "/") {
 		s.SubClashPath += "/"
+	}
+
+	if !strings.HasPrefix(s.SubSingboxPath, "/") {
+		s.SubSingboxPath = "/" + s.SubSingboxPath
+	}
+	if !strings.HasSuffix(s.SubSingboxPath, "/") {
+		s.SubSingboxPath += "/"
+	}
+
+	if !strings.HasPrefix(s.SubOutlinePath, "/") {
+		s.SubOutlinePath = "/" + s.SubOutlinePath
+	}
+	if !strings.HasSuffix(s.SubOutlinePath, "/") {
+		s.SubOutlinePath += "/"
 	}
 
 	for cidr := range strings.SplitSeq(s.TrustedProxyCIDRs, ",") {

@@ -11,13 +11,33 @@ interface TestResultPopoverProps {
   children?: ReactNode;
 }
 
+function countryFlag(code?: string): string {
+  const cc = (code || '').trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(cc)) return '';
+  return String.fromCodePoint(
+    0x1f1e6 + cc.charCodeAt(0) - 65,
+    0x1f1e6 + cc.charCodeAt(1) - 65,
+  );
+}
+
 // Latency pill + detail popover for an outbound test result: per-endpoint
 // dial outcomes for TCP probes, HTTP status and the timing breakdown for
 // HTTP probes.
 export default function TestResultPopover({ result: r, children }: TestResultPopoverProps) {
   const { t } = useTranslation();
+  const flag = countryFlag(r.countryCode);
 
   const breakdown: Array<{ key: string; label: string; value: string }> = [];
+  if (r.egressIp) {
+    breakdown.push({ key: 'egressIp', label: t('pages.xray.outbound.egressIp', 'Egress IP'), value: r.egressIp });
+  }
+  if (r.countryCode) {
+    breakdown.push({
+      key: 'countryCode',
+      label: t('pages.xray.outbound.egressCountry', 'Country'),
+      value: flag ? `${flag} ${r.countryCode}` : r.countryCode,
+    });
+  }
   if (typeof r.httpStatus === 'number') {
     breakdown.push({ key: 'status', label: t('pages.xray.outbound.httpStatus'), value: String(r.httpStatus) });
   }
@@ -60,7 +80,14 @@ export default function TestResultPopover({ result: r, children }: TestResultPop
       {children ?? (
         <span className={r.success ? 'pill-ok' : 'pill-fail'}>
           {r.success ? <CheckCircleFilled /> : <CloseCircleFilled />}
-          {r.success ? <span>{r.delay}&nbsp;ms</span> : <span>failed</span>}
+          {r.success ? (
+            <span>
+              {r.countryCode ? `${flag ? `${flag} ` : ''}${r.countryCode} · ` : ''}
+              {r.delay}&nbsp;ms
+            </span>
+          ) : (
+            <span>failed</span>
+          )}
         </span>
       )}
     </Popover>

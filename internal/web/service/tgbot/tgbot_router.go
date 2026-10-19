@@ -139,6 +139,24 @@ func (t *Tgbot) OnReceive() {
 					t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.userSaved"), 3, tu.ReplyKeyboardRemove())
 					delete(userStates, message.Chat.ID)
 					t.addClient(message.Chat.ID, t.BuildClientDraftMessage())
+				case "awaiting_broadcast":
+					draft := strings.TrimSpace(message.Text)
+					if draft == "" {
+						t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.messages.broadcastEmpty"), t.broadcastCancelKeyboard())
+						return nil
+					}
+					if len(html.EscapeString(draft)) > broadcastMaxEscapedLen {
+						t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.messages.broadcastTooLong"), t.broadcastCancelKeyboard())
+						return nil
+					}
+					delete(userStates, message.Chat.ID)
+					recipients := t.collectBroadcastRecipients()
+					if len(recipients) == 0 {
+						t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.messages.broadcastNoRecipients"), tu.ReplyKeyboardRemove())
+						return nil
+					}
+					setBroadcastDraft(message.Chat.ID, draft)
+					t.SendMsgToTgbot(message.Chat.ID, t.broadcastPreviewText(draft, len(recipients)), t.broadcastConfirmKeyboard())
 				}
 
 			} else {
@@ -187,6 +205,11 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		msg += t.I18nBot("tgbot.commands.help")
 		msg += t.I18nBot("tgbot.commands.pleaseChoose")
 	case "start":
+		if len(commandArgs) > 0 && strings.HasPrefix(commandArgs[0], inviteStartPrefix) {
+			onlyMessage = true
+			t.redeemInviteStart(chatId, message.From, strings.TrimPrefix(commandArgs[0], inviteStartPrefix))
+			return
+		}
 		msg += t.I18nBot("tgbot.commands.start", "Firstname=="+html.EscapeString(message.From.FirstName))
 		if isAdmin {
 			msg += t.I18nBot("tgbot.commands.welcome", "Hostname=="+hostname)
@@ -213,6 +236,14 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		onlyMessage = true
 		if isAdmin && len(commandArgs) > 0 {
 			t.searchInbound(chatId, commandArgs[0])
+		} else {
+			handleUnknownCommand()
+		}
+	case "broadcast":
+		onlyMessage = true
+		if isAdmin {
+			userStates[chatId] = "awaiting_broadcast"
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.broadcastPrompt"), t.broadcastCancelKeyboard())
 		} else {
 			handleUnknownCommand()
 		}
@@ -961,6 +992,9 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			case "tg_user":
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.getUserInfo", "Email=="+email))
 				t.clientTelegramUserInfo(chatId, email)
+			case "invite_gen":
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.invite"))
+				t.sendClientInvite(chatId, email)
 			case "tgid_remove":
 				inlineKeyboard := tu.InlineKeyboard(
 					tu.InlineKeyboardRow(
@@ -1109,6 +1143,33 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 					return
 				}
 				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseInbound"), inbounds)
+			case "broadcast":
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.broadcast"))
+				userStates[chatId] = "awaiting_broadcast"
+				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.broadcastPrompt"), t.broadcastCancelKeyboard())
+			case "broadcast_send":
+				draft, ok := takeBroadcastDraft(chatId)
+				if !ok || strings.TrimSpace(draft) == "" {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.messages.broadcastCanceled"))
+					return
+				}
+				recipients := t.collectBroadcastRecipients()
+				if len(recipients) == 0 {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.messages.broadcastNoRecipients"))
+					return
+				}
+				if !tryStartBroadcast() {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.messages.broadcastRunning"))
+					return
+				}
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.confirmBroadcast"))
+				t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
+				go t.runBroadcast(chatId, draft, recipients)
+			case "broadcast_cancel":
+				takeBroadcastDraft(chatId)
+				delete(userStates, chatId)
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.messages.broadcastCanceled"))
+				t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
 			}
 
 		}
