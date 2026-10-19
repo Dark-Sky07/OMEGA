@@ -243,5 +243,3 @@ func (a *ResellerSelfController) redeemVoucher(c *gin.Context) {
 		"voucher":  voucher,
 	}, nil)
 }
-
-

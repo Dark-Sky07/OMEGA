@@ -482,4 +482,3 @@ func TestParseTraceGeo(t *testing.T) {
 		t.Fatalf("parseTraceGeo(json) = (%q, %q), want (203.0.113.7, NL)", ip2, cc2)
 	}
 }
-

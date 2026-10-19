@@ -28,10 +28,10 @@ type updateUserForm struct {
 
 // SettingController handles settings and user management operations.
 type SettingController struct {
-	settingService  service.SettingService
-	userService     panel.UserService
-	panelService    panel.PanelService
-	apiTokenService panel.ApiTokenService
+	settingService     service.SettingService
+	userService        panel.UserService
+	panelService       panel.PanelService
+	apiTokenService    panel.ApiTokenService
 	xrayService        service.XrayService
 	certService        service.CertService
 	discordService     service.DiscordService
@@ -366,4 +366,3 @@ func (a *SettingController) deleteAdmin(c *gin.Context) {
 	}
 	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), a.userService.DeleteAdmin(id, callerId))
 }
-

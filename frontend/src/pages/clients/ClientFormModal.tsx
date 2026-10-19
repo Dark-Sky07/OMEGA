@@ -26,7 +26,7 @@ import { formatInboundLabel } from '@/lib/inbounds/label';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
 import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
-import { useUserTemplates, type UserTemplate } from '@/hooks/useUserTemplates';
+import { useUserTemplates } from '@/hooks/useUserTemplates';
 import UserTemplatesModal from './UserTemplatesModal';
 import { ClientFormSchema, ClientCreateFormSchema } from '@/schemas/client';
 

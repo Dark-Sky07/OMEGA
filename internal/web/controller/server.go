@@ -559,4 +559,3 @@ func (a *ServerController) checkHost(c *gin.Context) {
 	}
 	jsonObj(c, report, nil)
 }
-

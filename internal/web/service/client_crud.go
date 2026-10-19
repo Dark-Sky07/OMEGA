@@ -978,4 +978,3 @@ func (s *ClientService) RevokeSubscription(inboundSvc *InboundService, email str
 	}
 	return newSubID, nil
 }
-

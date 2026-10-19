@@ -220,4 +220,3 @@ func (a *APIController) auditMiddleware(c *gin.Context) {
 		Status:    c.Writer.Status(),
 	})
 }
-
