@@ -1262,6 +1262,8 @@
       "checkHostLocation": "Probe Location",
       "checkHostStatus": "Reachability",
       "checkHostOpen": "Reachable (OK)",
+      "checkHostClosedPort": "IP Reachable (Port Closed)",
+      "checkHostPending": "Node Busy / Pending",
       "checkHostBlocked": "Filtered / Timeout",
       "checkHostLatency": "Latency",
       "checkHostDetail": "Detail",
