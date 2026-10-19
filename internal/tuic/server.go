@@ -879,12 +879,7 @@ func (s *Server) relayUDPResponses(
 	sess *udpRelaySession,
 ) {
 	defer associations.release(assocID, association)
-	const maxUDPRelayBufferSize = 65535 + 263
-	bufSize := maxUDPRelayBufferSize
-	if s.maxUdpRelayPacketSize > 0 && s.maxUdpRelayPacketSize < 65535 {
-		bufSize = s.maxUdpRelayPacketSize + 263
-	}
-	buf := make([]byte, bufSize)
+	buf := make([]byte, maxSocksUdpDatagramSize)
 	var nextPktID uint16
 	for {
 		srcAddr, respPayload, err := sess.relay.Receive(buf)
