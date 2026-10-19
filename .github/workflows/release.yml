@@ -290,6 +290,8 @@ jobs:
 
       - name: Copy and download resources
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir x-ui
           Copy-Item xui-release.exe x-ui\x-ui.exe
@@ -302,9 +304,13 @@ jobs:
           # is retried because api.github.com intermittently rate-limits the
           # shared runners (the Linux script retries for the same reason).
           $xrayVersion = ""
-          for ($attempt = 1; $attempt -le 6 -and [string]::IsNullOrWhiteSpace($xrayVersion); $attempt++) {
+          $headers = @{ "User-Agent" = "PHOENIX-Release" }
+          if (-not [string]::IsNullOrWhiteSpace($env:GH_TOKEN)) {
+            $headers["Authorization"] = "Bearer $($env:GH_TOKEN)"
+          }
+          for ($attempt = 1; $attempt -le 4 -and [string]::IsNullOrWhiteSpace($xrayVersion); $attempt++) {
             try {
-              $xrayReleases = Invoke-RestMethod -Uri "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=20"
+              $xrayReleases = Invoke-RestMethod -Uri "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=20" -Headers $headers
               $xrayVersion = $xrayReleases |
                 Where-Object { !$_.draft -and $_.tag_name -match '^v\d+\.\d+\.\d+$' } |
                 Sort-Object { [version]($_.tag_name.Substring(1)) } |
@@ -312,7 +318,13 @@ jobs:
             } catch {
               Write-Host "Xray-core release query failed (attempt $attempt): $($_.Exception.Message)"
             }
-            if ([string]::IsNullOrWhiteSpace($xrayVersion)) { Start-Sleep -Seconds (5 * $attempt) }
+            if ([string]::IsNullOrWhiteSpace($xrayVersion)) { Start-Sleep -Seconds (3 * $attempt) }
+          }
+          if ([string]::IsNullOrWhiteSpace($xrayVersion)) {
+            $effectiveUrl = (& curl.exe -fsSL -o NUL -w "%{url_effective}" "https://github.com/XTLS/Xray-core/releases/latest").Trim()
+            if ($effectiveUrl -match '/tag/(v\d+\.\d+\.\d+)$') {
+              $xrayVersion = $Matches[1]
+            }
           }
           if ([string]::IsNullOrWhiteSpace($xrayVersion)) {
             throw "Could not resolve the latest Xray-core version"
