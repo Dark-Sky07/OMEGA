@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -265,14 +266,10 @@ func injectDaemonRelayRouting(cfg *xray.Config, tag string, outboundTag string) 
 		} else {
 			rule["outboundTag"] = outboundTag
 		}
-		if lastMatchingIdx >= 0 {
-			nextRules := make([]any, 0, len(rules)+1)
-			nextRules = append(nextRules, rules[:lastMatchingIdx+1]...)
-			nextRules = append(nextRules, rule)
-			nextRules = append(nextRules, rules[lastMatchingIdx+1:]...)
-			rules = nextRules
+		if lastMatchingIdx >= 0 && lastMatchingIdx < len(rules) {
+			rules = slices.Insert(rules, lastMatchingIdx+1, any(rule))
 		} else {
-			rules = append([]any{rule}, rules...)
+			rules = slices.Insert(rules, 0, any(rule))
 		}
 		routing["rules"] = rules
 		changed = true

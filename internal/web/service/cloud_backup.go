@@ -95,12 +95,6 @@ func (s *CloudBackupService) RunIfDue() {
 // BackupNow creates a fresh database snapshot and uploads it to the configured
 // cloud storage provider, then prunes older backups beyond the retention limit.
 func (s *CloudBackupService) BackupNow() (string, error) {
-	return s.BackupNowWithOverride(nil)
-}
-
-// BackupNowWithOverride runs BackupNow with optional form overrides merged over
-// the persisted settings.
-func (s *CloudBackupService) BackupNowWithOverride(override *CloudBackupOverride) (string, error) {
 	provider, _ := s.settingService.GetCloudBackupProvider()
 	endpoint, _ := s.settingService.GetCloudBackupEndpoint()
 	region, _ := s.settingService.GetCloudBackupRegion()
@@ -109,33 +103,6 @@ func (s *CloudBackupService) BackupNowWithOverride(override *CloudBackupOverride
 	accessKey, _ := s.settingService.GetCloudBackupAccessKey()
 	secretKey, _ := s.settingService.GetCloudBackupSecretKey()
 	retention, _ := s.settingService.GetCloudBackupRetention()
-
-	if override != nil {
-		if v := strings.TrimSpace(override.Provider); v != "" {
-			provider = v
-		}
-		if v := strings.TrimSpace(override.Endpoint); v != "" {
-			endpoint = v
-		}
-		if v := strings.TrimSpace(override.Region); v != "" {
-			region = v
-		}
-		if v := strings.TrimSpace(override.Bucket); v != "" {
-			bucket = v
-		}
-		if v := strings.TrimSpace(override.Prefix); v != "" {
-			prefix = v
-		}
-		if v := strings.TrimSpace(override.AccessKey); v != "" {
-			accessKey = v
-		}
-		if v := strings.TrimSpace(override.SecretKey); v != "" {
-			secretKey = v
-		}
-		if override.Retention != nil && *override.Retention >= 0 {
-			retention = *override.Retention
-		}
-	}
 
 	provider = strings.ToLower(strings.TrimSpace(provider))
 	if provider == "" {
@@ -154,8 +121,19 @@ func (s *CloudBackupService) BackupNowWithOverride(override *CloudBackupOverride
 	accessKey = strings.TrimSpace(accessKey)
 	secretKey = strings.TrimSpace(secretKey)
 
-	if provider != "gdrive" && endpoint == "" {
-		return "", fmt.Errorf("cloud backup endpoint is required")
+	if provider != "gdrive" && provider != "google_drive" && provider != "googledrive" {
+		if endpoint == "" {
+			return "", fmt.Errorf("cloud backup endpoint is required")
+		}
+		rawEndpoint := endpoint
+		if !strings.Contains(rawEndpoint, "://") {
+			rawEndpoint = "https://" + rawEndpoint
+		}
+		cleanEndpoint, err := SanitizePublicHTTPURL(rawEndpoint, false)
+		if err != nil {
+			return "", fmt.Errorf("cloud backup endpoint is invalid or blocked: %w", err)
+		}
+		endpoint = cleanEndpoint
 	}
 
 	payload, ext, err := buildDatabaseBackupPayload()

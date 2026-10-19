@@ -257,9 +257,7 @@ func (a *SettingController) testDiscord(c *gin.Context) {
 }
 
 func (a *SettingController) runCloudBackup(c *gin.Context) {
-	var override service.CloudBackupOverride
-	_ = c.ShouldBind(&override)
-	key, err := a.cloudBackupService.BackupNowWithOverride(&override)
+	key, err := a.cloudBackupService.BackupNow()
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
 		return

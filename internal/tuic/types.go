@@ -4,8 +4,10 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"net"
 	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -73,9 +75,14 @@ func (inst Instance) StructuralFingerprint() string {
 
 func fingerprintMaterial(value string) string {
 	material := []byte(value)
-	if value != "" && !strings.Contains(value, "-----BEGIN ") {
-		if file, err := os.ReadFile(value); err == nil {
-			material = file
+	if value != "" && !strings.Contains(value, "-----BEGIN ") && !strings.Contains(value, "..") {
+		cleaned := filepath.Clean(value)
+		vol := filepath.VolumeName(cleaned)
+		root := vol + string(filepath.Separator)
+		if rel, err := filepath.Rel(root, cleaned); err == nil && !strings.HasPrefix(rel, "..") && rel != "." {
+			if file, err := fs.ReadFile(os.DirFS(root), filepath.ToSlash(rel)); err == nil {
+				material = file
+			}
 		}
 	}
 	return fmt.Sprintf("%x", sha256.Sum256(material))
