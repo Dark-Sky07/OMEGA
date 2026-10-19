@@ -64,6 +64,8 @@ export class AllSetting {
   subEncrypt = true;
   subShowInfo = true;
   subEmailInRemark = true;
+  subStatusNode = false;
+  subExpiredNotice = '';
   subURI = '';
   subJsonURI = '';
   subClashURI = '';

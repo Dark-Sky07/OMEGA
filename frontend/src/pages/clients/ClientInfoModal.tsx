@@ -551,6 +551,23 @@ export default function ClientInfoModal({
                   <td>{t('pages.inbounds.updatedAt')}</td>
                   <td><Tag>{dateLabel(client.updatedAt)}</Tag></td>
                 </tr>
+                <tr>
+                  <td>{t('pages.clients.subLastUpdatedAt')}</td>
+                  <td>
+                    <Tag>{dateLabel(client.subLastUpdatedAt)}</Tag>
+                    {(client.subLastUpdatedAt ?? 0) > 0 && (
+                      <span className="hint">{IntlUtil.formatRelativeTime(client.subLastUpdatedAt)}</span>
+                    )}
+                  </td>
+                </tr>
+                <tr>
+                  <td>{t('pages.clients.subLastUserAgent')}</td>
+                  <td>
+                    {client.subLastUserAgent
+                      ? <Tag color="geekblue" className="info-large-tag">{client.subLastUserAgent}</Tag>
+                      : <span className="hint">—</span>}
+                  </td>
+                </tr>
                 {client.comment && (
                   <tr>
                     <td>{t('pages.clients.comment')}</td>

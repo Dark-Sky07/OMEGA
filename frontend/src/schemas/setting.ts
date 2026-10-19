@@ -68,6 +68,8 @@ export const AllSettingSchema = z.object({
   subEncrypt: z.boolean().optional(),
   subShowInfo: z.boolean().optional(),
   subEmailInRemark: z.boolean().optional(),
+  subStatusNode: z.boolean().optional(),
+  subExpiredNotice: z.string().optional(),
   subURI: z.string().optional(),
   subJsonURI: z.string().optional(),
   subClashURI: z.string().optional(),

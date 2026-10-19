@@ -106,6 +106,18 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
             <SettingListItem paddings="small" title={t('pages.settings.subEmailInRemark')} description={t('pages.settings.subEmailInRemarkDesc')}>
               <Switch checked={allSetting.subEmailInRemark} onChange={(v) => updateSetting({ subEmailInRemark: v })} />
             </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.subStatusNode')} description={t('pages.settings.subStatusNodeDesc')}>
+              <Switch checked={allSetting.subStatusNode} onChange={(v) => updateSetting({ subStatusNode: v })} />
+            </SettingListItem>
+            {allSetting.subStatusNode && (
+              <SettingListItem paddings="small" title={t('pages.settings.subExpiredNotice')} description={t('pages.settings.subExpiredNoticeDesc')}>
+                <Input
+                  value={allSetting.subExpiredNotice}
+                  placeholder="⚠️ Subscription Expired / Depleted — Please Renew"
+                  onChange={(e) => updateSetting({ subExpiredNotice: e.target.value })}
+                />
+              </SettingListItem>
+            )}
 
             <SettingListItem
               paddings="small"
