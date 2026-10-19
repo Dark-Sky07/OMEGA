@@ -9,6 +9,7 @@ import (
 	yaml "github.com/goccy/go-yaml"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 )
 
 type SubClashService struct {
@@ -132,7 +133,9 @@ func (s *SubClashService) getProxies(inbound *model.Inbound, client model.Client
 	}
 	externalProxies, ok := stream["externalProxy"].([]any)
 	hasExternalProxy := ok && len(externalProxies) > 0
-	if !hasExternalProxy {
+	if hasExternalProxy {
+		externalProxies = resolveSmartExternalProxyList(externalProxies, inbound, client.Email)
+	} else {
 		externalProxies = []any{map[string]any{
 			"forceTls": "same",
 			"dest":     defaultDest,
@@ -168,7 +171,16 @@ func (s *SubClashService) getProxies(inbound *model.Inbound, client model.Client
 			applyExternalProxyTLSToStream(extPrxy, workingStream, security)
 		}
 
-		proxy := s.buildProxy(&workingInbound, client, workingStream, extPrxy["remark"].(string))
+		var proxy map[string]any
+		if inbound.Protocol == model.TUIC {
+			var epOverride map[string]any
+			if hasExternalProxy {
+				epOverride = extPrxy
+			}
+			proxy = s.buildTuicProxy(s.SubService, &workingInbound, client, epOverride)
+		} else {
+			proxy = s.buildProxy(&workingInbound, client, workingStream, extPrxy["remark"].(string))
+		}
 		if len(proxy) > 0 {
 			proxies = append(proxies, proxy)
 		}
@@ -181,6 +193,9 @@ func (s *SubClashService) buildProxy(inbound *model.Inbound, client model.Client
 	// applySecurity don't fit.
 	if inbound.Protocol == model.Hysteria {
 		return s.buildHysteriaProxy(inbound, client, extraRemark)
+	}
+	if inbound.Protocol == model.TUIC {
+		return s.buildTuicProxy(s.SubService, inbound, client, map[string]any{"remark": extraRemark})
 	}
 
 	proxy := map[string]any{
@@ -328,6 +343,70 @@ func (s *SubClashService) buildHysteriaProxy(inbound *model.Inbound, client mode
 		proxy["ports"] = hopPorts
 	}
 
+	return proxy
+}
+
+func (s *SubClashService) buildTuicProxy(subReq *SubService, inbound *model.Inbound, client model.Client, ep map[string]any) map[string]any {
+	inst, ok := tuic.InstanceFromInbound(inbound)
+	if !ok {
+		return nil
+	}
+	uuid := client.ID
+	password := client.Password
+	for _, c := range inst.Clients {
+		if c.Email == client.Email {
+			if uuid == "" {
+				uuid = c.UUID
+			}
+			if password == "" {
+				password = c.Password
+			}
+			break
+		}
+	}
+	if uuid == "" || password == "" {
+		return nil
+	}
+	server := inbound.Listen
+	if server == "" || server == "0.0.0.0" || server == "::" {
+		if subReq != nil {
+			server = subReq.resolveInboundAddress(inbound)
+		}
+	}
+	extraRemark := ""
+	if ep != nil {
+		extraRemark, _ = ep["remark"].(string)
+	}
+	name := client.Email
+	if subReq != nil {
+		name = subReq.genRemark(inbound, client.Email, extraRemark)
+	}
+	proxy := map[string]any{
+		"name":                  name,
+		"type":                  "tuic",
+		"server":                server,
+		"port":                  inbound.Port,
+		"uuid":                  uuid,
+		"password":              password,
+		"congestion-controller": inst.CongestionControl,
+		"udp-relay-mode":        inst.UDPRelayMode,
+		"reduce-rtt":            inst.ZeroRTTHandshake,
+	}
+	if len(inst.ALPN) > 0 {
+		proxy["alpn"] = inst.ALPN
+	}
+	if inst.SNI != "" {
+		proxy["sni"] = inst.SNI
+	}
+	if sni, ok := externalProxySNI(ep); ok {
+		proxy["sni"] = sni
+	}
+	if alpn, ok := externalProxyALPN(ep["alpn"]); ok {
+		proxy["alpn"] = strings.Split(alpn, ",")
+	}
+	if ai, ok := ep["allowInsecure"].(bool); ok && ai {
+		proxy["skip-cert-verify"] = true
+	}
 	return proxy
 }
 

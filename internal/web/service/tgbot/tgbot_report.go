@@ -37,6 +37,8 @@ func (t *Tgbot) SendReport() {
 	t.sendExhaustedToAdmins()
 	t.notifyExhausted()
 
+	t.sendUserReports()
+
 	backupEnable, err := t.settingService.GetTgBotBackup()
 	if err == nil && backupEnable {
 		t.SendBackupToAdmins()
@@ -155,12 +157,21 @@ func (t *Tgbot) prepareServerUsageInfo() string {
 
 // UserLoginNotify sends a notification about user login attempts to admins.
 func (t *Tgbot) UserLoginNotify(attempt LoginAttempt) {
-	if !t.IsRunning() {
+	if attempt.Username == "" || attempt.IP == "" || attempt.Time == "" {
+		logger.Warning("UserLoginNotify failed, invalid info!")
 		return
 	}
 
-	if attempt.Username == "" || attempt.IP == "" || attempt.Time == "" {
-		logger.Warning("UserLoginNotify failed, invalid info!")
+	// Forward to Discord independently of Telegram's running state.
+	go (&service.DiscordService{}).SendLoginNotify(
+		attempt.Username,
+		attempt.IP,
+		attempt.Time,
+		attempt.Reason,
+		attempt.Status == LoginSuccess,
+	)
+
+	if !t.IsRunning() {
 		return
 	}
 
@@ -284,7 +295,27 @@ func (t *Tgbot) getExhausted(chatId int64) {
 	}
 }
 
-// notifyExhausted sends notifications for exhausted clients.
+// approachingLimits reports which warning kinds apply to one client at the
+// given instant. exDiff and trDiff are the remaining-time/remaining-traffic
+// thresholds already converted to milliseconds/bytes (0 keeps the historical
+// semantics: the kind only matches after the limit has actually been passed).
+// The function is pure so the notification rules stay unit-testable.
+func approachingLimits(now, expiryTime, total, up, down, exDiff, trDiff int64) (expireWarn, trafficWarn bool) {
+	if expiryTime > 0 && (expiryTime-now < exDiff) {
+		expireWarn = true
+	}
+	if total > 0 && (total-(up+down) < trDiff) {
+		trafficWarn = true
+	}
+	return expireWarn, trafficWarn
+}
+
+// notifyExhausted sends approaching-limit warnings to clients that linked a
+// Telegram account (TgID). Each client is warned at most once per depletion
+// episode per kind (traffic / expiry): the marker lives in bot_notify_states
+// and is cleared as soon as the condition goes away (renewal, top-up), so a
+// later re-approach is announced again exactly once. Clients that already
+// received their warning are not spammed on every report cycle.
 func (t *Tgbot) notifyExhausted() {
 	trDiff := int64(0)
 	exDiff := int64(0)
@@ -303,58 +334,106 @@ func (t *Tgbot) notifyExhausted() {
 		logger.Warning("Unable to load Inbounds", err)
 	}
 
+	notify := service.BotNotifyStateService{}
 	var chatIDsDone []int64
 	for _, inbound := range inbounds {
-		if inbound.Enable {
-			if len(inbound.ClientStats) > 0 {
-				clients, err := t.inboundService.GetClients(inbound)
-				if err == nil {
-					for _, client := range clients {
-						if client.TgID != 0 {
-							chatID := client.TgID
-							if !int64Contains(chatIDsDone, chatID) && !checkAdmin(chatID) {
-								var disabledClients []xray.ClientTraffic
-								var exhaustedClients []xray.ClientTraffic
-								traffics, err := t.inboundService.GetClientTrafficTgBot(client.TgID)
-								if err == nil && len(traffics) > 0 {
-									var output strings.Builder
-									output.WriteString(t.I18nBot("tgbot.messages.exhaustedCount", "Type=="+t.I18nBot("tgbot.clients")))
-									for _, traffic := range traffics {
-										if traffic.Enable {
-											if (traffic.ExpiryTime > 0 && (traffic.ExpiryTime-now < exDiff)) ||
-												(traffic.Total > 0 && (traffic.Total-(traffic.Up+traffic.Down) < trDiff)) {
-												exhaustedClients = append(exhaustedClients, *traffic)
-											}
-										} else {
-											disabledClients = append(disabledClients, *traffic)
-										}
-									}
-									if len(exhaustedClients) > 0 {
-										output.WriteString(t.I18nBot("tgbot.messages.disabled", "Disabled=="+strconv.Itoa(len(disabledClients))))
-										if len(disabledClients) > 0 {
-											output.WriteString(t.I18nBot("tgbot.clients"))
-											output.WriteString(":\r\n")
-											for _, traffic := range disabledClients {
-												output.WriteString(" ")
-												output.WriteString(traffic.Email)
-											}
-											output.WriteString("\r\n")
-										}
-										output.WriteString("\r\n")
-										output.WriteString(t.I18nBot("tgbot.messages.depleteSoon", "Deplete=="+strconv.Itoa(len(exhaustedClients))))
-										for _, traffic := range exhaustedClients {
-											output.WriteString(t.clientInfoMsg(&traffic, true, false, false, true, true, false))
-											output.WriteString("\r\n")
-										}
-										t.SendMsgToTgbot(chatID, output.String())
-									}
-									chatIDsDone = append(chatIDsDone, chatID)
-								}
-							}
-						}
+		if !inbound.Enable || len(inbound.ClientStats) == 0 {
+			continue
+		}
+		clients, err := t.inboundService.GetClients(inbound)
+		if err != nil {
+			continue
+		}
+		for _, client := range clients {
+			if client.TgID == EmptyTelegramUserID || int64Contains(chatIDsDone, client.TgID) || checkAdmin(client.TgID) {
+				continue
+			}
+			chatIDsDone = append(chatIDsDone, client.TgID)
+			traffics, err := t.inboundService.GetClientTrafficTgBot(client.TgID)
+			if err != nil {
+				continue
+			}
+			var output strings.Builder
+			freshCount := 0
+			for _, traffic := range traffics {
+				if !traffic.Enable {
+					continue
+				}
+				expireWarn, trafficWarn := approachingLimits(now, traffic.ExpiryTime, traffic.Total, traffic.Up, traffic.Down, exDiff, trDiff)
+				fresh := false
+				if trafficWarn {
+					if notify.ClaimWarning(traffic.Email, service.BotNotifyKindTraffic) {
+						fresh = true
 					}
+				} else {
+					notify.ResetWarning(traffic.Email, service.BotNotifyKindTraffic)
+				}
+				if expireWarn {
+					if notify.ClaimWarning(traffic.Email, service.BotNotifyKindExpire) {
+						fresh = true
+					}
+				} else {
+					notify.ResetWarning(traffic.Email, service.BotNotifyKindExpire)
+				}
+				if fresh {
+					freshCount++
+					output.WriteString(t.clientInfoMsg(traffic, true, false, false, true, true, false))
+					output.WriteString("\r\n")
 				}
 			}
+			if freshCount == 0 {
+				continue
+			}
+			var msg strings.Builder
+			msg.WriteString(t.I18nBot("tgbot.messages.depleteSoon", "Deplete=="+strconv.Itoa(freshCount)))
+			msg.WriteString(output.String())
+			t.SendMsgToTgbot(client.TgID, msg.String())
+		}
+	}
+}
+
+// sendUserReports delivers a personal usage digest to every client that
+// linked a Telegram account (TgID). Opt-in via the tgBotUserReport setting
+// (default off): deployments that never enable it send nothing new. Runs at
+// the periodic report time, right after the admin report, paced to stay under
+// Telegram flood limits.
+func (t *Tgbot) sendUserReports() {
+	enabled, err := t.settingService.GetTgBotUserReport()
+	if err != nil || !enabled {
+		return
+	}
+	inbounds, err := t.inboundService.GetAllInbounds()
+	if err != nil {
+		logger.Warning("user report: unable to load inbounds", err)
+		return
+	}
+	seen := make(map[int64]struct{})
+	for _, inbound := range inbounds {
+		clients, err := t.inboundService.GetClients(inbound)
+		if err != nil {
+			continue
+		}
+		for _, client := range clients {
+			if client.TgID == EmptyTelegramUserID || checkAdmin(client.TgID) {
+				continue
+			}
+			if _, dup := seen[client.TgID]; dup {
+				continue
+			}
+			seen[client.TgID] = struct{}{}
+			traffics, err := t.inboundService.GetClientTrafficTgBot(client.TgID)
+			if err != nil || len(traffics) == 0 {
+				continue
+			}
+			var b strings.Builder
+			b.WriteString(t.I18nBot("tgbot.messages.userReport", "DateTime=="+time.Now().Format("2006-01-02 15:04")))
+			b.WriteString("\r\n")
+			for _, traffic := range traffics {
+				b.WriteString(t.clientInfoMsg(traffic, true, false, false, true, true, false))
+				b.WriteString("\r\n")
+			}
+			t.SendMsgToTgbot(client.TgID, b.String())
+			time.Sleep(broadcastDelay)
 		}
 	}
 }

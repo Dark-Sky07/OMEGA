@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "OMEGA Panel API",
+    "title": "PHOENIX Panel API",
     "version": "3.x",
-    "description": "Programmatic interface to an OMEGA panel. Authenticate either by logging in (cookie) or with an API token from Settings → Security → API Token (Bearer). All endpoints under /panel/api/* honour both modes — an API token is a full-admin credential, so treat it like the panel password."
+    "description": "Programmatic interface to a PHOENIX panel. Authenticate either by logging in (cookie) or with an API token from Settings → Security → API Token (Bearer). All endpoints under /panel/api/* honour both modes — an API token is a full-admin credential, so treat it like the panel password."
   },
   "servers": [
     {
@@ -21,16 +21,67 @@
       "cookieAuth": {
         "type": "apiKey",
         "in": "cookie",
-        "name": "3x-ui",
+        "name": "phoenix",
         "description": "Session cookie set by POST /login. Browser-only."
       }
     },
     "schemas": {
       "AllSetting": {
-        "description": "AllSetting contains all configuration settings for the 3x-ui panel including web server, Telegram bot, and subscription settings.",
+        "description": "AllSetting contains all configuration settings for the PHOENIX panel including web server, Telegram bot, and subscription settings.",
         "properties": {
+          "cloudBackupAccessKey": {
+            "type": "string"
+          },
+          "cloudBackupBucket": {
+            "type": "string"
+          },
+          "cloudBackupEnable": {
+            "description": "Cloud Backup (S3 / Cloudflare R2 / MinIO / WebDAV)",
+            "type": "boolean"
+          },
+          "cloudBackupEndpoint": {
+            "type": "string"
+          },
+          "cloudBackupIntervalHours": {
+            "maximum": 720,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "cloudBackupPrefix": {
+            "type": "string"
+          },
+          "cloudBackupProvider": {
+            "type": "string"
+          },
+          "cloudBackupRegion": {
+            "type": "string"
+          },
+          "cloudBackupRetention": {
+            "maximum": 1000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "cloudBackupSecretKey": {
+            "type": "string"
+          },
           "datepicker": {
             "description": "Date picker format",
+            "type": "string"
+          },
+          "discordBotToken": {
+            "type": "string"
+          },
+          "discordChannelId": {
+            "type": "string"
+          },
+          "discordEnable": {
+            "description": "Discord bot / webhook notifications",
+            "type": "boolean"
+          },
+          "discordLoginNotify": {
+            "type": "boolean"
+          },
+          "discordWebhookURL": {
             "type": "string"
           },
           "expireDiff": {
@@ -114,6 +165,23 @@
           "ldapVlessField": {
             "type": "string"
           },
+          "outboundWatchdogEnable": {
+            "description": "Smart Outbound Auto-Failover Watchdog",
+            "type": "boolean"
+          },
+          "outboundWatchdogFailThreshold": {
+            "maximum": 20,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "outboundWatchdogIntervalSec": {
+            "maximum": 86400,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "outboundWatchdogTags": {
+            "type": "string"
+          },
           "pageSize": {
             "description": "UI settings\nNumber of items per page in lists (0 disables pagination)",
             "maximum": 1000,
@@ -186,6 +254,10 @@
             "description": "Encrypt subscription responses",
             "type": "boolean"
           },
+          "subExpiredNotice": {
+            "description": "Custom notice shown on the status node when expired/depleted",
+            "type": "string"
+          },
           "subJsonEnable": {
             "description": "Enable JSON subscription endpoint",
             "type": "boolean"
@@ -217,6 +289,18 @@
             "description": "Subscription server listen IP",
             "type": "string"
           },
+          "subOutlineEnable": {
+            "description": "Enable Outline (SIP002 ss://) subscription endpoint",
+            "type": "boolean"
+          },
+          "subOutlinePath": {
+            "description": "Path for Outline subscription endpoint",
+            "type": "string"
+          },
+          "subOutlineURI": {
+            "description": "Outline subscription server URI",
+            "type": "string"
+          },
           "subPath": {
             "description": "Base path for subscription URLs",
             "type": "string"
@@ -237,6 +321,22 @@
           },
           "subShowInfo": {
             "description": "Show client information in subscriptions",
+            "type": "boolean"
+          },
+          "subSingboxEnable": {
+            "description": "Enable sing-box subscription endpoint",
+            "type": "boolean"
+          },
+          "subSingboxPath": {
+            "description": "Path for sing-box subscription endpoint",
+            "type": "string"
+          },
+          "subSingboxURI": {
+            "description": "sing-box subscription server URI",
+            "type": "string"
+          },
+          "subStatusNode": {
+            "description": "Prepend an informational status node to subscription links",
             "type": "boolean"
           },
           "subSupportUrl": {
@@ -288,6 +388,10 @@
           "tgBotToken": {
             "description": "Telegram bot token",
             "type": "string"
+          },
+          "tgBotUserReport": {
+            "description": "Send personal periodic usage reports to clients",
+            "type": "boolean"
           },
           "tgCpu": {
             "description": "CPU usage threshold for alerts (percent)",
@@ -358,7 +462,22 @@
           }
         },
         "required": [
+          "cloudBackupAccessKey",
+          "cloudBackupBucket",
+          "cloudBackupEnable",
+          "cloudBackupEndpoint",
+          "cloudBackupIntervalHours",
+          "cloudBackupPrefix",
+          "cloudBackupProvider",
+          "cloudBackupRegion",
+          "cloudBackupRetention",
+          "cloudBackupSecretKey",
           "datepicker",
+          "discordBotToken",
+          "discordChannelId",
+          "discordEnable",
+          "discordLoginNotify",
+          "discordWebhookURL",
           "expireDiff",
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
@@ -382,6 +501,10 @@
           "ldapUserAttr",
           "ldapUserFilter",
           "ldapVlessField",
+          "outboundWatchdogEnable",
+          "outboundWatchdogFailThreshold",
+          "outboundWatchdogIntervalSec",
+          "outboundWatchdogTags",
           "pageSize",
           "panelOutbound",
           "remarkModel",
@@ -399,6 +522,7 @@
           "subEnable",
           "subEnableRouting",
           "subEncrypt",
+          "subExpiredNotice",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
@@ -407,11 +531,18 @@
           "subJsonURI",
           "subKeyFile",
           "subListen",
+          "subOutlineEnable",
+          "subOutlinePath",
+          "subOutlineURI",
           "subPath",
           "subPort",
           "subProfileUrl",
           "subRoutingRules",
           "subShowInfo",
+          "subSingboxEnable",
+          "subSingboxPath",
+          "subSingboxURI",
+          "subStatusNode",
           "subSupportUrl",
           "subThemeDir",
           "subTitle",
@@ -424,6 +555,7 @@
           "tgBotLoginNotify",
           "tgBotProxy",
           "tgBotToken",
+          "tgBotUserReport",
           "tgCpu",
           "tgLang",
           "tgRunTime",
@@ -445,8 +577,59 @@
       "AllSettingView": {
         "description": "AllSettingView is the browser-safe settings read model. Secret values\nare redacted from the embedded write model and represented by presence\nflags so the UI can show configured/not configured state.",
         "properties": {
+          "cloudBackupAccessKey": {
+            "type": "string"
+          },
+          "cloudBackupBucket": {
+            "type": "string"
+          },
+          "cloudBackupEnable": {
+            "description": "Cloud Backup (S3 / Cloudflare R2 / MinIO / WebDAV)",
+            "type": "boolean"
+          },
+          "cloudBackupEndpoint": {
+            "type": "string"
+          },
+          "cloudBackupIntervalHours": {
+            "maximum": 720,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "cloudBackupPrefix": {
+            "type": "string"
+          },
+          "cloudBackupProvider": {
+            "type": "string"
+          },
+          "cloudBackupRegion": {
+            "type": "string"
+          },
+          "cloudBackupRetention": {
+            "maximum": 1000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "cloudBackupSecretKey": {
+            "type": "string"
+          },
           "datepicker": {
             "description": "Date picker format",
+            "type": "string"
+          },
+          "discordBotToken": {
+            "type": "string"
+          },
+          "discordChannelId": {
+            "type": "string"
+          },
+          "discordEnable": {
+            "description": "Discord bot / webhook notifications",
+            "type": "boolean"
+          },
+          "discordLoginNotify": {
+            "type": "boolean"
+          },
+          "discordWebhookURL": {
             "type": "string"
           },
           "expireDiff": {
@@ -463,6 +646,12 @@
             "type": "string"
           },
           "hasApiToken": {
+            "type": "boolean"
+          },
+          "hasDiscordBotToken": {
+            "type": "boolean"
+          },
+          "hasDiscordWebhookURL": {
             "type": "boolean"
           },
           "hasLdapPassword": {
@@ -548,6 +737,23 @@
           "ldapVlessField": {
             "type": "string"
           },
+          "outboundWatchdogEnable": {
+            "description": "Smart Outbound Auto-Failover Watchdog",
+            "type": "boolean"
+          },
+          "outboundWatchdogFailThreshold": {
+            "maximum": 20,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "outboundWatchdogIntervalSec": {
+            "maximum": 86400,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "outboundWatchdogTags": {
+            "type": "string"
+          },
           "pageSize": {
             "description": "UI settings\nNumber of items per page in lists (0 disables pagination)",
             "maximum": 1000,
@@ -620,6 +826,10 @@
             "description": "Encrypt subscription responses",
             "type": "boolean"
           },
+          "subExpiredNotice": {
+            "description": "Custom notice shown on the status node when expired/depleted",
+            "type": "string"
+          },
           "subJsonEnable": {
             "description": "Enable JSON subscription endpoint",
             "type": "boolean"
@@ -651,6 +861,18 @@
             "description": "Subscription server listen IP",
             "type": "string"
           },
+          "subOutlineEnable": {
+            "description": "Enable Outline (SIP002 ss://) subscription endpoint",
+            "type": "boolean"
+          },
+          "subOutlinePath": {
+            "description": "Path for Outline subscription endpoint",
+            "type": "string"
+          },
+          "subOutlineURI": {
+            "description": "Outline subscription server URI",
+            "type": "string"
+          },
           "subPath": {
             "description": "Base path for subscription URLs",
             "type": "string"
@@ -671,6 +893,22 @@
           },
           "subShowInfo": {
             "description": "Show client information in subscriptions",
+            "type": "boolean"
+          },
+          "subSingboxEnable": {
+            "description": "Enable sing-box subscription endpoint",
+            "type": "boolean"
+          },
+          "subSingboxPath": {
+            "description": "Path for sing-box subscription endpoint",
+            "type": "string"
+          },
+          "subSingboxURI": {
+            "description": "sing-box subscription server URI",
+            "type": "string"
+          },
+          "subStatusNode": {
+            "description": "Prepend an informational status node to subscription links",
             "type": "boolean"
           },
           "subSupportUrl": {
@@ -722,6 +960,10 @@
           "tgBotToken": {
             "description": "Telegram bot token",
             "type": "string"
+          },
+          "tgBotUserReport": {
+            "description": "Send personal periodic usage reports to clients",
+            "type": "boolean"
           },
           "tgCpu": {
             "description": "CPU usage threshold for alerts (percent)",
@@ -792,11 +1034,28 @@
           }
         },
         "required": [
+          "cloudBackupAccessKey",
+          "cloudBackupBucket",
+          "cloudBackupEnable",
+          "cloudBackupEndpoint",
+          "cloudBackupIntervalHours",
+          "cloudBackupPrefix",
+          "cloudBackupProvider",
+          "cloudBackupRegion",
+          "cloudBackupRetention",
+          "cloudBackupSecretKey",
           "datepicker",
+          "discordBotToken",
+          "discordChannelId",
+          "discordEnable",
+          "discordLoginNotify",
+          "discordWebhookURL",
           "expireDiff",
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
           "hasApiToken",
+          "hasDiscordBotToken",
+          "hasDiscordWebhookURL",
           "hasLdapPassword",
           "hasNordSecret",
           "hasTgBotToken",
@@ -822,6 +1081,10 @@
           "ldapUserAttr",
           "ldapUserFilter",
           "ldapVlessField",
+          "outboundWatchdogEnable",
+          "outboundWatchdogFailThreshold",
+          "outboundWatchdogIntervalSec",
+          "outboundWatchdogTags",
           "pageSize",
           "panelOutbound",
           "remarkModel",
@@ -839,6 +1102,7 @@
           "subEnable",
           "subEnableRouting",
           "subEncrypt",
+          "subExpiredNotice",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
@@ -847,11 +1111,18 @@
           "subJsonURI",
           "subKeyFile",
           "subListen",
+          "subOutlineEnable",
+          "subOutlinePath",
+          "subOutlineURI",
           "subPath",
           "subPort",
           "subProfileUrl",
           "subRoutingRules",
           "subShowInfo",
+          "subSingboxEnable",
+          "subSingboxPath",
+          "subSingboxURI",
+          "subStatusNode",
           "subSupportUrl",
           "subThemeDir",
           "subTitle",
@@ -864,6 +1135,7 @@
           "tgBotLoginNotify",
           "tgBotProxy",
           "tgBotToken",
+          "tgBotUserReport",
           "tgCpu",
           "tgLang",
           "tgRunTime",
@@ -920,10 +1192,26 @@
           "enabled": {
             "type": "boolean"
           },
+          "expiresAt": {
+            "description": "unix millis; 0 = never expires",
+            "type": "integer"
+          },
           "id": {
             "type": "integer"
           },
+          "lastUsedAt": {
+            "description": "unix millis of the last successful authentication",
+            "type": "integer"
+          },
           "name": {
+            "type": "string"
+          },
+          "prefix": {
+            "description": "leading plaintext characters, for identifying a token in the list",
+            "type": "string"
+          },
+          "scope": {
+            "description": "\"full\" or \"read\"; empty means \"full\" (legacy rows)",
             "type": "string"
           },
           "token": {
@@ -934,8 +1222,12 @@
         "required": [
           "createdAt",
           "enabled",
+          "expiresAt",
           "id",
+          "lastUsedAt",
           "name",
+          "prefix",
+          "scope",
           "token"
         ],
         "type": "object"
@@ -950,12 +1242,28 @@
             "example": true,
             "type": "boolean"
           },
+          "expiresAt": {
+            "example": 0,
+            "type": "integer"
+          },
           "id": {
             "example": 2,
             "type": "integer"
           },
+          "lastUsedAt": {
+            "example": 0,
+            "type": "integer"
+          },
           "name": {
             "example": "central-panel-a",
+            "type": "string"
+          },
+          "prefix": {
+            "example": "a1b2c3d4",
+            "type": "string"
+          },
+          "scope": {
+            "example": "read",
             "type": "string"
           },
           "token": {
@@ -966,14 +1274,22 @@
         "required": [
           "createdAt",
           "enabled",
+          "expiresAt",
           "id",
-          "name"
+          "lastUsedAt",
+          "name",
+          "prefix",
+          "scope"
         ],
         "type": "object"
       },
       "Client": {
         "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
         "properties": {
+          "activateBefore": {
+            "description": "ActivateBefore is the delayed-start activation deadline (ms). While the\nclient is still un-activated (negative expiryTime) past this timestamp,\nthe client is treated as expired. 0 disables the deadline.",
+            "type": "integer"
+          },
           "allowedIPs": {
             "items": {
               "type": "string"
@@ -1031,6 +1347,10 @@
           "keepAlive": {
             "type": "integer"
           },
+          "limitDevice": {
+            "description": "LimitDevice caps how many distinct HWID-identified devices may fetch\nthis client's subscription. 0 (the default) disables both tracking and\nenforcement, so existing clients are unaffected.",
+            "type": "integer"
+          },
           "limitIp": {
             "description": "IP limit for this client",
             "type": "integer"
@@ -1048,6 +1368,14 @@
           },
           "publicKey": {
             "type": "string"
+          },
+          "renewalDay": {
+            "description": "RenewalDay: for RenewalMode=2 the weekday (0=Sunday .. 6=Saturday);\nfor RenewalMode=1 an optional day-of-month (1-28). 0 means \"inherit\nthe anchor from the current expiry\".",
+            "type": "integer"
+          },
+          "renewalMode": {
+            "description": "RenewalMode selects the auto-renew schedule used when a renewal fires:\n0 = rolling whole Reset-day steps (legacy behavior), 1 = whole calendar\nmonths, 2 = a fixed weekday (RenewalDay).",
+            "type": "integer"
           },
           "reset": {
             "description": "Reset period in days",
@@ -1070,6 +1398,12 @@
             "description": "Subscription identifier",
             "type": "string"
           },
+          "subLastUpdatedAt": {
+            "type": "integer"
+          },
+          "subLastUserAgent": {
+            "type": "string"
+          },
           "tgId": {
             "description": "Telegram user ID for notifications",
             "type": "integer"
@@ -1084,11 +1418,15 @@
           }
         },
         "required": [
+          "activateBefore",
           "comment",
           "email",
           "enable",
           "expiryTime",
+          "limitDevice",
           "limitIp",
+          "renewalDay",
+          "renewalMode",
           "reset",
           "security",
           "subId",
@@ -1122,6 +1460,9 @@
       },
       "ClientRecord": {
         "properties": {
+          "activateBefore": {
+            "type": "integer"
+          },
           "allowedIPs": {
             "type": "string"
           },
@@ -1158,6 +1499,9 @@
           "keepAlive": {
             "type": "integer"
           },
+          "limitDevice": {
+            "type": "integer"
+          },
           "limitIp": {
             "type": "integer"
           },
@@ -1173,6 +1517,12 @@
           "publicKey": {
             "type": "string"
           },
+          "renewalDay": {
+            "type": "integer"
+          },
+          "renewalMode": {
+            "type": "integer"
+          },
           "reset": {
             "type": "integer"
           },
@@ -1181,6 +1531,12 @@
             "type": "string"
           },
           "subId": {
+            "type": "string"
+          },
+          "subLastUpdatedAt": {
+            "type": "integer"
+          },
+          "subLastUserAgent": {
             "type": "string"
           },
           "tgId": {
@@ -1197,6 +1553,7 @@
           }
         },
         "required": [
+          "activateBefore",
           "allowedIPs",
           "auth",
           "comment",
@@ -1209,15 +1566,20 @@
           "group",
           "id",
           "keepAlive",
+          "limitDevice",
           "limitIp",
           "password",
           "preSharedKey",
           "privateKey",
           "publicKey",
+          "renewalDay",
+          "renewalMode",
           "reset",
           "reverse",
           "security",
           "subId",
+          "subLastUpdatedAt",
+          "subLastUserAgent",
           "tgId",
           "totalGB",
           "updatedAt",
@@ -1409,7 +1771,9 @@
               "tun",
               "mtproto",
               "openvpn",
-              "l2tp"
+              "l2tp",
+              "masque",
+              "tuic"
             ],
             "example": "vless",
             "type": "string"
@@ -1609,6 +1973,14 @@
           "tlsFlowCapable": {
             "example": true,
             "type": "boolean"
+          },
+          "tuicServer": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TuicServerSettings"
+              }
+            ],
+            "nullable": true
           }
         },
         "required": [
@@ -1695,7 +2067,7 @@
         "type": "object"
       },
       "Node": {
-        "description": "Node represents a remote 3x-ui panel registered with the central panel.\nThe central panel polls each node's existing /panel/api/server/status\nendpoint over HTTP using the per-node ApiToken to populate the runtime\nstatus fields below.",
+        "description": "Node represents a remote PHOENIX panel registered with the central panel.\nThe central panel polls each node's existing /panel/api/server/status\nendpoint over HTTP using the per-node ApiToken to populate the runtime\nstatus fields below.",
         "properties": {
           "address": {
             "example": "node1.example.com",
@@ -2176,7 +2548,7 @@
         "type": "object"
       },
       "Setting": {
-        "description": "Setting stores key-value configuration settings for the 3x-ui panel.",
+        "description": "Setting stores key-value configuration settings for the PHOENIX panel.",
         "properties": {
           "id": {
             "type": "integer"
@@ -2195,13 +2567,103 @@
         ],
         "type": "object"
       },
-      "User": {
-        "description": "User represents a user account in the 3x-ui panel.",
+      "TuicClientSettings": {
         "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "uuid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "TuicServerSettings": {
+        "properties": {
+          "alpn": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "authentication_timeout": {
+            "type": "integer"
+          },
+          "certificate": {
+            "type": "string"
+          },
+          "congestion_control": {
+            "type": "string"
+          },
+          "log_level": {
+            "type": "string"
+          },
+          "max_idle_time": {
+            "type": "integer"
+          },
+          "max_udp_relay_packet_size": {
+            "type": "integer"
+          },
+          "private_key": {
+            "type": "string"
+          },
+          "sni": {
+            "type": "string"
+          },
+          "udp_relay_mode": {
+            "type": "string"
+          },
+          "zero_rtt_handshake": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "alpn",
+          "authentication_timeout",
+          "certificate",
+          "congestion_control",
+          "log_level",
+          "max_idle_time",
+          "max_udp_relay_packet_size",
+          "private_key",
+          "udp_relay_mode",
+          "zero_rtt_handshake"
+        ],
+        "type": "object"
+      },
+      "User": {
+        "description": "User represents a user account in the PHOENIX panel.",
+        "properties": {
+          "createdAt": {
+            "type": "integer"
+          },
+          "disabled": {
+            "type": "boolean"
+          },
           "id": {
             "type": "integer"
           },
+          "lastLoginAt": {
+            "type": "integer"
+          },
+          "note": {
+            "type": "string"
+          },
           "password": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "string"
+          },
+          "role": {
             "type": "string"
           },
           "username": {
@@ -2209,8 +2671,14 @@
           }
         },
         "required": [
+          "createdAt",
+          "disabled",
           "id",
+          "lastLoginAt",
+          "note",
           "password",
+          "permissions",
+          "role",
           "username"
         ],
         "type": "object"
@@ -2244,7 +2712,7 @@
     },
     {
       "name": "Nodes",
-      "description": "Manage remote 3x-ui panels acting as nodes for a central panel. All endpoints under /panel/api/nodes."
+      "description": "Manage remote PHOENIX panels acting as nodes for a central panel. All endpoints under /panel/api/nodes."
     },
     {
       "name": "Backup",
@@ -2642,7 +3110,8 @@
                       "shareAddrStrategy": "",
                       "ssMethod": "",
                       "tag": "in-443-tcp",
-                      "tlsFlowCapable": true
+                      "tlsFlowCapable": true,
+                      "tuicServer": null
                     }
                   ]
                 }
@@ -3676,7 +4145,7 @@
         "tags": [
           "Server"
         ],
-        "summary": "Check whether a newer 3x-ui release is available on GitHub.",
+        "summary": "Check whether a newer PHOENIX release is available on GitHub.",
         "operationId": "get_panel_api_server_getPanelUpdateInfo",
         "responses": {
           "200": {
@@ -6479,6 +6948,120 @@
         }
       }
     },
+    "/panel/api/clients/devices/{email}": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "List HWID-registered devices for a client (device limit feature). Each entry carries hwid, ip, userAgent, createdAt and lastSeenAt. Only clients with a device limit register devices.",
+        "operationId": "get_panel_api_clients_devices_email",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "email": "user1",
+                      "hwid": "d4f1...",
+                      "ip": "203.0.113.7",
+                      "userAgent": "v2rayNG/1.9.16",
+                      "createdAt": 1700000000000,
+                      "lastSeenAt": 1700000500000
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/devices/{email}/del": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Unregister one device (HWID) of a client, freeing a device slot so the user can register another device.",
+        "operationId": "post_panel_api_clients_devices_email_del",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "hwid": "d4f1..."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "removed": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/clients/onlines": {
       "post": {
         "tags": [
@@ -7756,7 +8339,7 @@
         "tags": [
           "Settings"
         ],
-        "summary": "Restart the entire 3x-ui process after a 3-second grace period. The connection drops immediately; the panel comes back online ~5-10 seconds later.",
+        "summary": "Restart the entire PHOENIX process after a 3-second grace period. The connection drops immediately; the panel comes back online ~5-10 seconds later.",
         "operationId": "post_panel_api_setting_restartPanel",
         "responses": {
           "200": {
@@ -7905,8 +8488,12 @@
                   "obj": {
                     "createdAt": 1736000000,
                     "enabled": true,
+                    "expiresAt": 0,
                     "id": 2,
+                    "lastUsedAt": 0,
                     "name": "central-panel-a",
+                    "prefix": "a1b2c3d4",
+                    "scope": "read",
                     "token": "new-token-string"
                   }
                 }
@@ -8022,6 +8609,254 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/cert/status": {
+      "get": {
+        "tags": [
+          "API Tokens"
+        ],
+        "summary": "Inspect the TLS certificate currently configured on the panel (subject, issuer, expiry, days left, self-signed flag).",
+        "operationId": "get_panel_api_setting_cert_status",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "configured": true,
+                    "subject": "panel.example.com",
+                    "daysLeft": 62
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/cert/issue": {
+      "post": {
+        "tags": [
+          "API Tokens"
+        ],
+        "summary": "Issue a Let's Encrypt (RFC 8555 HTTP-01 on port 80, auto-renewed daily) or 1-year self-signed certificate and optionally apply its paths to the panel.",
+        "operationId": "post_panel_api_setting_cert_issue",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "domain": {
+                    "type": "string",
+                    "description": "Hostname (or IP for self-signed) to issue for."
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "Optional ACME contact email."
+                  },
+                  "mode": {
+                    "type": "string",
+                    "description": "\"letsencrypt\" (default) or \"selfsigned\"."
+                  },
+                  "applyToPanel": {
+                    "type": "boolean",
+                    "description": "Save the new paths to webCertFile / webKeyFile (default true)."
+                  }
+                },
+                "required": [
+                  "domain"
+                ]
+              },
+              "example": {
+                "domain": "panel.example.com",
+                "mode": "letsencrypt",
+                "applyToPanel": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "configured": true,
+                    "subject": "panel.example.com",
+                    "daysLeft": 89
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/discord/test": {
+      "post": {
+        "tags": [
+          "API Tokens"
+        ],
+        "summary": "Send a verification embed to the configured Discord Webhook URL and/or Bot channel.",
+        "operationId": "post_panel_api_setting_discord_test",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/cloudBackup/run": {
+      "post": {
+        "tags": [
+          "API Tokens"
+        ],
+        "summary": "Immediately upload a database snapshot to the configured S3 / Cloudflare R2 / MinIO or WebDAV cloud storage and apply retention cleanup.",
+        "operationId": "post_panel_api_setting_cloudBackup_run",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "key": "omega-backups/x-ui-backup-20261019-120000.db"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/auditLogs": {
+      "get": {
+        "tags": [
+          "API Tokens"
+        ],
+        "summary": "List recent security audit log entries with optional actorType, module, and search filters.",
+        "operationId": "get_panel_api_setting_auditLogs",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": []
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/auditLogs/clear": {
+      "post": {
+        "tags": [
+          "API Tokens"
+        ],
+        "summary": "Clear all recorded security audit log entries.",
+        "operationId": "post_panel_api_setting_auditLogs_clear",
         "responses": {
           "200": {
             "description": "Successful response",
@@ -8219,7 +9054,7 @@
             "name": "action",
             "in": "path",
             "required": true,
-            "description": "data — return Warp stats (quota, remaining). del — delete Warp data. config — return current Warp config. reg — register a new Warp endpoint (sends privateKey, publicKey). license — set a Warp+ license key (sends license).",
+            "description": "data — return Warp stats (quota, remaining). del — delete Warp data. config — return current Warp config. reg — register a new Warp endpoint (sends privateKey, publicKey). regMasque — register a separate device enrolled for MASQUE and return its warp key pair, addresses and endpoint. license — set a Warp+ license key (sends license).",
             "schema": {
               "type": "string"
             }
@@ -8797,6 +9632,66 @@
         ],
         "summary": "Preview a subscription URL: fetch and parse it into outbounds without persisting anything.",
         "operationId": "post_panel_api_xray_outbound_subs_parse",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/xray/watchdog/status": {
+      "get": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Return the current status of the Smart Outbound Auto-Failover Watchdog (active primary tag, candidates, failure counts, last failover).",
+        "operationId": "get_panel_api_xray_watchdog_status",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/xray/watchdog/check": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Immediately probe the active primary outbound and fail over to the fastest healthy candidate if unreachable.",
+        "operationId": "post_panel_api_xray_watchdog_check",
         "responses": {
           "200": {
             "description": "Successful response",
@@ -9794,6 +10689,888 @@
                     "stat": {
                       "clientCount": 12
                     }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/revokeSub/{email}": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Revoke and regenerate the subscription token (subId) for the client across all attached inbounds.",
+        "operationId": "post_panel_api_clients_revokeSub_email",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/templates": {
+      "get": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "List all reusable client plan templates.",
+        "operationId": "get_panel_api_clients_templates",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/templates/add": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Create a reusable client plan template.",
+        "operationId": "post_panel_api_clients_templates_add",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/templates/update/{id}": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Update an existing client plan template.",
+        "operationId": "post_panel_api_clients_templates_update_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/templates/del/{id}": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Delete a client plan template.",
+        "operationId": "post_panel_api_clients_templates_del_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/tickets": {
+      "get": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "List all reseller support tickets (admin only).",
+        "operationId": "get_panel_api_resellers_tickets",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/tickets/{id}": {
+      "get": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Get a reseller support ticket and its message thread (admin only).",
+        "operationId": "get_panel_api_resellers_tickets_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/tickets/{id}/reply": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Post an admin reply to a reseller support ticket.",
+        "operationId": "post_panel_api_resellers_tickets_id_reply",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/tickets/{id}/close": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Close a reseller support ticket (admin only).",
+        "operationId": "post_panel_api_resellers_tickets_id_close",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/orders": {
+      "get": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "List processed payment webhook orders (admin only).",
+        "operationId": "get_panel_api_resellers_orders",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/orders/process": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Manually process an idempotent payment order (reseller deposit, quota top-up, or client renewal).",
+        "operationId": "post_panel_api_resellers_orders_process",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/reseller/tickets": {
+      "get": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "List the signed-in reseller own support tickets.",
+        "operationId": "get_panel_api_reseller_tickets",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/reseller/tickets/{id}": {
+      "get": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Get a support ticket and its message thread owned by the signed-in reseller.",
+        "operationId": "get_panel_api_reseller_tickets_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/reseller/tickets/create": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Open a new support ticket as the signed-in reseller.",
+        "operationId": "post_panel_api_reseller_tickets_create",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/reseller/tickets/{id}/reply": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Post a reply to a support ticket owned by the signed-in reseller.",
+        "operationId": "post_panel_api_reseller_tickets_id_reply",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/reseller/tickets/{id}/close": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Close a support ticket owned by the signed-in reseller.",
+        "operationId": "post_panel_api_reseller_tickets_id_close",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/vouchers": {
+      "get": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "List all reseller wallet gift/voucher codes.",
+        "operationId": "get_panel_api_resellers_vouchers",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/vouchers/create": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Create a new single-use or multi-use reseller wallet/traffic gift voucher code.",
+        "operationId": "post_panel_api_resellers_vouchers_create",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/vouchers/delete/{id}": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Delete a reseller gift voucher code by ID.",
+        "operationId": "post_panel_api_resellers_vouchers_delete_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/reseller/vouchers/redeem": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Redeem a gift/voucher code to credit the signed-in reseller wallet balance and/or traffic quota.",
+        "operationId": "post_panel_api_reseller_vouchers_redeem",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/checkHost": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Run an Iran & international Check-Host TCP port or ICMP ping reachability test against a target host or host:port.",
+        "operationId": "post_panel_api_server_checkHost",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/admins": {
+      "get": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "List all panel admin accounts and their RBAC roles/permissions (owner only).",
+        "operationId": "get_panel_api_setting_admins",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/admins/create": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Create a new panel admin account with an RBAC role and granular permissions (owner only).",
+        "operationId": "post_panel_api_setting_admins_create",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/admins/update/{id}": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Update a panel admin account RBAC role, permissions, or status (owner only).",
+        "operationId": "post_panel_api_setting_admins_update_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/admins/delete/{id}": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Delete a secondary panel admin account (owner only).",
+        "operationId": "post_panel_api_setting_admins_delete_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
                   }
                 }
               }

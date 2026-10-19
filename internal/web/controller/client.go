@@ -41,6 +41,8 @@ type ClientController struct {
 	xrayService     service.XrayService
 	settingService  service.SettingService
 	resellerService service.ResellerService
+	deviceService   service.ClientDeviceService
+	templateService service.UserTemplateService
 }
 
 func NewClientController(g *gin.RouterGroup) *ClientController {
@@ -132,10 +134,17 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/updateTraffic/:email", a.updateTrafficByEmail)
 	g.POST("/ips/:email", a.getIps)
 	g.POST("/clearIps/:email", a.clearIps)
+	g.GET("/devices/:email", a.getClientDevices)
+	g.POST("/devices/:email/del", a.removeClientDevice)
 	g.POST("/onlines", a.onlines)
 	g.POST("/onlinesByGuid", a.onlinesByGuid)
 	g.POST("/activeInbounds", a.activeInbounds)
 	g.POST("/lastOnline", a.lastOnline)
+	g.POST("/revokeSub/:email", a.revokeSub)
+	g.GET("/templates", a.listTemplates)
+	g.POST("/templates/add", a.createTemplate)
+	g.POST("/templates/update/:id", a.updateTemplate)
+	g.POST("/templates/del/:id", a.deleteTemplate)
 }
 
 func (a *ClientController) list(c *gin.Context) {
@@ -1064,6 +1073,47 @@ func (a *ClientController) clearIps(c *gin.Context) {
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.logCleanSuccess"), nil)
 }
 
+// getClientDevices lists the HWID-registered devices of a client so admins
+// can audit and free up device slots.
+func (a *ClientController) getClientDevices(c *gin.Context) {
+	email := c.Param("email")
+	if reseller := resellerSession(c); reseller != nil {
+		if !ensureClientOwned(c, reseller, email) {
+			return
+		}
+	}
+	devices, err := a.deviceService.GetDevices(email)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+		return
+	}
+	jsonObj(c, devices, nil)
+}
+
+// removeClientDevice unregisters one HWID of a client (body: {"hwid": "..."}).
+// Removing a device frees a slot so the user can register another one.
+func (a *ClientController) removeClientDevice(c *gin.Context) {
+	email := c.Param("email")
+	if reseller := resellerSession(c); reseller != nil {
+		if !ensureClientOwned(c, reseller, email) {
+			return
+		}
+	}
+	var req struct {
+		Hwid string `json:"hwid"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	removed, err := a.deviceService.RemoveDevice(email, req.Hwid)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.updateSuccess"), err)
+		return
+	}
+	jsonObj(c, gin.H{"removed": removed}, nil)
+}
+
 func (a *ClientController) onlines(c *gin.Context) {
 	online := a.inboundService.GetOnlineClients()
 	if reseller := resellerSession(c); reseller != nil {
@@ -1439,4 +1489,110 @@ func (a *ClientController) delDepletedForReseller(reseller *model.Reseller) (int
 		}
 	}
 	return result.Deleted, needRestart, nil
+}
+
+func (a *ClientController) revokeSub(c *gin.Context) {
+	email := strings.TrimSpace(c.Param("email"))
+	if reseller := resellerSession(c); reseller != nil {
+		if err := a.resellerService.EnsureActive(reseller); err != nil {
+			jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+			return
+		}
+		ok, err := a.resellerClientIsolated(reseller, email)
+		if err != nil {
+			jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+			return
+		}
+		if !ok {
+			jsonMsg(c, I18nWeb(c, "somethingWentWrong"), errors.New("client not found"))
+			return
+		}
+	}
+	newSubID, err := a.clientService.RevokeSubscription(&a.inboundService, email)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	notifyClientsChanged()
+	jsonObj(c, gin.H{
+		"email": email,
+		"subId": newSubID,
+	}, nil)
+}
+
+func (a *ClientController) listTemplates(c *gin.Context) {
+	rows, err := a.templateService.List()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+		return
+	}
+	if reseller := resellerSession(c); reseller != nil {
+		ownedInbounds, err := a.resellerService.OwnedInboundIdSet(reseller.Id)
+		if err != nil {
+			jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+			return
+		}
+		for i := range rows {
+			rows[i].InboundIds = filterInboundIDs(rows[i].InboundIds, ownedInbounds)
+		}
+	}
+	jsonObj(c, rows, nil)
+}
+
+func (a *ClientController) createTemplate(c *gin.Context) {
+	if resellerSession(c) != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), errors.New("admin only"))
+		return
+	}
+	var payload model.UserTemplate
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	created, err := a.templateService.Create(&payload)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, created, nil)
+}
+
+func (a *ClientController) updateTemplate(c *gin.Context) {
+	if resellerSession(c) != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), errors.New("admin only"))
+		return
+	}
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), errors.New("invalid template id"))
+		return
+	}
+	var payload model.UserTemplate
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	updated, err := a.templateService.Update(id, &payload)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, updated, nil)
+}
+
+func (a *ClientController) deleteTemplate(c *gin.Context) {
+	if resellerSession(c) != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), errors.New("admin only"))
+		return
+	}
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), errors.New("invalid template id"))
+		return
+	}
+	if err := a.templateService.Delete(id); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonMsg(c, I18nWeb(c, "delete"), nil)
 }

@@ -10,12 +10,13 @@ import { formatInboundLabel } from '@/lib/inbounds/label';
 import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
 import { useClients, type InboundOption } from '@/hooks/useClients';
+import { useUserTemplates } from '@/hooks/useUserTemplates';
 import { ClientBulkAddFormSchema, type ClientBulkAddFormValues } from '@/schemas/client';
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 
 const MULTI_CLIENT_PROTOCOLS = new Set([
-  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'openvpn', 'l2tp',
+  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'openvpn', 'l2tp', 'masque', 'tuic',
 ]);
 
 interface ClientBulkAddModalProps {
@@ -62,6 +63,34 @@ export default function ClientBulkAddModal({
   const [form, setForm] = useState<FormState>(emptyForm);
   const [delayedStart, setDelayedStart] = useState(false);
   const [saving, setSaving] = useState(false);
+  const { templates } = useUserTemplates(open);
+
+  function applyTemplate(tplId: number) {
+    const tpl = templates.find((item) => item.id === tplId);
+    if (!tpl) return;
+    const gb = tpl.totalGB > 0 ? Math.round((tpl.totalGB / SizeFormatter.ONE_GB) * 100) / 100 : 0;
+    const isDelayed = !!tpl.delayedStart;
+    setDelayedStart(isDelayed);
+    setForm((prev) => {
+      const next = { ...prev };
+      next.totalGB = gb;
+      next.limitIp = tpl.limitIp || 0;
+      next.reset = tpl.reset || 0;
+      if (tpl.group) next.group = tpl.group;
+      if (isDelayed) {
+        next.expiryTime = (tpl.expireDurationDays || 0) > 0 ? -(tpl.expireDurationDays * 86400000) : 0;
+      } else {
+        next.expiryTime =
+          (tpl.expireDurationDays || 0) > 0 ? dayjs().add(tpl.expireDurationDays, 'day').valueOf() : 0;
+      }
+      if (Array.isArray(tpl.inboundIds) && tpl.inboundIds.length > 0) {
+        const validSet = new Set((inbounds || []).map((ib) => ib.id));
+        next.inboundIds = tpl.inboundIds.filter((id) => validSet.has(id));
+      }
+      return next;
+    });
+    messageApi.success(t('pages.clients.templateApplied', { name: tpl.name }));
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -210,6 +239,21 @@ export default function ClientBulkAddModal({
         onCancel={() => onOpenChange(false)}
       >
         <Form colon={false} labelCol={{ sm: { span: 8 } }} wrapperCol={{ sm: { span: 14 } }}>
+          {templates.length > 0 && (
+            <Form.Item label={t('pages.clients.applyTemplate')}>
+              <Select
+                allowClear
+                placeholder={t('pages.clients.selectTemplatePlaceholder')}
+                options={templates.map((tpl) => ({
+                  value: tpl.id,
+                  label: tpl.name,
+                }))}
+                onChange={(val) => {
+                  if (typeof val === 'number') applyTemplate(val);
+                }}
+              />
+            </Form.Item>
+          )}
           <Form.Item label={t('pages.clients.attachedInbounds')} required>
             <SelectAllClearButtons
               options={inboundOptions}

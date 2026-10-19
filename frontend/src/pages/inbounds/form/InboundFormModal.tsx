@@ -41,7 +41,11 @@ import { Protocols } from '@/schemas/primitives';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 import type { AmneziawgServer } from '@/schemas/protocols/inbound/amneziawg';
 import { HysteriaStreamSettingsSchema } from '@/schemas/protocols/stream/hysteria';
-import { createHysteriaTlsSettingsWithDefaultCert } from '@/lib/xray/inbound-tls-defaults';
+import {
+  createHysteriaTlsSettingsWithDefaultCert,
+  createMasqueTlsSettingsWithDefaultCert,
+} from '@/lib/xray/inbound-tls-defaults';
+import { MASQUE_DEFAULT_PATH } from '@/schemas/protocols/stream/masque';
 import { SniffingSchema } from '@/schemas/primitives/sniffing';
 import { TcpStreamSettingsSchema } from '@/schemas/protocols/stream/tcp';
 import { KcpStreamSettingsSchema } from '@/schemas/protocols/stream/kcp';
@@ -49,8 +53,10 @@ import { WsStreamSettingsSchema } from '@/schemas/protocols/stream/ws';
 import { GrpcStreamSettingsSchema } from '@/schemas/protocols/stream/grpc';
 import { HttpUpgradeStreamSettingsSchema } from '@/schemas/protocols/stream/httpupgrade';
 import { XHttpStreamSettingsSchema } from '@/schemas/protocols/stream/xhttp';
+import { XDriveStreamSettingsSchema } from '@/schemas/protocols/stream/xdrive';
 import { DateTimePicker } from '@/components/form';
 import { FinalMaskForm } from '@/lib/xray/forms/transport';
+import XDriveForm from '@/lib/xray/forms/transport/XDriveForm';
 import './InboundFormModal.css';
 
 import { AdvancedAllEditor, AdvancedSliceEditor } from './advanced-editors';
@@ -59,11 +65,14 @@ import {
   AmneziawgFields,
   HttpFields,
   HysteriaFields,
+  MasqueSettingsFields,
+  MasqueStreamFields,
   MixedFields,
   MtprotoFields,
   OpenvpnFields,
   L2tpFields,
   ShadowsocksFields,
+  TuicFields,
   TunFields,
   TunnelFields,
   VlessFields,
@@ -101,6 +110,7 @@ const NODE_ELIGIBLE_PROTOCOLS = new Set<string>([
   Protocols.HYSTERIA,
   Protocols.WIREGUARD,
   Protocols.AMNEZIAWG,
+  Protocols.MASQUE,
 ]);
 
 function isValidShareAddrInput(value: string): boolean {
@@ -207,8 +217,10 @@ export default function InboundFormModal({
   // picker and the per-network sub-forms are hidden.
   const hasSelectableTransport =
     protocol !== Protocols.HYSTERIA
+    && protocol !== Protocols.MASQUE
     && protocol !== Protocols.WIREGUARD
-    && protocol !== Protocols.TUNNEL;
+    && protocol !== Protocols.TUNNEL
+    && protocol !== Protocols.TUIC;
 
   const wPort = Form.useWatch('port', form);
   const wListen = (Form.useWatch('listen', form) ?? '') as string;
@@ -464,6 +476,13 @@ export default function InboundFormModal({
             }],
           },
         });
+      } else if (next === Protocols.MASQUE) {
+        form.setFieldValue('streamSettings', {
+          network: 'masque',
+          security: 'tls',
+          masqueSettings: { path: MASQUE_DEFAULT_PATH },
+          tlsSettings: createMasqueTlsSettingsWithDefaultCert(),
+        });
       } else if (next === Protocols.WIREGUARD || next === Protocols.TUNNEL || next === Protocols.OPENVPN || next === Protocols.L2TP) {
         // Wireguard and Tunnel (dokodemo-door) have no user-selectable
         // transport: wireguard is always a UDP listener, and tunnel only needs
@@ -483,7 +502,7 @@ export default function InboundFormModal({
         }
       } else {
         const current = form.getFieldValue('streamSettings') as { network?: string } | undefined;
-        if (current?.network === 'hysteria' || !current?.network) {
+        if (current?.network === 'hysteria' || current?.network === 'masque' || !current?.network) {
           form.setFieldValue('streamSettings', { network: 'tcp', security: 'none', tcpSettings: {} });
         }
       }
@@ -744,6 +763,10 @@ export default function InboundFormModal({
 
       {protocol === Protocols.L2TP && <L2tpFields />}
 
+      {protocol === Protocols.MASQUE && <MasqueSettingsFields />}
+
+      {protocol === Protocols.TUIC && <TuicFields />}
+
       {protocol === Protocols.SHADOWSOCKS && <ShadowsocksFields form={form} isSSWith2022={isSSWith2022} />}
 
       {protocol === Protocols.VLESS && <VlessFields saving={saving} selectedVlessAuth={selectedVlessAuth} network={network} security={security} getNewVlessEnc={getNewVlessEnc} clearVlessEnc={clearVlessEnc} />}
@@ -781,15 +804,24 @@ export default function InboundFormModal({
       case 'grpc': return GrpcStreamSettingsSchema.parse({});
       case 'httpupgrade': return HttpUpgradeStreamSettingsSchema.parse({});
       case 'xhttp': return XHttpStreamSettingsSchema.parse({});
+      case 'xdrive': return XDriveStreamSettingsSchema.parse({});
       default: return {};
     }
   };
   const onNetworkChange = (next: string) => {
-    const ALL = ['tcpSettings', 'kcpSettings', 'wsSettings', 'grpcSettings', 'httpupgradeSettings', 'xhttpSettings'];
+    const ALL = ['tcpSettings', 'kcpSettings', 'wsSettings', 'grpcSettings', 'httpupgradeSettings', 'xhttpSettings', 'xdriveSettings'];
     const current = (form.getFieldValue('streamSettings') as Record<string, unknown>) ?? {};
     const cleaned: Record<string, unknown> = { ...current, network: next };
     for (const k of ALL) {
       if (k !== `${next}Settings`) delete cleaned[k];
+    }
+    if (next === 'xdrive') {
+      cleaned.security = 'none';
+      delete cleaned.tlsSettings;
+      delete cleaned.realitySettings;
+    } else {
+      delete cleaned.address;
+      delete cleaned.port;
     }
     cleaned[`${next}Settings`] = newStreamSlice(next);
     // mKCP wants a UDP mask wrapper on the FinalMask side; seed it with
@@ -833,6 +865,7 @@ export default function InboundFormModal({
               { value: 'grpc', label: 'gRPC' },
               { value: 'httpupgrade', label: 'HTTPUpgrade' },
               { value: 'xhttp', label: 'XHTTP' },
+              { value: 'xdrive', label: 'XDRIVE' },
             ]}
           />
         </Form.Item>
@@ -847,6 +880,8 @@ export default function InboundFormModal({
           HTTP server when probed. */}
       {protocol === Protocols.HYSTERIA && <HysteriaFields form={form} />}
 
+      {protocol === Protocols.MASQUE && <MasqueStreamFields />}
+
       {hasSelectableTransport && (
         <>
           {network === 'tcp' && <RawForm />}
@@ -860,6 +895,8 @@ export default function InboundFormModal({
           {network === 'httpupgrade' && <HttpUpgradeForm />}
 
           {network === 'kcp' && <KcpForm />}
+
+          {network === 'xdrive' && <XDriveForm />}
         </>
       )}
 
@@ -906,7 +943,7 @@ export default function InboundFormModal({
             const proto = getFieldValue('protocol') ?? '';
             const tlsOk = canEnableTls({ protocol: proto, streamSettings: { network: net, security: sec } });
             const realityOk = canEnableReality({ protocol: proto, streamSettings: { network: net, security: sec } });
-            const tlsOnly = proto === Protocols.HYSTERIA;
+            const tlsOnly = proto === Protocols.HYSTERIA || proto === Protocols.MASQUE;
             return (
               <Radio.Group
                 value={sec}
@@ -1084,6 +1121,8 @@ export default function InboundFormModal({
               Protocols.MTPROTO,
               Protocols.OPENVPN,
               Protocols.L2TP,
+              Protocols.MASQUE,
+              Protocols.TUIC,
             ] as string[]).includes(protocol) || isFallbackHost
               ? [{ key: 'protocol', label: t('pages.inbounds.protocol'), children: protocolTab, forceRender: true }]
               : []),

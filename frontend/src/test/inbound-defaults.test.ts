@@ -11,6 +11,8 @@ import {
   createDefaultShadowsocksInboundSettings,
   createDefaultTrojanClient,
   createDefaultTrojanInboundSettings,
+  createDefaultTuicClient,
+  createDefaultTuicInboundSettings,
   createDefaultTunnelInboundSettings,
   createDefaultVlessClient,
   createDefaultVlessInboundSettings,
@@ -25,6 +27,7 @@ import { MixedInboundSettingsSchema } from '@/schemas/protocols/inbound/mixed';
 import { OpenvpnInboundSettingsSchema } from '@/schemas/protocols/inbound/openvpn';
 import { ShadowsocksClientSchema, ShadowsocksInboundSettingsSchema } from '@/schemas/protocols/inbound/shadowsocks';
 import { TrojanClientSchema, TrojanInboundSettingsSchema } from '@/schemas/protocols/inbound/trojan';
+import { TuicClientSchema, TuicInboundSettingsSchema } from '@/schemas/protocols/inbound/tuic';
 import { TunnelInboundSettingsSchema } from '@/schemas/protocols/inbound/tunnel';
 import { VlessClientSchema, VlessInboundSettingsSchema } from '@/schemas/protocols/inbound/vless';
 import { VmessClientSchema, VmessInboundSettingsSchema } from '@/schemas/protocols/inbound/vmess';
@@ -159,11 +162,72 @@ describe('createDefault*InboundSettings factories', () => {
       pushDNS: true,
       dns1: '1.1.1.1',
       dns2: '8.8.8.8',
+      routeThroughXray: false,
     });
     expect(OpenvpnInboundSettingsSchema.parse(s)).toEqual(s);
     // The dispatch helper must know the protocol.
     expect(createDefaultInboundSettings('openvpn')).toEqual(s);
     expect(createDefaultInboundSettings('openvpn-not-real')).toBeNull();
+  });
+
+  it('tuic', () => {
+    const s = createDefaultTuicInboundSettings();
+    expect(TuicInboundSettingsSchema.parse(s)).toEqual(s);
+    expect(createDefaultInboundSettings('tuic')).toEqual(s);
+  });
+});
+
+describe('createDefaultTuicClient', () => {
+  it('produces a Zod-valid client', () => {
+    const c = createDefaultTuicClient({
+      uuid: '11111111-2222-3333-4444-555555555555',
+      password: 'fixed-tuic-pw',
+      email: 'tuic@example.com',
+      subId: 'sub123',
+    });
+    expect(TuicClientSchema.parse(c)).toEqual(c);
+  });
+});
+
+describe('TuicInboundSettingsSchema', () => {
+  it('canonicalizes congestion-controller aliases and casing', () => {
+    expect(
+      TuicInboundSettingsSchema.parse({ server: { congestion_control: 'RENO' } }).server
+        ?.congestion_control,
+    ).toBe('new_reno');
+    expect(
+      TuicInboundSettingsSchema.parse({ server: { congestion_control: ' CuBiC ' } }).server
+        ?.congestion_control,
+    ).toBe('cubic');
+    expect(
+      TuicInboundSettingsSchema.parse({ server: { congestion_control: '' } }).server
+        ?.congestion_control,
+    ).toBe('bbr');
+    expect(
+      TuicInboundSettingsSchema.parse({ server: { congestion_control: '  ' } }).server
+        ?.congestion_control,
+    ).toBe('bbr');
+    expect(
+      TuicInboundSettingsSchema.parse({ congestion_control: ' CuBiC ' }).congestion_control,
+    ).toBe('cubic');
+    expect(
+      TuicInboundSettingsSchema.parse({ congestion_control: 'invalid' }).congestion_control,
+    ).toBe('new_reno');
+  });
+
+  it('clamps legacy packet-size values to the SOCKS-safe UDP payload maximum', () => {
+    expect(
+      TuicInboundSettingsSchema.parse({ server: { max_udp_relay_packet_size: 65507 } }).server
+        ?.max_udp_relay_packet_size,
+    ).toBe(65245);
+    expect(
+      TuicInboundSettingsSchema.parse({ max_udp_relay_packet_size: 65500 })
+        .max_udp_relay_packet_size,
+    ).toBe(65245);
+    expect(() =>
+      TuicInboundSettingsSchema.parse({ server: { max_udp_relay_packet_size: 65508 } }),
+    ).toThrow();
+    expect(() => TuicInboundSettingsSchema.parse({ max_udp_relay_packet_size: 65508 })).toThrow();
   });
 });
 

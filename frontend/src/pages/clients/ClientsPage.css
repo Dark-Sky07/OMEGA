@@ -16,17 +16,22 @@
   white-space: nowrap;
 }
 
+.clients-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 4px;
+}
+
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
 }
 
 .filter-bar.mobile {
   gap: 6px;
-  margin-bottom: 8px;
 }
 
 .filter-bar.mobile > * {
@@ -44,10 +49,11 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin: 0 0 12px;
-  padding: 6px 8px;
-  background: var(--ant-color-fill-quaternary);
-  border-radius: 8px;
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--omega-surface-muted);
+  border: 1px dashed var(--omega-border-strong);
+  border-radius: var(--omega-radius-xs);
 }
 
 .filter-chips .ant-tag {
@@ -81,7 +87,11 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 6px 0;
+}
+
+.client-row-disabled > td:not(.ant-table-selection-column) .email-cell,
+.client-row-disabled > td:not(.ant-table-selection-column) .client-traffic-cell {
+  opacity: 0.55;
 }
 
 @media (min-width: 769px) and (max-width: 920px) {
@@ -109,7 +119,7 @@
 .email-cell .sub {
   font-size: 11px;
   opacity: 0.55;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-mono);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -120,7 +130,6 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 4px;
 }
 
 .card-bulk-bar {
@@ -151,15 +160,16 @@
 }
 
 .client-card {
-  border: 1px solid var(--ant-color-border-secondary);
-  border-radius: 10px;
-  padding: 10px 12px;
-  background: var(--ant-color-fill-quaternary);
+  border: 1px solid var(--omega-border);
+  border-radius: var(--omega-radius-sm);
+  padding: 12px 14px;
+  background: var(--omega-surface-muted);
+  transition: border-color 160ms ease, background 160ms ease;
 }
 
 .client-card.is-selected {
-  border-color: var(--ant-color-primary);
-  background: color-mix(in srgb, var(--ant-color-primary) 6%, transparent);
+  border-color: color-mix(in srgb, var(--omega-primary) 55%, transparent);
+  background: color-mix(in srgb, var(--omega-primary) 8%, transparent);
 }
 
 .card-head {

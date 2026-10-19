@@ -145,7 +145,7 @@ func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound)
 		if c.ID == "" {
 			c.ID = uuid.NewString()
 		}
-	case model.Trojan:
+	case model.Trojan, model.MASQUE:
 		if c.Password == "" {
 			c.Password = strings.ReplaceAll(uuid.NewString(), "-", "")
 		}
@@ -157,6 +157,13 @@ func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound)
 	case model.Hysteria:
 		if c.Auth == "" {
 			c.Auth = strings.ReplaceAll(uuid.NewString(), "-", "")
+		}
+	case model.TUIC:
+		if c.ID == "" {
+			c.ID = uuid.NewString()
+		}
+		if c.Password == "" {
+			c.Password = strings.ReplaceAll(uuid.NewString(), "-", "")
 		}
 	}
 	return nil
@@ -445,7 +452,7 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 		if existing.Email == "" {
 			continue
 		}
-		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, existing.Email, false)
+		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, existing.Email, keepTraffic)
 		if delErr != nil {
 			// The client is already absent from this inbound (data drift or a
 			// retried delete). Skip it — deletion stays idempotent.
@@ -878,4 +885,96 @@ func (s *ClientService) Detach(inboundSvc *InboundService, id int, inboundIds []
 		}
 	}
 	return needRestart, nil
+}
+
+// RevokeSubscription rotates a client's subscription token (SubID) to a new
+// random 16-char token in both the canonical ClientRecord table and any
+// attached Inbound.Settings JSON, invalidating the previous subscription link
+// immediately without changing the client's protocol credentials or traffic.
+func (s *ClientService) RevokeSubscription(inboundSvc *InboundService, email string) (string, error) {
+	email = strings.TrimSpace(email)
+	if email == "" {
+		return "", common.NewError("email is required")
+	}
+	rec, err := s.GetRecordByEmail(nil, email)
+	if err != nil {
+		return "", err
+	}
+	var newSubID string
+	for attempts := 0; attempts < 5; attempts++ {
+		candidate := random.NumLower(16)
+		if candidate != "" && candidate != rec.SubID {
+			newSubID = candidate
+			break
+		}
+	}
+	if newSubID == "" {
+		newSubID = random.NumLower(16)
+	}
+
+	db := database.GetDB()
+	now := time.Now().UnixMilli()
+	err = db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&model.ClientRecord{}).
+			Where("id = ?", rec.Id).
+			Updates(map[string]any{
+				"sub_id":     newSubID,
+				"updated_at": now,
+			}).Error; err != nil {
+			return err
+		}
+
+		inboundIds, err := s.GetInboundIdsForRecord(rec.Id)
+		if err != nil {
+			return err
+		}
+		for _, ibId := range inboundIds {
+			var ib model.Inbound
+			if err := tx.First(&ib, ibId).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					continue
+				}
+				return err
+			}
+			if ib.Settings == "" {
+				continue
+			}
+			var raw map[string]any
+			if err := json.Unmarshal([]byte(ib.Settings), &raw); err != nil {
+				continue
+			}
+			clientsAny, ok := raw["clients"].([]any)
+			if !ok {
+				continue
+			}
+			changed := false
+			for _, item := range clientsAny {
+				cm, ok := item.(map[string]any)
+				if !ok {
+					continue
+				}
+				cEmail, _ := cm["email"].(string)
+				if strings.EqualFold(strings.TrimSpace(cEmail), email) {
+					cm["subId"] = newSubID
+					cm["updated_at"] = now
+					changed = true
+				}
+			}
+			if changed {
+				encoded, err := json.MarshalIndent(raw, "", "  ")
+				if err == nil {
+					if err := tx.Model(&model.Inbound{}).
+						Where("id = ?", ib.Id).
+						Update("settings", string(encoded)).Error; err != nil {
+						return err
+					}
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
+	return newSubID, nil
 }

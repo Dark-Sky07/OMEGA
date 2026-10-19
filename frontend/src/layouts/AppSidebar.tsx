@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Drawer, Layout, Menu } from 'antd';
+import { Drawer, Layout, Menu, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   ApiOutlined,
@@ -17,11 +17,14 @@ import {
   IdcardOutlined,
   ImportOutlined,
   LogoutOutlined,
+  MenuFoldOutlined,
   MenuOutlined,
+  MenuUnfoldOutlined,
   MessageOutlined,
   MoonFilled,
   MoonOutlined,
   SafetyOutlined,
+  SearchOutlined,
   SettingOutlined,
   ShopOutlined,
   SunOutlined,
@@ -36,6 +39,8 @@ import { HttpUtil } from '@/utils';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import { useAllSettings } from '@/api/queries/useAllSettings';
 import { useSession } from '@/api/queries/useSession';
+import { openCommandPalette } from '@/components/CommandPalette';
+import phoenixCrest from '@/assets/phoenix-crest.png';
 import './AppSidebar.css';
 
 const SIDEBAR_COLLAPSED_KEY = 'isSidebarCollapsed';
@@ -72,6 +77,8 @@ const iconByName: Record<IconName, ComponentType> = {
   profile: IdcardOutlined,
 };
 
+type NavTab = { key: string; icon: IconName; title: string; group?: 'overview' | 'manage' | 'system' };
+
 function readCollapsed(): boolean {
   try {
     return JSON.parse(localStorage.getItem(SIDEBAR_COLLAPSED_KEY) || 'false');
@@ -80,18 +87,34 @@ function readCollapsed(): boolean {
   }
 }
 
+/** PHOENIX crest medallion + fiery wordmark. `.brand-text` always reads "PHOENIX". */
+function Brand({ compact }: { compact?: boolean }) {
+  return (
+    <div className={`brand-block${compact ? ' is-compact' : ''}`}>
+      <span className="brand-mark" aria-hidden="true">
+        <img src={phoenixCrest} alt="" className="brand-mark-img" />
+      </span>
+      <span className="brand-copy">
+        <span className="brand-text">PHOENIX</span>
+        <span className="brand-sub">Eternal Flame Core</span>
+      </span>
+    </div>
+  );
+}
+
 function DonateButton({ ariaLabel }: { ariaLabel: string }) {
   return (
-    <a
-      href={DONATE_URL}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="sidebar-donate"
-      aria-label={ariaLabel}
-      title={ariaLabel}
-    >
-      <HeartOutlined />
-    </a>
+    <Tooltip title={ariaLabel} placement="top">
+      <a
+        href={DONATE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="sidebar-donate omega-icon-btn"
+        aria-label={ariaLabel}
+      >
+        <HeartOutlined />
+      </a>
+    </Tooltip>
   );
 }
 
@@ -122,16 +145,17 @@ function ThemeCycleButton({ id, isDark, isUltra, onCycle, ariaLabel }: {
 }) {
   const icon = !isDark ? <SunOutlined /> : !isUltra ? <MoonOutlined /> : <MoonFilled />;
   return (
-    <button
-      id={id}
-      type="button"
-      className="sidebar-theme-cycle"
-      aria-label={ariaLabel}
-      title={ariaLabel}
-      onClick={onCycle}
-    >
-      {icon}
-    </button>
+    <Tooltip title={ariaLabel} placement="top">
+      <button
+        id={id}
+        type="button"
+        className="sidebar-theme-cycle omega-icon-btn"
+        aria-label={ariaLabel}
+        onClick={onCycle}
+      >
+        {icon}
+      </button>
+    </Tooltip>
   );
 }
 
@@ -150,7 +174,7 @@ export default function AppSidebar() {
   const currentTheme: 'light' | 'dark' = isDark ? 'dark' : 'light';
   const panelVersion = window.X_UI_CUR_VER || '';
 
-  const tabs = useMemo<{ key: string; icon: IconName; title: string }[]>(() => {
+  const tabs = useMemo<NavTab[]>(() => {
     if (isReseller) {
       // Reseller (نمایندگی) accounts manage only what the admin assigned to them.
       return [
@@ -162,16 +186,16 @@ export default function AppSidebar() {
       ];
     }
     return [
-      { key: '/', icon: 'dashboard', title: t('menu.dashboard') },
-      { key: '/inbounds', icon: 'inbound', title: t('menu.inbounds') },
-      { key: '/clients', icon: 'team', title: t('menu.clients') },
-      { key: '/groups', icon: 'groups', title: t('menu.groups') },
-      { key: '/resellers', icon: 'reseller', title: t('menu.resellers') },
-      { key: '/nodes', icon: 'cluster', title: t('menu.nodes') },
-      { key: '/xray#outbound', icon: 'outbound', title: t('pages.xray.Outbounds') },
-      { key: '/settings', icon: 'setting', title: t('menu.settings') },
-      { key: '/xray', icon: 'tool', title: t('menu.xray') },
-      { key: '/api-docs', icon: 'apidocs', title: t('menu.apiDocs') },
+      { key: '/', icon: 'dashboard', title: t('menu.dashboard'), group: 'overview' },
+      { key: '/inbounds', icon: 'inbound', title: t('menu.inbounds'), group: 'manage' },
+      { key: '/clients', icon: 'team', title: t('menu.clients'), group: 'manage' },
+      { key: '/groups', icon: 'groups', title: t('menu.groups'), group: 'manage' },
+      { key: '/resellers', icon: 'reseller', title: t('menu.resellers'), group: 'manage' },
+      { key: '/nodes', icon: 'cluster', title: t('menu.nodes'), group: 'manage' },
+      { key: '/xray#outbound', icon: 'outbound', title: t('pages.xray.Outbounds'), group: 'manage' },
+      { key: '/settings', icon: 'setting', title: t('menu.settings'), group: 'system' },
+      { key: '/xray', icon: 'tool', title: t('menu.xray'), group: 'system' },
+      { key: '/api-docs', icon: 'apidocs', title: t('menu.apiDocs'), group: 'system' },
       { key: LOGOUT_KEY, icon: 'logout', title: t('logout') },
     ];
   }, [t, isReseller]);
@@ -218,18 +242,43 @@ export default function AppSidebar() {
     }
   }, [openSubmenu]);
 
-  const toMenuItems = useCallback((items: typeof tabs): MenuProps['items'] =>
-    items.map((tab) => {
-      const Icon = iconByName[tab.icon];
-      if (tab.key === '/settings') {
-        return { key: tab.key, icon: <Icon />, label: tab.title, children: settingsChildren };
-      }
-      if (tab.key === '/xray') {
-        return { key: tab.key, icon: <Icon />, label: tab.title, children: xrayChildren };
-      }
-      return { key: tab.key, icon: <Icon />, label: tab.title };
-    }),
-  [settingsChildren, xrayChildren]);
+  const toMenuItem = useCallback((tab: NavTab): NonNullable<MenuProps['items']>[number] => {
+    const Icon = iconByName[tab.icon];
+    if (tab.key === '/settings') {
+      return { key: tab.key, icon: <Icon />, label: tab.title, children: settingsChildren };
+    }
+    if (tab.key === '/xray') {
+      return { key: tab.key, icon: <Icon />, label: tab.title, children: xrayChildren };
+    }
+    return { key: tab.key, icon: <Icon />, label: tab.title };
+  }, [settingsChildren, xrayChildren]);
+
+  const groupTitles = useMemo(() => ({
+    overview: t('menu.groupOverview', 'Overview'),
+    manage: t('menu.groupManage', 'Manage'),
+    system: t('menu.groupSystem', 'System'),
+  }), [t]);
+
+  // Admin navigation is sectioned; reseller navigation is a flat list.
+  const toMenuItems = useCallback((items: NavTab[]): MenuProps['items'] => {
+    const grouped = items.some((tab) => tab.group);
+    if (!grouped) return items.map(toMenuItem);
+    const order: NonNullable<NavTab['group']>[] = ['overview', 'manage', 'system'];
+    const result: NonNullable<MenuProps['items']> = [];
+    for (const group of order) {
+      const members = items.filter((tab) => tab.group === group);
+      if (members.length === 0) continue;
+      result.push({
+        type: 'group',
+        key: `group-${group}`,
+        label: groupTitles[group],
+        children: members.map(toMenuItem),
+      });
+    }
+    const loose = items.filter((tab) => !tab.group);
+    result.push(...loose.map(toMenuItem));
+    return result;
+  }, [toMenuItem, groupTitles]);
 
   const openLink = useCallback(async (key: string) => {
     if (key === LOGOUT_KEY) {
@@ -244,12 +293,14 @@ export default function AppSidebar() {
     openLink(String(key));
   }, [openLink]);
 
-  const onSiderCollapse = useCallback((isCollapsed: boolean, type: 'clickTrigger' | 'responsive') => {
-    if (type === 'clickTrigger') {
-      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(isCollapsed));
-      setCollapsed(isCollapsed);
-    }
+  const setCollapsedPersist = useCallback((isCollapsed: boolean) => {
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(isCollapsed));
+    setCollapsed(isCollapsed);
   }, []);
+
+  const onSiderCollapse = useCallback((isCollapsed: boolean, type: 'clickTrigger' | 'responsive') => {
+    if (type === 'clickTrigger') setCollapsedPersist(isCollapsed);
+  }, [setCollapsedPersist]);
 
   const cycleTheme = useCallback((id: string) => {
     pauseAnimationsUntilLeave(id);
@@ -264,36 +315,28 @@ export default function AppSidebar() {
     }
   }, [isDark, isUltra, toggleTheme, toggleUltra]);
 
+  const collapseLabel = collapsed ? t('menu.expand', 'Expand sidebar') : t('menu.collapse', 'Collapse sidebar');
+
   return (
-    <div className="ant-sidebar">
+    <div className={`ant-sidebar omega-sidebar${collapsed ? ' is-collapsed' : ''}`}>
       <Layout.Sider
         theme={currentTheme}
-        width={220}
+        width={252}
+        collapsedWidth={84}
         collapsible
         collapsed={collapsed}
         breakpoint="md"
+        trigger={null}
         onCollapse={onSiderCollapse}
       >
         <div className={`sider-brand${collapsed ? ' sider-brand-collapsed' : ''}`}>
-          <div className="brand-block">
-            <span className="brand-text">{collapsed ? 'OM' : 'OMEGA'}</span>
-          </div>
-          {!collapsed && (
-            <div className="brand-actions">
-              <DonateButton ariaLabel={t('menu.donate') || 'Donate'} />
-              <ThemeCycleButton
-                id="theme-cycle"
-                isDark={isDark}
-                isUltra={isUltra}
-                onCycle={() => cycleTheme('theme-cycle')}
-                ariaLabel={t('menu.theme')}
-              />
-            </div>
-          )}
+          <Brand compact={collapsed} />
         </div>
+
         <Menu
           theme={currentTheme}
           mode="inline"
+          inlineIndent={18}
           selectedKeys={[selectedKey]}
           openKeys={collapsed ? undefined : openKeys}
           onOpenChange={(keys) => setOpenKeys(keys as string[])}
@@ -301,16 +344,51 @@ export default function AppSidebar() {
           items={toMenuItems(navItems)}
           onClick={onMenuClick}
         />
-        <Menu
-          theme={currentTheme}
-          mode="inline"
-          selectedKeys={[selectedKey]}
-          className="sider-utility"
-          items={toMenuItems(utilItems)}
-          onClick={onMenuClick}
-        />
-        <div className="sider-footer">
-          <VersionBadge version={panelVersion} collapsed={collapsed} />
+
+        <div className="sider-bottom">
+          <Menu
+            theme={currentTheme}
+            mode="inline"
+            inlineIndent={18}
+            selectedKeys={[selectedKey]}
+            className="sider-utility"
+            items={toMenuItems(utilItems)}
+            onClick={onMenuClick}
+          />
+          <div className="sider-footer">
+            <div className="sider-tools">
+              <Tooltip title={`${t('commandPalette.open') || 'Quick search'} (Ctrl+K)`} placement="top">
+                <button
+                  type="button"
+                  className="sidebar-search omega-icon-btn"
+                  aria-label="Command palette (Ctrl+K)"
+                  onClick={openCommandPalette}
+                >
+                  <SearchOutlined />
+                </button>
+              </Tooltip>
+              <ThemeCycleButton
+                id="theme-cycle"
+                isDark={isDark}
+                isUltra={isUltra}
+                onCycle={() => cycleTheme('theme-cycle')}
+                ariaLabel={t('menu.theme')}
+              />
+              <DonateButton ariaLabel={t('menu.donate') || 'Donate'} />
+              <Tooltip title={collapseLabel} placement="top">
+                <button
+                  type="button"
+                  className="sidebar-collapse omega-icon-btn"
+                  aria-label={collapseLabel}
+                  aria-expanded={!collapsed}
+                  onClick={() => setCollapsedPersist(!collapsed)}
+                >
+                  {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                </button>
+              </Tooltip>
+            </div>
+            <VersionBadge version={panelVersion} collapsed={collapsed} />
+          </div>
         </div>
       </Layout.Sider>
 
@@ -318,8 +396,8 @@ export default function AppSidebar() {
         placement="left"
         closable={false}
         open={drawerOpen}
-        rootClassName={currentTheme}
-        size="min(82vw, 320px)"
+        rootClassName={`${currentTheme} omega-drawer`}
+        size="min(84vw, 320px)"
         styles={{
           wrapper: { padding: 0 },
           body: { padding: 0, display: 'flex', flexDirection: 'column', height: '100%' },
@@ -328,11 +406,8 @@ export default function AppSidebar() {
         onClose={() => setDrawerOpen(false)}
       >
         <div className="drawer-header">
-          <div className="brand-block">
-            <span className="drawer-brand">OMEGA</span>
-          </div>
+          <Brand />
           <div className="drawer-header-actions">
-            <DonateButton ariaLabel={t('menu.donate') || 'Donate'} />
             <ThemeCycleButton
               id="theme-cycle-drawer"
               isDark={isDark}
@@ -341,7 +416,7 @@ export default function AppSidebar() {
               ariaLabel={t('menu.theme')}
             />
             <button
-              className="drawer-close"
+              className="drawer-close omega-icon-btn"
               type="button"
               aria-label={t('close')}
               onClick={() => setDrawerOpen(false)}
@@ -353,6 +428,7 @@ export default function AppSidebar() {
         <Menu
           theme={currentTheme}
           mode="inline"
+          inlineIndent={18}
           selectedKeys={[selectedKey]}
           openKeys={openKeys}
           onOpenChange={(keys) => setOpenKeys(keys as string[])}
@@ -363,12 +439,14 @@ export default function AppSidebar() {
         <Menu
           theme={currentTheme}
           mode="inline"
+          inlineIndent={18}
           selectedKeys={[selectedKey]}
           className="drawer-menu drawer-utility"
           items={toMenuItems(utilItems)}
           onClick={(info) => { onMenuClick(info); setDrawerOpen(false); }}
         />
         <div className="drawer-footer">
+          <DonateButton ariaLabel={t('menu.donate') || 'Donate'} />
           <VersionBadge version={panelVersion} />
         </div>
       </Drawer>

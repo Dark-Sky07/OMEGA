@@ -3,12 +3,17 @@ import { RandomUtil, Wireguard } from '@/utils';
 import type { AmneziawgInboundSettings, AmneziawgServer } from '@/schemas/protocols/inbound/amneziawg';
 import type { HttpInboundSettings } from '@/schemas/protocols/inbound/http';
 import type { HysteriaClient, HysteriaInboundSettings } from '@/schemas/protocols/inbound/hysteria';
+import {
+  MASQUE_DEFAULT_ADDRESS_POOL,
+  type MasqueInboundSettings,
+} from '@/schemas/protocols/inbound/masque';
 import type { MixedInboundSettings } from '@/schemas/protocols/inbound/mixed';
 import type { MtprotoInboundSettings } from '@/schemas/protocols/inbound/mtproto';
 import type { OpenvpnInboundSettings } from '@/schemas/protocols/inbound/openvpn';
 import type { L2tpInboundSettings } from '@/schemas/protocols/inbound/l2tp';
 import type { ShadowsocksClient, ShadowsocksInboundSettings } from '@/schemas/protocols/inbound/shadowsocks';
 import type { TrojanClient, TrojanInboundSettings } from '@/schemas/protocols/inbound/trojan';
+import type { TuicClient, TuicInboundSettings } from '@/schemas/protocols/inbound/tuic';
 import type { TunInboundSettings } from '@/schemas/protocols/inbound/tun';
 import type { TunnelInboundSettings } from '@/schemas/protocols/inbound/tunnel';
 import type { VlessClient, VlessInboundSettings } from '@/schemas/protocols/inbound/vless';
@@ -252,6 +257,7 @@ export function createDefaultOpenvpnInboundSettings(): OpenvpnInboundSettings {
     pushDNS: true,
     dns1: '1.1.1.1',
     dns2: '8.8.8.8',
+    routeThroughXray: false,
   };
 }
 
@@ -268,6 +274,7 @@ export function createDefaultL2tpInboundSettings(): L2tpInboundSettings {
     dns2: '8.8.8.8',
     outboundInterface: '',
     redirectGateway: true,
+    routeThroughXray: false,
   };
 }
 
@@ -366,6 +373,41 @@ export function createDefaultAmneziawgInboundSettings(
   };
 }
 
+export interface TuicClientSeed extends ClientBaseSeed {
+  uuid?: string;
+  id?: string;
+  password?: string;
+}
+
+export function createDefaultTuicClient(seed: TuicClientSeed = {}): TuicClient {
+  const uuid = seed.uuid ?? seed.id ?? RandomUtil.randomUUID();
+  return {
+    uuid,
+    id: uuid,
+    password: seed.password ?? RandomUtil.randomSeq(10),
+    ...clientBase(seed),
+  };
+}
+
+export function createDefaultTuicInboundSettings(): TuicInboundSettings {
+  return {
+    server: {
+      certificate: '',
+      private_key: '',
+      congestion_control: 'bbr',
+      alpn: ['h3', 'spdy/3.1'],
+      udp_relay_mode: 'native',
+      zero_rtt_handshake: true,
+      log_level: 'info',
+      max_idle_time: 15,
+      authentication_timeout: 3,
+      max_udp_relay_packet_size: 1500,
+      sni: '',
+    },
+    clients: [],
+  };
+}
+
 // Protocol-aware dispatch over every inbound-settings factory. Mirrors
 // the legacy `Inbound.Settings.getSettings(protocol)` dispatcher, but
 // returns a plain Zod-parsable object instead of a class instance.
@@ -385,7 +427,13 @@ export type AnyInboundSettings =
   | AmneziawgInboundSettings
   | MtprotoInboundSettings
   | OpenvpnInboundSettings
-  | L2tpInboundSettings;
+  | L2tpInboundSettings
+  | MasqueInboundSettings
+  | TuicInboundSettings;
+
+export function createDefaultMasqueInboundSettings(): MasqueInboundSettings {
+  return { clients: [], address: [...MASQUE_DEFAULT_ADDRESS_POOL] };
+}
 
 export function createDefaultInboundSettings(protocol: string): AnyInboundSettings | null {
   switch (protocol) {
@@ -403,6 +451,8 @@ export function createDefaultInboundSettings(protocol: string): AnyInboundSettin
     case 'mtproto':     return createDefaultMtprotoInboundSettings();
     case 'openvpn':     return createDefaultOpenvpnInboundSettings();
     case 'l2tp':        return createDefaultL2tpInboundSettings();
+    case 'masque':      return createDefaultMasqueInboundSettings();
+    case 'tuic':        return createDefaultTuicInboundSettings();
     default:            return null;
   }
 }

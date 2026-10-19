@@ -113,7 +113,12 @@
     "apiDocs": "API 文档",
     "logout": "退出登录",
     "link": "管理",
-    "donate": "捐赠"
+    "donate": "捐赠",
+    "groupOverview": "概览",
+    "groupManage": "管理",
+    "groupSystem": "系统",
+    "collapse": "收起侧边栏",
+    "expand": "展开侧边栏"
   },
   "pages": {
     "login": {
@@ -126,7 +131,9 @@
         "emptyPassword": "请输入密码",
         "wrongUsernameOrPassword": "用户名、密码或双重验证码无效。",
         "successLogin": "您已成功登录您的账户。"
-      }
+      },
+      "asideTitle": "一个面板，管理所有隧道。",
+      "asideText": "Xray、OpenVPN、L2TP/IPsec 与 AmneziaWG——在一处完成管理、路由与统计。"
     },
     "index": {
       "title": "系统状态",
@@ -145,7 +152,7 @@
       "xraySwitchClick": "选择你要切换到的版本",
       "xraySwitchClickDesk": "请谨慎选择，因为较旧版本可能与当前配置不兼容",
       "updatePanel": "更新面板",
-      "panelUpdateDesc": "这将把 OMEGA 更新到最新版本并重启面板服务。",
+      "panelUpdateDesc": "这将把 PHOENIX 更新到最新版本并重启面板服务。",
       "currentPanelVersion": "当前面板版本",
       "latestPanelVersion": "最新面板版本",
       "panelUpToDate": "面板已是最新",
@@ -213,7 +220,7 @@
       "xraySwitchVersionDialogDesc": "这将把Xray版本更改为#version#。",
       "xraySwitchVersionPopover": "Xray 更新成功",
       "panelUpdateDialog": "您确定要更新面板吗？",
-      "panelUpdateDialogDesc": "这将把 OMEGA 更新到 #version# 并重启面板服务。",
+      "panelUpdateDialogDesc": "这将把 PHOENIX 更新到 #version# 并重启面板服务。",
       "panelUpdateCheckPopover": "面板更新检查失败",
       "panelUpdateStartedPopover": "已开始更新面板",
       "geofileUpdateDialog": "您确定要更新地理文件吗？",
@@ -253,7 +260,12 @@
       "importDatabasePgDesc": "点击选择并上传 .dump 文件以恢复您的 PostgreSQL 数据库。此操作将替换所有当前数据。",
       "migrationDownload": "下载迁移文件",
       "migrationDownloadDesc": "点击下载当前 SQLite 数据库的可移植 .dump（SQL 文本）导出文件。",
-      "migrationDownloadPgDesc": "点击下载由 PostgreSQL 数据构建的 .db SQLite 数据库，可用于在 SQLite 上运行本面板。"
+      "migrationDownloadPgDesc": "点击下载由 PostgreSQL 数据构建的 .db SQLite 数据库，可用于在 SQLite 上运行本面板。",
+      "heroSubtitle": "此服务器及其所有隧道的实时状态。",
+      "services": "服务",
+      "network": "网络",
+      "resources": "资源",
+      "panelProcess": "面板进程"
     },
     "inbounds": {
       "title": "入站",
@@ -508,6 +520,8 @@
         "mtgDebug": "调试日志",
         "mtgRouteThroughXray": "通过 Xray 路由",
         "mtgRouteThroughXrayHint": "让此代理的 Telegram 流量经过 Xray，以应用您的路由规则。mtg 附属进程会通过带有此入站标签的本地 SOCKS 桥接出站；在路由选项卡中引用该标签即可设置高级规则。",
+        "daemonRouteThroughXray": "通过 Xray 路由",
+        "daemonRouteThroughXrayHint": "将此入站的客户端流量（TCP 和 UDP）经由 Xray 路由器转发，使路由规则像作用于 Xray 自身入站一样作用于它。流量通过一个带有此入站标签的回环监听器进入核心；自定义规则请在路由标签页中引用该标签。Xray 未运行时自动关闭（直连）。",
         "mtgRouteOutbound": "出站",
         "mtgRouteOutboundHint": "可选。强制 Telegram 流量经由此出站（或负载均衡器）发出。留空则由您的路由规则决定。",
         "mtgRouteOutboundPlaceholder": "使用路由规则",
@@ -628,7 +642,36 @@
           "node": "节点地址",
           "listen": "入站监听地址",
           "custom": "自定义"
-        }
+        },
+        "xdrive": {
+          "service": "存储服务",
+          "serviceLocal": "本地文件夹",
+          "serviceTemplate": "自定义模板",
+          "remoteFolder": "远程文件夹",
+          "clientId": "客户端 ID",
+          "clientSecret": "客户端密钥",
+          "refreshToken": "刷新令牌",
+          "secrets": "密钥",
+          "secretsDesc": "模板中以 {secret0}、{secret1}… 引用的值",
+          "template": "存储模板",
+          "templateInvalid": "必须是 JSON 对象",
+          "front": "前置地址",
+          "frontDesc": "连接存储 API 时使用的可选主机或 IP（域前置）。",
+          "frontPort": "前置端口",
+          "segmentBytes": "分段大小（字节）",
+          "flushInterval": "发送间隔（毫秒）",
+          "pollInterval": "轮询间隔（毫秒）",
+          "maxPollInterval": "最大轮询间隔（毫秒）",
+          "eagerWindow": "预发窗口（毫秒）",
+          "holeTimeout": "缺失分段超时（毫秒）",
+          "sessionTtl": "会话 TTL（秒）",
+          "concurrency": "并发数"
+        },
+        "masque": {
+          "addressPool": "地址池",
+          "addressPoolDesc": "隧道地址从这些前缀中分配——最多一个 IPv4 和一个 IPv6。"
+        },
+        "autoFill": "自动填充"
       },
       "info": {
         "mode": "模式",
@@ -663,7 +706,8 @@
           "requestHeader": "请求头",
           "responseHeader": "响应头"
         }
-      }
+      },
+      "advancedTitle": "高级设置"
     },
     "clients": {
       "tabBasics": "基本",
@@ -833,7 +877,17 @@
         "bulkAdjusted": "已调整 {count} 个客户端",
         "bulkAdjustedMixed": "已调整 {ok} 个，跳过 {skipped} 个",
         "delDepleted": "已删除 {count} 个已耗尽的客户端"
-      }
+      },
+      "userTemplates": "User Plan Templates",
+      "userTemplatesDesc": "Reusable client plan presets (quota, duration, on-hold start, IP/device limits, and default inbounds)",
+      "addTemplate": "Add Template",
+      "templateName": "Template Name",
+      "templateNameRequired": "Template name is required",
+      "applyTemplate": "Apply Plan Template",
+      "selectTemplatePlaceholder": "Select a preset template...",
+      "templateApplied": "Template '{{name}}' applied",
+      "revokeSub": "Revoke & Rotate Subscription Link",
+      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?"
     },
     "groups": {
       "title": "分组",
@@ -972,6 +1026,7 @@
     },
     "settings": {
       "title": "面板设置",
+      "unsaved": "未保存的更改",
       "save": "保存",
       "infoDesc": "此处的所有更改都需要保存并重启面板才能生效",
       "restartPanel": "重启面板",
@@ -1067,7 +1122,7 @@
       "subAnnounce": "公告",
       "subAnnounceDesc": "VPN 客户端中显示的公告文本",
       "subThemeDir": "订阅主题目录",
-      "subThemeDirDesc": "包含自定义订阅页面模板 (index.html/sub.html) 的文件夹的绝对路径（例如 /etc/3x-ui/sub_templates/my-theme/）。留空则使用默认页面。",
+      "subThemeDirDesc": "包含自定义订阅页面模板 (index.html/sub.html) 的文件夹的绝对路径（例如 /etc/x-ui/sub_templates/my-theme/）。留空则使用默认页面。",
       "subThemeDirDocs": "模板指南 ↗",
       "subEnableRouting": "启用路由",
       "subEnableRoutingDesc": "在 VPN 客户端中启用路由的全局设置。（僅限 Happ）",
@@ -1200,7 +1255,29 @@
         "apiTokenEmpty": "暂无令牌 — 创建一个用于认证机器人或远程面板。",
         "apiTokenDeleteWarning": "使用此令牌的任何调用方将立即无法认证。",
         "apiTokenCreatedTitle": "令牌已创建",
-        "apiTokenCreatedNotice": "请立即复制此令牌。出于安全考虑，它不会以可读形式存储，也不会再次显示。"
+        "apiTokenCreatedNotice": "请立即复制此令牌。出于安全考虑，它不会以可读形式存储，也不会再次显示。",
+        "apiTokenScope": "Permissions",
+        "apiTokenScopeFull": "Full access",
+        "apiTokenScopeRead": "Read-only",
+        "apiTokenExpireDays": "Expires in (days)",
+        "apiTokenExpireDaysDesc": "0 means never expires.",
+        "apiTokenExpires": "Expires",
+        "apiTokenExpired": "Expired",
+        "apiTokenLastUsed": "Last used",
+        "multiAdminTitle": "Admins & RBAC",
+        "multiAdminDesc": "Create secondary admin accounts with granular RBAC roles (Superadmin, Custom Admin, Support, or Read-only Viewer).",
+        "addAdmin": "Add Admin",
+        "editAdmin": "Edit Admin Account",
+        "adminRole": "Role",
+        "adminModules": "Allowed Modules",
+        "role_superadmin": "Superadmin (Full Access)",
+        "role_admin": "Custom Admin (Selected Modules)",
+        "role_support": "Support (Clients Read/Write + Inbounds Read)",
+        "role_viewer": "Viewer (Read-only Auditor)",
+        "lastLogin": "Last login",
+        "adminUsernameRequired": "Username is required",
+        "adminPasswordMin": "Password must be at least 4 characters",
+        "adminPasswordLeaveBlank": "Leave blank to keep existing password"
       },
       "toasts": {
         "modifySettings": "参数已更改。",
@@ -1211,7 +1288,47 @@
         "userPassMustBeNotEmpty": "新用户名和新密码不能为空",
         "getOutboundTrafficError": "获取出站流量错误",
         "resetOutboundTrafficError": "重置出站流量错误"
-      }
+      },
+      "tgNotifyUserReport": "向客户端发送个人用量报告",
+      "tgNotifyUserReportDesc": "每次周期报告时，向已关联 Telegram 的客户端发送个人用量摘要（流量与到期）。默认关闭。",
+      "oneClickSslTitle": "One-Click SSL Certificate",
+      "oneClickSslDesc": "Issue a free Let's Encrypt certificate (auto-renewed before expiry) or an instant 1-year self-signed certificate.",
+      "issueCertBtn": "Issue SSL Certificate",
+      "certSelfSigned": "Self-Signed",
+      "certMode": "Certificate Type",
+      "certModeLetsEncrypt": "Let's Encrypt (HTTP-01 on port 80, auto-renewed)",
+      "certModeSelfSigned": "Self-Signed (instant, 1 year, no port 80 needed)",
+      "certDomain": "Domain",
+      "certDomainRequired": "Domain is required",
+      "certEmail": "Contact Email (optional)",
+      "certPort80Notice": "Port 80 must be reachable from the internet and point to this server.",
+      "certIssuedSuccess": "Certificate issued and applied",
+      "discordSettings": "Discord Bot",
+      "discordEnable": "Enable Discord Notifications",
+      "discordEnableDesc": "Send periodic traffic reports, approaching-limit alerts, and login notifications to Discord.",
+      "discordWebhookURL": "Discord Webhook URL",
+      "discordWebhookURLDesc": "Simplest setup: paste a channel Webhook URL.",
+      "discordBotToken": "Discord Bot Token (optional)",
+      "discordBotTokenDesc": "Alternative to Webhook: Bot token from Discord Developer Portal.",
+      "discordChannelId": "Discord Channel ID",
+      "discordChannelIdDesc": "Target channel ID when using a Bot token.",
+      "discordLoginNotify": "Login Notification",
+      "discordLoginNotifyDesc": "Post an embed whenever an admin login succeeds or fails.",
+      "discordTestTitle": "Test Discord Connection",
+      "discordTestDesc": "Save your settings first, then send a verification embed.",
+      "discordTestBtn": "Send Test Embed",
+      "discordTestSuccess": "Test message sent to Discord",
+      "cloudBackupTitle": "Cloud Backup",
+      "cloudBackupProviderGdrive": "Google Drive (Service Account / OAuth2)",
+      "cloudBackupGdriveGuide": "Google Drive Setup: (Method 1 - Recommended) Create a Google Cloud Service Account, enable Google Drive API, share your target Google Drive folder with the service account email, and paste the full JSON key below. (Method 2) Paste your OAuth2 Refresh Token below and enter your OAuth2 Client ID & Client Secret.",
+      "cloudBackupGdriveFolder": "Google Drive Folder ID or Link",
+      "cloudBackupGdriveFolderDesc": "Paste the Google Drive Folder ID or full folder URL (e.g. https://drive.google.com/drive/folders/1AbCdEf...). Leave empty to upload to Drive root.",
+      "cloudBackupGdriveCredentials": "Service Account JSON or OAuth2 Refresh Token",
+      "cloudBackupGdriveCredentialsDesc": "Paste the complete Google Cloud service_account JSON key file, or an OAuth2 Refresh Token (1//0g...).",
+      "cloudBackupGdriveClientId": "OAuth2 Client ID (Optional)",
+      "cloudBackupGdriveClientIdDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
+      "cloudBackupGdriveClientSecret": "OAuth2 Client Secret (Optional)",
+      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key."
     },
     "xray": {
       "title": "Xray 配置",
@@ -1391,7 +1508,10 @@
         "acceptProxyProtocol": "接受 proxy protocol",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)",
+        "masqueWarpDesc": "使用已注册的 ECDSA P-256 密钥通过 MASQUE 连接 Cloudflare WARP；host 和 path 默认指向 Cloudflare 端点。",
+        "masqueWarpPublicKey": "端点公钥",
+        "masqueWarpAddress": "隧道地址"
       },
       "outbound": {
         "addOutbound": "添加出站",
@@ -1556,7 +1676,9 @@
         "warpPlusData": "WARP+ 数据",
         "quota": "配额",
         "usage": "使用",
-        "addOutbound": "添加出站"
+        "addOutbound": "添加出站",
+        "masqueDesc": "为 MASQUE 单独注册一个 WARP 设备；上方的 WireGuard 注册不受影响。",
+        "addMasqueOutbound": "添加 WARP over MASQUE 出站"
       },
       "dns": {
         "enable": "启用 DNS",
@@ -1606,6 +1728,23 @@
         "edit": "编辑假 DNS",
         "ipPool": "IP 池子网",
         "poolSize": "池大小"
+      },
+      "tuic": {
+        "congestionControl": "拥塞控制算法",
+        "congestionControlHint": "服务器和客户端算法。服务器更改在重新连接后生效。",
+        "profileOptions": "Client profile options",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP 转发模式",
+        "udpRelayModeHint": "客户端 UDP 模式。服务器支持两种模式。",
+        "zeroRttHandshake": "0-RTT 握手",
+        "logLevel": "日志级别",
+        "logLevelHint": "此入站的最低日志级别。",
+        "maxIdleTime": "最大空闲时间 (秒)",
+        "authTimeout": "认证超时时间 (秒)",
+        "maxUdpRelayPacketSize": "最大 UDP 数据包大小",
+        "sni": "SNI",
+        "sniHint": "客户端配置中的 TLS 服务器名称。",
+        "sniRequired": "请输入域名以自动填充证书路径。"
       }
     }
   },
@@ -1714,7 +1853,21 @@
       "AreYouSure": "你确定吗？🤔",
       "SuccessResetTraffic": "📧 邮箱: {{ .ClientEmail }}\n🏁 结果: ✅ 成功",
       "FailedResetTraffic": "📧 邮箱: {{ .ClientEmail }}\n🏁 结果: ❌ 失败 \n\n🛠️ 错误: [ {{ .ErrorMessage }} ]",
-      "FinishProcess": "🔚 所有客户的流量重置已完成。"
+      "FinishProcess": "🔚 所有客户的流量重置已完成。",
+      "broadcastPrompt": "请发送要广播给所有客户端的消息文本（最多约 3800 个字符）。",
+      "broadcastEmpty": "消息为空。请发送广播文本，或点击取消。",
+      "broadcastTooLong": "消息太长。请精简（最多约 3800 个字符）后重试。",
+      "broadcastPreview": "📣 广播预览 — 收件人数：{{ .Count }}",
+      "broadcastCanceled": "已取消广播。",
+      "broadcastRunning": "另一次广播仍在发送中，请等待其完成。",
+      "broadcastDone": "✅ 广播完成：成功 {{ .Sent }}，失败 {{ .Failed }}。",
+      "broadcastNoRecipients": "未找到已关联 Telegram 账号的客户端 — 无可发送对象。",
+      "inviteCreated": "🔗 {{ .Email }} 的邀请链接\n（一次性，有效期至 {{ .Expires }}）：\n\n{{ .Link }}",
+      "inviteRedeemed": "✅ {{ .Firstname }}，您的 Telegram 已关联到 {{ .Email }}。使用下方按钮管理您的订阅。",
+      "inviteInvalid": "此邀请链接无效。请向您的提供者索取新链接。",
+      "inviteUsed": "此邀请链接已被使用。请向您的提供者索取新链接。",
+      "inviteExpired": "此邀请链接已过期。请向您的提供者索取新链接。",
+      "userReport": "📊 您的用量报告 — {{ .DateTime }}"
     },
     "buttons": {
       "closeKeyboard": "❌ 关闭键盘",
@@ -1759,7 +1912,10 @@
       "change_comment": "⚙️💬 评论",
       "change_flow": "⚙️🚦 Flow",
       "ResetAllTraffics": "重置所有流量",
-      "SortedTrafficUsageReport": "排序的流量使用报告"
+      "SortedTrafficUsageReport": "排序的流量使用报告",
+      "broadcast": "📣 广播",
+      "confirmBroadcast": "✅ 立即发送",
+      "invite": "🔗 邀请链接"
     },
     "answers": {
       "successfulOperation": "✅ 成功！",
@@ -1784,5 +1940,28 @@
       "chooseClient": "为入站 {{ .Inbound }} 选择一个客户",
       "chooseInbound": "选择一个入站"
     }
+  },
+  "commandPalette": {
+    "open": "Quick search",
+    "placeholder": "Jump to page, search client email / subId, or run an action…",
+    "empty": "No matching pages, clients, or actions.",
+    "groupPages": "Pages",
+    "groupClients": "Clients",
+    "groupInbounds": "Inbounds",
+    "groupActions": "Quick actions",
+    "toggleTheme": "Toggle dark / light theme",
+    "hintNavigate": "navigate",
+    "hintSelect": "select"
+  },
+  "resellers": {
+    "supportTickets": "Support Tickets",
+    "paymentOrders": "Payment Webhook Orders",
+    "ticketsDesc": "Direct support communication between Resellers and Panel Admins",
+    "newTicket": "New Ticket",
+    "ticketSubject": "Subject",
+    "ticketPriority": "Priority",
+    "ticketMessage": "Message",
+    "ticketReplyPlaceholder": "Write a reply...",
+    "ticketSubjectAndMessageRequired": "Subject and message are required"
   }
 }

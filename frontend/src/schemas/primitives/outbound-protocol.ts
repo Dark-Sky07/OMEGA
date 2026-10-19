@@ -8,6 +8,7 @@ export const OutboundProtocols = Object.freeze({
   Shadowsocks: 'shadowsocks',
   Wireguard: 'wireguard',
   Hysteria: 'hysteria',
+  Masque: 'masque',
   Socks: 'socks',
   HTTP: 'http',
   Loopback: 'loopback',

@@ -27,6 +27,8 @@ import { antdRule } from '@/utils/zodForm';
 import { setMessageInstance } from '@/utils/messageBus';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import { LoginFormSchema, type LoginFormValues } from '@/schemas/login';
+import phoenixCrest from '@/assets/phoenix-crest.png';
+import phoenixEmblem from '@/assets/phoenix-emblem.jpg';
 import './LoginPage.css';
 
 const HEADLINE_INTERVAL_MS = 2000;
@@ -177,74 +179,108 @@ export default function LoginPage() {
                 <Spin size="large" />
               </div>
             ) : (
-              <div className="login-card">
-                <div className="brand">
-                  <span className="brand-name">OMEGA</span>
-                  <span className="brand-accent" aria-hidden="true" />
-                </div>
-                <h2 className="welcome">
-                  <b key={headlineIndex}>{headlineWords[headlineIndex]}</b>
-                </h2>
+              <div className="login-stage">
+                <aside className="login-aside" aria-hidden="true">
+                  <img src={phoenixEmblem} alt="" className="login-aside-backdrop" />
+                  <div className="login-aside-brand">
+                    <span className="login-mark">
+                      <img src={phoenixCrest} alt="" className="login-mark-img" />
+                    </span>
+                    <div className="login-wordmark-wrap">
+                      <span className="login-wordmark">PHOENIX</span>
+                      <span className="login-myth-tag">REBORN FROM FIRE &amp; ASH • ققنوس</span>
+                    </div>
+                  </div>
+                  <div className="login-phoenix-showcase">
+                    <img src={phoenixCrest} alt="PHOENIX Emblem" className="login-phoenix-medallion" />
+                  </div>
+                  <h1 className="login-aside-title">
+                    {t('pages.login.asideTitle', 'Reborn from Fire. Immortal across every border.')}
+                  </h1>
+                  <p className="login-aside-text">
+                    {t('pages.login.asideText', 'Like the legendary Phoenix (ققنوس) rising from obsidian ash in solar flame — Xray-core, OpenVPN, L2TP/IPsec, TUIC v5, MASQUE and AmneziaWG united in one sovereign sanctuary.')}
+                  </p>
+                  <ul className="login-aside-list">
+                    <li><span className="login-aside-dot" />Xray-core</li>
+                    <li><span className="login-aside-dot" />OpenVPN</li>
+                    <li><span className="login-aside-dot" />L2TP / IPsec</li>
+                    <li><span className="login-aside-dot" />AmneziaWG</li>
+                    <li><span className="login-aside-dot" />TUIC v5 &amp; MASQUE</li>
+                  </ul>
+                  <div className="login-aside-orb login-aside-orb-a" />
+                  <div className="login-aside-orb login-aside-orb-b" />
+                </aside>
 
-                <Form
-                  layout="vertical"
-                  className="login-form"
-                  onFinish={onSubmit}
-                  initialValues={{ username: '', password: '', twoFactorCode: '' }}
-                >
-                  <Form.Item
-                    label={t('username')}
-                    name="username"
-                    rules={[antdRule(LoginFormSchema.shape.username, t)]}
+                <div className="login-card">
+                  <div className="brand">
+                    <img src={phoenixCrest} alt="" className="brand-mini-crest" aria-hidden="true" />
+                    <span className="brand-name">PHOENIX</span>
+                    <span className="brand-accent" aria-hidden="true" />
+                  </div>
+                  <h2 className="welcome">
+                    <b key={headlineIndex}>{headlineWords[headlineIndex]}</b>
+                  </h2>
+
+                  <Form
+                    layout="vertical"
+                    className="login-form"
+                    onFinish={onSubmit}
+                    initialValues={{ username: '', password: '', twoFactorCode: '' }}
                   >
-                    <Input
-                      prefix={<UserOutlined />}
-                      autoComplete="username"
-                      size="large"
-                      placeholder={t('username')}
-                      autoFocus
-                    />
-                  </Form.Item>
-
-                  <Form.Item
-                    label={t('password')}
-                    name="password"
-                    rules={[antdRule(LoginFormSchema.shape.password, t)]}
-                  >
-                    <Input.Password
-                      prefix={<LockOutlined />}
-                      autoComplete="current-password"
-                      size="large"
-                      placeholder={t('password')}
-                    />
-                  </Form.Item>
-
-                  {twoFactorEnable && (
-                    // Optional on purpose: reseller (نمایندگی) accounts have no
-                    // second factor, so an empty code must be submittable — the
-                    // server still enforces a valid TOTP for the panel admin.
-                    <Form.Item label={t('twoFactorCode')} name="twoFactorCode">
+                    <Form.Item
+                      label={t('username')}
+                      name="username"
+                      rules={[antdRule(LoginFormSchema.shape.username, t)]}
+                    >
                       <Input
-                        prefix={<KeyOutlined />}
-                        autoComplete="one-time-code"
+                        prefix={<UserOutlined />}
+                        autoComplete="username"
                         size="large"
-                        placeholder={t('twoFactorCode')}
+                        placeholder={t('username')}
+                        autoFocus
                       />
                     </Form.Item>
-                  )}
 
-                  <Form.Item className="submit-row">
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      loading={submitting}
-                      size="large"
-                      block
+                    <Form.Item
+                      label={t('password')}
+                      name="password"
+                      rules={[antdRule(LoginFormSchema.shape.password, t)]}
                     >
-                      {t('login')}
-                    </Button>
-                  </Form.Item>
-                </Form>
+                      <Input.Password
+                        prefix={<LockOutlined />}
+                        autoComplete="current-password"
+                        size="large"
+                        placeholder={t('password')}
+                      />
+                    </Form.Item>
+
+                    {twoFactorEnable && (
+                      // Optional on purpose: reseller (نمایندگی) accounts have no
+                      // second factor, so an empty code must be submittable — the
+                      // server still enforces a valid TOTP for the panel admin.
+                      <Form.Item label={t('twoFactorCode')} name="twoFactorCode">
+                        <Input
+                          prefix={<KeyOutlined />}
+                          autoComplete="one-time-code"
+                          size="large"
+                          placeholder={t('twoFactorCode')}
+                        />
+                      </Form.Item>
+                    )}
+
+                    <Form.Item className="submit-row">
+                      <Button
+                        type="primary"
+                        htmlType="submit"
+                        loading={submitting}
+                        size="large"
+                        block
+                      >
+                        {t('login')}
+                      </Button>
+                    </Form.Item>
+                  </Form>
+                </div>
               </div>
             )}
           </div>

@@ -22,7 +22,7 @@ export function usePageTitle() {
 
   useEffect(() => {
     const key = TITLE_KEYS[pathname];
-    const title = key ? t(key) : 'OMEGA';
+    const title = key ? t(key) : 'PHOENIX';
     const host = window.location.hostname;
     document.title = host ? `${host} - ${title}` : title;
   }, [pathname, t]);

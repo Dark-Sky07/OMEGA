@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Modal } from 'antd';
-import { DownloadOutlined, UploadOutlined } from '@ant-design/icons';
+import { Button, Modal, message } from 'antd';
+import { CloudUploadOutlined, DownloadOutlined, UploadOutlined } from '@ant-design/icons';
 
 import { HttpUtil, PromiseUtil } from '@/utils';
 import './BackupModal.css';
@@ -20,6 +21,22 @@ interface BackupModalProps {
 export default function BackupModal({ open, basePath: _basePath, onClose, onBusy }: BackupModalProps) {
   const { t } = useTranslation();
   const isPostgres = window.X_UI_DB_TYPE === 'postgres';
+  const [cloudLoading, setCloudLoading] = useState(false);
+
+  async function backupToCloud() {
+    setCloudLoading(true);
+    try {
+      const res = await HttpUtil.post('/panel/api/setting/cloudBackup/run', {}) as {
+        success?: boolean;
+        obj?: { key?: string };
+      };
+      if (res?.success) {
+        message.success(`${t('pages.settings.cloudBackupSuccess', 'Cloud backup uploaded')}: ${res.obj?.key || ''}`);
+      }
+    } finally {
+      setCloudLoading(false);
+    }
+  }
 
   function exportDb() {
     window.location.href = (window.X_UI_BASE_PATH || '') + 'panel/api/server/getDb';
@@ -104,6 +121,16 @@ export default function BackupModal({ open, basePath: _basePath, onClose, onBusy
             </div>
           </div>
           <Button type="primary" onClick={importDb} icon={<UploadOutlined />} />
+        </div>
+
+        <div className="backup-item">
+          <div className="backup-meta">
+            <div className="backup-title">{t('pages.settings.cloudBackupTitle', 'Cloud Backup (S3 / R2 / WebDAV)')}</div>
+            <div className="backup-description">
+              {t('pages.settings.cloudBackupEnableDesc', 'Upload database snapshot to configured cloud storage and prune older backups.')}
+            </div>
+          </div>
+          <Button type="primary" loading={cloudLoading} onClick={backupToCloud} icon={<CloudUploadOutlined />} />
         </div>
       </div>
     </Modal>

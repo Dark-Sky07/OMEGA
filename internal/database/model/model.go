@@ -1,4 +1,4 @@
-// Package model defines the database models and data structures used by the 3x-ui panel.
+// Package model defines the database models and data structures used by the PHOENIX panel.
 package model
 
 import (
@@ -35,14 +35,22 @@ const (
 	AmneziaWG   Protocol = "amneziawg"
 	OpenVPN     Protocol = "openvpn"
 	L2TP        Protocol = "l2tp"
+	MASQUE      Protocol = "masque"
+	TUIC        Protocol = "tuic"
 )
 
-// User represents a user account in the 3x-ui panel.
+// User represents a user account in the PHOENIX panel.
 type User struct {
-	Id         int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	Username   string `json:"username"`
-	Password   string `json:"password"`
-	LoginEpoch int64  `json:"-" gorm:"default:0"`
+	Id          int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Username    string `json:"username"`
+	Password    string `json:"password"`
+	LoginEpoch  int64  `json:"-" gorm:"default:0"`
+	Role        string `json:"role" gorm:"default:superadmin"`
+	Permissions string `json:"permissions"`
+	Disabled    bool   `json:"disabled" gorm:"default:false"`
+	Note        string `json:"note"`
+	CreatedAt   int64  `json:"createdAt" gorm:"default:0"`
+	LastLoginAt int64  `json:"lastLoginAt" gorm:"default:0"`
 }
 
 // Inbound represents an Xray inbound configuration with traffic statistics and settings.
@@ -63,7 +71,7 @@ type Inbound struct {
 	// Xray configuration fields
 	Listen            string   `json:"listen" form:"listen"`
 	Port              int      `json:"port" form:"port" validate:"gte=0,lte=65535" example:"443"`
-	Protocol          Protocol `json:"protocol" form:"protocol" validate:"required,oneof=vmess vless trojan shadowsocks wireguard amneziawg hysteria http mixed tunnel tun mtproto openvpn l2tp" example:"vless"`
+	Protocol          Protocol `json:"protocol" form:"protocol" validate:"required,oneof=vmess vless trojan shadowsocks wireguard amneziawg hysteria http mixed tunnel tun mtproto openvpn l2tp masque tuic" example:"vless"`
 	Settings          string   `json:"settings" form:"settings"`
 	StreamSettings    string   `json:"streamSettings" form:"streamSettings"`
 	Tag               string   `json:"tag" form:"tag" gorm:"unique" example:"in-443-tcp"`
@@ -153,11 +161,15 @@ type HistoryOfSeeders struct {
 }
 
 type ApiToken struct {
-	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	Name      string `json:"name" gorm:"uniqueIndex;not null"`
-	Token     string `json:"token" gorm:"not null"` // SHA-256 hash; the plaintext is shown only once at creation
-	Enabled   bool   `json:"enabled" gorm:"default:true"`
-	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	Id         int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Name       string `json:"name" gorm:"uniqueIndex;not null"`
+	Token      string `json:"token" gorm:"not null"` // SHA-256 hash; the plaintext is shown only once at creation
+	Prefix     string `json:"prefix" gorm:"size:16"` // leading plaintext characters, for identifying a token in the list
+	Scope      string `json:"scope" gorm:"size:16"`  // "full" or "read"; empty means "full" (legacy rows)
+	Enabled    bool   `json:"enabled" gorm:"default:true"`
+	ExpiresAt  int64  `json:"expiresAt"`  // unix millis; 0 = never expires
+	LastUsedAt int64  `json:"lastUsedAt"` // unix millis of the last successful authentication
+	CreatedAt  int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
 }
 
 // MarshalJSON emits settings, streamSettings, and sniffing as nested JSON
@@ -250,6 +262,10 @@ func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 		if stripped, ok := StripVlessInboundEncryption(settings); ok {
 			settings = stripped
 		}
+	case MASQUE:
+		if converted, ok := MasqueClientsToCore(settings); ok {
+			settings = converted
+		}
 	}
 	return &xray.InboundConfig{
 		Listen:         json_util.RawMessage(listen),
@@ -285,6 +301,46 @@ func StripVmessClientSecurity(settings string) (string, bool) {
 			clients[i] = cm
 			changed = true
 		}
+	}
+	if !changed {
+		return settings, false
+	}
+	out, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		return settings, false
+	}
+	return string(out), true
+}
+
+// MasqueClientsToCore renames each client's panel "password" to the "pass" key the
+// MASQUE server reads; xray-core refuses the whole inbound when one user's pass is empty.
+func MasqueClientsToCore(settings string) (string, bool) {
+	if settings == "" {
+		return settings, false
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return settings, false
+	}
+	clients, ok := parsed["clients"].([]any)
+	if !ok {
+		return settings, false
+	}
+	changed := false
+	for i := range clients {
+		cm, ok := clients[i].(map[string]any)
+		if !ok {
+			continue
+		}
+		password, has := cm["password"]
+		if !has {
+			continue
+		}
+		if _, set := cm["pass"]; !set {
+			cm["pass"] = password
+		}
+		delete(cm, "password")
+		changed = true
 	}
 	if !changed {
 		return settings, false
@@ -450,14 +506,14 @@ func HealMtprotoSecret(settings string) (string, bool) {
 	return string(out), true
 }
 
-// Setting stores key-value configuration settings for the 3x-ui panel.
+// Setting stores key-value configuration settings for the PHOENIX panel.
 type Setting struct {
 	Id    int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
 	Key   string `json:"key" form:"key"`
 	Value string `json:"value" form:"value"`
 }
 
-// Node represents a remote 3x-ui panel registered with the central panel.
+// Node represents a remote PHOENIX panel registered with the central panel.
 // The central panel polls each node's existing /panel/api/server/status
 // endpoint over HTTP using the per-node ApiToken to populate the runtime
 // status fields below.
@@ -576,36 +632,60 @@ type Client struct {
 	Group               string           `json:"group,omitempty" form:"group"` // Logical grouping label
 	Comment             string           `json:"comment" form:"comment"`       // Client comment
 	Reset               int              `json:"reset" form:"reset"`           // Reset period in days
-	CreatedAt           int64            `json:"created_at,omitempty"`         // Creation timestamp
-	UpdatedAt           int64            `json:"updated_at,omitempty"`         // Last update timestamp
+	// LimitDevice caps how many distinct HWID-identified devices may fetch
+	// this client's subscription. 0 (the default) disables both tracking and
+	// enforcement, so existing clients are unaffected.
+	LimitDevice int `json:"limitDevice" form:"limitDevice"`
+	// RenewalMode selects the auto-renew schedule used when a renewal fires:
+	// 0 = rolling whole Reset-day steps (legacy behavior), 1 = whole calendar
+	// months, 2 = a fixed weekday (RenewalDay).
+	RenewalMode int `json:"renewalMode" form:"renewalMode"`
+	// RenewalDay: for RenewalMode=2 the weekday (0=Sunday .. 6=Saturday);
+	// for RenewalMode=1 an optional day-of-month (1-28). 0 means "inherit
+	// the anchor from the current expiry".
+	RenewalDay int `json:"renewalDay" form:"renewalDay"`
+	// ActivateBefore is the delayed-start activation deadline (ms). While the
+	// client is still un-activated (negative expiryTime) past this timestamp,
+	// the client is treated as expired. 0 disables the deadline.
+	ActivateBefore   int64  `json:"activateBefore" form:"activateBefore"`
+	SubLastUpdatedAt int64  `json:"subLastUpdatedAt,omitempty" form:"subLastUpdatedAt"`
+	SubLastUserAgent string `json:"subLastUserAgent,omitempty" form:"subLastUserAgent"`
+	CreatedAt        int64  `json:"created_at,omitempty"` // Creation timestamp
+	UpdatedAt        int64  `json:"updated_at,omitempty"` // Last update timestamp
 }
 
 type ClientRecord struct {
-	Id             int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	Email          string `json:"email" gorm:"uniqueIndex;not null"`
-	SubID          string `json:"subId" gorm:"index;column:sub_id"`
-	UUID           string `json:"uuid" gorm:"column:uuid"`
-	Password       string `json:"password"`
-	Auth           string `json:"auth"`
-	Flow           string `json:"flow"`
-	Security       string `json:"security"`
-	Reverse        string `json:"reverse" gorm:"column:reverse"`
-	PrivateKey     string `json:"privateKey" gorm:"column:wg_private_key"`
-	PublicKey      string `json:"publicKey" gorm:"column:wg_public_key"`
-	AllowedIPs     string `json:"allowedIPs" gorm:"column:wg_allowed_ips"`
-	PreSharedKey   string `json:"preSharedKey" gorm:"column:wg_pre_shared_key"`
-	KeepAlive      int    `json:"keepAlive" gorm:"column:wg_keep_alive;default:0"`
-	ForwardedPorts string `json:"forwardedPorts" gorm:"column:wg_forwarded_ports"`
-	LimitIP        int    `json:"limitIp" gorm:"column:limit_ip"`
-	TotalGB        int64  `json:"totalGB" gorm:"column:total_gb"`
-	ExpiryTime     int64  `json:"expiryTime" gorm:"column:expiry_time"`
-	Enable         bool   `json:"enable" gorm:"default:true"`
-	TgID           int64  `json:"tgId" gorm:"column:tg_id"`
-	Group          string `json:"group" gorm:"column:group_name;default:''"`
-	Comment        string `json:"comment"`
-	Reset          int    `json:"reset" gorm:"default:0"`
-	CreatedAt      int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
-	UpdatedAt      int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+	Id               int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Email            string `json:"email" gorm:"uniqueIndex;not null"`
+	SubID            string `json:"subId" gorm:"index;column:sub_id"`
+	UUID             string `json:"uuid" gorm:"column:uuid"`
+	Password         string `json:"password"`
+	Auth             string `json:"auth"`
+	Flow             string `json:"flow"`
+	Security         string `json:"security"`
+	Reverse          string `json:"reverse" gorm:"column:reverse"`
+	PrivateKey       string `json:"privateKey" gorm:"column:wg_private_key"`
+	PublicKey        string `json:"publicKey" gorm:"column:wg_public_key"`
+	AllowedIPs       string `json:"allowedIPs" gorm:"column:wg_allowed_ips"`
+	PreSharedKey     string `json:"preSharedKey" gorm:"column:wg_pre_shared_key"`
+	KeepAlive        int    `json:"keepAlive" gorm:"column:wg_keep_alive;default:0"`
+	ForwardedPorts   string `json:"forwardedPorts" gorm:"column:wg_forwarded_ports"`
+	LimitIP          int    `json:"limitIp" gorm:"column:limit_ip"`
+	TotalGB          int64  `json:"totalGB" gorm:"column:total_gb"`
+	ExpiryTime       int64  `json:"expiryTime" gorm:"column:expiry_time"`
+	Enable           bool   `json:"enable" gorm:"default:true"`
+	TgID             int64  `json:"tgId" gorm:"column:tg_id"`
+	Group            string `json:"group" gorm:"column:group_name;default:''"`
+	Comment          string `json:"comment"`
+	Reset            int    `json:"reset" gorm:"default:0"`
+	LimitDevice      int    `json:"limitDevice" gorm:"column:limit_device;default:0"`
+	RenewalMode      int    `json:"renewalMode" gorm:"column:renewal_mode;default:0"`
+	RenewalDay       int    `json:"renewalDay" gorm:"column:renewal_day;default:0"`
+	ActivateBefore   int64  `json:"activateBefore" gorm:"column:activate_before;default:0"`
+	SubLastUpdatedAt int64  `json:"subLastUpdatedAt" gorm:"column:sub_last_updated_at;default:0"`
+	SubLastUserAgent string `json:"subLastUserAgent" gorm:"column:sub_last_user_agent;default:''"`
+	CreatedAt        int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt        int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
 }
 
 func (ClientRecord) TableName() string { return "clients" }
@@ -691,29 +771,35 @@ func (InboundFallback) TableName() string { return "inbound_fallbacks" }
 
 func (c *Client) ToRecord() *ClientRecord {
 	rec := &ClientRecord{
-		Email:          c.Email,
-		SubID:          c.SubID,
-		UUID:           c.ID,
-		Password:       c.Password,
-		Auth:           c.Auth,
-		Flow:           c.Flow,
-		Security:       c.Security,
-		PrivateKey:     c.PrivateKey,
-		PublicKey:      c.PublicKey,
-		AllowedIPs:     strings.Join(c.AllowedIPs, ","),
-		PreSharedKey:   c.PreSharedKey,
-		KeepAlive:      c.KeepAlive,
-		ForwardedPorts: c.ForwardedPorts,
-		LimitIP:        c.LimitIP,
-		TotalGB:        c.TotalGB,
-		ExpiryTime:     c.ExpiryTime,
-		Enable:         c.Enable,
-		TgID:           c.TgID,
-		Group:          c.Group,
-		Comment:        c.Comment,
-		Reset:          c.Reset,
-		CreatedAt:      c.CreatedAt,
-		UpdatedAt:      c.UpdatedAt,
+		Email:            c.Email,
+		SubID:            c.SubID,
+		UUID:             c.ID,
+		Password:         c.Password,
+		Auth:             c.Auth,
+		Flow:             c.Flow,
+		Security:         c.Security,
+		PrivateKey:       c.PrivateKey,
+		PublicKey:        c.PublicKey,
+		AllowedIPs:       strings.Join(c.AllowedIPs, ","),
+		PreSharedKey:     c.PreSharedKey,
+		KeepAlive:        c.KeepAlive,
+		ForwardedPorts:   c.ForwardedPorts,
+		LimitIP:          c.LimitIP,
+		TotalGB:          c.TotalGB,
+		ExpiryTime:       c.ExpiryTime,
+		Enable:           c.Enable,
+		TgID:             c.TgID,
+		Group:            c.Group,
+		Comment:          c.Comment,
+		Reset:            c.Reset,
+		LimitDevice:      c.LimitDevice,
+		RenewalMode:      c.RenewalMode,
+		RenewalDay:       c.RenewalDay,
+		ActivateBefore:   c.ActivateBefore,
+		SubLastUpdatedAt: c.SubLastUpdatedAt,
+		SubLastUserAgent: c.SubLastUserAgent,
+		CreatedAt:        c.CreatedAt,
+		UpdatedAt:        c.UpdatedAt,
 	}
 	if c.Reverse != nil {
 		if b, err := json.Marshal(c.Reverse); err == nil {
@@ -725,29 +811,35 @@ func (c *Client) ToRecord() *ClientRecord {
 
 func (r *ClientRecord) ToClient() *Client {
 	c := &Client{
-		ID:             r.UUID,
-		Email:          r.Email,
-		SubID:          r.SubID,
-		Password:       r.Password,
-		Auth:           r.Auth,
-		Flow:           r.Flow,
-		Security:       r.Security,
-		PrivateKey:     r.PrivateKey,
-		PublicKey:      r.PublicKey,
-		AllowedIPs:     splitWireguardAllowedIPs(r.AllowedIPs),
-		PreSharedKey:   r.PreSharedKey,
-		KeepAlive:      r.KeepAlive,
-		ForwardedPorts: r.ForwardedPorts,
-		LimitIP:        r.LimitIP,
-		TotalGB:        r.TotalGB,
-		ExpiryTime:     r.ExpiryTime,
-		Enable:         r.Enable,
-		TgID:           r.TgID,
-		Group:          r.Group,
-		Comment:        r.Comment,
-		Reset:          r.Reset,
-		CreatedAt:      r.CreatedAt,
-		UpdatedAt:      r.UpdatedAt,
+		ID:               r.UUID,
+		Email:            r.Email,
+		SubID:            r.SubID,
+		Password:         r.Password,
+		Auth:             r.Auth,
+		Flow:             r.Flow,
+		Security:         r.Security,
+		PrivateKey:       r.PrivateKey,
+		PublicKey:        r.PublicKey,
+		AllowedIPs:       splitWireguardAllowedIPs(r.AllowedIPs),
+		PreSharedKey:     r.PreSharedKey,
+		KeepAlive:        r.KeepAlive,
+		ForwardedPorts:   r.ForwardedPorts,
+		LimitIP:          r.LimitIP,
+		TotalGB:          r.TotalGB,
+		ExpiryTime:       r.ExpiryTime,
+		Enable:           r.Enable,
+		TgID:             r.TgID,
+		Group:            r.Group,
+		Comment:          r.Comment,
+		Reset:            r.Reset,
+		LimitDevice:      r.LimitDevice,
+		RenewalMode:      r.RenewalMode,
+		RenewalDay:       r.RenewalDay,
+		ActivateBefore:   r.ActivateBefore,
+		SubLastUpdatedAt: r.SubLastUpdatedAt,
+		SubLastUserAgent: r.SubLastUserAgent,
+		CreatedAt:        r.CreatedAt,
+		UpdatedAt:        r.UpdatedAt,
 	}
 	if r.Reverse != "" {
 		var rev ClientReverse
@@ -873,6 +965,30 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 		if incomingNewer || existing.Reset == 0 {
 			keep("reset", existing.Reset, incoming.Reset, incoming.Reset)
 			existing.Reset = incoming.Reset
+		}
+	}
+	if existing.LimitDevice != incoming.LimitDevice && incoming.LimitDevice != 0 {
+		if incomingNewer || existing.LimitDevice == 0 {
+			keep("limitDevice", existing.LimitDevice, incoming.LimitDevice, incoming.LimitDevice)
+			existing.LimitDevice = incoming.LimitDevice
+		}
+	}
+	if existing.RenewalMode != incoming.RenewalMode && incoming.RenewalMode != 0 {
+		if incomingNewer || existing.RenewalMode == 0 {
+			keep("renewalMode", existing.RenewalMode, incoming.RenewalMode, incoming.RenewalMode)
+			existing.RenewalMode = incoming.RenewalMode
+		}
+	}
+	if existing.RenewalDay != incoming.RenewalDay && incoming.RenewalDay != 0 {
+		if incomingNewer || existing.RenewalDay == 0 {
+			keep("renewalDay", existing.RenewalDay, incoming.RenewalDay, incoming.RenewalDay)
+			existing.RenewalDay = incoming.RenewalDay
+		}
+	}
+	if existing.ActivateBefore != incoming.ActivateBefore && incoming.ActivateBefore != 0 {
+		if incomingNewer || existing.ActivateBefore == 0 {
+			keep("activateBefore", existing.ActivateBefore, incoming.ActivateBefore, incoming.ActivateBefore)
+			existing.ActivateBefore = incoming.ActivateBefore
 		}
 	}
 	if existing.Reverse != incoming.Reverse && incoming.Reverse != "" {

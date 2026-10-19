@@ -39,7 +39,7 @@ RUN panel_version="$PANEL_VERSION"; \
 RUN ./DockerInit.sh "$TARGETARCH" "$TARGETVARIANT"
 
 # ========================================================
-# Stage: Final Image of 3x-ui
+# Stage: Final Image of PHOENIX
 # ========================================================
 FROM alpine
 ENV TZ=Asia/Tehran
@@ -62,6 +62,7 @@ RUN apk add --no-cache --update \
 COPY --from=builder /app/build/ /app/
 COPY --from=builder /app/DockerEntrypoint.sh /app/
 COPY --from=builder /app/x-ui.sh /usr/bin/x-ui
+COPY --from=builder /app/x-ui.sh /usr/bin/phoenix
 COPY --from=builder /app/internal/web/translation /app/internal/web/translation
 
 
@@ -75,7 +76,8 @@ RUN rm -f /etc/fail2ban/jail.d/alpine-ssh.conf \
 RUN chmod +x \
   /app/DockerEntrypoint.sh \
   /app/x-ui \
-  /usr/bin/x-ui
+  /usr/bin/x-ui \
+  /usr/bin/phoenix
 
 ENV XUI_IN_DOCKER="true"
 ENV XUI_MAIN_FOLDER="/app"

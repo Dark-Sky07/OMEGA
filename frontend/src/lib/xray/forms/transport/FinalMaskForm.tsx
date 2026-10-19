@@ -17,7 +17,7 @@ export interface FinalMaskFormProps {
   showAll?: boolean;
 }
 
-const TCP_NETWORKS = ['raw', 'tcp', 'httpupgrade', 'ws', 'grpc', 'xhttp'];
+const TCP_NETWORKS = ['raw', 'tcp', 'httpupgrade', 'ws', 'grpc', 'xhttp', 'xdrive'];
 
 function asPath(name: NamePath): (string | number)[] {
   return Array.isArray(name) ? [...name] : [name];

@@ -26,6 +26,7 @@ type XraySettingController struct {
 	WarpService                 integration.WarpService
 	NordService                 integration.NordService
 	OutboundSubscriptionService service.OutboundSubscriptionService
+	OutboundWatchdogService     service.OutboundWatchdogService
 }
 
 // NewXraySettingController creates a new XraySettingController and initializes its routes.
@@ -62,6 +63,8 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.DELETE("/outbound-subs/:id", a.deleteOutboundSub)
 	g.POST("/outbound-subs/:id/del", a.deleteOutboundSub) // axios-friendly alias
 	g.POST("/outbound-subs/parse", a.parseOutboundSubURL) // preview without saving
+	g.GET("/watchdog/status", a.getWatchdogStatus)
+	g.POST("/watchdog/check", a.runWatchdogCheck)
 }
 
 // getXraySetting retrieves the Xray configuration template, inbound tags, and outbound test URL.
@@ -184,6 +187,8 @@ func (a *XraySettingController) warp(c *gin.Context) {
 		skey := c.PostForm("privateKey")
 		pkey := c.PostForm("publicKey")
 		resp, err = a.WarpService.RegWarp(skey, pkey)
+	case "regMasque":
+		resp, err = a.WarpService.RegWarpMasque()
 	case "changeIp":
 		resp, err = a.WarpService.ChangeWarpIP()
 		if err == nil {
@@ -535,4 +540,17 @@ func parseIntSafe(s string) (int, error) {
 	var v int
 	_, err := fmt.Sscanf(s, "%d", &v)
 	return v, err
+}
+
+func (a *XraySettingController) getWatchdogStatus(c *gin.Context) {
+	jsonObj(c, a.OutboundWatchdogService.Status(), nil)
+}
+
+func (a *XraySettingController) runWatchdogCheck(c *gin.Context) {
+	st, err := a.OutboundWatchdogService.CheckAndFailover(true)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+		return
+	}
+	jsonObj(c, st, nil)
 }

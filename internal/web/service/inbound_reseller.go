@@ -82,6 +82,13 @@ func filterResellerInboundClients(inbounds []*model.Inbound, settingsAllowed map
 	for _, inbound := range inbounds {
 		inbound.ClientStats = filterResellerClientStats(inbound.ClientStats, stats)
 		inbound.Settings = filterResellerSettingsClients(inbound.Settings, settingsAllowed)
+		var up, down int64
+		for _, stat := range inbound.ClientStats {
+			up += stat.Up
+			down += stat.Down
+		}
+		inbound.Up = up
+		inbound.Down = down
 	}
 }
 

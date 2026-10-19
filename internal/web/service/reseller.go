@@ -243,12 +243,31 @@ func (s *ResellerService) SetEnable(id int, enable bool) (bool, error) {
 		return false, err
 	}
 	for _, inboundId := range ids {
+		var otherResellers int64
+		if err := db.Model(model.ResellerInbound{}).
+			Where("inbound_id = ? AND reseller_id <> ?", inboundId, id).
+			Count(&otherResellers).Error; err != nil {
+			logger.Warningf("reseller %d: failed to check shared inbound %d: %v", id, inboundId, err)
+			continue
+		}
+		if otherResellers > 0 {
+			// Inbound is shared with other resellers — never toggle the whole
+			// inbound; toggle only this reseller's own isolated clients below.
+			continue
+		}
 		changed, err := s.inboundService.SetInboundEnable(inboundId, enable)
 		if err != nil {
 			logger.Warningf("reseller %d: failed to set inbound %d enable=%v: %v", id, inboundId, enable, err)
 			continue
 		}
 		needRestart = needRestart || changed
+	}
+	if isolated, err := s.OwnedIsolatedAssociatedEmailSet(id); err == nil {
+		for email := range isolated {
+			if _, changed, err := s.clientService.SetClientEnableByEmail(&s.inboundService, email, enable); err == nil {
+				needRestart = needRestart || changed
+			}
+		}
 	}
 	return needRestart, nil
 }
@@ -565,10 +584,10 @@ func normalizedPositiveIDs(values []int) ([]int, error) {
 	return out, nil
 }
 
-// AssignInbounds atomically assigns a set of inbounds to one reseller. An
-// inbound has one administrative owner: if any requested inbound is assigned
-// to another reseller, the whole operation is rejected before a row is
-// written. Repeating the same assignment is idempotent.
+// AssignInbounds atomically assigns a set of inbounds to one reseller.
+// Multiple resellers may share the same inbound while client visibility remains
+// strictly isolated per reseller via ResellerClient. Repeating the same
+// assignment is idempotent.
 func (s *ResellerService) AssignInbounds(resellerId int, inboundIds []int) error {
 	resellerScopeMutationMu.Lock()
 	defer resellerScopeMutationMu.Unlock()
@@ -598,14 +617,6 @@ func (s *ResellerService) AssignInbounds(resellerId int, inboundIds []int) error
 				return fmt.Errorf("inbound %d not found", id)
 			}
 		}
-		var conflicts []model.ResellerInbound
-		if err := tx.Where("inbound_id IN ? AND reseller_id <> ?", ids, resellerId).
-			Find(&conflicts).Error; err != nil {
-			return err
-		}
-		if len(conflicts) > 0 {
-			return fmt.Errorf("inbound %d is already assigned to another reseller", conflicts[0].InboundId)
-		}
 		now := time.Now().UnixMilli()
 		for _, id := range ids {
 			row := &model.ResellerInbound{ResellerId: resellerId, InboundId: id, CreatedAt: now}
@@ -620,9 +631,8 @@ func (s *ResellerService) AssignInbounds(resellerId int, inboundIds []int) error
 
 // SetInbounds replaces this reseller's complete inbound assignment set in one
 // transaction. It is used by the multi-select form: an empty desired set is
-// valid and clears only this reseller's mappings. Existing mappings are not
-// touched until every requested inbound and ownership conflict has passed
-// validation.
+// valid and clears only this reseller's mappings. Other resellers sharing any
+// of these inbounds are never affected.
 func (s *ResellerService) SetInbounds(resellerId int, inboundIds []int) error {
 	resellerScopeMutationMu.Lock()
 	defer resellerScopeMutationMu.Unlock()
@@ -660,14 +670,6 @@ func (s *ResellerService) SetInbounds(resellerId int, inboundIds []int) error {
 				if _, ok := found[id]; !ok {
 					return fmt.Errorf("inbound %d not found", id)
 				}
-			}
-			var conflicts []model.ResellerInbound
-			if err := tx.Where("inbound_id IN ? AND reseller_id <> ?", ids, resellerId).
-				Find(&conflicts).Error; err != nil {
-				return err
-			}
-			if len(conflicts) > 0 {
-				return fmt.Errorf("inbound %d is already assigned to another reseller", conflicts[0].InboundId)
 			}
 		}
 		deleteQuery := tx.Where("reseller_id = ?", resellerId)
@@ -790,6 +792,14 @@ func (s *ResellerService) AssignClients(resellerId int, emails []string) error {
 			if _, ok := canonical[key]; !ok {
 				return fmt.Errorf("client %q not found", key)
 			}
+		}
+		var clientConflicts []model.ResellerClient
+		if err := tx.Where("reseller_id <> ? AND LOWER(TRIM(email)) IN ?", resellerId, keys).
+			Find(&clientConflicts).Error; err != nil {
+			return err
+		}
+		if len(clientConflicts) > 0 {
+			return fmt.Errorf("client %q is already assigned to another reseller", clientConflicts[0].Email)
 		}
 		for _, key := range keys {
 			email := canonical[key]

@@ -113,7 +113,12 @@
     "apiDocs": "Tài liệu API",
     "logout": "Đăng xuất",
     "link": "Quản lý",
-    "donate": "Quyên góp"
+    "donate": "Quyên góp",
+    "groupOverview": "Tổng quan",
+    "groupManage": "Quản lý",
+    "groupSystem": "Hệ thống",
+    "collapse": "Thu gọn thanh bên",
+    "expand": "Mở rộng thanh bên"
   },
   "pages": {
     "login": {
@@ -126,7 +131,9 @@
         "emptyPassword": "Vui lòng nhập mật khẩu.",
         "wrongUsernameOrPassword": "Tên người dùng, mật khẩu hoặc mã xác thực hai yếu tố không hợp lệ.",
         "successLogin": "Bạn đã đăng nhập vào tài khoản thành công."
-      }
+      },
+      "asideTitle": "Một bảng điều khiển cho mọi đường hầm.",
+      "asideText": "Xray, OpenVPN, L2TP/IPsec và AmneziaWG — quản lý, định tuyến và đo lường từ một nơi."
     },
     "index": {
       "title": "Trạng thái hệ thống",
@@ -145,7 +152,7 @@
       "xraySwitchClick": "Chọn phiên bản mà bạn muốn chuyển đổi sang.",
       "xraySwitchClickDesk": "Hãy lựa chọn thận trọng, vì các phiên bản cũ có thể không tương thích với các cấu hình hiện tại.",
       "updatePanel": "Cập nhật Panel",
-      "panelUpdateDesc": "Điều này sẽ cập nhật OMEGA lên bản phát hành mới nhất và khởi động lại dịch vụ panel.",
+      "panelUpdateDesc": "Điều này sẽ cập nhật PHOENIX lên bản phát hành mới nhất và khởi động lại dịch vụ panel.",
       "currentPanelVersion": "Phiên bản panel hiện tại",
       "latestPanelVersion": "Phiên bản panel mới nhất",
       "panelUpToDate": "Panel đã được cập nhật",
@@ -213,7 +220,7 @@
       "xraySwitchVersionDialogDesc": "Hành động này sẽ thay đổi phiên bản Xray thành #version#.",
       "xraySwitchVersionPopover": "Xray đã được cập nhật thành công",
       "panelUpdateDialog": "Bạn có chắc muốn cập nhật panel không?",
-      "panelUpdateDialogDesc": "Điều này sẽ cập nhật OMEGA lên #version# và khởi động lại dịch vụ panel.",
+      "panelUpdateDialogDesc": "Điều này sẽ cập nhật PHOENIX lên #version# và khởi động lại dịch vụ panel.",
       "panelUpdateCheckPopover": "Kiểm tra cập nhật panel thất bại",
       "panelUpdateStartedPopover": "Bắt đầu cập nhật panel",
       "geofileUpdateDialog": "Bạn có chắc chắn muốn cập nhật geofile không?",
@@ -253,7 +260,12 @@
       "importDatabasePgDesc": "Nhấn để chọn và tải lên một tệp .dump nhằm khôi phục cơ sở dữ liệu PostgreSQL của bạn. Thao tác này sẽ thay thế toàn bộ dữ liệu hiện tại.",
       "migrationDownload": "Tải tệp di trú",
       "migrationDownloadDesc": "Nhấp để tải xuống bản xuất .dump (văn bản SQL) di động của cơ sở dữ liệu SQLite của bạn.",
-      "migrationDownloadPgDesc": "Nhấp để tải xuống cơ sở dữ liệu SQLite .db được tạo từ dữ liệu PostgreSQL của bạn, sẵn sàng chạy bảng điều khiển này trên SQLite."
+      "migrationDownloadPgDesc": "Nhấp để tải xuống cơ sở dữ liệu SQLite .db được tạo từ dữ liệu PostgreSQL của bạn, sẵn sàng chạy bảng điều khiển này trên SQLite.",
+      "heroSubtitle": "Tình trạng trực tiếp của máy chủ này và mọi đường hầm nó đang chạy.",
+      "services": "Dịch vụ",
+      "network": "Mạng",
+      "resources": "Tài nguyên",
+      "panelProcess": "Tiến trình bảng điều khiển"
     },
     "inbounds": {
       "title": "Inbound",
@@ -508,6 +520,8 @@
         "mtgDebug": "Nhật ký gỡ lỗi",
         "mtgRouteThroughXray": "Định tuyến qua Xray",
         "mtgRouteThroughXrayHint": "Gửi lưu lượng Telegram của proxy này qua Xray để tuân theo các quy tắc định tuyến của bạn. Tiến trình phụ mtg đi ra qua một cầu SOCKS loopback mang thẻ của inbound này; tham chiếu thẻ đó trong tab Định tuyến cho các quy tắc nâng cao.",
+        "daemonRouteThroughXray": "Định tuyến qua Xray",
+        "daemonRouteThroughXrayHint": "Chuyển lưu lượng của các client thuộc inbound này (TCP và UDP) qua bộ định tuyến của Xray để các quy tắc định tuyến áp dụng cho nó giống hệt như với các inbound của chính Xray. Lưu lượng đi vào core qua một listener loopback được gắn tag của inbound này; hãy tham chiếu tag đó trong tab Định tuyến cho các quy tắc tùy chỉnh. Tự động tắt (đường trực tiếp) khi Xray không chạy.",
         "mtgRouteOutbound": "Outbound",
         "mtgRouteOutboundHint": "Tùy chọn. Buộc lưu lượng Telegram đi ra qua outbound (hoặc bộ cân bằng) này. Để trống để các quy tắc định tuyến của bạn quyết định.",
         "mtgRouteOutboundPlaceholder": "Dùng quy tắc định tuyến",
@@ -628,7 +642,36 @@
           "node": "Địa chỉ node",
           "listen": "Địa chỉ listen inbound",
           "custom": "Tùy chỉnh"
-        }
+        },
+        "xdrive": {
+          "service": "Dịch vụ lưu trữ",
+          "serviceLocal": "Thư mục cục bộ",
+          "serviceTemplate": "Template tùy chỉnh",
+          "remoteFolder": "Thư mục từ xa",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "Giá trị bí mật",
+          "secretsDesc": "Các giá trị template đọc dưới dạng {secret0}, {secret1}, …",
+          "template": "Template lưu trữ",
+          "templateInvalid": "Phải là một đối tượng JSON",
+          "front": "Địa chỉ fronting",
+          "frontDesc": "Host hoặc IP tùy chọn để kết nối tới API lưu trữ (domain fronting).",
+          "frontPort": "Cổng fronting",
+          "segmentBytes": "Kích thước phân đoạn (byte)",
+          "flushInterval": "Khoảng gửi (ms)",
+          "pollInterval": "Khoảng thăm dò (ms)",
+          "maxPollInterval": "Khoảng thăm dò tối đa (ms)",
+          "eagerWindow": "Cửa sổ gửi sớm (ms)",
+          "holeTimeout": "Thời gian chờ phân đoạn thiếu (ms)",
+          "sessionTtl": "TTL phiên (s)",
+          "concurrency": "Số luồng đồng thời"
+        },
+        "masque": {
+          "addressPool": "Dải địa chỉ",
+          "addressPoolDesc": "Địa chỉ đường hầm được cấp từ các tiền tố này — tối đa một IPv4 và một IPv6."
+        },
+        "autoFill": "Tự động điền"
       },
       "info": {
         "mode": "Chế độ",
@@ -663,7 +706,8 @@
           "requestHeader": "Header yêu cầu",
           "responseHeader": "Header phản hồi"
         }
-      }
+      },
+      "advancedTitle": "Cài đặt nâng cao"
     },
     "clients": {
       "tabBasics": "Cơ bản",
@@ -833,7 +877,17 @@
         "bulkAdjusted": "Đã điều chỉnh {count} khách hàng",
         "bulkAdjustedMixed": "Đã điều chỉnh {ok}, bỏ qua {skipped}",
         "delDepleted": "Đã xóa {count} khách hàng hết hạn mức"
-      }
+      },
+      "userTemplates": "User Plan Templates",
+      "userTemplatesDesc": "Reusable client plan presets (quota, duration, on-hold start, IP/device limits, and default inbounds)",
+      "addTemplate": "Add Template",
+      "templateName": "Template Name",
+      "templateNameRequired": "Template name is required",
+      "applyTemplate": "Apply Plan Template",
+      "selectTemplatePlaceholder": "Select a preset template...",
+      "templateApplied": "Template '{{name}}' applied",
+      "revokeSub": "Revoke & Rotate Subscription Link",
+      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?"
     },
     "groups": {
       "title": "Nhóm",
@@ -972,6 +1026,7 @@
     },
     "settings": {
       "title": "Cài đặt",
+      "unsaved": "Thay đổi chưa lưu",
       "save": "Lưu",
       "infoDesc": "Mọi thay đổi được thực hiện ở đây cần phải được lưu. Vui lòng khởi động lại bảng điều khiển để áp dụng các thay đổi.",
       "restartPanel": "Khởi động lại bảng điều khiển",
@@ -1067,7 +1122,7 @@
       "subAnnounce": "Thông báo",
       "subAnnounceDesc": "Văn bản thông báo hiển thị trong ứng dụng VPN",
       "subThemeDir": "Thư mục giao diện Đăng ký",
-      "subThemeDirDesc": "Đường dẫn tuyệt đối đến thư mục chứa mẫu tùy chỉnh (index.html/sub.html) cho trang đăng ký (ví dụ: /etc/3x-ui/sub_templates/my-theme/). Để trống để dùng trang mặc định.",
+      "subThemeDirDesc": "Đường dẫn tuyệt đối đến thư mục chứa mẫu tùy chỉnh (index.html/sub.html) cho trang đăng ký (ví dụ: /etc/x-ui/sub_templates/my-theme/). Để trống để dùng trang mặc định.",
       "subThemeDirDocs": "Hướng dẫn mẫu ↗",
       "subEnableRouting": "Bật định tuyến",
       "subEnableRoutingDesc": "Cài đặt toàn cục để bật định tuyến trong ứng dụng khách VPN. (Chỉ dành cho Happ)",
@@ -1200,7 +1255,29 @@
         "apiTokenEmpty": "Chưa có token nào — tạo một token để xác thực bot hoặc panel từ xa.",
         "apiTokenDeleteWarning": "Mọi client đang dùng token này sẽ ngừng xác thực ngay lập tức.",
         "apiTokenCreatedTitle": "Đã tạo token",
-        "apiTokenCreatedNotice": "Hãy sao chép token này ngay bây giờ. Vì lý do bảo mật, token không được lưu ở dạng đọc được và sẽ không hiển thị lại."
+        "apiTokenCreatedNotice": "Hãy sao chép token này ngay bây giờ. Vì lý do bảo mật, token không được lưu ở dạng đọc được và sẽ không hiển thị lại.",
+        "apiTokenScope": "Permissions",
+        "apiTokenScopeFull": "Full access",
+        "apiTokenScopeRead": "Read-only",
+        "apiTokenExpireDays": "Expires in (days)",
+        "apiTokenExpireDaysDesc": "0 means never expires.",
+        "apiTokenExpires": "Expires",
+        "apiTokenExpired": "Expired",
+        "apiTokenLastUsed": "Last used",
+        "multiAdminTitle": "Admins & RBAC",
+        "multiAdminDesc": "Create secondary admin accounts with granular RBAC roles (Superadmin, Custom Admin, Support, or Read-only Viewer).",
+        "addAdmin": "Add Admin",
+        "editAdmin": "Edit Admin Account",
+        "adminRole": "Role",
+        "adminModules": "Allowed Modules",
+        "role_superadmin": "Superadmin (Full Access)",
+        "role_admin": "Custom Admin (Selected Modules)",
+        "role_support": "Support (Clients Read/Write + Inbounds Read)",
+        "role_viewer": "Viewer (Read-only Auditor)",
+        "lastLogin": "Last login",
+        "adminUsernameRequired": "Username is required",
+        "adminPasswordMin": "Password must be at least 4 characters",
+        "adminPasswordLeaveBlank": "Leave blank to keep existing password"
       },
       "toasts": {
         "modifySettings": "Các tham số đã được thay đổi.",
@@ -1211,7 +1288,47 @@
         "userPassMustBeNotEmpty": "Tên người dùng mới và mật khẩu mới không thể để trống",
         "getOutboundTrafficError": "Lỗi khi lấy lưu lượng truy cập đi",
         "resetOutboundTrafficError": "Lỗi khi đặt lại lưu lượng truy cập đi"
-      }
+      },
+      "tgNotifyUserReport": "Báo cáo sử dụng cá nhân cho khách hàng",
+      "tgNotifyUserReportDesc": "Mỗi kỳ báo cáo, cũng gửi cho khách hàng có Telegram liên kết bản tóm tắt sử dụng cá nhân (lưu lượng và hạn dùng). Mặc định: tắt.",
+      "oneClickSslTitle": "One-Click SSL Certificate",
+      "oneClickSslDesc": "Issue a free Let's Encrypt certificate (auto-renewed before expiry) or an instant 1-year self-signed certificate.",
+      "issueCertBtn": "Issue SSL Certificate",
+      "certSelfSigned": "Self-Signed",
+      "certMode": "Certificate Type",
+      "certModeLetsEncrypt": "Let's Encrypt (HTTP-01 on port 80, auto-renewed)",
+      "certModeSelfSigned": "Self-Signed (instant, 1 year, no port 80 needed)",
+      "certDomain": "Domain",
+      "certDomainRequired": "Domain is required",
+      "certEmail": "Contact Email (optional)",
+      "certPort80Notice": "Port 80 must be reachable from the internet and point to this server.",
+      "certIssuedSuccess": "Certificate issued and applied",
+      "discordSettings": "Discord Bot",
+      "discordEnable": "Enable Discord Notifications",
+      "discordEnableDesc": "Send periodic traffic reports, approaching-limit alerts, and login notifications to Discord.",
+      "discordWebhookURL": "Discord Webhook URL",
+      "discordWebhookURLDesc": "Simplest setup: paste a channel Webhook URL.",
+      "discordBotToken": "Discord Bot Token (optional)",
+      "discordBotTokenDesc": "Alternative to Webhook: Bot token from Discord Developer Portal.",
+      "discordChannelId": "Discord Channel ID",
+      "discordChannelIdDesc": "Target channel ID when using a Bot token.",
+      "discordLoginNotify": "Login Notification",
+      "discordLoginNotifyDesc": "Post an embed whenever an admin login succeeds or fails.",
+      "discordTestTitle": "Test Discord Connection",
+      "discordTestDesc": "Save your settings first, then send a verification embed.",
+      "discordTestBtn": "Send Test Embed",
+      "discordTestSuccess": "Test message sent to Discord",
+      "cloudBackupTitle": "Cloud Backup",
+      "cloudBackupProviderGdrive": "Google Drive (Service Account / OAuth2)",
+      "cloudBackupGdriveGuide": "Google Drive Setup: (Method 1 - Recommended) Create a Google Cloud Service Account, enable Google Drive API, share your target Google Drive folder with the service account email, and paste the full JSON key below. (Method 2) Paste your OAuth2 Refresh Token below and enter your OAuth2 Client ID & Client Secret.",
+      "cloudBackupGdriveFolder": "Google Drive Folder ID or Link",
+      "cloudBackupGdriveFolderDesc": "Paste the Google Drive Folder ID or full folder URL (e.g. https://drive.google.com/drive/folders/1AbCdEf...). Leave empty to upload to Drive root.",
+      "cloudBackupGdriveCredentials": "Service Account JSON or OAuth2 Refresh Token",
+      "cloudBackupGdriveCredentialsDesc": "Paste the complete Google Cloud service_account JSON key file, or an OAuth2 Refresh Token (1//0g...).",
+      "cloudBackupGdriveClientId": "OAuth2 Client ID (Optional)",
+      "cloudBackupGdriveClientIdDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
+      "cloudBackupGdriveClientSecret": "OAuth2 Client Secret (Optional)",
+      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key."
     },
     "xray": {
       "title": "Cài đặt Xray",
@@ -1391,7 +1508,10 @@
         "acceptProxyProtocol": "Chấp nhận proxy protocol",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)",
+        "masqueWarpDesc": "Kết nối Cloudflare WARP qua MASQUE bằng khóa ECDSA P-256 đã đăng ký; host và path mặc định là endpoint của Cloudflare.",
+        "masqueWarpPublicKey": "Khóa công khai endpoint",
+        "masqueWarpAddress": "Địa chỉ đường hầm"
       },
       "outbound": {
         "addOutbound": "Thêm thư đi",
@@ -1556,7 +1676,9 @@
         "warpPlusData": "Dữ liệu WARP+",
         "quota": "Hạn ngạch",
         "usage": "Sử dụng",
-        "addOutbound": "Thêm outbound"
+        "addOutbound": "Thêm outbound",
+        "masqueDesc": "Đăng ký một thiết bị WARP riêng cho MASQUE; đăng ký WireGuard ở trên không bị ảnh hưởng.",
+        "addMasqueOutbound": "Thêm outbound WARP qua MASQUE"
       },
       "dns": {
         "enable": "Kích hoạt DNS",
@@ -1606,6 +1728,23 @@
         "edit": "Chỉnh sửa DNS giả",
         "ipPool": "Mạng con nhóm IP",
         "poolSize": "Kích thước bể bơi"
+      },
+      "tuic": {
+        "congestionControl": "Kiểm soát tắc nghẽn",
+        "congestionControlHint": "Thuật toán máy chủ và máy khách. Thay đổi trên máy chủ có hiệu lực khi kết nối lại.",
+        "profileOptions": "Client profile options",
+        "alpn": "ALPN",
+        "udpRelayMode": "Chế độ chuyển tiếp UDP",
+        "udpRelayModeHint": "Chế độ UDP của máy khách. Máy chủ hỗ trợ cả hai.",
+        "zeroRttHandshake": "Bắt tay 0-RTT",
+        "logLevel": "Mức ghi nhật ký",
+        "logLevelHint": "Mức nhật ký tối thiểu cho inbound này.",
+        "maxIdleTime": "Thời gian nhàn rỗi tối đa (giây)",
+        "authTimeout": "Thời gian chờ xác thực (giây)",
+        "maxUdpRelayPacketSize": "Kích thước gói UDP tối đa",
+        "sni": "SNI",
+        "sniHint": "Tên máy chủ TLS trong cấu hình máy khách.",
+        "sniRequired": "Nhập tên miền để tự điền đường dẫn chứng chỉ."
       }
     }
   },
@@ -1714,7 +1853,21 @@
       "AreYouSure": "Bạn có chắc không? 🤔",
       "SuccessResetTraffic": "📧 Email: {{ .ClientEmail }}\n🏁 Kết quả: ✅ Thành công",
       "FailedResetTraffic": "📧 Email: {{ .ClientEmail }}\n🏁 Kết quả: ❌ Thất bại \n\n🛠️ Lỗi: [ {{ .ErrorMessage }} ]",
-      "FinishProcess": "🔚 Quá trình đặt lại lưu lượng đã hoàn tất cho tất cả khách hàng."
+      "FinishProcess": "🔚 Quá trình đặt lại lưu lượng đã hoàn tất cho tất cả khách hàng.",
+      "broadcastPrompt": "Gửi nội dung tin nhắn để phát tới tất cả khách hàng (tối đa ~3800 ký tự).",
+      "broadcastEmpty": "Tin nhắn trống. Gửi nội dung phát sóng, hoặc nhấn Hủy.",
+      "broadcastTooLong": "Tin nhắn quá dài. Rút ngắn lại (tối đa ~3800 ký tự) rồi thử lại.",
+      "broadcastPreview": "📣 Xem trước phát sóng — người nhận: {{ .Count }}",
+      "broadcastCanceled": "Đã hủy phát sóng.",
+      "broadcastRunning": "Một đợt phát sóng khác đang được gửi. Hãy chờ hoàn tất.",
+      "broadcastDone": "✅ Phát sóng hoàn tất: {{ .Sent }} đã gửi, {{ .Failed }} thất bại.",
+      "broadcastNoRecipients": "Không tìm thấy khách hàng nào có tài khoản Telegram được liên kết — không có gì để gửi.",
+      "inviteCreated": "🔗 Liên kết mời cho {{ .Email }}\n(dùng một lần, có hiệu lực đến {{ .Expires }}):\n\n{{ .Link }}",
+      "inviteRedeemed": "✅ {{ .Firstname }}, Telegram của bạn đã được liên kết với {{ .Email }}. Dùng các nút bên dưới để quản lý gói của bạn.",
+      "inviteInvalid": "Liên kết mời này không hợp lệ. Hãy yêu cầu nhà cung cấp cấp liên kết mới.",
+      "inviteUsed": "Liên kết mời này đã được sử dụng. Hãy yêu cầu nhà cung cấp cấp liên kết mới.",
+      "inviteExpired": "Liên kết mời này đã hết hạn. Hãy yêu cầu nhà cung cấp cấp liên kết mới.",
+      "userReport": "📊 Báo cáo sử dụng của bạn — {{ .DateTime }}"
     },
     "buttons": {
       "closeKeyboard": "❌ Đóng Bàn Phím",
@@ -1759,7 +1912,10 @@
       "change_comment": "⚙️💬 Bình Luận",
       "change_flow": "⚙️🚦 Flow",
       "ResetAllTraffics": "Đặt lại tất cả lưu lượng",
-      "SortedTrafficUsageReport": "Báo cáo sử dụng lưu lượng đã sắp xếp"
+      "SortedTrafficUsageReport": "Báo cáo sử dụng lưu lượng đã sắp xếp",
+      "broadcast": "📣 Phát sóng",
+      "confirmBroadcast": "✅ Gửi ngay",
+      "invite": "🔗 Liên kết mời"
     },
     "answers": {
       "successfulOperation": "✅ Thành công!",
@@ -1784,5 +1940,28 @@
       "chooseClient": "Chọn một Khách hàng cho Inbound {{ .Inbound }}",
       "chooseInbound": "Chọn một Inbound"
     }
+  },
+  "commandPalette": {
+    "open": "Quick search",
+    "placeholder": "Jump to page, search client email / subId, or run an action…",
+    "empty": "No matching pages, clients, or actions.",
+    "groupPages": "Pages",
+    "groupClients": "Clients",
+    "groupInbounds": "Inbounds",
+    "groupActions": "Quick actions",
+    "toggleTheme": "Toggle dark / light theme",
+    "hintNavigate": "navigate",
+    "hintSelect": "select"
+  },
+  "resellers": {
+    "supportTickets": "Support Tickets",
+    "paymentOrders": "Payment Webhook Orders",
+    "ticketsDesc": "Direct support communication between Resellers and Panel Admins",
+    "newTicket": "New Ticket",
+    "ticketSubject": "Subject",
+    "ticketPriority": "Priority",
+    "ticketMessage": "Message",
+    "ticketReplyPlaceholder": "Write a reply...",
+    "ticketSubjectAndMessageRequired": "Subject and message are required"
   }
 }

@@ -1118,6 +1118,12 @@ stage_update_assets() {
         return 1
     fi
     [[ -d "$update_stage_dir" && -f "$update_stage_dir/x-ui" ]] || return 1
+    if [[ -f "$update_stage_dir/sha256sums.txt" ]] && command -v sha256sum >/dev/null 2>&1; then
+        if ! (cd "$update_stage_dir" && grep '  x-ui$' sha256sums.txt | sha256sum -c --status); then
+            echo -e "${red}SHA-256 checksum verification failed for x-ui binary; aborting update.${plain}"
+            return 1
+        fi
+    fi
 
     if ! preserve_update_data; then
         return 1
@@ -1333,6 +1339,7 @@ commit_update_transaction() {
     if ! mv "$update_stage_dir" "$xui_folder"; then return 1; fi
 
     if ! install -m 0755 "$update_wrapper_stage" /usr/bin/x-ui; then return 1; fi
+    install -m 0755 "$update_wrapper_stage" /usr/bin/phoenix || true
     rm -f "$service_path"
     if ! cp -a "$update_service_stage" "$service_path"; then return 1; fi
     if [[ "$release" == "alpine" ]]; then

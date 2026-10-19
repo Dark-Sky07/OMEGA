@@ -2,6 +2,10 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 import { message } from 'antd';
 import 'antd/dist/reset.css';
+import '@fontsource-variable/inter';
+import '@fontsource-variable/vazirmatn';
+import '@fontsource-variable/jetbrains-mono';
+import '@/styles/theme.css';
 import '@/styles/utils.css';
 import '@/styles/page-shell.css';
 import '@/styles/page-cards.css';
@@ -10,9 +14,11 @@ import { setupAxios } from '@/api/axios-init';
 import { readyI18n } from '@/i18n/react';
 import { ThemeProvider } from '@/hooks/useTheme';
 import { QueryProvider } from '@/api/QueryProvider';
+import { registerPwaServiceWorker } from '@/hooks/usePwaInstall';
 import { router } from '@/routes';
 
 setupAxios();
+registerPwaServiceWorker();
 
 const messageContainer = document.getElementById('message');
 if (messageContainer) {

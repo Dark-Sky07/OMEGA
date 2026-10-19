@@ -228,6 +228,36 @@ describe('formValuesToWirePayload', () => {
     expect(settings.proto).toBe('tcp');
     expect(settings.redirectGateway).toBe(false);
     expect(settings.pushDNS).toBe(false);
+    // Rows stored before the relay existed have no routeThroughXray key; the
+    // relay is opt-in (backend treats that as off), so the form must show
+    // (and re-save) it as off.
+    expect(settings.routeThroughXray).toBe(false);
+  });
+
+  it('keeps an explicit routeThroughXray choice and attached clients for openvpn and l2tp', () => {
+    for (const [protocol, base] of [
+      ['openvpn', { proto: 'udp', clients: [{ email: 'ovpn@example.com', enable: true }] }],
+      ['l2tp', { psk: 'secret', clients: [{ email: 'l2tp@example.com', enable: true }] }],
+    ] as const) {
+      for (const choice of [true, false]) {
+        const values = rawInboundToFormValues({
+          ...vlessRow,
+          protocol,
+          settings: { ...base, routeThroughXray: choice, outboundTag: choice ? 'warp' : undefined },
+        });
+        const parsed = InboundFormSchema.parse(values);
+        const payload = formValuesToWirePayload(parsed);
+        const settings = JSON.parse(payload.settings) as Record<string, unknown>;
+        expect(settings.routeThroughXray).toBe(choice);
+        expect(Array.isArray(settings.clients)).toBe(true);
+        expect((settings.clients as unknown[]).length).toBe(1);
+        if (choice) {
+          expect(settings.outboundTag).toBe('warp');
+        } else {
+          expect(settings.outboundTag).toBeUndefined();
+        }
+      }
+    }
   });
 
   it('omits nodeId when null', () => {

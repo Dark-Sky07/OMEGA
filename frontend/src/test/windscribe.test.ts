@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseWindscribeConfig } from '@/pages/xray/overrides/windscribe';
+import { parseWindscribeConfig, uniqueWindscribeTag } from '@/pages/xray/overrides/windscribe';
 
 const key = (letter: string) => `${letter.repeat(43)}=`;
 
@@ -39,5 +39,18 @@ describe('parseWindscribeConfig', () => {
 
   it('rejects a peer endpoint without a port', () => {
     expect(() => parseWindscribeConfig(profile.replace('[2001:db8::10]:443', 'vpn.example.com'))).toThrow(/endpoint/i);
+  });
+
+  it('generates distinct outbound tags when multiple Windscribe profiles are imported', () => {
+    const first = parseWindscribeConfig(profile, 'windscribe-us.conf', []);
+    expect(first.tag).toBe('windscribe-windscribe-us');
+
+    const second = parseWindscribeConfig(profile, 'windscribe-us.conf', [first.tag]);
+    expect(second.tag).toBe('windscribe-windscribe-us-2');
+
+    const third = parseWindscribeConfig(profile, 'windscribe-us.conf', [first.tag, second.tag]);
+    expect(third.tag).toBe('windscribe-windscribe-us-3');
+
+    expect(uniqueWindscribeTag('windscribe-de', ['windscribe-de', 'windscribe-de-2'])).toBe('windscribe-de-3');
   });
 });

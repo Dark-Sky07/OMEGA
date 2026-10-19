@@ -1,10 +1,13 @@
+import { resolveTuicServerSettings } from '@/lib/tuic';
 import type { InboundFormValues, ShareAddrStrategy, TrafficReset } from '@/schemas/forms/inbound-form';
 import type { InboundSettings } from '@/schemas/protocols/inbound';
 import {
   AmneziawgClientSchema,
   HysteriaClientSchema,
+  MasqueClientSchema,
   ShadowsocksClientSchema,
   TrojanClientSchema,
+  TuicClientSchema,
   VlessClientSchema,
   VmessClientSchema,
 } from '@/schemas/protocols/inbound';
@@ -120,6 +123,8 @@ const NETWORK_SETTINGS_KEY: Record<string, string> = {
   httpupgrade: 'httpupgradeSettings',
   xhttp: 'xhttpSettings',
   hysteria: 'hysteriaSettings',
+  xdrive: 'xdriveSettings',
+  masque: 'masqueSettings',
 };
 
 function healStreamNetworkKey(stream: Record<string, unknown>): void {
@@ -151,9 +156,26 @@ function stripTlsCertUseFile(stream: Record<string, unknown>): void {
   for (const c of tlsCerts(stream)) delete c.useFile;
 }
 
+// OpenVPN and L2TP rows saved before the Xray relay existed carry no
+// routeThroughXray key. The relay is opt-in — the backend treats a missing
+// key as "off" — so the edit form shows (and re-saves) it as off, matching
+// exactly what the server does for that row.
+function healDaemonRouteThroughXray(protocol: string, settings: Record<string, unknown>): void {
+  if (protocol !== 'openvpn' && protocol !== 'l2tp') return;
+  if (typeof settings.routeThroughXray !== 'boolean') {
+    settings.routeThroughXray = false;
+  }
+}
+
 export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
   const protocol = (row.protocol || 'vless') as InboundSettings['protocol'];
-  const settings = coerceJsonObject(row.settings) as InboundSettings['settings'];
+  const settingsRecord: Record<string, unknown> = { ...coerceJsonObject(row.settings) };
+  healDaemonRouteThroughXray(protocol, settingsRecord);
+  const settings = (
+    protocol === 'tuic'
+      ? { clients: settingsRecord.clients, server: resolveTuicServerSettings(settingsRecord) }
+      : settingsRecord
+  ) as InboundSettings['settings'];
   const rawStream = coerceJsonObject(row.streamSettings);
   const streamSettings = Object.keys(rawStream).length > 0
     ? (rawStream as StreamSettings)
@@ -236,6 +258,8 @@ function clientSchemaForProtocol(protocol: string): z.ZodType | null {
     case 'shadowsocks': return ShadowsocksClientSchema;
     case 'hysteria': return HysteriaClientSchema;
     case 'amneziawg': return AmneziawgClientSchema;
+    case 'masque': return MasqueClientSchema;
+    case 'tuic': return TuicClientSchema;
     default: return null;
   }
 }
@@ -276,6 +300,9 @@ export function dropLegacyOptionalEmpties(
   // VLESS/Trojan emit `fallbacks` only when non-empty.
   const fb = settings.fallbacks;
   if (Array.isArray(fb) && fb.length === 0) delete settings.fallbacks;
+  if (settings.routeThroughXray === false || settings.outboundTag === '') {
+    delete settings.outboundTag;
+  }
 
   if (stream) {
     // StreamSettings emits `finalmask` only when at least one transport

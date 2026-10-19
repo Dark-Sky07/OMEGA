@@ -1,22 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Collapse, Modal, Spin } from 'antd';
+import { Collapse, Modal, Spin, Tag } from 'antd';
 import { HttpUtil } from '@/utils';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
 import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
-import type { ClientRecord } from '@/hooks/useClients';
+import type { ClientRecord, InboundOption } from '@/hooks/useClients';
+import { buildTuicClientConfig, findTuicInbound, isTuicClient } from './tuicConfig';
 
 interface SubSettings {
   enable: boolean;
   subURI: string;
   subJsonURI: string;
   subJsonEnable: boolean;
+  publicHost?: string;
 }
 
 interface ClientQrModalProps {
   open: boolean;
   client: ClientRecord | null;
+  inboundsById?: Record<number, InboundOption>;
   subSettings?: SubSettings;
   onOpenChange: (open: boolean) => void;
 }
@@ -31,6 +34,7 @@ const DEFAULT_SUB: SubSettings = { enable: false, subURI: '', subJsonURI: '', su
 export default function ClientQrModal({
   open,
   client,
+  inboundsById = {},
   subSettings = DEFAULT_SUB,
   onOpenChange,
 }: ClientQrModalProps) {
@@ -49,7 +53,18 @@ export default function ClientQrModal({
     return subSettings.subJsonURI + client.subId;
   }, [client?.subId, subSettings?.enable, subSettings?.subJsonEnable, subSettings?.subJsonURI]);
 
-  const hasAnything = !!subLink || !!subJsonLink || links.length > 0;
+  const tuicInbound = useMemo(() => findTuicInbound(client, inboundsById), [client, inboundsById]);
+  const tuicConfigText = useMemo(() => {
+    if (!client || !tuicInbound || !isTuicClient(client)) return '';
+    return buildTuicClientConfig(
+      client,
+      tuicInbound,
+      window.location.hostname,
+      subSettings?.publicHost ?? '',
+    );
+  }, [client, tuicInbound, subSettings?.publicHost]);
+
+  const hasAnything = !!subLink || !!subJsonLink || !!tuicConfigText || links.length > 0;
 
   useEffect(() => {
     if (!open || !client?.subId) {
@@ -112,8 +127,25 @@ export default function ClientQrModal({
         ),
       });
     });
+    if (tuicConfigText) {
+      out.push({
+        key: 'tuic-config',
+        label: (
+          <Tag color="orange" style={{ margin: 0 }}>
+            {t('pages.inbounds.client.tuicConfig')}
+          </Tag>
+        ),
+        children: (
+          <QrPanel
+            value={tuicConfigText}
+            remark={client?.email || 'tuic'}
+            downloadName={`${client?.email || 'tuic'}.yaml`}
+          />
+        ),
+      });
+    }
     return out;
-  }, [subLink, subJsonLink, links, client?.email, t]);
+  }, [subLink, subJsonLink, tuicConfigText, links, client?.email, t]);
 
   useEffect(() => {
     if (!open) {

@@ -38,6 +38,24 @@ func (s *XraySettingService) CheckXrayConfig(XrayTemplateConfig string) error {
 	if err != nil {
 		return common.NewError("xray template config invalid:", err)
 	}
+	for _, inbound := range xrayConfig.InboundConfigs {
+		if err := validateXDriveStorage(string(inbound.StreamSettings)); err != nil {
+			return common.NewError("xray template inbound \""+inbound.Tag+"\":", err)
+		}
+	}
+	if len(xrayConfig.OutboundConfigs) > 0 {
+		var outbounds []struct {
+			Tag            string          `json:"tag"`
+			StreamSettings json.RawMessage `json:"streamSettings"`
+		}
+		if json.Unmarshal(xrayConfig.OutboundConfigs, &outbounds) == nil {
+			for _, ob := range outbounds {
+				if err := validateXDriveStorage(string(ob.StreamSettings)); err != nil {
+					return common.NewError("xray template outbound \""+ob.Tag+"\":", err)
+				}
+			}
+		}
+	}
 	return nil
 }
 

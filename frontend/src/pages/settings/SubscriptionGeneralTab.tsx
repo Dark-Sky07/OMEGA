@@ -61,6 +61,12 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
             <SettingListItem paddings="small" title={t('pages.settings.subClashEnableTitle')}>
               <Switch checked={allSetting.subClashEnable} onChange={(v) => updateSetting({ subClashEnable: v })} />
             </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.subSingboxEnableTitle')} description={t('pages.settings.subSingboxEnableDesc')}>
+              <Switch checked={allSetting.subSingboxEnable} onChange={(v) => updateSetting({ subSingboxEnable: v })} />
+            </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.subOutlineEnableTitle')} description={t('pages.settings.subOutlineEnableDesc')}>
+              <Switch checked={allSetting.subOutlineEnable} onChange={(v) => updateSetting({ subOutlineEnable: v })} />
+            </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.subListen')} description={t('pages.settings.subListenDesc')}>
               <Input value={allSetting.subListen} onChange={(e) => updateSetting({ subListen: e.target.value })} />
             </SettingListItem>
@@ -100,6 +106,18 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
             <SettingListItem paddings="small" title={t('pages.settings.subEmailInRemark')} description={t('pages.settings.subEmailInRemarkDesc')}>
               <Switch checked={allSetting.subEmailInRemark} onChange={(v) => updateSetting({ subEmailInRemark: v })} />
             </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.subStatusNode')} description={t('pages.settings.subStatusNodeDesc')}>
+              <Switch checked={allSetting.subStatusNode} onChange={(v) => updateSetting({ subStatusNode: v })} />
+            </SettingListItem>
+            {allSetting.subStatusNode && (
+              <SettingListItem paddings="small" title={t('pages.settings.subExpiredNotice')} description={t('pages.settings.subExpiredNoticeDesc')}>
+                <Input
+                  value={allSetting.subExpiredNotice}
+                  placeholder="⚠️ Subscription Expired / Depleted — Please Renew"
+                  onChange={(e) => updateSetting({ subExpiredNotice: e.target.value })}
+                />
+              </SettingListItem>
+            )}
 
             <SettingListItem
               paddings="small"
@@ -173,7 +191,7 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
                 <>
                   {t('pages.settings.subThemeDirDesc')}{' '}
                   <a
-                    href="https://github.com/MHSanaei/3x-ui/blob/main/docs/custom-subscription-templates.md"
+                    href="https://github.com/Dark-Sky07/OMEGA/blob/main/docs/custom-subscription-templates.md"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -182,7 +200,7 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
                 </>
               )}
             >
-              <Input value={allSetting.subThemeDir} placeholder="/etc/3x-ui/sub_templates/my-theme/"
+              <Input value={allSetting.subThemeDir} placeholder="/etc/x-ui/sub_templates/my-theme/"
                 onChange={(e) => updateSetting({ subThemeDir: e.target.value })} />
             </SettingListItem>
           </>

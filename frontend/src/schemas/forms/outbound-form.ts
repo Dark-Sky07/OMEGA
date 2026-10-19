@@ -152,6 +152,13 @@ export const HysteriaOutboundFormSettingsSchema = z.object({
 });
 export type HysteriaOutboundFormSettings = z.infer<typeof HysteriaOutboundFormSettingsSchema>;
 
+export const MasqueOutboundFormSettingsSchema = z.object({
+  address: z.string().default(''),
+  port: PortSchema.default(443),
+  remoteDNS: z.array(z.string()).default([]),
+});
+export type MasqueOutboundFormSettings = z.infer<typeof MasqueOutboundFormSettingsSchema>;
+
 // FinalRule (freedom): network/port are strings; ip is string[]; blockDelay
 // is only meaningful when action === 'block'. The adapter omits empty
 // fields from the wire payload.
@@ -222,6 +229,7 @@ export const OutboundFormSettingsSchema = z.discriminatedUnion('protocol', [
   z.object({ protocol: z.literal('http'),        settings: HttpOutboundFormSettingsSchema }),
   z.object({ protocol: z.literal('wireguard'),   settings: WireguardOutboundFormSettingsSchema }),
   z.object({ protocol: z.literal('hysteria'),    settings: HysteriaOutboundFormSettingsSchema }),
+  z.object({ protocol: z.literal('masque'),      settings: MasqueOutboundFormSettingsSchema }),
   z.object({ protocol: z.literal('freedom'),     settings: FreedomOutboundFormSettingsSchema }),
   z.object({ protocol: z.literal('blackhole'),   settings: BlackholeOutboundFormSettingsSchema }),
   z.object({ protocol: z.literal('dns'),         settings: DnsOutboundFormSettingsSchema }),

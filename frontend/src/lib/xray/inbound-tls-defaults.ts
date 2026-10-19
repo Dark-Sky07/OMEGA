@@ -20,6 +20,10 @@ export function createTlsSettingsWithDefaultCert(): Record<string, unknown> {
   return tls;
 }
 
+export function createMasqueTlsSettingsWithDefaultCert(): Record<string, unknown> {
+  return createHysteriaTlsSettingsWithDefaultCert();
+}
+
 export function createHysteriaTlsSettingsWithDefaultCert(): Record<string, unknown> {
   const tls = createTlsSettingsWithDefaultCert();
   tls.alpn = ['h3'];

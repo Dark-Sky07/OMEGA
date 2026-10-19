@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Alert, Form, Input, Select, Switch } from 'antd';
+import { useOutboundTags } from '@/api/queries/useOutboundTags';
 
 // OpenVPN inbound options. The openvpn daemon binds the inbound port
 // directly (no Xray transport), so this block only carries the daemon's own
@@ -7,7 +8,10 @@ import { Alert, Form, Input, Select, Switch } from 'antd';
 // clients' emails — nothing to enter per client.
 export default function OpenvpnFields() {
   const { t } = useTranslation();
-  const pushDNS = Form.useWatch(['settings', 'pushDNS']) as boolean | undefined;
+  const form = Form.useFormInstance();
+  const pushDNS = Form.useWatch(['settings', 'pushDNS'], form) as boolean | undefined;
+  const routeThroughXray = Form.useWatch(['settings', 'routeThroughXray'], form) as boolean | undefined;
+  const { data: outboundTags } = useOutboundTags();
   return (
     <>
       <Alert
@@ -36,6 +40,28 @@ export default function OpenvpnFields() {
       >
         <Switch />
       </Form.Item>
+      <Form.Item
+        name={['settings', 'routeThroughXray']}
+        label={t('pages.inbounds.form.daemonRouteThroughXray')}
+        tooltip={t('pages.inbounds.form.daemonRouteThroughXrayHint')}
+        valuePropName="checked"
+      >
+        <Switch />
+      </Form.Item>
+      {routeThroughXray && (
+        <Form.Item
+          name={['settings', 'outboundTag']}
+          label={t('pages.inbounds.form.mtgRouteOutbound')}
+          tooltip={t('pages.inbounds.form.mtgRouteOutboundHint')}
+        >
+          <Select
+            allowClear
+            showSearch
+            placeholder={t('pages.inbounds.form.mtgRouteOutboundPlaceholder')}
+            options={(outboundTags ?? []).map((tag) => ({ value: tag, label: tag }))}
+          />
+        </Form.Item>
+      )}
       <Form.Item
         name={['settings', 'pushDNS']}
         label={t('pages.inbounds.form.openvpnPushDNS')}

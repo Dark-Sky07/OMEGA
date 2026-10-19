@@ -1,7 +1,7 @@
-# نصب و راه‌اندازی OMEGA (فارسی)
+# نصب و راه‌اندازی PHOENIX (فارسی)
 
-پنل **OMEGA** بر پایه‌ی **3x-ui نسخه ۳.۳.۱** است و علاوه بر برندینگ OMEGA، قابلیت‌های نمایندگی، AmneziaWG native، OpenVPN و L2TP/IPsec را اضافه می‌کند.
-نام سرویس (`x-ui`) و مسیرهای اصلی (`/usr/local/x-ui`، `/etc/x-ui`) با upstream سازگار مانده‌اند، اما نسخه‌ی release خود OMEGA جداگانه مدیریت می‌شود.
+پنل **PHOENIX** بر پایه‌ی **PHOENIX نسخه ۳.۳.۱** است و علاوه بر برندینگ PHOENIX، قابلیت‌های نمایندگی، AmneziaWG native، OpenVPN و L2TP/IPsec را اضافه می‌کند.
+نام سرویس (`phoenix`) و مسیرهای اصلی (`/usr/local/x-ui`، `/etc/x-ui`) با upstream سازگار مانده‌اند، اما نسخه‌ی release خود PHOENIX جداگانه مدیریت می‌شود.
 قابلیت‌های جدید فقط ظاهری نیستند و status، traffic، quota، چرخه‌ی کلاینت، reseller و recovery را نیز پوشش می‌دهند.
 
 ---
@@ -14,13 +14,13 @@
 bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/install-omega.sh)
 ```
 
-این لینک همیشه جدیدترین release OMEGA را پیدا می‌کند و فایل‌های همان release را نصب می‌کند؛ tag قدیمی یا مخزن vanilla 3x-ui fallback نیست.
+این لینک همیشه جدیدترین release PHOENIX را پیدا می‌کند و فایل‌های همان release را نصب می‌کند؛ tag قدیمی یا مخزن vanilla PHOENIX fallback نیست.
 
 اسکریپت خودش این کارها را می‌کند:
 
 1. نصب پیش‌نیازها (curl/tar/socat/openssl و …)
-2. دانلود پکیج آماده‌ی معماری سرور از ریلیز OMEGA (شامل Xray-core، geoip/geosite، mtg)
-3. نصب در `/usr/local/x-ui` و ساخت سرویس systemd با نام `x-ui`
+2. دانلود پکیج آماده‌ی معماری سرور از ریلیز PHOENIX (شامل Xray-core، geoip/geosite، mtg)
+3. نصب در `/usr/local/x-ui` و ساخت سرویس systemd با نام `phoenix`
 4. پیش‌نیازهای OpenVPN و L2TP/IPsec شامل `openvpn`، `strongswan`، `xl2tpd`، `ppp`، `iptables` و `iproute2` را نصب و دستگاه‌های TUN/PPP را بررسی می‌کند
 5. اگر نصب قبلی وجود داشته باشد، **تنظیمات و دیتابیس حفظ می‌شود**
 6. راه‌اندازی مجدد پنل + نمایش آدرس ورود
@@ -31,11 +31,11 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/instal
 
 ```bash
 x-ui            # منوی مدیریت (شروع/توقف/ری‌استارت/تنظیمات/لاگ/آپدیت/حذف)
-x-ui status     # وضعیت سرویس
-x-ui settings   # نمایش تنظیمات فعلی و مسیر مخفی
-x-ui log        # لاگ‌ها
-x-ui update     # آپدیت به آخرین نسخه‌ی OMEGA (از همین ریپو؛ پنل جایگزین نسخه‌ی اصلی 3x-ui نمی‌شود)
-x-ui uninstall  # حذف کامل
+phoenix status     # وضعیت سرویس
+phoenix settings   # نمایش تنظیمات فعلی و مسیر مخفی
+phoenix log        # لاگ‌ها
+phoenix update     # آپدیت به آخرین نسخه‌ی PHOENIX (از همین ریپو؛ پنل جایگزین نسخه‌ی اصلی PHOENIX نمی‌شود)
+phoenix uninstall  # حذف کامل
 ```
 
 ## ۳) بعد از نصب: ساخت اولین نمایندگی
@@ -51,7 +51,7 @@ x-ui uninstall  # حذف کامل
 
 ## ۴) استفاده از AmneziaWG
 
-در فرم inbound نوع **AmneziaWG** را انتخاب کنید. OMEGA پارامترهای AWG 3.1، کلیدها، peerها، allowed IP، status، traffic و quota را مدیریت می‌کند و profile native می‌سازد.
+در فرم inbound نوع **AmneziaWG** را انتخاب کنید. PHOENIX پارامترهای AWG 3.1، کلیدها، peerها، allowed IP، status، traffic و quota را مدیریت می‌کند و profile native می‌سازد.
 
 برای اتصال اندروید:
 
@@ -76,8 +76,8 @@ systemctl daemon-reload && systemctl enable x-ui && systemctl start x-ui
 
 ## ۶) بروزرسانی و تمیزکاری
 
-- آپدیت: `x-ui update`
-- حذف: `x-ui uninstall` (دیتابیس در `/etc/x-ui` می‌ماند؛ قبل از حذف بکاپ بگیرید)
+- آپدیت: `phoenix update`
+- حذف: `phoenix uninstall` (دیتابیس در `/etc/x-ui` می‌ماند؛ قبل از حذف بکاپ بگیرید)
 - بکاپ: در پنل از بخش تنظیمات → «بکاپ» یا کپی گرفتن از `/etc/x-ui/x-ui.db`
 
 ## ۷) نکته‌ی امنیتی

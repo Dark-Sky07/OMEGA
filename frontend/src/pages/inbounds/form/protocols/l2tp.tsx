@@ -1,11 +1,15 @@
 import { useTranslation } from 'react-i18next';
-import { Alert, Form, Input, Switch } from 'antd';
+import { Alert, Form, Input, Select, Switch } from 'antd';
+import { useOutboundTags } from '@/api/queries/useOutboundTags';
 
 // L2TP/IPsec has a single global server listener. Client accounts are managed
 // by the existing clients page; the inbound form only owns daemon/network
 // parameters and displays them later in the inbound info modal.
 export default function L2tpFields() {
   const { t } = useTranslation();
+  const form = Form.useFormInstance();
+  const routeThroughXray = Form.useWatch(['settings', 'routeThroughXray'], form) as boolean | undefined;
+  const { data: outboundTags } = useOutboundTags();
   return (
     <>
       <Alert
@@ -59,6 +63,28 @@ export default function L2tpFields() {
       >
         <Switch />
       </Form.Item>
+      <Form.Item
+        name={['settings', 'routeThroughXray']}
+        label={t('pages.inbounds.form.daemonRouteThroughXray')}
+        tooltip={t('pages.inbounds.form.daemonRouteThroughXrayHint')}
+        valuePropName="checked"
+      >
+        <Switch />
+      </Form.Item>
+      {routeThroughXray && (
+        <Form.Item
+          name={['settings', 'outboundTag']}
+          label={t('pages.inbounds.form.mtgRouteOutbound')}
+          tooltip={t('pages.inbounds.form.mtgRouteOutboundHint')}
+        >
+          <Select
+            allowClear
+            showSearch
+            placeholder={t('pages.inbounds.form.mtgRouteOutboundPlaceholder')}
+            options={(outboundTags ?? []).map((tag) => ({ value: tag, label: tag }))}
+          />
+        </Form.Item>
+      )}
     </>
   );
 }

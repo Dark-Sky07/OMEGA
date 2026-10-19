@@ -87,6 +87,11 @@ func GetManager() *Manager {
 	return manager
 }
 
+// Ensure brings one inbound's daemon to the desired state immediately.
+func (m *Manager) Ensure(inst Instance) error {
+	return m.ensure(inst)
+}
+
 // ensure brings one inbound's daemon to the desired state: starts it when
 // missing or crashed, restarts it when the fingerprint (config + client
 // certs) changed, and no-ops when it is already running with the same
@@ -188,7 +193,6 @@ func (m *Manager) Reconcile(desired []Instance) {
 		for id, cur := range m.procs {
 			_ = cur.proc.Stop()
 			GetNetworkManager().Remove(id)
-			_ = removeDataDir(id)
 			delete(m.procs, id)
 		}
 		GetNetworkManager().RemoveAll()
@@ -202,7 +206,6 @@ func (m *Manager) Reconcile(desired []Instance) {
 		if _, ok := want[id]; !ok {
 			_ = cur.proc.Stop()
 			GetNetworkManager().Remove(id)
-			_ = removeDataDir(id)
 			delete(m.procs, id)
 			logger.Infof("openvpn: stopped daemon for inbound %d (no longer desired)", id)
 		}
@@ -227,7 +230,8 @@ func (m *Manager) Reconcile(desired []Instance) {
 }
 
 // StopManually stops every OpenVPN daemon and holds reconciliation until the
-// dashboard explicitly resumes it.
+// dashboard explicitly resumes it. Preserves the per-inbound PKI directory so
+// existing client .ovpn profiles remain valid when resumed.
 func (m *Manager) StopManually() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -236,7 +240,6 @@ func (m *Manager) StopManually() {
 	for id, cur := range m.procs {
 		_ = cur.proc.Stop()
 		GetNetworkManager().Remove(id)
-		_ = removeDataDir(id)
 		delete(m.procs, id)
 	}
 	GetNetworkManager().RemoveAll()
@@ -252,7 +255,8 @@ func (m *Manager) Resume() {
 }
 
 // Restart stops the current daemons without setting manualStop, allowing the
-// following reconcile pass to create fresh processes from current settings.
+// following reconcile pass to create fresh processes from current settings
+// while preserving the per-inbound PKI CA and client certificates.
 func (m *Manager) Restart() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -261,10 +265,22 @@ func (m *Manager) Restart() {
 	for id, cur := range m.procs {
 		_ = cur.proc.Stop()
 		GetNetworkManager().Remove(id)
-		_ = removeDataDir(id)
 		delete(m.procs, id)
 	}
 	GetNetworkManager().RemoveAll()
+}
+
+// StopInbound stops the daemon and removes firewall rules for an inbound id
+// without deleting its PKI certificates on disk (used when an inbound is
+// disabled rather than deleted).
+func (m *Manager) StopInbound(id int) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if cur, ok := m.procs[id]; ok {
+		_ = cur.proc.Stop()
+		delete(m.procs, id)
+	}
+	GetNetworkManager().Remove(id)
 }
 
 // Status returns a secret-free snapshot for the dashboard.

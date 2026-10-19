@@ -54,8 +54,14 @@ var defaultValueMap = map[string]string{
 	"tgRunTime":                   "@daily",
 	"tgBotBackup":                 "false",
 	"tgBotLoginNotify":            "true",
+	"tgBotUserReport":             "false",
 	"tgCpu":                       "80",
 	"tgLang":                      "en-US",
+	"discordEnable":               "false",
+	"discordWebhookURL":           "",
+	"discordBotToken":             "",
+	"discordChannelId":            "",
+	"discordLoginNotify":          "true",
 	"twoFactorEnable":             "false",
 	"twoFactorToken":              "",
 	"subEnable":                   "true",
@@ -76,6 +82,8 @@ var defaultValueMap = map[string]string{
 	"subEncrypt":                  "true",
 	"subShowInfo":                 "true",
 	"subEmailInRemark":            "true",
+	"subStatusNode":               "false",
+	"subExpiredNotice":            "",
 	"subURI":                      "",
 	"subJsonPath":                 "/json/",
 	"subJsonURI":                  "",
@@ -84,6 +92,12 @@ var defaultValueMap = map[string]string{
 	"subClashURI":                 "",
 	"subClashEnableRouting":       "false",
 	"subClashRules":               "",
+	"subSingboxEnable":            "false",
+	"subSingboxPath":              "/singbox/",
+	"subSingboxURI":               "",
+	"subOutlineEnable":            "false",
+	"subOutlinePath":              "/outline/",
+	"subOutlineURI":               "",
 	"subJsonMux":                  "",
 	"subJsonRules":                "",
 	"subJsonFinalMask":            "",
@@ -119,6 +133,24 @@ var defaultValueMap = map[string]string{
 	"ldapDefaultTotalGB":    "0",
 	"ldapDefaultExpiryDays": "0",
 	"ldapDefaultLimitIP":    "0",
+
+	// Cloud Backup defaults
+	"cloudBackupEnable":        "false",
+	"cloudBackupProvider":      "s3",
+	"cloudBackupEndpoint":      "",
+	"cloudBackupRegion":        "auto",
+	"cloudBackupBucket":        "",
+	"cloudBackupPrefix":        "omega-backups/",
+	"cloudBackupAccessKey":     "",
+	"cloudBackupSecretKey":     "",
+	"cloudBackupIntervalHours": "12",
+	"cloudBackupRetention":     "14",
+
+	// Smart Outbound Watchdog defaults
+	"outboundWatchdogEnable":        "false",
+	"outboundWatchdogTags":          "",
+	"outboundWatchdogIntervalSec":   "120",
+	"outboundWatchdogFailThreshold": "2",
 }
 
 // SettingService provides business logic for application settings management.
@@ -216,6 +248,8 @@ func (s *SettingService) GetAllSettingView() (*entity.AllSettingView, error) {
 	}
 	view := &entity.AllSettingView{AllSetting: *allSetting}
 	view.HasTgBotToken = secretConfigured(allSetting.TgBotToken)
+	view.HasDiscordBotToken = secretConfigured(allSetting.DiscordBotToken)
+	view.HasDiscordWebhookURL = secretConfigured(allSetting.DiscordWebhookURL)
 	view.HasTwoFactorToken = secretConfigured(allSetting.TwoFactorToken)
 	view.HasLdapPassword = secretConfigured(allSetting.LdapPassword)
 	view.HasWarpSecret = secretConfigured(mustString(s.GetWarp()))
@@ -225,6 +259,8 @@ func (s *SettingService) GetAllSettingView() (*entity.AllSettingView, error) {
 		view.HasApiToken = apiTokenCount > 0
 	}
 	view.TgBotToken = ""
+	view.DiscordBotToken = ""
+	view.DiscordWebhookURL = ""
 	view.TwoFactorToken = ""
 	view.LdapPassword = ""
 	return view, nil
@@ -488,6 +524,33 @@ func (s *SettingService) GetTgBotLoginNotify() (bool, error) {
 	return s.getBool("tgBotLoginNotify")
 }
 
+// GetTgBotUserReport reports whether each client with a linked Telegram
+// account should receive a personal usage digest at the periodic report time.
+// Defaults to false: existing deployments keep exactly their old behavior.
+func (s *SettingService) GetTgBotUserReport() (bool, error) {
+	return s.getBool("tgBotUserReport")
+}
+
+func (s *SettingService) GetDiscordEnable() (bool, error) {
+	return s.getBool("discordEnable")
+}
+
+func (s *SettingService) GetDiscordWebhookURL() (string, error) {
+	return s.getString("discordWebhookURL")
+}
+
+func (s *SettingService) GetDiscordBotToken() (string, error) {
+	return s.getString("discordBotToken")
+}
+
+func (s *SettingService) GetDiscordChannelId() (string, error) {
+	return s.getString("discordChannelId")
+}
+
+func (s *SettingService) GetDiscordLoginNotify() (bool, error) {
+	return s.getBool("discordLoginNotify")
+}
+
 func (s *SettingService) GetTgCpu() (int, error) {
 	return s.getInt("tgCpu")
 }
@@ -706,6 +769,14 @@ func (s *SettingService) GetSubEmailInRemark() (bool, error) {
 	return s.getBool("subEmailInRemark")
 }
 
+func (s *SettingService) GetSubStatusNode() (bool, error) {
+	return s.getBool("subStatusNode")
+}
+
+func (s *SettingService) GetSubExpiredNotice() (string, error) {
+	return s.getString("subExpiredNotice")
+}
+
 func (s *SettingService) GetPageSize() (int, error) {
 	return s.getInt("pageSize")
 }
@@ -730,6 +801,30 @@ func (s *SettingService) GetSubClashURI() (string, error) {
 	return s.getString("subClashURI")
 }
 
+func (s *SettingService) GetSubSingboxEnable() (bool, error) {
+	return s.getBool("subSingboxEnable")
+}
+
+func (s *SettingService) GetSubSingboxPath() (string, error) {
+	return s.getString("subSingboxPath")
+}
+
+func (s *SettingService) GetSubSingboxURI() (string, error) {
+	return s.getString("subSingboxURI")
+}
+
+func (s *SettingService) GetSubOutlineEnable() (bool, error) {
+	return s.getBool("subOutlineEnable")
+}
+
+func (s *SettingService) GetSubOutlinePath() (string, error) {
+	return s.getString("subOutlinePath")
+}
+
+func (s *SettingService) GetSubOutlineURI() (string, error) {
+	return s.getString("subOutlineURI")
+}
+
 func (s *SettingService) GetSubClashEnableRouting() (bool, error) {
 	return s.getBool("subClashEnableRouting")
 }
@@ -748,6 +843,62 @@ func (s *SettingService) GetSubJsonRules() (string, error) {
 
 func (s *SettingService) GetSubJsonFinalMask() (string, error) {
 	return s.getString("subJsonFinalMask")
+}
+
+func (s *SettingService) GetCloudBackupEnable() (bool, error) {
+	return s.getBool("cloudBackupEnable")
+}
+
+func (s *SettingService) GetCloudBackupProvider() (string, error) {
+	return s.getString("cloudBackupProvider")
+}
+
+func (s *SettingService) GetCloudBackupEndpoint() (string, error) {
+	return s.getString("cloudBackupEndpoint")
+}
+
+func (s *SettingService) GetCloudBackupRegion() (string, error) {
+	return s.getString("cloudBackupRegion")
+}
+
+func (s *SettingService) GetCloudBackupBucket() (string, error) {
+	return s.getString("cloudBackupBucket")
+}
+
+func (s *SettingService) GetCloudBackupPrefix() (string, error) {
+	return s.getString("cloudBackupPrefix")
+}
+
+func (s *SettingService) GetCloudBackupAccessKey() (string, error) {
+	return s.getString("cloudBackupAccessKey")
+}
+
+func (s *SettingService) GetCloudBackupSecretKey() (string, error) {
+	return s.getString("cloudBackupSecretKey")
+}
+
+func (s *SettingService) GetCloudBackupIntervalHours() (int, error) {
+	return s.getInt("cloudBackupIntervalHours")
+}
+
+func (s *SettingService) GetCloudBackupRetention() (int, error) {
+	return s.getInt("cloudBackupRetention")
+}
+
+func (s *SettingService) GetOutboundWatchdogEnable() (bool, error) {
+	return s.getBool("outboundWatchdogEnable")
+}
+
+func (s *SettingService) GetOutboundWatchdogTags() (string, error) {
+	return s.getString("outboundWatchdogTags")
+}
+
+func (s *SettingService) GetOutboundWatchdogIntervalSec() (int, error) {
+	return s.getInt("outboundWatchdogIntervalSec")
+}
+
+func (s *SettingService) GetOutboundWatchdogFailThreshold() (int, error) {
+	return s.getInt("outboundWatchdogFailThreshold")
 }
 
 func (s *SettingService) GetSubThemeDir() (string, error) {
@@ -933,6 +1084,20 @@ func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting) 
 		}
 		allSetting.TgBotToken = value
 	}
+	if strings.TrimSpace(allSetting.DiscordBotToken) == "" {
+		value, err := s.GetDiscordBotToken()
+		if err != nil {
+			return err
+		}
+		allSetting.DiscordBotToken = value
+	}
+	if strings.TrimSpace(allSetting.DiscordWebhookURL) == "" {
+		value, err := s.GetDiscordWebhookURL()
+		if err != nil {
+			return err
+		}
+		allSetting.DiscordWebhookURL = value
+	}
 	if strings.TrimSpace(allSetting.LdapPassword) == "" {
 		value, err := s.GetLdapPassword()
 		if err != nil {
@@ -965,12 +1130,19 @@ func validateSettingsURLs(allSetting *entity.AllSetting) error {
 		}
 		allSetting.TgBotAPIServer = u
 	}
+	if allSetting.DiscordWebhookURL != "" {
+		u, err := SanitizeHTTPURL(allSetting.DiscordWebhookURL)
+		if err != nil {
+			return common.NewError("discord webhook URL is invalid:", err)
+		}
+		allSetting.DiscordWebhookURL = u
+	}
 	return nil
 }
 
 func (s *SettingService) UpdateSecret(key string, value string) error {
 	switch key {
-	case "tgBotToken", "ldapPassword", "twoFactorToken":
+	case "tgBotToken", "discordBotToken", "discordWebhookURL", "ldapPassword", "twoFactorToken":
 		return s.saveSetting(key, strings.TrimSpace(value))
 	default:
 		return common.NewError("secret key is not replaceable:", key)
@@ -1033,26 +1205,30 @@ func (s *SettingService) BuildSubURIBase(host string) string {
 func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 	type settingFunc func() (any, error)
 	settings := map[string]settingFunc{
-		"expireDiff":      func() (any, error) { return s.GetExpireDiff() },
-		"trafficDiff":     func() (any, error) { return s.GetTrafficDiff() },
-		"pageSize":        func() (any, error) { return s.GetPageSize() },
-		"defaultCert":     func() (any, error) { return s.GetCertFile() },
-		"defaultKey":      func() (any, error) { return s.GetKeyFile() },
-		"tgBotEnable":     func() (any, error) { return s.GetTgbotEnabled() },
-		"subThemeDir":     func() (any, error) { return s.GetSubThemeDir() },
-		"subEnable":       func() (any, error) { return s.GetSubEnable() },
-		"subJsonEnable":   func() (any, error) { return s.GetSubJsonEnable() },
-		"subClashEnable":  func() (any, error) { return s.GetSubClashEnable() },
-		"subTitle":        func() (any, error) { return s.GetSubTitle() },
-		"subURI":          func() (any, error) { return s.GetSubURI() },
-		"subJsonURI":      func() (any, error) { return s.GetSubJsonURI() },
-		"subClashURI":     func() (any, error) { return s.GetSubClashURI() },
-		"remarkModel":     func() (any, error) { return s.GetRemarkModel() },
-		"datepicker":      func() (any, error) { return s.GetDatepicker() },
-		"ipLimitEnable":   func() (any, error) { return s.GetIpLimitEnable() },
-		"accessLogEnable": func() (any, error) { return s.GetAccessLogEnable() },
-		"webDomain":       func() (any, error) { return s.GetWebDomain() },
-		"subDomain":       func() (any, error) { return s.GetSubDomain() },
+		"expireDiff":       func() (any, error) { return s.GetExpireDiff() },
+		"trafficDiff":      func() (any, error) { return s.GetTrafficDiff() },
+		"pageSize":         func() (any, error) { return s.GetPageSize() },
+		"defaultCert":      func() (any, error) { return s.GetCertFile() },
+		"defaultKey":       func() (any, error) { return s.GetKeyFile() },
+		"tgBotEnable":      func() (any, error) { return s.GetTgbotEnabled() },
+		"subThemeDir":      func() (any, error) { return s.GetSubThemeDir() },
+		"subEnable":        func() (any, error) { return s.GetSubEnable() },
+		"subJsonEnable":    func() (any, error) { return s.GetSubJsonEnable() },
+		"subClashEnable":   func() (any, error) { return s.GetSubClashEnable() },
+		"subSingboxEnable": func() (any, error) { return s.GetSubSingboxEnable() },
+		"subOutlineEnable": func() (any, error) { return s.GetSubOutlineEnable() },
+		"subTitle":         func() (any, error) { return s.GetSubTitle() },
+		"subURI":           func() (any, error) { return s.GetSubURI() },
+		"subJsonURI":       func() (any, error) { return s.GetSubJsonURI() },
+		"subClashURI":      func() (any, error) { return s.GetSubClashURI() },
+		"subSingboxURI":    func() (any, error) { return s.GetSubSingboxURI() },
+		"subOutlineURI":    func() (any, error) { return s.GetSubOutlineURI() },
+		"remarkModel":      func() (any, error) { return s.GetRemarkModel() },
+		"datepicker":       func() (any, error) { return s.GetDatepicker() },
+		"ipLimitEnable":    func() (any, error) { return s.GetIpLimitEnable() },
+		"accessLogEnable":  func() (any, error) { return s.GetAccessLogEnable() },
+		"webDomain":        func() (any, error) { return s.GetWebDomain() },
+		"subDomain":        func() (any, error) { return s.GetSubDomain() },
 	}
 
 	result := make(map[string]any)
@@ -1078,12 +1254,27 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 			subClashEnable = b
 		}
 	}
-	if (subEnable && result["subURI"].(string) == "") || (subJsonEnable && result["subJsonURI"].(string) == "") || (subClashEnable && result["subClashURI"].(string) == "") {
+	subSingboxEnable := false
+	if v, ok := result["subSingboxEnable"]; ok {
+		if b, ok2 := v.(bool); ok2 {
+			subSingboxEnable = b
+		}
+	}
+	subOutlineEnable := false
+	if v, ok := result["subOutlineEnable"]; ok {
+		if b, ok2 := v.(bool); ok2 {
+			subOutlineEnable = b
+		}
+	}
+	if (subEnable && result["subURI"].(string) == "") || (subJsonEnable && result["subJsonURI"].(string) == "") || (subClashEnable && result["subClashURI"].(string) == "") ||
+		(subSingboxEnable && result["subSingboxURI"].(string) == "") || (subOutlineEnable && result["subOutlineURI"].(string) == "") {
 		subURI := s.BuildSubURIBase(host)
 		subTitle, _ := s.GetSubTitle()
 		subPath, _ := s.GetSubPath()
 		subJsonPath, _ := s.GetSubJsonPath()
 		subClashPath, _ := s.GetSubClashPath()
+		subSingboxPath, _ := s.GetSubSingboxPath()
+		subOutlinePath, _ := s.GetSubOutlinePath()
 		if subEnable && result["subURI"].(string) == "" {
 			result["subURI"] = subURI + subPath
 		}
@@ -1095,6 +1286,12 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 		}
 		if subClashEnable && result["subClashURI"].(string) == "" {
 			result["subClashURI"] = subURI + subClashPath
+		}
+		if subSingboxEnable && result["subSingboxURI"].(string) == "" {
+			result["subSingboxURI"] = subURI + subSingboxPath
+		}
+		if subOutlineEnable && result["subOutlineURI"].(string) == "" {
+			result["subOutlineURI"] = subURI + subOutlinePath
 		}
 	}
 

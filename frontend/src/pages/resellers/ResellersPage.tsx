@@ -34,9 +34,11 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import {
   AccountBookOutlined,
+  CustomerServiceOutlined,
   DeleteOutlined,
   EditOutlined,
   ExportOutlined,
+  GiftOutlined,
   KeyOutlined,
   PlusOutlined,
   ReloadOutlined,
@@ -51,7 +53,10 @@ import { keys } from '@/api/queryKeys';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useTheme } from '@/hooks/useTheme';
 import type { ResellerReport, ResellerStat } from '@/api/queries/useSession';
+import { PageHeader } from '@/components/ui';
 import ResellersOverview from './ResellersOverview';
+import SupportTicketsModal from './SupportTicketsModal';
+import VouchersModal from './VouchersModal';
 import './ResellersPage.css';
 
 const GB = 1024 * 1024 * 1024;
@@ -93,6 +98,8 @@ export default function ResellersPage() {
   }, [messageApi]);
 
   const [formOpen, setFormOpen] = useState(false);
+  const [ticketsOpen, setTicketsOpen] = useState(false);
+  const [vouchersOpen, setVouchersOpen] = useState(false);
   const [view, setView] = useState<'manage' | 'overview'>('manage');
   const [editing, setEditing] = useState<ResellerStat | null>(null);
   const [passwordFor, setPasswordFor] = useState<ResellerStat | null>(null);
@@ -352,9 +359,17 @@ export default function ResellersPage() {
 
   const rows = listQuery.data || [];
   const assignments = useMemo(() => assignmentsQuery.data || [], [assignmentsQuery.data]);
-  const ownerByInbound = useMemo(() => {
-    const map = new Map<number, number>();
-    assignments.forEach((entry) => entry.inboundIds.forEach((id) => map.set(id, entry.resellerId)));
+  const ownersByInbound = useMemo(() => {
+    const map = new Map<number, number[]>();
+    assignments.forEach((entry) =>
+      entry.inboundIds.forEach((id) => {
+        const list = map.get(id) || [];
+        if (!list.includes(entry.resellerId)) {
+          list.push(entry.resellerId);
+        }
+        map.set(id, list);
+      }),
+    );
     return map;
   }, [assignments]);
   const explicitEmails = useMemo(
@@ -362,11 +377,13 @@ export default function ResellersPage() {
     [assignments, clientFor],
   );
   const assignableClientOptions = useMemo(() => {
-    const assigned = new Set(explicitEmails.map((email) => email.trim().toLowerCase()));
+    const assigned = new Set(
+      assignments.flatMap((entry) => entry.emails || []).map((email) => email.trim().toLowerCase()),
+    );
     return (clientsQuery.data || [])
       .filter((client) => !assigned.has(client.email.trim().toLowerCase()))
       .map((client) => ({ value: client.email, label: client.email }));
-  }, [clientsQuery.data, explicitEmails]);
+  }, [clientsQuery.data, assignments]);
 
   // The assignment map loads lazily when the form opens, so on the first edit
   // it is usually still empty when openEdit runs. Re-apply the owned set once
@@ -502,61 +519,68 @@ export default function ResellersPage() {
         <AppSidebar />
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
-            <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 12]}>
-              <Col span={24}>
-                <Card size="small" hoverable className="summary-card">
-                  <Row gutter={[16, 12]} align="middle">
-                    <Col xs={24} md={8}>
-                      <Statistic
-                        title={t('resellers.total')}
-                        value={String(rows.length)}
-                        prefix={<ShopOutlined />}
-                      />
-                    </Col>
-                    <Col xs={24} md={16}>
-                      <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
-                        <Segmented
-                          value={view}
-                          onChange={(value) => setView(value as 'manage' | 'overview')}
-                          options={[
-                            { label: t('resellers.manage'), value: 'manage' },
-                            { label: t('resellers.overview'), value: 'overview' },
-                          ]}
-                        />
-                        <Button icon={<ReloadOutlined />} onClick={() => refreshAll()} loading={listQuery.isFetching}>
-                          {t('refresh')}
-                        </Button>
-                        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-                          {t('resellers.add')}
-                        </Button>
-                      </Space>
-                    </Col>
-                  </Row>
-                </Card>
-              </Col>
+            <PageHeader
+              eyebrow={t('menu.groupManage', 'Manage')}
+              title={t('menu.resellers', 'Resellers')}
+              subtitle={<span><strong>{rows.length}</strong> {t('resellers.total')}</span>}
+              actions={(
+                <>
+                  <Segmented
+                    value={view}
+                    onChange={(value) => setView(value as 'manage' | 'overview')}
+                    options={[
+                      { label: t('resellers.manage'), value: 'manage' },
+                      { label: t('resellers.overview'), value: 'overview' },
+                    ]}
+                  />
+                  <Button icon={<CustomerServiceOutlined />} onClick={() => setTicketsOpen(true)}>
+                    {!isMobile && (t('resellers.supportTickets') || 'Support Tickets')}
+                  </Button>
+                  <Button icon={<GiftOutlined />} onClick={() => setVouchersOpen(true)}>
+                    {!isMobile && (t('resellers.vouchersTitle', 'Vouchers'))}
+                  </Button>
+                  <Button icon={<ReloadOutlined />} onClick={() => refreshAll()} loading={listQuery.isFetching}>
+                    {!isMobile && t('refresh')}
+                  </Button>
+                  <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                    {t('resellers.add')}
+                  </Button>
+                </>
+              )}
+            />
 
-              <Col span={24}>
-                <Card size="small" hoverable>
-                  {listQuery.isError && (
-                    <Alert type="error" showIcon message={t('somethingWentWrong')} style={{ marginBottom: 12 }} />
-                  )}
-                  {view === 'overview' ? (
-                    <ResellersOverview stats={rows} loading={listQuery.isLoading} />
-                  ) : (
-                    <Table<ResellerStat>
-                      rowKey={(stat) => String(stat.reseller.id)}
-                      size="small"
-                      loading={listQuery.isLoading}
-                      columns={columns}
-                      dataSource={rows}
-                      pagination={rows.length > 20 ? { pageSize: 20 } : false}
-                      scroll={{ x: 'max-content' }}
-                      locale={{ emptyText: <Empty description={t('resellers.empty')} /> }}
-                    />
-                  )}
-                </Card>
-              </Col>
-            </Row>
+            {listQuery.isError && (
+              <Alert type="error" showIcon message={t('somethingWentWrong')} style={{ marginBottom: 12 }} />
+            )}
+            {view === 'overview' ? (
+              <div className="omega-rise omega-rise-2">
+                <ResellersOverview stats={rows} loading={listQuery.isLoading} />
+              </div>
+            ) : (
+              <Card className="omega-table-card omega-rise omega-rise-2">
+                <Table<ResellerStat>
+                  rowKey={(stat) => String(stat.reseller.id)}
+                  size="middle"
+                  loading={listQuery.isLoading}
+                  columns={columns}
+                  dataSource={rows}
+                  pagination={rows.length > 20 ? { pageSize: 20 } : false}
+                  scroll={{ x: 'max-content' }}
+                  locale={{ emptyText: <Empty description={t('resellers.empty')} /> }}
+                />
+              </Card>
+            )}
+
+            <SupportTicketsModal
+              open={ticketsOpen}
+              mode="admin"
+              onOpenChange={setTicketsOpen}
+            />
+
+            <VouchersModal
+              open={vouchersOpen}
+              onOpenChange={setVouchersOpen}
+            />
 
             <Modal
               open={formOpen}
@@ -612,23 +636,21 @@ export default function ResellersPage() {
                     <Checkbox.Group style={{ width: '100%' }}>
                       <Space orientation="vertical" style={{ width: '100%' }}>
                         {(inboundsQuery.data || []).map((row) => {
-                          const owner = ownerByInbound.get(row.id);
-                          const takenByOther = owner !== undefined && (!editing || owner !== editing.reseller.id);
-                          const ownerName =
-                            owner === undefined
-                              ? null
-                              : rows.find((r) => r.reseller.id === owner)?.reseller.name || `#${owner}`;
+                          const owners = ownersByInbound.get(row.id) || [];
                           return (
-                            <Checkbox key={row.id} value={row.id} disabled={takenByOther}>
-                              <Space size={4}>
+                            <Checkbox key={row.id} value={row.id}>
+                              <Space size={4} wrap>
                                 <span>{row.remark || `#${row.id}`}</span>
                                 <Tag>{row.protocol}</Tag>
                                 <Tag>:{row.port}</Tag>
-                                {owner !== undefined && (
-                                  <Tag color={editing && owner === editing.reseller.id ? 'green' : 'blue'}>
-                                    {ownerName}
-                                  </Tag>
-                                )}
+                                {owners.map((owner) => {
+                                  const ownerName = rows.find((r) => r.reseller.id === owner)?.reseller.name || `#${owner}`;
+                                  return (
+                                    <Tag key={owner} color={editing && owner === editing.reseller.id ? 'green' : 'blue'}>
+                                      {ownerName}
+                                    </Tag>
+                                  );
+                                })}
                               </Space>
                             </Checkbox>
                           );

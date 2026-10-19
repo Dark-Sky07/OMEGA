@@ -62,6 +62,13 @@ func getRequiredUserString(user map[string]any, key string) (string, error) {
 	return strValue, nil
 }
 
+func masqueUserPassword(user map[string]any) (string, error) {
+	if pass, err := getOptionalUserString(user, "pass"); err != nil || pass != "" {
+		return pass, err
+	}
+	return getRequiredUserString(user, "password")
+}
+
 func getOptionalUserString(user map[string]any, key string) (string, error) {
 	value, ok := user[key]
 	if !ok || value == nil {
@@ -494,6 +501,15 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]an
 		account = serial.ToTypedMessage(&hysteriaAccount.Account{
 			Auth: auth,
 		})
+	case "masque":
+		pass, err := masqueUserPassword(user)
+		if err != nil {
+			return err
+		}
+		account = serial.ToTypedMessage(&trojan.Account{
+			Password: pass,
+		})
+		account.Type = "xray.proxy.masque.Account"
 	default:
 		return nil
 	}

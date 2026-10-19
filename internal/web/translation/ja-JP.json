@@ -113,7 +113,12 @@
     "apiDocs": "API ドキュメント",
     "logout": "ログアウト",
     "link": "リンク管理",
-    "donate": "寄付"
+    "donate": "寄付",
+    "groupOverview": "概要",
+    "groupManage": "管理",
+    "groupSystem": "システム",
+    "collapse": "サイドバーを折りたたむ",
+    "expand": "サイドバーを展開"
   },
   "pages": {
     "login": {
@@ -126,7 +131,9 @@
         "emptyPassword": "パスワードを入力してください",
         "wrongUsernameOrPassword": "ユーザー名、パスワード、または二段階認証コードが無効です。",
         "successLogin": "アカウントに正常にログインしました。"
-      }
+      },
+      "asideTitle": "すべてのトンネルをひとつのパネルで。",
+      "asideText": "Xray、OpenVPN、L2TP/IPsec、AmneziaWG を一か所で管理・ルーティング・計測。"
     },
     "index": {
       "title": "システムステータス",
@@ -145,7 +152,7 @@
       "xraySwitchClick": "切り替えるバージョンを選択してください",
       "xraySwitchClickDesk": "慎重に選択してください。古いバージョンは現在の設定と互換性がない可能性があります。",
       "updatePanel": "パネルを更新",
-      "panelUpdateDesc": "これによりOMEGAが最新リリースに更新され、パネルサービスが再起動されます。",
+      "panelUpdateDesc": "これによりPHOENIXが最新リリースに更新され、パネルサービスが再起動されます。",
       "currentPanelVersion": "現在のパネルバージョン",
       "latestPanelVersion": "最新のパネルバージョン",
       "panelUpToDate": "パネルは最新です",
@@ -213,7 +220,7 @@
       "xraySwitchVersionDialogDesc": "Xrayのバージョンが#version#に変更されます。",
       "xraySwitchVersionPopover": "Xrayの更新が成功しました",
       "panelUpdateDialog": "本当にパネルを更新しますか？",
-      "panelUpdateDialogDesc": "これによりOMEGAが#version#に更新され、パネルサービスが再起動されます。",
+      "panelUpdateDialogDesc": "これによりPHOENIXが#version#に更新され、パネルサービスが再起動されます。",
       "panelUpdateCheckPopover": "パネルの更新確認に失敗しました",
       "panelUpdateStartedPopover": "パネルの更新を開始しました",
       "geofileUpdateDialog": "ジオファイルを本当に更新しますか？",
@@ -253,7 +260,12 @@
       "importDatabasePgDesc": "PostgreSQL データベースを復元するために .dump ファイルを選択してアップロードするにはクリックしてください。現在のすべてのデータが置き換えられます。",
       "migrationDownload": "移行ファイルをダウンロード",
       "migrationDownloadDesc": "SQLite データベースのポータブルな .dump（SQL テキスト）エクスポートをダウンロードするにはクリックします。",
-      "migrationDownloadPgDesc": "PostgreSQL のデータから作成した .db SQLite データベースをダウンロードします。このパネルを SQLite で実行する準備が整います。"
+      "migrationDownloadPgDesc": "PostgreSQL のデータから作成した .db SQLite データベースをダウンロードします。このパネルを SQLite で実行する準備が整います。",
+      "heroSubtitle": "このサーバーと稼働中のすべてのトンネルのライブ状態。",
+      "services": "サービス",
+      "network": "ネットワーク",
+      "resources": "リソース",
+      "panelProcess": "パネルプロセス"
     },
     "inbounds": {
       "title": "インバウンド",
@@ -508,6 +520,8 @@
         "mtgDebug": "デバッグログ",
         "mtgRouteThroughXray": "Xray 経由でルーティング",
         "mtgRouteThroughXrayHint": "このプロキシの Telegram トラフィックを Xray 経由にして、ルーティングルールに従わせます。mtg サイドカーは、この受信のタグを付けたループバック SOCKS ブリッジ経由で接続します。高度なルールでは、ルーティングタブでそのタグを参照してください。",
+        "daemonRouteThroughXray": "Xray 経由でルーティング",
+        "daemonRouteThroughXrayHint": "このインバウンドのクライアント通信（TCP と UDP）を Xray のルーターに通し、Xray 自身のインバウンドと同じようにルーティングルールを適用します。通信はこのインバウンドのタグが付いたループバックリスナーからコアに入ります。カスタムルールではルーティングタブでそのタグを参照してください。Xray が動作していないときは自動的に無効（直接経路）になります。",
         "mtgRouteOutbound": "アウトバウンド",
         "mtgRouteOutboundHint": "任意。Telegram トラフィックをこのアウトバウンド（またはバランサー）から強制的に送出します。空欄にするとルーティングルールに従います。",
         "mtgRouteOutboundPlaceholder": "ルーティングルールを使用",
@@ -628,7 +642,36 @@
           "node": "ノードアドレス",
           "listen": "インバウンドのリッスンアドレス",
           "custom": "カスタム"
-        }
+        },
+        "xdrive": {
+          "service": "ストレージサービス",
+          "serviceLocal": "ローカルフォルダ",
+          "serviceTemplate": "カスタムテンプレート",
+          "remoteFolder": "リモートフォルダ",
+          "clientId": "クライアント ID",
+          "clientSecret": "クライアントシークレット",
+          "refreshToken": "リフレッシュトークン",
+          "secrets": "シークレット",
+          "secretsDesc": "テンプレートで {secret0}、{secret1}、… として参照される値",
+          "template": "ストレージテンプレート",
+          "templateInvalid": "JSON オブジェクトである必要があります",
+          "front": "フロンティングアドレス",
+          "frontDesc": "ストレージ API への接続に使う任意のホストまたは IP（ドメインフロンティング）。",
+          "frontPort": "フロンティングポート",
+          "segmentBytes": "セグメントサイズ（バイト）",
+          "flushInterval": "送出間隔（ms）",
+          "pollInterval": "ポーリング間隔（ms）",
+          "maxPollInterval": "最大ポーリング間隔（ms）",
+          "eagerWindow": "先行送信ウィンドウ（ms）",
+          "holeTimeout": "欠落セグメントのタイムアウト（ms）",
+          "sessionTtl": "セッション TTL（秒）",
+          "concurrency": "同時実行数"
+        },
+        "masque": {
+          "addressPool": "アドレスプール",
+          "addressPoolDesc": "トンネルのアドレスはこれらのプレフィックスから割り当てられます（IPv4 と IPv6 をそれぞれ最大 1 つ）。"
+        },
+        "autoFill": "自動入力"
       },
       "info": {
         "mode": "モード",
@@ -663,7 +706,8 @@
           "requestHeader": "リクエストヘッダー",
           "responseHeader": "レスポンスヘッダー"
         }
-      }
+      },
+      "advancedTitle": "詳細設定"
     },
     "clients": {
       "tabBasics": "基本",
@@ -833,7 +877,17 @@
         "bulkAdjusted": "{count} 件のクライアントを調整しました",
         "bulkAdjustedMixed": "{ok} 件調整、{skipped} 件スキップ",
         "delDepleted": "使い切った {count} 件のクライアントを削除しました"
-      }
+      },
+      "userTemplates": "User Plan Templates",
+      "userTemplatesDesc": "Reusable client plan presets (quota, duration, on-hold start, IP/device limits, and default inbounds)",
+      "addTemplate": "Add Template",
+      "templateName": "Template Name",
+      "templateNameRequired": "Template name is required",
+      "applyTemplate": "Apply Plan Template",
+      "selectTemplatePlaceholder": "Select a preset template...",
+      "templateApplied": "Template '{{name}}' applied",
+      "revokeSub": "Revoke & Rotate Subscription Link",
+      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?"
     },
     "groups": {
       "title": "グループ",
@@ -972,6 +1026,7 @@
     },
     "settings": {
       "title": "パネル設定",
+      "unsaved": "未保存の変更",
       "save": "保存",
       "infoDesc": "ここでのすべての変更は、保存してパネルを再起動する必要があります",
       "restartPanel": "パネルを再起動",
@@ -1067,7 +1122,7 @@
       "subAnnounce": "お知らせ",
       "subAnnounceDesc": "VPNクライアントに表示されるお知らせのテキスト",
       "subThemeDir": "サブスクリプションテーマディレクトリ",
-      "subThemeDirDesc": "サブスクリプションページのカスタムテンプレート (index.html/sub.html) を含むフォルダーの絶対パス（例: /etc/3x-ui/sub_templates/my-theme/）。空欄の場合はデフォルトのページを使用します。",
+      "subThemeDirDesc": "サブスクリプションページのカスタムテンプレート (index.html/sub.html) を含むフォルダーの絶対パス（例: /etc/x-ui/sub_templates/my-theme/）。空欄の場合はデフォルトのページを使用します。",
       "subThemeDirDocs": "テンプレートガイド ↗",
       "subEnableRouting": "ルーティングを有効化",
       "subEnableRoutingDesc": "VPNクライアントでルーティングを有効にするためのグローバル設定。(Happのみ)",
@@ -1200,7 +1255,29 @@
         "apiTokenEmpty": "トークンがまだありません — ボットやリモートパネルを認証するために作成してください。",
         "apiTokenDeleteWarning": "このトークンを使用しているクライアントは直ちに認証できなくなります。",
         "apiTokenCreatedTitle": "トークンを作成しました",
-        "apiTokenCreatedNotice": "このトークンを今すぐコピーしてください。セキュリティ上、読み取り可能な形式では保存されず、再表示されません。"
+        "apiTokenCreatedNotice": "このトークンを今すぐコピーしてください。セキュリティ上、読み取り可能な形式では保存されず、再表示されません。",
+        "apiTokenScope": "Permissions",
+        "apiTokenScopeFull": "Full access",
+        "apiTokenScopeRead": "Read-only",
+        "apiTokenExpireDays": "Expires in (days)",
+        "apiTokenExpireDaysDesc": "0 means never expires.",
+        "apiTokenExpires": "Expires",
+        "apiTokenExpired": "Expired",
+        "apiTokenLastUsed": "Last used",
+        "multiAdminTitle": "Admins & RBAC",
+        "multiAdminDesc": "Create secondary admin accounts with granular RBAC roles (Superadmin, Custom Admin, Support, or Read-only Viewer).",
+        "addAdmin": "Add Admin",
+        "editAdmin": "Edit Admin Account",
+        "adminRole": "Role",
+        "adminModules": "Allowed Modules",
+        "role_superadmin": "Superadmin (Full Access)",
+        "role_admin": "Custom Admin (Selected Modules)",
+        "role_support": "Support (Clients Read/Write + Inbounds Read)",
+        "role_viewer": "Viewer (Read-only Auditor)",
+        "lastLogin": "Last login",
+        "adminUsernameRequired": "Username is required",
+        "adminPasswordMin": "Password must be at least 4 characters",
+        "adminPasswordLeaveBlank": "Leave blank to keep existing password"
       },
       "toasts": {
         "modifySettings": "パラメーターが変更されました。",
@@ -1211,7 +1288,47 @@
         "userPassMustBeNotEmpty": "新しいユーザー名と新しいパスワードは空にできません",
         "getOutboundTrafficError": "送信トラフィックの取得エラー",
         "resetOutboundTrafficError": "送信トラフィックのリセットエラー"
-      }
+      },
+      "tgNotifyUserReport": "クライアントへの個人利用レポート",
+      "tgNotifyUserReportDesc": "各レポート時に、Telegram が紐づいたすべてのクライアントへ個人の利用状況（トラフィックと有効期限）を送信します。既定はオフ。",
+      "oneClickSslTitle": "One-Click SSL Certificate",
+      "oneClickSslDesc": "Issue a free Let's Encrypt certificate (auto-renewed before expiry) or an instant 1-year self-signed certificate.",
+      "issueCertBtn": "Issue SSL Certificate",
+      "certSelfSigned": "Self-Signed",
+      "certMode": "Certificate Type",
+      "certModeLetsEncrypt": "Let's Encrypt (HTTP-01 on port 80, auto-renewed)",
+      "certModeSelfSigned": "Self-Signed (instant, 1 year, no port 80 needed)",
+      "certDomain": "Domain",
+      "certDomainRequired": "Domain is required",
+      "certEmail": "Contact Email (optional)",
+      "certPort80Notice": "Port 80 must be reachable from the internet and point to this server.",
+      "certIssuedSuccess": "Certificate issued and applied",
+      "discordSettings": "Discord Bot",
+      "discordEnable": "Enable Discord Notifications",
+      "discordEnableDesc": "Send periodic traffic reports, approaching-limit alerts, and login notifications to Discord.",
+      "discordWebhookURL": "Discord Webhook URL",
+      "discordWebhookURLDesc": "Simplest setup: paste a channel Webhook URL.",
+      "discordBotToken": "Discord Bot Token (optional)",
+      "discordBotTokenDesc": "Alternative to Webhook: Bot token from Discord Developer Portal.",
+      "discordChannelId": "Discord Channel ID",
+      "discordChannelIdDesc": "Target channel ID when using a Bot token.",
+      "discordLoginNotify": "Login Notification",
+      "discordLoginNotifyDesc": "Post an embed whenever an admin login succeeds or fails.",
+      "discordTestTitle": "Test Discord Connection",
+      "discordTestDesc": "Save your settings first, then send a verification embed.",
+      "discordTestBtn": "Send Test Embed",
+      "discordTestSuccess": "Test message sent to Discord",
+      "cloudBackupTitle": "Cloud Backup",
+      "cloudBackupProviderGdrive": "Google Drive (Service Account / OAuth2)",
+      "cloudBackupGdriveGuide": "Google Drive Setup: (Method 1 - Recommended) Create a Google Cloud Service Account, enable Google Drive API, share your target Google Drive folder with the service account email, and paste the full JSON key below. (Method 2) Paste your OAuth2 Refresh Token below and enter your OAuth2 Client ID & Client Secret.",
+      "cloudBackupGdriveFolder": "Google Drive Folder ID or Link",
+      "cloudBackupGdriveFolderDesc": "Paste the Google Drive Folder ID or full folder URL (e.g. https://drive.google.com/drive/folders/1AbCdEf...). Leave empty to upload to Drive root.",
+      "cloudBackupGdriveCredentials": "Service Account JSON or OAuth2 Refresh Token",
+      "cloudBackupGdriveCredentialsDesc": "Paste the complete Google Cloud service_account JSON key file, or an OAuth2 Refresh Token (1//0g...).",
+      "cloudBackupGdriveClientId": "OAuth2 Client ID (Optional)",
+      "cloudBackupGdriveClientIdDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
+      "cloudBackupGdriveClientSecret": "OAuth2 Client Secret (Optional)",
+      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key."
     },
     "xray": {
       "title": "Xray 設定",
@@ -1391,7 +1508,10 @@
         "acceptProxyProtocol": "proxy protocol を受け入れる",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (秒)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (秒)",
+        "masqueWarpDesc": "登録済みの ECDSA P-256 鍵で MASQUE 経由で Cloudflare WARP に接続します。host と path の既定値は Cloudflare のエンドポイントです。",
+        "masqueWarpPublicKey": "エンドポイント公開鍵",
+        "masqueWarpAddress": "トンネルアドレス"
       },
       "outbound": {
         "addOutbound": "アウトバウンド追加",
@@ -1556,7 +1676,9 @@
         "warpPlusData": "WARP+ データ",
         "quota": "クォータ",
         "usage": "使用量",
-        "addOutbound": "アウトバウンドを追加"
+        "addOutbound": "アウトバウンドを追加",
+        "masqueDesc": "MASQUE 用に別の WARP デバイスを登録します。上の WireGuard の登録には影響しません。",
+        "addMasqueOutbound": "WARP over MASQUE のアウトバウンドを追加"
       },
       "dns": {
         "enable": "DNSを有効にする",
@@ -1606,6 +1728,23 @@
         "edit": "フェイクDNS編集",
         "ipPool": "IPプールサブネット",
         "poolSize": "プールサイズ"
+      },
+      "tuic": {
+        "congestionControl": "輻輳制御",
+        "congestionControlHint": "サーバーとクライアントの方式。サーバーへの変更は再接続後に適用。",
+        "profileOptions": "Client profile options",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP リレーモード",
+        "udpRelayModeHint": "クライアントの UDP モード。サーバーは両方に対応。",
+        "zeroRttHandshake": "0-RTT ハンドシェイク",
+        "logLevel": "ログレベル",
+        "logLevelHint": "このインバウンドの最低ログレベル。",
+        "maxIdleTime": "最大アイドル時間 (秒)",
+        "authTimeout": "認証タイムアウト (秒)",
+        "maxUdpRelayPacketSize": "最大 UDP パケットサイズ",
+        "sni": "SNI",
+        "sniHint": "クライアント設定の TLS サーバー名。",
+        "sniRequired": "証明書パスの自動入力にはドメインを指定してください。"
       }
     }
   },
@@ -1714,7 +1853,21 @@
       "AreYouSure": "本当にいいですか？🤔",
       "SuccessResetTraffic": "📧 メール: {{ .ClientEmail }}\n🏁 結果: ✅ 成功",
       "FailedResetTraffic": "📧 メール: {{ .ClientEmail }}\n🏁 結果: ❌ 失敗 \n\n🛠️ エラー: [ {{ .ErrorMessage }} ]",
-      "FinishProcess": "🔚 すべてのクライアントのトラフィックリセットが完了しました。"
+      "FinishProcess": "🔚 すべてのクライアントのトラフィックリセットが完了しました。",
+      "broadcastPrompt": "すべてのクライアントに一斉送信するメッセージ本文を送信してください（最大約3800文字）。",
+      "broadcastEmpty": "メッセージが空です。本文を送信するか、「キャンセル」を押してください。",
+      "broadcastTooLong": "メッセージが長すぎます。短くして（最大約3800文字）もう一度送信してください。",
+      "broadcastPreview": "📣 一斉送信のプレビュー — 受信者数: {{ .Count }}",
+      "broadcastCanceled": "一斉送信をキャンセルしました。",
+      "broadcastRunning": "別の一斉送信が進行中です。完了までお待ちください。",
+      "broadcastDone": "✅ 一斉送信が完了しました：送信成功 {{ .Sent }}、失敗 {{ .Failed }}。",
+      "broadcastNoRecipients": "Telegramアカウントが紐づくクライアントが見つかりません — 送信対象がありません。",
+      "inviteCreated": "🔗 {{ .Email }} の招待リンク\n（1回限り、{{ .Expires }} まで有効）:\n\n{{ .Link }}",
+      "inviteRedeemed": "✅ {{ .Firstname }} さん、Telegram アカウントが {{ .Email }} に紐づきました。下のボタンからサブスクリプションを管理できます。",
+      "inviteInvalid": "この招待リンクは無効です。提供者に新しいリンクを依頼してください。",
+      "inviteUsed": "この招待リンクは既に使用されています。提供者に新しいリンクを依頼してください。",
+      "inviteExpired": "この招待リンクの有効期限が切れています。提供者に新しいリンクを依頼してください。",
+      "userReport": "📊 ご利用状況レポート — {{ .DateTime }}"
     },
     "buttons": {
       "closeKeyboard": "❌ キーボードを閉じる",
@@ -1759,7 +1912,10 @@
       "change_comment": "⚙️💬 コメント",
       "change_flow": "⚙️🚦 Flow",
       "ResetAllTraffics": "すべてのトラフィックをリセット",
-      "SortedTrafficUsageReport": "ソートされたトラフィック使用レポート"
+      "SortedTrafficUsageReport": "ソートされたトラフィック使用レポート",
+      "broadcast": "📣 一斉送信",
+      "confirmBroadcast": "✅ 今すぐ送信",
+      "invite": "🔗 招待リンク"
     },
     "answers": {
       "successfulOperation": "✅ 成功！",
@@ -1784,5 +1940,28 @@
       "chooseClient": "インバウンド {{ .Inbound }} のクライアントを選択",
       "chooseInbound": "インバウンドを選択"
     }
+  },
+  "commandPalette": {
+    "open": "Quick search",
+    "placeholder": "Jump to page, search client email / subId, or run an action…",
+    "empty": "No matching pages, clients, or actions.",
+    "groupPages": "Pages",
+    "groupClients": "Clients",
+    "groupInbounds": "Inbounds",
+    "groupActions": "Quick actions",
+    "toggleTheme": "Toggle dark / light theme",
+    "hintNavigate": "navigate",
+    "hintSelect": "select"
+  },
+  "resellers": {
+    "supportTickets": "Support Tickets",
+    "paymentOrders": "Payment Webhook Orders",
+    "ticketsDesc": "Direct support communication between Resellers and Panel Admins",
+    "newTicket": "New Ticket",
+    "ticketSubject": "Subject",
+    "ticketPriority": "Priority",
+    "ticketMessage": "Message",
+    "ticketReplyPlaceholder": "Write a reply...",
+    "ticketSubjectAndMessageRequired": "Subject and message are required"
   }
 }
