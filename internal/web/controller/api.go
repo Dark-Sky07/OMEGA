@@ -135,6 +135,7 @@ func isAuditReadOnlyPost(relPath string) bool {
 		relPath == "/panel/api/xray/outbound-subs/parse",
 		relPath == "/panel/api/inbounds/onlines",
 		relPath == "/panel/api/inbounds/lastOnline",
+		relPath == "/panel/api/server/checkHost",
 		strings.HasPrefix(relPath, "/panel/api/inbounds/clientIps/"),
 		strings.HasPrefix(relPath, "/panel/api/server/logs/"),
 		strings.HasPrefix(relPath, "/panel/api/server/xraylogs/"),

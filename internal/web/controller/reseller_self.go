@@ -23,6 +23,7 @@ type ResellerSelfController struct {
 	BaseController
 	resellerService service.ResellerService
 	ticketService   service.TicketService
+	voucherService  service.VoucherService
 }
 
 // NewResellerSelfController wires the reseller self-service routes.
@@ -42,6 +43,7 @@ func (a *ResellerSelfController) initRouter(g *gin.RouterGroup) {
 	g.POST("/tickets/create", a.createTicket)
 	g.POST("/tickets/:id/reply", a.replyTicket)
 	g.POST("/tickets/:id/close", a.closeTicket)
+	g.POST("/vouchers/redeem", a.redeemVoucher)
 }
 
 // currentReseller returns the reseller bound to the request, or nil for admin
@@ -218,4 +220,28 @@ func (a *ResellerSelfController) closeTicket(c *gin.Context) {
 	}
 	jsonMsg(c, "", a.ticketService.CloseTicket(id, reseller.Id))
 }
+
+func (a *ResellerSelfController) redeemVoucher(c *gin.Context) {
+	reseller := a.currentReseller(c)
+	if reseller == nil {
+		return
+	}
+	var form struct {
+		Code string `json:"code"`
+	}
+	if err := c.ShouldBindJSON(&form); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	updatedReseller, voucher, err := a.voucherService.Redeem(reseller.Id, form.Code)
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, gin.H{
+		"reseller": updatedReseller,
+		"voucher":  voucher,
+	}, nil)
+}
+
 

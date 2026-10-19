@@ -76,6 +76,21 @@ interface AuditLogEntry {
   createdAt: number;
 }
 
+interface CheckHostNodeResult {
+  node: string;
+  location: string;
+  success: boolean;
+  latencyMs: number;
+  message?: string;
+}
+
+interface CheckHostReport {
+  target: string;
+  mode: string;
+  checkedAt: number;
+  nodes: CheckHostNodeResult[];
+}
+
 interface GeneralTabProps {
   allSetting: AllSetting;
   updateSetting: (patch: Partial<AllSetting>) => void;
@@ -109,7 +124,27 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
   const [auditActorType, setAuditActorType] = useState('');
   const [auditModule, setAuditModule] = useState('');
   const [auditSearch, setAuditSearch] = useState('');
+  const [checkHostTarget, setCheckHostTarget] = useState(() => `${window.location.hostname}:443`);
+  const [checkHostMode, setCheckHostMode] = useState<'tcp' | 'ping'>('tcp');
+  const [checkHostLoading, setCheckHostLoading] = useState(false);
+  const [checkHostNodes, setCheckHostNodes] = useState<CheckHostNodeResult[]>([]);
   const [messageApi, messageContextHolder] = message.useMessage();
+
+  async function runCheckHostNow() {
+    if (!checkHostTarget.trim()) return;
+    setCheckHostLoading(true);
+    try {
+      const msg = await HttpUtil.post('/panel/api/server/checkHost', {
+        target: checkHostTarget.trim(),
+        mode: checkHostMode,
+      }) as ApiMsg<CheckHostReport>;
+      if (msg?.success && msg.obj?.nodes) {
+        setCheckHostNodes(msg.obj.nodes);
+      }
+    } finally {
+      setCheckHostLoading(false);
+    }
+  }
 
   const loadWatchdogStatus = useCallback(async () => {
     const msg = await HttpUtil.get('/panel/api/xray/watchdog/status', undefined, { silent: true }) as ApiMsg<WatchdogStatusView>;
@@ -868,6 +903,81 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                   render: (st: number) => (
                     <Tag color={st >= 200 && st < 400 ? 'green' : 'red'}>{st}</Tag>
                   ),
+                },
+              ]}
+            />
+          </div>
+        ),
+      },
+      {
+        key: '9',
+        label: catTabLabel(<GlobalOutlined />, t('pages.settings.checkHostTitle', 'Iran Check-Host'), isMobile),
+        children: (
+          <div style={{ padding: '12px 0' }}>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.checkHostTitle', 'Iran & International Filtering Check (Check-Host)')}
+              description={t('pages.settings.checkHostDesc', 'Test TCP port reachability or ICMP ping from Iranian cities (Tehran, Shiraz, Tabriz, Isfahan) and Frankfurt to detect port/IP filtering.')}
+            >
+              <Space wrap>
+                <Input
+                  value={checkHostTarget}
+                  onChange={(e) => setCheckHostTarget(e.target.value)}
+                  placeholder="example.com:443"
+                  style={{ width: 240 }}
+                  onPressEnter={runCheckHostNow}
+                />
+                <Select
+                  value={checkHostMode}
+                  onChange={(v: 'tcp' | 'ping') => setCheckHostMode(v)}
+                  style={{ width: 150 }}
+                  options={[
+                    { value: 'tcp', label: 'TCP Port Check' },
+                    { value: 'ping', label: 'ICMP Ping' },
+                  ]}
+                />
+                <Button
+                  type="primary"
+                  icon={<GlobalOutlined />}
+                  loading={checkHostLoading}
+                  onClick={runCheckHostNow}
+                >
+                  {t('pages.settings.checkHostRunBtn', 'Run Check-Host Test')}
+                </Button>
+              </Space>
+            </SettingListItem>
+
+            <Table<CheckHostNodeResult>
+              rowKey="node"
+              size="small"
+              loading={checkHostLoading}
+              dataSource={checkHostNodes}
+              pagination={false}
+              columns={[
+                {
+                  title: t('pages.settings.checkHostLocation', 'Probe Location'),
+                  dataIndex: 'location',
+                },
+                {
+                  title: t('pages.settings.checkHostStatus', 'Reachability'),
+                  dataIndex: 'success',
+                  width: 140,
+                  render: (ok: boolean) => (
+                    <Tag color={ok ? 'green' : 'red'}>
+                      {ok ? t('pages.settings.checkHostOpen', 'Reachable (OK)') : t('pages.settings.checkHostBlocked', 'Filtered / Timeout')}
+                    </Tag>
+                  ),
+                },
+                {
+                  title: t('pages.settings.checkHostLatency', 'Latency'),
+                  dataIndex: 'latencyMs',
+                  width: 120,
+                  render: (ms: number, r) => (r.success && ms > 0 ? `${ms} ms` : '-'),
+                },
+                {
+                  title: t('pages.settings.checkHostDetail', 'Detail'),
+                  dataIndex: 'message',
+                  render: (v?: string) => v || '-',
                 },
               ]}
             />

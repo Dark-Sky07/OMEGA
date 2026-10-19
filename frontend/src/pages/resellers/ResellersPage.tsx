@@ -38,6 +38,7 @@ import {
   DeleteOutlined,
   EditOutlined,
   ExportOutlined,
+  GiftOutlined,
   KeyOutlined,
   PlusOutlined,
   ReloadOutlined,
@@ -55,6 +56,7 @@ import type { ResellerReport, ResellerStat } from '@/api/queries/useSession';
 import { PageHeader } from '@/components/ui';
 import ResellersOverview from './ResellersOverview';
 import SupportTicketsModal from './SupportTicketsModal';
+import VouchersModal from './VouchersModal';
 import './ResellersPage.css';
 
 const GB = 1024 * 1024 * 1024;
@@ -97,6 +99,7 @@ export default function ResellersPage() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [ticketsOpen, setTicketsOpen] = useState(false);
+  const [vouchersOpen, setVouchersOpen] = useState(false);
   const [view, setView] = useState<'manage' | 'overview'>('manage');
   const [editing, setEditing] = useState<ResellerStat | null>(null);
   const [passwordFor, setPasswordFor] = useState<ResellerStat | null>(null);
@@ -533,6 +536,9 @@ export default function ResellersPage() {
                   <Button icon={<CustomerServiceOutlined />} onClick={() => setTicketsOpen(true)}>
                     {!isMobile && (t('resellers.supportTickets') || 'Support Tickets')}
                   </Button>
+                  <Button icon={<GiftOutlined />} onClick={() => setVouchersOpen(true)}>
+                    {!isMobile && (t('resellers.vouchersTitle', 'Vouchers'))}
+                  </Button>
                   <Button icon={<ReloadOutlined />} onClick={() => refreshAll()} loading={listQuery.isFetching}>
                     {!isMobile && t('refresh')}
                   </Button>
@@ -569,6 +575,11 @@ export default function ResellersPage() {
               open={ticketsOpen}
               mode="admin"
               onOpenChange={setTicketsOpen}
+            />
+
+            <VouchersModal
+              open={vouchersOpen}
+              onOpenChange={setVouchersOpen}
             />
 
             <Modal

@@ -105,6 +105,7 @@ func isReadOnlyPanelPath(path string, method string) bool {
 		"/panel/api/clients/ips/",
 		"/panel/api/setting/all",
 		"/panel/api/setting/defaultSettings",
+		"/panel/api/server/checkHost",
 	}
 	for _, suffix := range readOnlyPostSuffixes {
 		if path == suffix || strings.HasPrefix(path, suffix) {

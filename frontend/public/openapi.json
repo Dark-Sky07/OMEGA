@@ -11086,6 +11086,167 @@
         }
       }
     },
+    "/panel/api/resellers/vouchers": {
+      "get": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "List all reseller wallet gift/voucher codes.",
+        "operationId": "get_panel_api_resellers_vouchers",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/vouchers/create": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Create a new single-use or multi-use reseller wallet/traffic gift voucher code.",
+        "operationId": "post_panel_api_resellers_vouchers_create",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/vouchers/delete/{id}": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Delete a reseller gift voucher code by ID.",
+        "operationId": "post_panel_api_resellers_vouchers_delete_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/reseller/vouchers/redeem": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Redeem a gift/voucher code to credit the signed-in reseller wallet balance and/or traffic quota.",
+        "operationId": "post_panel_api_reseller_vouchers_redeem",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/checkHost": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Run an Iran & international Check-Host TCP port or ICMP ping reachability test against a target host or host:port.",
+        "operationId": "post_panel_api_server_checkHost",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/setting/admins": {
       "get": {
         "tags": [

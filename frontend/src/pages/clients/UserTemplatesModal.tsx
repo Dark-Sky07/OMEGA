@@ -44,6 +44,7 @@ interface TemplateFormState {
   reset: number;
   renewalMode: number;
   renewalDay: number;
+  fixedPrice: number;
   group: string;
   inboundIds: number[];
 }
@@ -62,6 +63,7 @@ function emptyTemplateForm(): TemplateFormState {
     reset: 0,
     renewalMode: 0,
     renewalDay: 0,
+    fixedPrice: 0,
     group: '',
     inboundIds: [],
   };
@@ -108,6 +110,7 @@ export default function UserTemplatesModal({
       reset: row.reset || 0,
       renewalMode: row.renewalMode || 0,
       renewalDay: row.renewalDay || 0,
+      fixedPrice: row.fixedPrice || 0,
       group: row.group || '',
       inboundIds: Array.isArray(row.inboundIds) ? row.inboundIds : [],
     });
@@ -133,6 +136,7 @@ export default function UserTemplatesModal({
         reset: Number(editing.reset) || 0,
         renewalMode: Number(editing.renewalMode) || 0,
         renewalDay: Number(editing.renewalMode) > 0 ? Number(editing.renewalDay) || 0 : 0,
+        fixedPrice: Number(editing.fixedPrice) || 0,
         group: editing.group.trim(),
         inboundIds: editing.inboundIds || [],
       };
@@ -294,6 +298,16 @@ export default function UserTemplatesModal({
                   </Form.Item>
                 </Col>
                 <Col xs={12} md={6}>
+                  <Form.Item label={t('pages.clients.templateFixedPrice', 'Fixed Price (Reseller)')}>
+                    <InputNumber
+                      min={0}
+                      value={editing.fixedPrice}
+                      style={{ width: '100%' }}
+                      onChange={(v) => setEditing({ ...editing, fixedPrice: Number(v) || 0 })}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={12} md={6}>
                   <Form.Item label={t('pages.clients.group')}>
                     <AutoComplete
                       value={editing.group}
@@ -364,6 +378,12 @@ export default function UserTemplatesModal({
                   {row.delayedStart && <Tag color="blue">{t('pages.clients.delayedStart')}</Tag>}
                 </Space>
               ),
+            },
+            {
+              title: t('pages.clients.templateFixedPrice', 'Fixed Price'),
+              dataIndex: 'fixedPrice',
+              key: 'fixedPrice',
+              render: (v?: number) => (v && v > 0 ? <Tag color="gold">{v}</Tag> : '-'),
             },
             {
               title: t('pages.clients.group'),

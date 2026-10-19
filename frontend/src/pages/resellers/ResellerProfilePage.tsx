@@ -19,7 +19,7 @@ import {
   Typography,
   message,
 } from 'antd';
-import { CustomerServiceOutlined, ShopOutlined, UserOutlined } from '@ant-design/icons';
+import { CustomerServiceOutlined, GiftOutlined, ShopOutlined, UserOutlined } from '@ant-design/icons';
 
 import AppSidebar from '@/layouts/AppSidebar';
 import { PageHeader } from '@/components/ui';
@@ -43,7 +43,25 @@ export default function ResellerProfilePage() {
   const [messageApi, messageContextHolder] = message.useMessage();
   const [saving, setSaving] = useState(false);
   const [ticketsOpen, setTicketsOpen] = useState(false);
+  const [voucherCode, setVoucherCode] = useState('');
+  const [redeeming, setRedeeming] = useState(false);
   const [passwordForm] = Form.useForm<{ oldPassword: string; newPassword: string; confirmPassword: string }>();
+
+  const redeemVoucher = useCallback(async () => {
+    const code = voucherCode.trim();
+    if (!code) return;
+    setRedeeming(true);
+    try {
+      const msg = await HttpUtil.post('/panel/api/reseller/vouchers/redeem', { code }, JSON_HEADERS as never);
+      if (msg?.success) {
+        messageApi.success(t('resellers.voucherRedeemed', 'Voucher code redeemed successfully!'));
+        setVoucherCode('');
+        queryClient.invalidateQueries({ queryKey: keys.resellers.selfReport() });
+      }
+    } finally {
+      setRedeeming(false);
+    }
+  }, [messageApi, queryClient, t, voucherCode]);
 
   useEffect(() => {
     setMessageInstance(messageApi);
@@ -237,6 +255,32 @@ export default function ResellerProfilePage() {
                         {t('save')}
                       </Button>
                     </Form>
+                  </Card>
+                </Col>
+
+                <Col span={24}>
+                  <Card
+                    size="small"
+                    hoverable
+                    title={
+                      <Space>
+                        <GiftOutlined />
+                        {t('resellers.redeemVoucherTitle', 'Redeem Gift / Voucher Code')}
+                      </Space>
+                    }
+                  >
+                    <Space wrap>
+                      <Input
+                        value={voucherCode}
+                        onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                        placeholder="OMEGA-XXXX-XXXX"
+                        style={{ width: 260 }}
+                        onPressEnter={redeemVoucher}
+                      />
+                      <Button type="primary" icon={<GiftOutlined />} loading={redeeming} onClick={redeemVoucher}>
+                        {t('resellers.redeemVoucherBtn', 'Redeem Code')}
+                      </Button>
+                    </Space>
                   </Card>
                 </Col>
 

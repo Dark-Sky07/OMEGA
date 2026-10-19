@@ -29,6 +29,7 @@ type ResellerController struct {
 	resellerService service.ResellerService
 	ticketService   service.TicketService
 	webhookService  service.PaymentWebhookService
+	voucherService  service.VoucherService
 }
 
 // NewResellerController wires the admin reseller routes.
@@ -64,6 +65,9 @@ func (a *ResellerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/tickets/:id/close", a.closeTicket)
 	g.GET("/orders", a.listOrders)
 	g.POST("/orders/process", a.processOrder)
+	g.GET("/vouchers", a.listVouchers)
+	g.POST("/vouchers/create", a.createVoucher)
+	g.POST("/vouchers/delete/:id", a.deleteVoucher)
 }
 
 func (a *ResellerController) list(c *gin.Context) {
@@ -498,6 +502,45 @@ func (a *ResellerController) processOrder(c *gin.Context) {
 		return
 	}
 	jsonObj(c, order, nil)
+}
+
+func (a *ResellerController) listVouchers(c *gin.Context) {
+	rows, err := a.voucherService.List()
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, rows, nil)
+}
+
+func (a *ResellerController) createVoucher(c *gin.Context) {
+	var form struct {
+		Code      string  `json:"code"`
+		Amount    float64 `json:"amount"`
+		TrafficGB int64   `json:"trafficGB"`
+		MaxUses   int     `json:"maxUses"`
+		ExpiresAt int64   `json:"expiresAt"`
+		Note      string  `json:"note"`
+	}
+	if err := c.ShouldBindJSON(&form); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	v, err := a.voucherService.Create(form.Code, form.Amount, form.TrafficGB, form.MaxUses, form.ExpiresAt, form.Note)
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, v, nil)
+}
+
+func (a *ResellerController) deleteVoucher(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		jsonMsg(c, "", errors.New("invalid voucher id"))
+		return
+	}
+	jsonMsg(c, "", a.voucherService.Delete(id))
 }
 
 // HandlePublicPaymentWebhook processes HMAC-SHA256 signed external payment
