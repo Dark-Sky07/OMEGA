@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"net"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -497,6 +499,7 @@ func probeThroughSocks(port int, testURL string, timeout time.Duration, result *
 		result.Error = err.Error()
 		return
 	}
+	bodySnippet, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
 	resp.Body.Close()
 
 	result.Success = true
@@ -510,6 +513,80 @@ func probeThroughSocks(port int, testURL string, timeout time.Duration, result *
 	}
 	if gotFirstRB {
 		result.TTFBMs = max(ttfbDur.Milliseconds(), 1)
+	}
+	if ip, cc := parseTraceGeo(string(bodySnippet)); ip != "" {
+		result.EgressIP = ip
+		result.CountryCode = cc
+	} else if !isLocalOrTestTarget(testURL) {
+		populateEgressGeo(client, result)
+	}
+}
+
+func isLocalOrTestTarget(rawURL string) bool {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return true
+	}
+	host := strings.ToLower(strings.Trim(u.Hostname(), "[]"))
+	if host == "" || host == "localhost" || strings.HasSuffix(host, ".invalid") || strings.HasSuffix(host, ".test") {
+		return true
+	}
+	if ip := net.ParseIP(host); ip != nil && (ip.IsLoopback() || ip.IsUnspecified()) {
+		return true
+	}
+	return false
+}
+
+func parseTraceGeo(body string) (string, string) {
+	body = strings.TrimSpace(body)
+	if body == "" {
+		return "", ""
+	}
+	if strings.HasPrefix(body, "{") {
+		var obj map[string]any
+		if err := json.Unmarshal([]byte(body), &obj); err == nil {
+			ip, _ := obj["ip"].(string)
+			cc, _ := obj["countryCode"].(string)
+			if cc == "" {
+				cc, _ = obj["country_code"].(string)
+			}
+			if cc == "" {
+				cc, _ = obj["country"].(string)
+			}
+			return strings.TrimSpace(ip), strings.ToUpper(strings.TrimSpace(cc))
+		}
+	}
+	var ip, cc string
+	for _, line := range strings.Split(body, "\n") {
+		line = strings.TrimSpace(line)
+		if after, ok := strings.CutPrefix(line, "ip="); ok {
+			ip = strings.TrimSpace(after)
+		} else if after, ok := strings.CutPrefix(line, "loc="); ok {
+			cc = strings.ToUpper(strings.TrimSpace(after))
+		}
+	}
+	if net.ParseIP(ip) == nil {
+		return "", ""
+	}
+	return ip, cc
+}
+
+func populateEgressGeo(client *http.Client, result *TestOutboundResult) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2500*time.Millisecond)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://1.1.1.1/cdn-cgi/trace", nil)
+	if err != nil {
+		return
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
+	buf, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+	resp.Body.Close()
+	if ip, cc := parseTraceGeo(string(buf)); ip != "" {
+		result.EgressIP = ip
+		result.CountryCode = cc
 	}
 }
 

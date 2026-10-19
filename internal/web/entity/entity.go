@@ -132,6 +132,18 @@ type AllSetting struct {
 
 	// WARP
 	WarpUpdateInterval int `json:"warpUpdateInterval" form:"warpUpdateInterval" validate:"gte=0"`
+
+	// Cloud Backup (S3 / Cloudflare R2 / MinIO / WebDAV)
+	CloudBackupEnable        bool   `json:"cloudBackupEnable" form:"cloudBackupEnable"`
+	CloudBackupProvider      string `json:"cloudBackupProvider" form:"cloudBackupProvider"`
+	CloudBackupEndpoint      string `json:"cloudBackupEndpoint" form:"cloudBackupEndpoint"`
+	CloudBackupRegion        string `json:"cloudBackupRegion" form:"cloudBackupRegion"`
+	CloudBackupBucket        string `json:"cloudBackupBucket" form:"cloudBackupBucket"`
+	CloudBackupPrefix        string `json:"cloudBackupPrefix" form:"cloudBackupPrefix"`
+	CloudBackupAccessKey     string `json:"cloudBackupAccessKey" form:"cloudBackupAccessKey"`
+	CloudBackupSecretKey     string `json:"cloudBackupSecretKey" form:"cloudBackupSecretKey"`
+	CloudBackupIntervalHours int    `json:"cloudBackupIntervalHours" form:"cloudBackupIntervalHours" validate:"gte=0,lte=720"`
+	CloudBackupRetention     int    `json:"cloudBackupRetention" form:"cloudBackupRetention" validate:"gte=0,lte=1000"`
 }
 
 // AllSettingView is the browser-safe settings read model. Secret values

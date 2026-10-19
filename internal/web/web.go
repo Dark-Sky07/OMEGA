@@ -325,6 +325,7 @@ func (s *Server) startTask(restartXray bool) {
 	// check client ips from log file every day
 	s.cron.AddJob("@daily", job.NewClearLogsJob())
 	s.cron.AddJob("@daily", job.NewCertRenewJob())
+	s.cron.AddJob("@every 15m", job.NewCloudBackupJob())
 	s.cron.AddJob("@hourly", job.NewWarpIpJob())
 
 	// Inbound traffic reset jobs

@@ -8590,6 +8590,42 @@
         }
       }
     },
+    "/panel/api/setting/cloudBackup/run": {
+      "post": {
+        "tags": [
+          "API Tokens"
+        ],
+        "summary": "Immediately upload a database snapshot to the configured S3 / Cloudflare R2 / MinIO or WebDAV cloud storage and apply retention cleanup.",
+        "operationId": "post_panel_api_setting_cloudBackup_run",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "key": "omega-backups/x-ui-backup-20261019-120000.db"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/xray/": {
       "post": {
         "tags": [
