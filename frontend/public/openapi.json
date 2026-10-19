@@ -8807,7 +8807,7 @@
                 "example": {
                   "success": true,
                   "obj": {
-                    "key": "omega-backups/x-ui-backup-20261019-120000.db"
+                    "key": "phoenix-backups/x-ui-backup-20261019-120000.db"
                   }
                 }
               }

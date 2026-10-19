@@ -174,7 +174,7 @@ novaX عملاً فورک rebrand‌شدهٔ PHOENIXِ جدید با ظاهر ش
 
 ### منابع
 - کد مخزن PHOENIX (همین ریپو، شاخه `arena/045055a9-omega`)
-- [PHOENIX releases](https://github.com/Dark-Sky07/OMEGA/releases) (v3.4.0 … v3.10.2)
+- [PHOENIX releases](https://github.com/Dark-Sky07/phoenix/releases) (v3.4.0 … v3.10.2)
 - [PasarGuard/panel](https://github.com/PasarGuard/panel) و [docs.pasarguard.org](https://docs.pasarguard.org/en/)
 - [alireza0/x-ui](https://github.com/alireza0/x-ui)
 - [Gozargah/Marzban](https://github.com/Gozargah/Marzban) و مستندات Marzban API

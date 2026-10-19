@@ -34,7 +34,7 @@ jobs:
         id: meta_ghcr
         uses: docker/metadata-action@v6
         with:
-          images: ghcr.io/dark-sky07/omega
+          images: ghcr.io/dark-sky07/phoenix
           tags: |
             type=ref,event=branch
             type=ref,event=tag

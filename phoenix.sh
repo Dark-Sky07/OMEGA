@@ -6,6 +6,10 @@ blue='\033[0;34m'
 yellow='\033[0;33m'
 plain='\033[0m'
 
+# PHOENIX repository. PHOENIX_REPO wins; the legacy OMEGA_REPO override is
+# still honoured so existing automation keeps working.
+PHOENIX_REPO="${PHOENIX_REPO:-${OMEGA_REPO:-Dark-Sky07/phoenix}}"
+
 #Add some basic function here
 function LOGD() {
     echo -e "${yellow}[DEG] $* ${plain}"
@@ -136,34 +140,47 @@ if [[ $EUID -eq 0 && -f "$0" && ! -f /usr/bin/phoenix ]]; then
     cp -f "$0" /usr/bin/phoenix 2> /dev/null && chmod +x /usr/bin/phoenix 2> /dev/null || true
 fi
 
-omega_latest_tag() {
-    local repo="${OMEGA_REPO:-Dark-Sky07/OMEGA}" tag
-    tag="${OMEGA_TAG:-$(curl -4fsSL "https://api.github.com/repos/${repo}/releases/latest" 2> /dev/null | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}"
+phoenix_latest_tag() {
+    local repo="${PHOENIX_REPO}" tag
+    tag="${PHOENIX_TAG:-${OMEGA_TAG:-$(curl -4fsSL "https://api.github.com/repos/${repo}/releases/latest" 2> /dev/null | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}}"
     [[ -n "${tag}" ]] || return 1
     printf '%s\n' "${tag}"
 }
 
-omega_run_installer() {
-    local repo="${OMEGA_REPO:-Dark-Sky07/OMEGA}" tag tmp rc
-    tag="${1:-$(omega_latest_tag)}"
+phoenix_run_installer() {
+    local repo="${PHOENIX_REPO}" tag tmp rc
+    tag="${1:-$(phoenix_latest_tag)}"
     if [[ -z "${tag}" ]]; then
         LOGE "Could not determine the latest PHOENIX release tag."
         return 1
     fi
-    tmp="$(mktemp /tmp/omega-install.XXXXXX.sh)" || return 1
-    if ! curl -4fLRsS -o "${tmp}" "https://raw.githubusercontent.com/${repo}/${tag}/install-omega.sh"; then
-        rm -f "${tmp}"
-        LOGE "Could not download the PHOENIX ${tag} installer."
-        return 1
+    tmp="$(mktemp /tmp/phoenix-install.XXXXXX.sh)" || return 1
+    if ! curl -4fLRsS -o "${tmp}" "https://raw.githubusercontent.com/${repo}/${tag}/install-phoenix.sh"; then
+        # Older tags shipped the installer as install.sh.
+        if ! curl -4fLRsS -o "${tmp}" "https://raw.githubusercontent.com/${repo}/${tag}/install.sh"; then
+            rm -f "${tmp}"
+            LOGE "Could not download the PHOENIX ${tag} installer."
+            return 1
+        fi
     fi
-    env OMEGA_REF="${tag}" bash "${tmp}" "${tag}"
+    env PHOENIX_REF="${tag}" OMEGA_REF="${tag}" bash "${tmp}" "${tag}"
     rc=$?
     rm -f "${tmp}"
     return "${rc}"
 }
 
+# Download the release management script into /usr/bin/x-ui. Newer releases
+# ship it as phoenix.sh; older tags only have x-ui.sh.
+update_release_script() {
+    local repo="$1" tag="$2"
+    if curl -fLRsS -o /usr/bin/x-ui "https://raw.githubusercontent.com/${repo}/${tag}/phoenix.sh"; then
+        return 0
+    fi
+    curl -fLRsS -o /usr/bin/x-ui "https://raw.githubusercontent.com/${repo}/${tag}/x-ui.sh"
+}
+
 install() {
-    omega_run_installer
+    phoenix_run_installer
     if [[ $? == 0 ]]; then
         if [[ $# == 0 ]]; then
             start
@@ -182,7 +199,7 @@ update() {
         fi
         return 0
     fi
-    omega_run_installer
+    phoenix_run_installer
     if [[ $? == 0 ]]; then
         LOGI "Update is complete, Panel has automatically restarted "
         before_show_menu
@@ -200,9 +217,9 @@ update_menu() {
         return 0
     fi
 
-    local repo="${OMEGA_REPO:-Dark-Sky07/OMEGA}" tag
-    tag="$(omega_latest_tag)"
-    if [[ -z "${tag}" ]] || ! curl -fLRsS -o /usr/bin/x-ui "https://raw.githubusercontent.com/${repo}/${tag}/x-ui.sh"; then
+    local repo="${PHOENIX_REPO}" tag
+    tag="$(phoenix_latest_tag)"
+    if [[ -z "${tag}" ]] || ! update_release_script "${repo}" "${tag}"; then
         echo -e "${red}Failed to update the release management script.${plain}"
         return 1
     fi
@@ -220,7 +237,7 @@ legacy_version() {
     # release with a mismatched launcher. Keep the menu entry safe by routing
     # it through the same latest-release resolver as install/update.
     echo "Version-pinned installation is no longer supported; resolving the latest PHOENIX release."
-    omega_run_installer
+    phoenix_run_installer
 }
 
 # Function to handle the deletion of the script file
@@ -271,7 +288,7 @@ uninstall() {
     echo ""
     echo -e "Uninstalled Successfully.\n"
     echo "If you need to install this panel again, you can use below command:"
-    echo -e "${green}bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/OMEGA/main/x-ui.sh) install${plain}"
+    echo -e "${green}bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/phoenix/main/install-phoenix.sh)${plain}"
     echo ""
     # Trap the SIGTERM signal
     trap delete_script SIGTERM
@@ -804,9 +821,9 @@ enable_bbr() {
 }
 
 update_shell() {
-    local repo="${OMEGA_REPO:-Dark-Sky07/OMEGA}" tag
-    tag="$(omega_latest_tag)"
-    if [[ -z "${tag}" ]] || ! curl -fLRsS -o /usr/bin/x-ui "https://raw.githubusercontent.com/${repo}/${tag}/x-ui.sh"; then
+    local repo="${PHOENIX_REPO}" tag
+    tag="$(phoenix_latest_tag)"
+    if [[ -z "${tag}" ]] || ! update_release_script "${repo}" "${tag}"; then
         echo ""
         LOGE "Failed to download the release management script, please check Github connectivity"
         before_show_menu
