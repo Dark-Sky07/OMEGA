@@ -247,6 +247,11 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	g.GET("/manifest.webmanifest", controller.ServePWAManifest)
 	g.GET("/sw.js", controller.ServePWAServiceWorker)
 	g.POST("/api/payment/webhook", controller.HandlePublicPaymentWebhook)
+	g.GET("/api/checkout/info", controller.HandlePublicCheckoutInfo)
+	g.POST("/api/checkout/order", controller.HandlePublicCheckoutOrder)
+	g.GET("/api/checkout/status", controller.HandlePublicCheckoutStatus)
+	// Anonymous checkout page: the SPA shell without the /panel login gate.
+	g.GET("/panel/checkout", controller.PublicPanelSPA)
 	s.api = controller.NewAPIController(g)
 
 	// Initialize WebSocket hub

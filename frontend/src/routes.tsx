@@ -15,6 +15,7 @@ const ApiDocsPage = lazy(() => import('@/pages/api-docs/ApiDocsPage'));
 const ResellersPage = lazy(() => import('@/pages/resellers/ResellersPage'));
 const ResellerReportPage = lazy(() => import('@/pages/resellers/ResellerReportPage'));
 const ResellerProfilePage = lazy(() => import('@/pages/resellers/ResellerProfilePage'));
+const CheckoutPage = lazy(() => import('@/pages/checkout/CheckoutPage'));
 
 function withSuspense(node: React.ReactNode) {
   return <Suspense fallback={null}>{node}</Suspense>;
@@ -91,6 +92,12 @@ export const appRoutes: RouteObject[] = [
         element: <ResellerOnly>{withSuspense(<ResellerProfilePage />)}</ResellerOnly>,
       },
     ],
+  },
+  {
+    // Public client checkout: opened from a signed per-client link
+    // (?ref=<token>), never behind a panel session.
+    path: 'checkout',
+    element: withSuspense(<CheckoutPage />),
   },
 ];
 

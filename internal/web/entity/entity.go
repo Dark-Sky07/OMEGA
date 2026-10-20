@@ -150,6 +150,14 @@ type AllSetting struct {
 	OutboundWatchdogTags          string `json:"outboundWatchdogTags" form:"outboundWatchdogTags"`
 	OutboundWatchdogIntervalSec   int    `json:"outboundWatchdogIntervalSec" form:"outboundWatchdogIntervalSec" validate:"gte=0,lte=86400"`
 	OutboundWatchdogFailThreshold int    `json:"outboundWatchdogFailThreshold" form:"outboundWatchdogFailThreshold" validate:"gte=0,lte=20"`
+
+	// Public client checkout (link-based renewals topped up by the payment webhook)
+	CheckoutEnable        bool    `json:"checkoutEnable" form:"checkoutEnable"`               // Enable the public client checkout page
+	CheckoutCurrency      string  `json:"checkoutCurrency" form:"checkoutCurrency"`           // Currency label shown to clients (USD, IRT, ...)
+	CheckoutPricePerGB    float64 `json:"checkoutPricePerGB" form:"checkoutPricePerGB"`       // Price charged per added GB
+	CheckoutPricePerMonth float64 `json:"checkoutPricePerMonth" form:"checkoutPricePerMonth"` // Price charged per 30-day renewal
+	CheckoutGatewayURL    string  `json:"checkoutGatewayURL" form:"checkoutGatewayURL"`       // Payment link template with {orderId}/{amount}/{ref} placeholders
+	CheckoutPayInfo       string  `json:"checkoutPayInfo" form:"checkoutPayInfo"`             // Manual payment instructions shown when no gateway URL is set
 }
 
 // AllSettingView is the browser-safe settings read model. Secret values

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -245,91 +246,39 @@ func (s *PaymentWebhookService) ProcessWebhook(p PaymentWebhookPayload) (*model.
 	if p.OrderId == "" {
 		return nil, common.NewError("orderId is required")
 	}
-	if p.TargetRef == "" {
-		return nil, common.NewError("targetRef is required")
-	}
-	if p.Gateway == "" {
-		p.Gateway = "webhook"
-	}
 
 	db := database.GetDB()
 	// Idempotency check: if OrderId was already processed, return the existing order.
 	var existing model.PaymentOrder
 	if err := db.Where("order_id = ?", p.OrderId).First(&existing).Error; err == nil {
+		if existing.Status != "pending" {
+			return &existing, nil
+		}
+		// A pending checkout order is being confirmed by the gateway: the
+		// effects were chosen when the order was created, the webhook only
+		// proves the payment happened. targetRef/targetType of the payload
+		// are ignored — the stored order stays authoritative.
+		if p.Amount > 0 && existing.Amount > 0 && math.Abs(p.Amount-existing.Amount) > 0.01 {
+			return nil, common.NewError("webhook amount does not match pending order ", p.OrderId)
+		}
+		if err := s.applyOrderEffects(&existing); err != nil {
+			return nil, err
+		}
+		if err := db.Model(&model.PaymentOrder{}).Where("id = ?", existing.Id).
+			Update("status", "completed").Error; err != nil {
+			return nil, err
+		}
+		existing.Status = "completed"
 		return &existing, nil
 	}
 
-	switch p.TargetType {
-	case "reseller_deposit":
-		if p.Amount <= 0 {
-			return nil, common.NewError("positive amount is required for reseller_deposit")
-		}
-		reseller, err := s.resellerService.GetByUsername(p.TargetRef)
-		if err != nil {
-			return nil, fmt.Errorf("reseller %q not found: %w", p.TargetRef, err)
-		}
-		comment := fmt.Sprintf("Webhook (%s) #%s", p.Gateway, p.OrderId)
-		if _, err := s.resellerService.AdjustBalance(reseller.Id, p.Amount, comment); err != nil {
-			return nil, err
-		}
-		if p.AddGB > 0 {
-			addBytes := p.AddGB * bytesPerGB
-			_ = db.Model(&model.Reseller{}).
-				Where("id = ?", reseller.Id).
-				Update("traffic_limit", gorm.Expr("traffic_limit + ?", addBytes)).Error
-		}
-
-	case "reseller_quota":
-		reseller, err := s.resellerService.GetByUsername(p.TargetRef)
-		if err != nil {
-			return nil, fmt.Errorf("reseller %q not found: %w", p.TargetRef, err)
-		}
-		updates := map[string]any{"updated_at": time.Now().UnixMilli()}
-		if p.AddGB > 0 {
-			updates["traffic_limit"] = reseller.TrafficLimit + (p.AddGB * bytesPerGB)
-		}
-		if p.AddDays > 0 {
-			base := time.Now().UnixMilli()
-			if reseller.ExpiryTime > base {
-				base = reseller.ExpiryTime
-			}
-			updates["expiry_time"] = base + int64(p.AddDays)*86400000
-		}
-		if err := db.Model(&model.Reseller{}).Where("id = ?", reseller.Id).Updates(updates).Error; err != nil {
-			return nil, err
-		}
-
-	case "client_renew":
-		rec, err := s.clientService.GetRecordByEmail(nil, p.TargetRef)
-		if err != nil {
-			return nil, fmt.Errorf("client %q not found: %w", p.TargetRef, err)
-		}
-		if p.ResetTraffic {
-			_ = s.inboundService.ResetClientTrafficByEmail(p.TargetRef)
-		}
-		updated := *rec.ToClient()
-		if p.AddGB > 0 {
-			updated.TotalGB += p.AddGB * bytesPerGB
-		}
-		if p.AddDays > 0 {
-			nowMs := time.Now().UnixMilli()
-			if updated.ExpiryTime < 0 {
-				updated.ExpiryTime -= int64(p.AddDays) * 86400000
-			} else {
-				base := nowMs
-				if updated.ExpiryTime > nowMs {
-					base = updated.ExpiryTime
-				}
-				updated.ExpiryTime = base + int64(p.AddDays)*86400000
-			}
-		}
-		updated.Enable = true
-		if _, err := s.clientService.UpdateByEmail(&s.inboundService, p.TargetRef, updated); err != nil {
-			return nil, err
-		}
-
-	default:
-		return nil, common.NewError("unsupported targetType:", p.TargetType)
+	// Fresh (non-checkout) orders describe their own target; pending checkout
+	// completion above is the only flow allowed to omit targetRef.
+	if p.TargetRef == "" {
+		return nil, common.NewError("targetRef is required")
+	}
+	if p.Gateway == "" {
+		p.Gateway = "webhook"
 	}
 
 	order := &model.PaymentOrder{
@@ -342,10 +291,91 @@ func (s *PaymentWebhookService) ProcessWebhook(p PaymentWebhookPayload) (*model.
 		AddDays:      p.AddDays,
 		ResetTraffic: p.ResetTraffic,
 		Status:       "completed",
-		CreatedAt:    time.Now().UnixMilli(),
+	}
+	if err := s.applyOrderEffects(order); err != nil {
+		return nil, err
 	}
 	if err := db.Create(order).Error; err != nil {
 		return nil, err
 	}
 	return order, nil
+}
+
+// applyOrderEffects performs one order's side effects: topping up a reseller
+// deposit, extending a reseller quota, or renewing a client.
+func (s *PaymentWebhookService) applyOrderEffects(order *model.PaymentOrder) error {
+	db := database.GetDB()
+	switch order.TargetType {
+	case "reseller_deposit":
+		if order.Amount <= 0 {
+			return common.NewError("positive amount is required for reseller_deposit")
+		}
+		reseller, err := s.resellerService.GetByUsername(order.TargetRef)
+		if err != nil {
+			return fmt.Errorf("reseller %q not found: %w", order.TargetRef, err)
+		}
+		comment := fmt.Sprintf("Webhook (%s) #%s", order.Gateway, order.OrderId)
+		if _, err := s.resellerService.AdjustBalance(reseller.Id, order.Amount, comment); err != nil {
+			return err
+		}
+		if order.AddGB > 0 {
+			addBytes := order.AddGB * bytesPerGB
+			_ = db.Model(&model.Reseller{}).
+				Where("id = ?", reseller.Id).
+				Update("traffic_limit", gorm.Expr("traffic_limit + ?", addBytes)).Error
+		}
+
+	case "reseller_quota":
+		reseller, err := s.resellerService.GetByUsername(order.TargetRef)
+		if err != nil {
+			return fmt.Errorf("reseller %q not found: %w", order.TargetRef, err)
+		}
+		updates := map[string]any{"updated_at": time.Now().UnixMilli()}
+		if order.AddGB > 0 {
+			updates["traffic_limit"] = reseller.TrafficLimit + (order.AddGB * bytesPerGB)
+		}
+		if order.AddDays > 0 {
+			base := time.Now().UnixMilli()
+			if reseller.ExpiryTime > base {
+				base = reseller.ExpiryTime
+			}
+			updates["expiry_time"] = base + int64(order.AddDays)*86400000
+		}
+		if err := db.Model(&model.Reseller{}).Where("id = ?", reseller.Id).Updates(updates).Error; err != nil {
+			return err
+		}
+
+	case "client_renew":
+		rec, err := s.clientService.GetRecordByEmail(nil, order.TargetRef)
+		if err != nil {
+			return fmt.Errorf("client %q not found: %w", order.TargetRef, err)
+		}
+		if order.ResetTraffic {
+			_ = s.inboundService.ResetClientTrafficByEmail(order.TargetRef)
+		}
+		updated := *rec.ToClient()
+		if order.AddGB > 0 {
+			updated.TotalGB += order.AddGB * bytesPerGB
+		}
+		if order.AddDays > 0 {
+			nowMs := time.Now().UnixMilli()
+			if updated.ExpiryTime < 0 {
+				updated.ExpiryTime -= int64(order.AddDays) * 86400000
+			} else {
+				base := nowMs
+				if updated.ExpiryTime > nowMs {
+					base = updated.ExpiryTime
+				}
+				updated.ExpiryTime = base + int64(order.AddDays)*86400000
+			}
+		}
+		updated.Enable = true
+		if _, err := s.clientService.UpdateByEmail(&s.inboundService, order.TargetRef, updated); err != nil {
+			return err
+		}
+
+	default:
+		return common.NewError("unsupported targetType:", order.TargetType)
+	}
+	return nil
 }

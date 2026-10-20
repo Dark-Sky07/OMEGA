@@ -117,6 +117,13 @@ export class AllSetting {
   outboundWatchdogIntervalSec = 120;
   outboundWatchdogFailThreshold = 2;
 
+  checkoutEnable = false;
+  checkoutCurrency = 'USD';
+  checkoutPricePerGB = 0;
+  checkoutPricePerMonth = 0;
+  checkoutGatewayURL = '';
+  checkoutPayInfo = '';
+
   hasTgBotToken = false;
   hasTwoFactorToken = false;
   hasLdapPassword = false;

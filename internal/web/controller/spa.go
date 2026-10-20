@@ -62,6 +62,13 @@ func (a *XUIController) panelSPA(c *gin.Context) {
 	serveDistPage(c, "index.html")
 }
 
+// PublicPanelSPA serves the SPA shell for the anonymous client checkout page
+// (<basePath>/panel/checkout). Unlike panelSPA it is registered outside the
+// login-gated /panel group: the checkout link must open without a session.
+func PublicPanelSPA(c *gin.Context) {
+	serveDistPage(c, "index.html")
+}
+
 // csrfToken returns the session CSRF token to authenticated SPA clients.
 // The endpoint is GET (a safe method) so it bypasses CSRFMiddleware itself,
 // but checkLogin still gates the response — anonymous callers get 401/redirect.

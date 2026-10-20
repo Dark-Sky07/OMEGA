@@ -3,6 +3,30 @@ export const SCHEMAS: Record<string, unknown> = {
   "AllSetting": {
     "description": "AllSetting contains all configuration settings for the PHOENIX panel including web server, Telegram bot, and subscription settings.",
     "properties": {
+      "checkoutCurrency": {
+        "description": "Currency label shown to clients (USD, IRT, ...)",
+        "type": "string"
+      },
+      "checkoutEnable": {
+        "description": "Public client checkout (link-based renewals topped up by the payment webhook)\nEnable the public client checkout page",
+        "type": "boolean"
+      },
+      "checkoutGatewayURL": {
+        "description": "Payment link template with {orderId}/{amount}/{ref} placeholders",
+        "type": "string"
+      },
+      "checkoutPayInfo": {
+        "description": "Manual payment instructions shown when no gateway URL is set",
+        "type": "string"
+      },
+      "checkoutPricePerGB": {
+        "description": "Price charged per added GB",
+        "type": "number"
+      },
+      "checkoutPricePerMonth": {
+        "description": "Price charged per 30-day renewal",
+        "type": "number"
+      },
       "cloudBackupAccessKey": {
         "type": "string"
       },
@@ -436,6 +460,12 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "checkoutCurrency",
+      "checkoutEnable",
+      "checkoutGatewayURL",
+      "checkoutPayInfo",
+      "checkoutPricePerGB",
+      "checkoutPricePerMonth",
       "cloudBackupAccessKey",
       "cloudBackupBucket",
       "cloudBackupEnable",
@@ -551,6 +581,30 @@ export const SCHEMAS: Record<string, unknown> = {
   "AllSettingView": {
     "description": "AllSettingView is the browser-safe settings read model. Secret values\nare redacted from the embedded write model and represented by presence\nflags so the UI can show configured/not configured state.",
     "properties": {
+      "checkoutCurrency": {
+        "description": "Currency label shown to clients (USD, IRT, ...)",
+        "type": "string"
+      },
+      "checkoutEnable": {
+        "description": "Public client checkout (link-based renewals topped up by the payment webhook)\nEnable the public client checkout page",
+        "type": "boolean"
+      },
+      "checkoutGatewayURL": {
+        "description": "Payment link template with {orderId}/{amount}/{ref} placeholders",
+        "type": "string"
+      },
+      "checkoutPayInfo": {
+        "description": "Manual payment instructions shown when no gateway URL is set",
+        "type": "string"
+      },
+      "checkoutPricePerGB": {
+        "description": "Price charged per added GB",
+        "type": "number"
+      },
+      "checkoutPricePerMonth": {
+        "description": "Price charged per 30-day renewal",
+        "type": "number"
+      },
       "cloudBackupAccessKey": {
         "type": "string"
       },
@@ -1008,6 +1062,12 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "checkoutCurrency",
+      "checkoutEnable",
+      "checkoutGatewayURL",
+      "checkoutPayInfo",
+      "checkoutPricePerGB",
+      "checkoutPricePerMonth",
       "cloudBackupAccessKey",
       "cloudBackupBucket",
       "cloudBackupEnable",

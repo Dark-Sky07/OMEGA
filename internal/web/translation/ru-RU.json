@@ -891,7 +891,9 @@
       "selectTemplatePlaceholder": "Select a preset template...",
       "templateApplied": "Template '{{name}}' applied",
       "revokeSub": "Revoke & Rotate Subscription Link",
-      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?"
+      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?",
+      "checkoutLink": "Копировать ссылку оплаты",
+      "checkoutLinkCopied": "Ссылка оплаты скопирована"
     },
     "groups": {
       "title": "Группы",
@@ -1332,7 +1334,20 @@
       "cloudBackupGdriveClientId": "OAuth2 Client ID (Optional)",
       "cloudBackupGdriveClientIdDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
       "cloudBackupGdriveClientSecret": "OAuth2 Client Secret (Optional)",
-      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key."
+      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
+      "checkoutTitle": "Оплата клиентов",
+      "checkoutEnable": "Публичная страница оплаты клиентов",
+      "checkoutEnableDesc": "Выдавайте клиентам подписанную ссылку на публичную страницу продления, где они выбирают дополнительный трафик или месяцы и оплачивают; веб-хук платежа завершает заказ автоматически.",
+      "checkoutCurrency": "Обозначение валюты",
+      "checkoutCurrencyDesc": "Валюта, которую видят клиенты на странице оплаты (например, USD, RUB, EUR).",
+      "checkoutPricePerGB": "Цена за гигабайт",
+      "checkoutPricePerGBDesc": "Начисляется за каждый добавленный гигабайт, выбранный клиентом.",
+      "checkoutPricePerMonth": "Цена за месяц",
+      "checkoutPricePerMonthDesc": "Начисляется за каждые 30 дней продления, выбранные клиентом.",
+      "checkoutGatewayURL": "Шаблон ссылки платёжного шлюза",
+      "checkoutGatewayURLDesc": "Необязательно. Если задано, клиент после заказа перенаправляется по этому адресу. Плейсхолдеры: {orderId}, {amount}, {ref}.",
+      "checkoutPayInfo": "Инструкция по ручной оплате",
+      "checkoutPayInfoDesc": "Показывается, когда ссылка шлюза не задана — номер карты, порядок уведомления об оплате, контакты поддержки и т.д."
     },
     "xray": {
       "title": "Настройки Xray",
@@ -1750,6 +1765,29 @@
         "sniHint": "Имя сервера для TLS в клиентском профиле.",
         "sniRequired": "Укажите домен для автозаполнения."
       }
+    },
+    "checkout": {
+      "title": "Продление подписки",
+      "client": "Аккаунт",
+      "invalidLink": "Недействительная ссылка оплаты",
+      "invalidLinkDesc": "Ссылка оплаты недействительна, истекла или оплата сейчас отключена. Попросите у провайдера новую ссылку.",
+      "status": "Статус",
+      "expiry": "Истекает",
+      "traffic": "Трафик",
+      "addTraffic": "Добавить трафик",
+      "addMonths": "Продлить срок",
+      "months": "мес.",
+      "month": "месяц",
+      "pay": "Оплатить",
+      "orderId": "Номер заказа",
+      "amount": "Сумма",
+      "waitingPayment": "Ожидание оплаты",
+      "openGateway": "Открыть страницу оплаты",
+      "payInfoTitle": "Инструкция по оплате",
+      "waitingHint": "Страница обновится автоматически после подтверждения оплаты.",
+      "paidTitle": "Оплата получена",
+      "paidDesc": "Ваша подписка обновлена. Можно закрыть страницу.",
+      "orderAgain": "Новый заказ"
     }
   },
   "tgbot": {

@@ -949,7 +949,9 @@
       "selectTemplatePlaceholder": "Select a preset template...",
       "templateApplied": "Template '{{name}}' applied",
       "revokeSub": "Revoke & Rotate Subscription Link",
-      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?"
+      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?",
+      "checkoutLink": "Copy checkout link",
+      "checkoutLinkCopied": "Checkout link copied"
     },
     "groups": {
       "title": "Groups",
@@ -1446,7 +1448,20 @@
       "cloudBackupGdriveClientId": "OAuth2 Client ID (Optional)",
       "cloudBackupGdriveClientIdDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
       "cloudBackupGdriveClientSecret": "OAuth2 Client Secret (Optional)",
-      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key."
+      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
+      "checkoutTitle": "Client Checkout",
+      "checkoutEnable": "Public Client Checkout",
+      "checkoutEnableDesc": "Give clients a signed link to a public renewal page where they pick extra traffic or validity months and pay; the payment webhook completes the order automatically.",
+      "checkoutCurrency": "Currency Label",
+      "checkoutCurrencyDesc": "Currency shown to clients on the checkout page (e.g. USD, IRT, EUR).",
+      "checkoutPricePerGB": "Price Per GB",
+      "checkoutPricePerGBDesc": "Charged for each added gigabyte a client selects on the checkout page.",
+      "checkoutPricePerMonth": "Price Per Month",
+      "checkoutPricePerMonthDesc": "Charged for each 30-day renewal a client selects on the checkout page.",
+      "checkoutGatewayURL": "Payment Gateway Link Template",
+      "checkoutGatewayURLDesc": "Optional. When set, clients are redirected to this URL after ordering. Placeholders: {orderId}, {amount}, {ref}.",
+      "checkoutPayInfo": "Manual Payment Instructions",
+      "checkoutPayInfoDesc": "Shown to clients when no gateway link is set — card number, payment notice instructions, support contact, etc."
     },
     "xray": {
       "title": "Xray Configs",
@@ -1917,6 +1932,29 @@
         "sniHint": "TLS server name in the client profile.",
         "sniRequired": "Enter a domain to auto-fill certificate paths."
       }
+    },
+    "checkout": {
+      "title": "Renew Your Plan",
+      "client": "Account",
+      "invalidLink": "Invalid checkout link",
+      "invalidLinkDesc": "This checkout link is invalid, expired, or checkout is currently disabled. Please ask your provider for a fresh link.",
+      "status": "Status",
+      "expiry": "Expiry",
+      "traffic": "Traffic",
+      "addTraffic": "Add traffic",
+      "addMonths": "Extend validity",
+      "months": "months",
+      "month": "month",
+      "pay": "Pay",
+      "orderId": "Order ID",
+      "amount": "Amount",
+      "waitingPayment": "Waiting for payment",
+      "openGateway": "Open payment page",
+      "payInfoTitle": "Payment instructions",
+      "waitingHint": "This page updates automatically once the payment is confirmed.",
+      "paidTitle": "Payment received",
+      "paidDesc": "Your plan has been updated. You can close this page now.",
+      "orderAgain": "New order"
     }
   },
   "tgbot": {

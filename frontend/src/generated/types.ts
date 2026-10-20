@@ -9,6 +9,12 @@ export type trafficLocalApplyAction = number;
 export type transportBits = number;
 
 export interface AllSetting {
+  checkoutCurrency: string;
+  checkoutEnable: boolean;
+  checkoutGatewayURL: string;
+  checkoutPayInfo: string;
+  checkoutPricePerGB: number;
+  checkoutPricePerMonth: number;
   cloudBackupAccessKey: string;
   cloudBackupBucket: string;
   cloudBackupEnable: boolean;
@@ -121,6 +127,12 @@ export interface AllSetting {
 }
 
 export interface AllSettingView {
+  checkoutCurrency: string;
+  checkoutEnable: boolean;
+  checkoutGatewayURL: string;
+  checkoutPayInfo: string;
+  checkoutPricePerGB: number;
+  checkoutPricePerMonth: number;
   cloudBackupAccessKey: string;
   cloudBackupBucket: string;
   cloudBackupEnable: boolean;

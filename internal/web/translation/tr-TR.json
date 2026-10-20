@@ -892,7 +892,9 @@
       "selectTemplatePlaceholder": "Select a preset template...",
       "templateApplied": "Template '{{name}}' applied",
       "revokeSub": "Revoke & Rotate Subscription Link",
-      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?"
+      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?",
+      "checkoutLink": "Ödeme bağlantısını kopyala",
+      "checkoutLinkCopied": "Ödeme bağlantısı kopyalandı"
     },
     "groups": {
       "title": "Gruplar",
@@ -1331,7 +1333,20 @@
       "cloudBackupGdriveClientId": "OAuth2 Client ID (Optional)",
       "cloudBackupGdriveClientIdDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
       "cloudBackupGdriveClientSecret": "OAuth2 Client Secret (Optional)",
-      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key."
+      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
+      "checkoutTitle": "Müşteri Ödemesi",
+      "checkoutEnable": "Genel Müşteri Ödeme Sayfası",
+      "checkoutEnableDesc": "Müşterilere imzalı bir bağlantı verin; genel yenileme sayfasında ek trafik veya ay seçip öderler, ödeme webhook'u siparişi otomatik tamamlar.",
+      "checkoutCurrency": "Para Birimi Etiketi",
+      "checkoutCurrencyDesc": "Ödeme sayfasında müşterilere gösterilen para birimi (örn. USD, TRY, EUR).",
+      "checkoutPricePerGB": "GB Başına Fiyat",
+      "checkoutPricePerGBDesc": "Müşterinin seçtiği her ek gigabayt için tahsil edilen tutar.",
+      "checkoutPricePerMonth": "Ay Başına Fiyat",
+      "checkoutPricePerMonthDesc": "Müşterinin seçtiği her 30 günlük yenileme için tahsil edilen tutar.",
+      "checkoutGatewayURL": "Ödeme Ağ Geçidi Bağlantı Şablonu",
+      "checkoutGatewayURLDesc": "İsteğe bağlı. Ayarlanırsa müşteri siparişten sonra bu adrese yönlendirilir. Yer tutucular: {orderId}, {amount}, {ref}.",
+      "checkoutPayInfo": "Manuel Ödeme Talimatları",
+      "checkoutPayInfoDesc": "Ağ geçidi bağlantısı yokken gösterilir — kart numarası, ödeme bildirimi, destek iletişimi vb."
     },
     "xray": {
       "title": "Xray Yapılandırmaları",
@@ -1749,6 +1764,29 @@
         "sniHint": "İstemci profilindeki TLS sunucu adı.",
         "sniRequired": "Sertifika yollarını otomatik doldurmak için alan adı girin."
       }
+    },
+    "checkout": {
+      "title": "Planınızı Yenileyin",
+      "client": "Hesap",
+      "invalidLink": "Geçersiz ödeme bağlantısı",
+      "invalidLinkDesc": "Bu ödeme bağlantısı geçersiz, süresi dolmuş veya ödeme şu anda kapalı. Sağlayıcınızdan yeni bir bağlantı isteyin.",
+      "status": "Durum",
+      "expiry": "Bitiş",
+      "traffic": "Trafik",
+      "addTraffic": "Trafik ekle",
+      "addMonths": "Süre uzat",
+      "months": "ay",
+      "month": "ay",
+      "pay": "Öde",
+      "orderId": "Sipariş No",
+      "amount": "Tutar",
+      "waitingPayment": "Ödeme bekleniyor",
+      "openGateway": "Ödeme sayfasını aç",
+      "payInfoTitle": "Ödeme talimatları",
+      "waitingHint": "Ödeme onaylandığında bu sayfa otomatik güncellenir.",
+      "paidTitle": "Ödeme alındı",
+      "paidDesc": "Planınız güncellendi. Bu sayfayı kapatabilirsiniz.",
+      "orderAgain": "Yeni sipariş"
     }
   },
   "tgbot": {

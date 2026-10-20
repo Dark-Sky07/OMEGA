@@ -891,7 +891,9 @@
       "selectTemplatePlaceholder": "Select a preset template...",
       "templateApplied": "Template '{{name}}' applied",
       "revokeSub": "Revoke & Rotate Subscription Link",
-      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?"
+      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?",
+      "checkoutLink": "Copiar link de pagamento",
+      "checkoutLinkCopied": "Link de pagamento copiado"
     },
     "groups": {
       "title": "Grupos",
@@ -1332,7 +1334,20 @@
       "cloudBackupGdriveClientId": "OAuth2 Client ID (Optional)",
       "cloudBackupGdriveClientIdDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
       "cloudBackupGdriveClientSecret": "OAuth2 Client Secret (Optional)",
-      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key."
+      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
+      "checkoutTitle": "Pagamento de Clientes",
+      "checkoutEnable": "Página pública de pagamento",
+      "checkoutEnableDesc": "Entregue aos clientes um link assinado para uma página pública de renovação onde escolhem tráfego ou meses extras e pagam; o webhook de pagamento conclui o pedido automaticamente.",
+      "checkoutCurrency": "Etiqueta da moeda",
+      "checkoutCurrencyDesc": "Moeda exibida aos clientes na página de pagamento (ex.: USD, BRL, EUR).",
+      "checkoutPricePerGB": "Preço por GB",
+      "checkoutPricePerGBDesc": "Cobrado por cada gigabyte adicional escolhido pelo cliente.",
+      "checkoutPricePerMonth": "Preço por mês",
+      "checkoutPricePerMonthDesc": "Cobrado por cada renovação de 30 dias escolhida pelo cliente.",
+      "checkoutGatewayURL": "Modelo de link do gateway de pagamento",
+      "checkoutGatewayURLDesc": "Opcional. Se definido, o cliente é redirecionado para esta URL após o pedido. Placeholders: {orderId}, {amount}, {ref}.",
+      "checkoutPayInfo": "Instruções de pagamento manual",
+      "checkoutPayInfoDesc": "Exibido quando não há link de gateway — número do cartão, aviso de pagamento, contato de suporte etc."
     },
     "xray": {
       "title": "Configurações Xray",
@@ -1750,6 +1765,29 @@
         "sniHint": "Nome do servidor TLS no perfil do cliente.",
         "sniRequired": "Informe um domínio para preencher os caminhos do certificado."
       }
+    },
+    "checkout": {
+      "title": "Renove seu plano",
+      "client": "Conta",
+      "invalidLink": "Link de pagamento inválido",
+      "invalidLinkDesc": "Este link de pagamento é inválido, expirou ou o checkout está desativado no momento. Peça ao seu provedor um novo link.",
+      "status": "Status",
+      "expiry": "Expira em",
+      "traffic": "Tráfego",
+      "addTraffic": "Adicionar tráfego",
+      "addMonths": "Estender validade",
+      "months": "meses",
+      "month": "mês",
+      "pay": "Pagar",
+      "orderId": "Nº do pedido",
+      "amount": "Valor",
+      "waitingPayment": "Aguardando pagamento",
+      "openGateway": "Abrir página de pagamento",
+      "payInfoTitle": "Instruções de pagamento",
+      "waitingHint": "Esta página é atualizada automaticamente assim que o pagamento é confirmado.",
+      "paidTitle": "Pagamento recebido",
+      "paidDesc": "Seu plano foi atualizado. Você já pode fechar esta página.",
+      "orderAgain": "Novo pedido"
     }
   },
   "tgbot": {

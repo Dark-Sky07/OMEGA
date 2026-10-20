@@ -25,6 +25,12 @@ export const transportBitsSchema = z.number().int();
 export type transportBits = z.infer<typeof transportBitsSchema>;
 
 export const AllSettingSchema = z.object({
+  checkoutCurrency: z.string(),
+  checkoutEnable: z.boolean(),
+  checkoutGatewayURL: z.string(),
+  checkoutPayInfo: z.string(),
+  checkoutPricePerGB: z.number(),
+  checkoutPricePerMonth: z.number(),
   cloudBackupAccessKey: z.string(),
   cloudBackupBucket: z.string(),
   cloudBackupEnable: z.boolean(),
@@ -138,6 +144,12 @@ export const AllSettingSchema = z.object({
 export type AllSetting = z.infer<typeof AllSettingSchema>;
 
 export const AllSettingViewSchema = z.object({
+  checkoutCurrency: z.string(),
+  checkoutEnable: z.boolean(),
+  checkoutGatewayURL: z.string(),
+  checkoutPayInfo: z.string(),
+  checkoutPricePerGB: z.number(),
+  checkoutPricePerMonth: z.number(),
   cloudBackupAccessKey: z.string(),
   cloudBackupBucket: z.string(),
   cloudBackupEnable: z.boolean(),
