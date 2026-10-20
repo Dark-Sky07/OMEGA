@@ -9,10 +9,10 @@
 
 English · [فارسی](README.fa_IR.md)
 
-[![Release](https://img.shields.io/github/v/release/Dark-Sky07/phoenix?include_prereleases&label=release&color=ff5500)](https://github.com/Dark-Sky07/phoenix/releases)
-[![Build](https://img.shields.io/github/actions/workflow/status/Dark-Sky07/phoenix/release.yml?label=build&color=f97316)](https://github.com/Dark-Sky07/phoenix/actions)
+[![Release](https://img.shields.io/github/v/release/Dark-Sky07/PHOENIX?include_prereleases&label=release&color=ff5500)](https://github.com/Dark-Sky07/PHOENIX/releases)
+[![Build](https://img.shields.io/github/actions/workflow/status/Dark-Sky07/PHOENIX/release.yml?label=build&color=f97316)](https://github.com/Dark-Sky07/PHOENIX/actions)
 [![License](https://img.shields.io/badge/license-GPL--3.0-fbbf24.svg)](LICENSE)
-[![Go](https://img.shields.io/github/go-mod/go-version/Dark-Sky07/phoenix?color=ea580c)](go.mod)
+[![Go](https://img.shields.io/github/go-mod/go-version/Dark-Sky07/PHOENIX?color=ea580c)](go.mod)
 [![Platforms](https://img.shields.io/badge/platforms-linux%20%7C%20windows-lightgrey)](#supported-platforms)
 
 <img src="./docs/assets/phoenix-emblem.jpg" alt="PHOENIX Armored Emblem" width="640">
@@ -20,7 +20,7 @@ English · [فارسی](README.fa_IR.md)
 **Install the latest PHOENIX release in one line** — on a fresh server, as `root`:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/phoenix/main/install-phoenix.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/PHOENIX/main/install-phoenix.sh)
 ```
 
 This is the canonical automatic installer. It resolves the newest PHOENIX release from this repository, downloads the matching panel archive and release-managed scripts, and installs the `phoenix` CLI management menu. For an existing installation, run `phoenix update`.
@@ -53,7 +53,7 @@ OpenVPN is a host daemon, not an Xray component and not a file inside the `phoen
 To install or repair an existing host with the exact stable release, run as `root`:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/phoenix/main/install-phoenix.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/PHOENIX/main/install-phoenix.sh)
 ```
 
 Verify the prerequisite before troubleshooting the network:
@@ -147,7 +147,7 @@ or archive** in the AmneziaWG app. Do not paste an AmneziaVPN `vpn://` URI into 
 On a fresh server, as **root**:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/phoenix/main/install-phoenix.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/PHOENIX/main/install-phoenix.sh)
 ```
 
 The installer takes care of everything:
@@ -174,7 +174,7 @@ phoenix uninstall    # full removal (the database in /etc/x-ui is kept; back it 
 
 ### Manual install
 
-Grab `x-ui-linux-<arch>.tar.gz` from the [releases page](https://github.com/Dark-Sky07/phoenix/releases)
+Grab `x-ui-linux-<arch>.tar.gz` from the [releases page](https://github.com/Dark-Sky07/PHOENIX/releases)
 (`amd64`, `arm64`, `armv7`, `armv6`, `386`, `armv5`, `s390x`), then on the server. Manual extraction of the tarball does **not** install host VPN packages; run the following first if you use this path:
 
 ```bash
@@ -357,7 +357,7 @@ The source SQLite file is left untouched; remove it manually once you have verif
 PHOENIX publishes multi-architecture images to [GHCR](https://ghcr.io/dark-sky07/phoenix) for release tags. To build the same image locally instead, use the bundled `Dockerfile`:
 
 ```bash
-git clone https://github.com/Dark-Sky07/phoenix.git && cd phoenix
+git clone https://github.com/Dark-Sky07/PHOENIX.git && cd phoenix
 docker build -t phoenix-panel .
 
 docker run -d --name phoenix --restart unless-stopped \
@@ -402,7 +402,7 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 Contributions are welcome. Please read the [Contributing Guide](/CONTRIBUTING.md) before opening an issue or pull request.
 
 For anything that is not about the reseller feature or the PHOENIX branding, the upstream
-[PHOENIX repository](https://github.com/Dark-Sky07/phoenix) and its [Wiki](https://github.com/Dark-Sky07/phoenix/wiki)
+[PHOENIX repository](https://github.com/Dark-Sky07/PHOENIX) and its [Wiki](https://github.com/Dark-Sky07/PHOENIX/wiki)
 are the authoritative references.
 
 ## Security notes
@@ -417,7 +417,7 @@ are the authoritative references.
 
 ## Credits & License
 
-- **Upstream project:** [Dark-Sky07/phoenix](https://github.com/Dark-Sky07/phoenix) — this repository is a fork of
+- **Upstream project:** [Dark-Sky07/PHOENIX](https://github.com/Dark-Sky07/PHOENIX) — this repository is a fork of
   **PHOENIX v3.3.1** and inherits its design, documentation and licence. Thanks to
   [alireza0](https://github.com/alireza0/) and every upstream contributor.
 - **Added here:** reseller (نمایندگی) controls, native AmneziaWG, OpenVPN and L2TP/IPsec integrations, traffic/quota lifecycle support, safe release/update handling, PHOENIX branding, and the fork-aware latest-release installer.
@@ -437,4 +437,4 @@ Tools and integrations built by the community around PHOENIX.
 
 ## Stargazers over Time
 
-[![Stargazers over time](https://starchart.cc/Dark-Sky07/phoenix.svg?variant=adaptive)](https://starchart.cc/Dark-Sky07/phoenix)
+[![Stargazers over time](https://starchart.cc/Dark-Sky07/PHOENIX.svg?variant=adaptive)](https://starchart.cc/Dark-Sky07/PHOENIX)
