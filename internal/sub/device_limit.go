@@ -3,7 +3,7 @@ package sub
 import (
 	"strings"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/Dark-Sky07/phoenix/internal/web/service"
 )
 
 // EnforceDeviceLimit registers the request's device (HWID) against every

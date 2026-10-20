@@ -13,7 +13,6 @@ import {
   DashboardOutlined,
   DatabaseOutlined,
   GithubOutlined,
-  HeartOutlined,
   IdcardOutlined,
   ImportOutlined,
   LogoutOutlined,
@@ -44,7 +43,6 @@ import phoenixCrest from '@/assets/phoenix-crest.png';
 import './AppSidebar.css';
 
 const SIDEBAR_COLLAPSED_KEY = 'isSidebarCollapsed';
-const DONATE_URL = 'https://donate.sanaei.dev/';
 const REPO_URL = 'https://github.com/Dark-Sky07/phoenix';
 const LOGOUT_KEY = '__logout__';
 
@@ -102,21 +100,6 @@ function Brand({ compact }: { compact?: boolean }) {
   );
 }
 
-function DonateButton({ ariaLabel }: { ariaLabel: string }) {
-  return (
-    <Tooltip title={ariaLabel} placement="top">
-      <a
-        href={DONATE_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="sidebar-donate omega-icon-btn"
-        aria-label={ariaLabel}
-      >
-        <HeartOutlined />
-      </a>
-    </Tooltip>
-  );
-}
 
 function VersionBadge({ version, collapsed }: { version: string; collapsed?: boolean }) {
   if (!version) return null;
@@ -149,7 +132,7 @@ function ThemeCycleButton({ id, isDark, isUltra, onCycle, ariaLabel }: {
       <button
         id={id}
         type="button"
-        className="sidebar-theme-cycle omega-icon-btn"
+        className="sidebar-theme-cycle phoenix-icon-btn"
         aria-label={ariaLabel}
         onClick={onCycle}
       >
@@ -318,7 +301,7 @@ export default function AppSidebar() {
   const collapseLabel = collapsed ? t('menu.expand', 'Expand sidebar') : t('menu.collapse', 'Collapse sidebar');
 
   return (
-    <div className={`ant-sidebar omega-sidebar${collapsed ? ' is-collapsed' : ''}`}>
+    <div className={`ant-sidebar phoenix-sidebar${collapsed ? ' is-collapsed' : ''}`}>
       <Layout.Sider
         theme={currentTheme}
         width={252}
@@ -360,7 +343,7 @@ export default function AppSidebar() {
               <Tooltip title={`${t('commandPalette.open') || 'Quick search'} (Ctrl+K)`} placement="top">
                 <button
                   type="button"
-                  className="sidebar-search omega-icon-btn"
+                  className="sidebar-search phoenix-icon-btn"
                   aria-label="Command palette (Ctrl+K)"
                   onClick={openCommandPalette}
                 >
@@ -374,11 +357,10 @@ export default function AppSidebar() {
                 onCycle={() => cycleTheme('theme-cycle')}
                 ariaLabel={t('menu.theme')}
               />
-              <DonateButton ariaLabel={t('menu.donate') || 'Donate'} />
               <Tooltip title={collapseLabel} placement="top">
                 <button
                   type="button"
-                  className="sidebar-collapse omega-icon-btn"
+                  className="sidebar-collapse phoenix-icon-btn"
                   aria-label={collapseLabel}
                   aria-expanded={!collapsed}
                   onClick={() => setCollapsedPersist(!collapsed)}
@@ -396,7 +378,7 @@ export default function AppSidebar() {
         placement="left"
         closable={false}
         open={drawerOpen}
-        rootClassName={`${currentTheme} omega-drawer`}
+        rootClassName={`${currentTheme} phoenix-drawer`}
         size="min(84vw, 320px)"
         styles={{
           wrapper: { padding: 0 },
@@ -416,7 +398,7 @@ export default function AppSidebar() {
               ariaLabel={t('menu.theme')}
             />
             <button
-              className="drawer-close omega-icon-btn"
+              className="drawer-close phoenix-icon-btn"
               type="button"
               aria-label={t('close')}
               onClick={() => setDrawerOpen(false)}
@@ -446,7 +428,6 @@ export default function AppSidebar() {
           onClick={(info) => { onMenuClick(info); setDrawerOpen(false); }}
         />
         <div className="drawer-footer">
-          <DonateButton ariaLabel={t('menu.donate') || 'Donate'} />
           <VersionBadge version={panelVersion} />
         </div>
       </Drawer>

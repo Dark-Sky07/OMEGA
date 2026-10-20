@@ -5,10 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/Dark-Sky07/phoenix/internal/database/model"
+	xuilogger "github.com/Dark-Sky07/phoenix/internal/logger"
+	"github.com/Dark-Sky07/phoenix/internal/util/json_util"
+	"github.com/Dark-Sky07/phoenix/internal/xray"
 
 	"github.com/op/go-logging"
 )

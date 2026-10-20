@@ -5,9 +5,9 @@ package controller
 import (
 	"net/http"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
+	"github.com/Dark-Sky07/phoenix/internal/logger"
+	"github.com/Dark-Sky07/phoenix/internal/web/locale"
+	"github.com/Dark-Sky07/phoenix/internal/web/session"
 
 	"github.com/gin-gonic/gin"
 )

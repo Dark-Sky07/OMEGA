@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/Dark-Sky07/phoenix/internal/logger"
 )
 
 // NewErrorf creates a new error with formatted message.

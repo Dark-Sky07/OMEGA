@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/config"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/Dark-Sky07/phoenix/internal/config"
+	"github.com/Dark-Sky07/phoenix/internal/logger"
+	"github.com/Dark-Sky07/phoenix/internal/util/common"
 
 	"github.com/xtls/xray-core/app/proxyman/command"
 	routerService "github.com/xtls/xray-core/app/router/command"

@@ -298,18 +298,18 @@ export default function IndexPage() {
                 />
               ) : (
                 <div className="dash">
-                  <header className="dash-hero omega-rise">
+                  <header className="dash-hero phoenix-rise">
                     <div className="dash-hero-copy">
-                      <span className="omega-eyebrow">
-                        <span className="omega-kicker">OMEGA</span>
+                      <span className="phoenix-eyebrow">
+                        <span className="phoenix-kicker">PHOENIX</span>
                         {displayVersion && <span className="dash-hero-version">v{displayVersion}</span>}
                       </span>
-                      <h1 className="omega-page-title">{t('pages.index.title')}</h1>
-                      <p className="omega-page-subtitle">{t('pages.index.heroSubtitle', 'Live health of this server and every tunnel it runs.')}</p>
+                      <h1 className="phoenix-page-title">{t('pages.index.title')}</h1>
+                      <p className="phoenix-page-subtitle">{t('pages.index.heroSubtitle', 'Live health of this server and every tunnel it runs.')}</p>
                       <div className="dash-hero-pills">
                         {services.map((svc) => (
-                          <span key={svc.key} className={`omega-pill is-${stateKind(svc.state)}`}>
-                            <span className="omega-dot" />
+                          <span key={svc.key} className={`phoenix-pill is-${stateKind(svc.state)}`}>
+                            <span className="phoenix-dot" />
                             {svc.name}
                             {svc.key === 'xray' && xrayVersionLabel && <em>{xrayVersionLabel}</em>}
                           </span>
@@ -337,7 +337,7 @@ export default function IndexPage() {
                     </div>
                   </header>
 
-                  <section className="dash-resources omega-rise omega-rise-1" aria-label={t('pages.index.resources', 'Resources')}>
+                  <section className="dash-resources phoenix-rise phoenix-rise-1" aria-label={t('pages.index.resources', 'Resources')}>
                     <ResourceTile
                       label={t('pages.index.cpu')}
                       icon={<ThunderboltOutlined />}
@@ -373,7 +373,7 @@ export default function IndexPage() {
                     />
                   </section>
 
-                  <section className="dash-main omega-rise omega-rise-2">
+                  <section className="dash-main phoenix-rise phoenix-rise-2">
                     <ServicePanel
                       status={status}
                       accessLogEnable={accessLogEnable}
@@ -394,15 +394,15 @@ export default function IndexPage() {
                     />
                   </section>
 
-                  <section className="dash-info omega-rise omega-rise-3">
-                    <Card className="info-card" title={<span className="omega-eyebrow">{t('pages.index.operationHours')}</span>}>
+                  <section className="dash-info phoenix-rise phoenix-rise-3">
+                    <Card className="info-card" title={<span className="phoenix-eyebrow">{t('pages.index.operationHours')}</span>}>
                       <div className="info-grid">
                         <InfoTile icon={<ThunderboltOutlined />} label="Xray" value={TimeFormatter.formatSecond(status.appStats.uptime)} />
                         <InfoTile icon={<DesktopOutlined />} label="OS" value={TimeFormatter.formatSecond(status.uptime)} />
                       </div>
                     </Card>
 
-                    <Card className="info-card" title={<span className="omega-eyebrow">{t('pages.index.panelProcess', 'Panel process')}</span>}>
+                    <Card className="info-card" title={<span className="phoenix-eyebrow">{t('pages.index.panelProcess', 'Panel process')}</span>}>
                       <div className="info-grid">
                         <InfoTile icon={<DatabaseOutlined />} label={t('pages.index.memory')} value={SizeFormatter.sizeFormat(status.appStats.mem)} />
                         <InfoTile icon={<ForkOutlined />} label={t('pages.index.threads')} value={status.appStats.threads} />
@@ -411,12 +411,12 @@ export default function IndexPage() {
 
                     <Card
                       className="info-card"
-                      title={<span className="omega-eyebrow">{t('pages.index.ipAddresses')}</span>}
+                      title={<span className="phoenix-eyebrow">{t('pages.index.ipAddresses')}</span>}
                       extra={(
                         <Tooltip title={t('pages.index.toggleIpVisibility')} placement={isMobile ? 'topRight' : 'top'}>
                           <button
                             type="button"
-                            className="omega-icon-btn ip-toggle-btn"
+                            className="phoenix-icon-btn ip-toggle-btn"
                             aria-label={t('pages.index.toggleIpVisibility')}
                             aria-pressed={showIp}
                             onClick={() => setShowIp((v) => !v)}
@@ -432,14 +432,14 @@ export default function IndexPage() {
                       </div>
                     </Card>
 
-                    <Card className="info-card" title={<span className="omega-eyebrow">{t('pages.index.charts')}</span>}>
+                    <Card className="info-card" title={<span className="phoenix-eyebrow">{t('pages.index.charts')}</span>}>
                       <div className="info-grid">
                         <InfoTile icon={<AreaChartOutlined />} label={t('pages.index.charts')} value={t('pages.index.systemHistoryTitle')} onClick={() => setSysHistoryOpen(true)} />
                         <InfoTile icon={<AreaChartOutlined />} label="Xray" value={t('pages.index.xrayMetricsTitle')} onClick={() => setXrayMetricsOpen(true)} />
                       </div>
                     </Card>
 
-                    <Card className="info-card" title={<span className="omega-eyebrow">OMEGA</span>}>
+                    <Card className="info-card" title={<span className="phoenix-eyebrow">PHOENIX</span>}>
                       <div className="info-grid">
                         <InfoTile
                           icon={<CloudDownloadOutlined />}

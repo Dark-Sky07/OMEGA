@@ -3,8 +3,8 @@ package service
 import (
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/link"
+	"github.com/Dark-Sky07/phoenix/internal/database/model"
+	"github.com/Dark-Sky07/phoenix/internal/util/link"
 )
 
 func TestDefaultPrefixNumber(t *testing.T) {

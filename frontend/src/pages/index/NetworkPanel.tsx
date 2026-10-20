@@ -59,10 +59,10 @@ export default function NetworkPanel({ status, upHistory, downHistory, onOpenHis
   return (
     <Card
       className="network-panel"
-      title={<span className="omega-eyebrow">{t('pages.index.network', 'Network')}</span>}
+      title={<span className="phoenix-eyebrow">{t('pages.index.network', 'Network')}</span>}
       extra={(
         <Tooltip title={t('pages.index.systemHistoryTitle')}>
-          <button type="button" className="omega-icon-btn network-history-btn" onClick={onOpenHistory} aria-label={t('pages.index.systemHistoryTitle')}>
+          <button type="button" className="phoenix-icon-btn network-history-btn" onClick={onOpenHistory} aria-label={t('pages.index.systemHistoryTitle')}>
             <AreaChartOutlined />
           </button>
         </Tooltip>

@@ -18,8 +18,8 @@ describe('preview mock bootstrap', () => {
   const originalWebSocket = window.WebSocket;
 
   beforeAll(async () => {
-    window.X_UI_BASE_PATH = '/OMEGA/';
-    axios.defaults.baseURL = '/OMEGA/';
+    window.X_UI_BASE_PATH = '/phoenix/';
+    axios.defaults.baseURL = '/phoenix/';
     await import('@/preview/mock-bootstrap');
   });
 
@@ -52,14 +52,14 @@ describe('preview mock bootstrap', () => {
   });
 
   it('answers the CSRF bootstrap fetch', async () => {
-    const res = await window.fetch('/OMEGA/csrf-token');
+    const res = await window.fetch('/phoenix/csrf-token');
     expect(res.ok).toBe(true);
     const json = await res.json();
     expect(json.obj).toBe('mock-csrf-token');
   });
 
   it('replaces the live-update socket with a silent one', async () => {
-    const ws = new window.WebSocket(`ws://${window.location.host}/OMEGA/ws`);
+    const ws = new window.WebSocket(`ws://${window.location.host}/phoenix/ws`);
     expect(ws.constructor.name).toBe('PreviewSocket');
     await new Promise<void>((resolve) => ws.addEventListener('open', () => resolve()));
     expect(ws.readyState).toBe(WebSocket.OPEN);

@@ -15,7 +15,7 @@ import (
 	"fmt"
 	"net/netip"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/Dark-Sky07/phoenix/internal/database/model"
 )
 
 // InstanceFromInbound derives a desired Instance from an AmneziaWG inbound,

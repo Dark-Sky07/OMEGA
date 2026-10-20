@@ -3,11 +3,11 @@ package job
 import (
 	"strings"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/l2tp"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/Dark-Sky07/phoenix/internal/database/model"
+	"github.com/Dark-Sky07/phoenix/internal/l2tp"
+	"github.com/Dark-Sky07/phoenix/internal/logger"
+	"github.com/Dark-Sky07/phoenix/internal/web/service"
+	"github.com/Dark-Sky07/phoenix/internal/xray"
 )
 
 // L2TPJob reconciles the single local L2TP/IPsec daemon group and its runtime

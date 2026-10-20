@@ -6,9 +6,9 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/Dark-Sky07/phoenix/internal/database"
+	"github.com/Dark-Sky07/phoenix/internal/database/model"
+	"github.com/Dark-Sky07/phoenix/internal/xray"
 )
 
 // AddTuicTrafficBatch commits a journal batch and its receipt atomically. A

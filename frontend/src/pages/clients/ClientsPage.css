@@ -51,9 +51,9 @@
   gap: 6px;
   margin: 0;
   padding: 8px 10px;
-  background: var(--omega-surface-muted);
-  border: 1px dashed var(--omega-border-strong);
-  border-radius: var(--omega-radius-xs);
+  background: var(--phoenix-surface-muted);
+  border: 1px dashed var(--phoenix-border-strong);
+  border-radius: var(--phoenix-radius-xs);
 }
 
 .filter-chips .ant-tag {
@@ -160,16 +160,16 @@
 }
 
 .client-card {
-  border: 1px solid var(--omega-border);
-  border-radius: var(--omega-radius-sm);
+  border: 1px solid var(--phoenix-border);
+  border-radius: var(--phoenix-radius-sm);
   padding: 12px 14px;
-  background: var(--omega-surface-muted);
+  background: var(--phoenix-surface-muted);
   transition: border-color 160ms ease, background 160ms ease;
 }
 
 .client-card.is-selected {
-  border-color: color-mix(in srgb, var(--omega-primary) 55%, transparent);
-  background: color-mix(in srgb, var(--omega-primary) 8%, transparent);
+  border-color: color-mix(in srgb, var(--phoenix-primary) 55%, transparent);
+  background: color-mix(in srgb, var(--phoenix-primary) 8%, transparent);
 }
 
 .card-head {

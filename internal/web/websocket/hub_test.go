@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
+	xuilogger "github.com/Dark-Sky07/phoenix/internal/logger"
 	"github.com/op/go-logging"
 )
 

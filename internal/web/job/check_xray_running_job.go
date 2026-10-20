@@ -3,8 +3,8 @@
 package job
 
 import (
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/Dark-Sky07/phoenix/internal/logger"
+	"github.com/Dark-Sky07/phoenix/internal/web/service"
 )
 
 // CheckXrayRunningJob monitors Xray process health and restarts it if it crashes.

@@ -3,8 +3,8 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
+	"github.com/Dark-Sky07/phoenix/internal/web/service/panel"
+	"github.com/Dark-Sky07/phoenix/internal/web/session"
 
 	"github.com/gin-gonic/gin"
 )

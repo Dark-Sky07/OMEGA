@@ -20,8 +20,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/Dark-Sky07/phoenix/internal/amneziawg"
+	"github.com/Dark-Sky07/phoenix/internal/logger"
 )
 
 // v6Alias is one host-owned IPv6 address alias this package manages, always

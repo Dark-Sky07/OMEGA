@@ -129,8 +129,8 @@ export default function ResellerProfilePage() {
                 title={t('menu.profile', 'Profile')}
                 subtitle={stat ? <span><strong>{stat.reseller.name || stat.reseller.username}</strong></span> : undefined}
                 badge={stat && (
-                  <span className={`omega-pill ${stat.reseller.enable ? 'is-running' : 'is-error'}`}>
-                    <span className="omega-dot" />
+                  <span className={`phoenix-pill ${stat.reseller.enable ? 'is-running' : 'is-error'}`}>
+                    <span className="phoenix-dot" />
                     {stat.reseller.enable ? t('enable') : t('disabled')}
                   </span>
                 )}
@@ -139,7 +139,7 @@ export default function ResellerProfilePage() {
                 <Col xs={24} lg={16}>
                   <Card
                     size="small"
-                    className="omega-rise omega-rise-2"
+                    className="phoenix-rise phoenix-rise-2"
                     title={
                       <Space>
                         <ShopOutlined />

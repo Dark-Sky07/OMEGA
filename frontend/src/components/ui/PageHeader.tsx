@@ -22,17 +22,17 @@ export interface PageHeaderProps {
  */
 export default function PageHeader({ eyebrow, title, subtitle, actions, badge, className, children }: PageHeaderProps) {
   return (
-    <header className={`omega-page-header omega-rise${className ? ` ${className}` : ''}`}>
-      <div className="omega-page-heading">
-        {eyebrow && <span className="omega-eyebrow">{eyebrow}</span>}
-        <div className="omega-page-title-row">
-          <h1 className="omega-page-title">{title}</h1>
+    <header className={`phoenix-page-header phoenix-rise${className ? ` ${className}` : ''}`}>
+      <div className="phoenix-page-heading">
+        {eyebrow && <span className="phoenix-eyebrow">{eyebrow}</span>}
+        <div className="phoenix-page-title-row">
+          <h1 className="phoenix-page-title">{title}</h1>
           {badge}
         </div>
-        {subtitle && <p className="omega-page-subtitle">{subtitle}</p>}
+        {subtitle && <p className="phoenix-page-subtitle">{subtitle}</p>}
         {children}
       </div>
-      {actions && <div className="omega-page-actions">{actions}</div>}
+      {actions && <div className="phoenix-page-actions">{actions}</div>}
     </header>
   );
 }

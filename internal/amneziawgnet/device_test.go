@@ -15,8 +15,8 @@ import (
 	"github.com/amnezia-vpn/amneziawg-go/v3/tun/netstack"
 	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
+	"github.com/Dark-Sky07/phoenix/internal/amneziawg"
+	"github.com/Dark-Sky07/phoenix/internal/util/wireguard"
 )
 
 // TestNewDeviceHandshakeForwarderAndIdentity is Phase 1's real end-to-end

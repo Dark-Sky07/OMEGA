@@ -54,8 +54,8 @@ function StatePill({ state, errorMsg, onOpenLogs }: { state: string; errorMsg?: 
   const kind = stateKind(state);
   const text = t(STATE_KEYS[state] ?? 'pages.index.xrayStatusUnknown');
   const pill = (
-    <span className={`omega-pill is-${kind}`}>
-      <span className="omega-dot" />
+    <span className={`phoenix-pill is-${kind}`}>
+      <span className="phoenix-dot" />
       {text}
     </span>
   );
@@ -200,7 +200,7 @@ export default function ServicePanel({
       className="service-panel"
       title={(
         <span className="service-panel-title">
-          <span className="omega-eyebrow">{t('pages.index.services', 'Services')}</span>
+          <span className="phoenix-eyebrow">{t('pages.index.services', 'Services')}</span>
         </span>
       )}
       extra={(

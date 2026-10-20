@@ -14,10 +14,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/config"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/Dark-Sky07/phoenix/internal/config"
+	"github.com/Dark-Sky07/phoenix/internal/logger"
+	"github.com/Dark-Sky07/phoenix/internal/web/global"
+	"github.com/Dark-Sky07/phoenix/internal/web/service"
 )
 
 // PanelService provides business logic for panel management operations.
@@ -32,7 +32,7 @@ type PanelUpdateInfo struct {
 }
 
 // phoenixRepo is the canonical PHOENIX project. In-panel updates must only
-// ever pull from this repository — never from the upstream 3x-ui project.
+// ever pull from this repository — never from upstream panel builds.
 const phoenixRepo = "Dark-Sky07/phoenix"
 
 const (
@@ -40,7 +40,7 @@ const (
 	// runs. It is the very same installer the CLI uses (`x-ui.sh update` →
 	// install-phoenix.sh), which resolves the latest PHOENIX release and
 	// restarts the panel — so an in-panel update can never install upstream
-	// 3x-ui.
+	// builds.
 	panelUpdaterURL      = "https://raw.githubusercontent.com/" + phoenixRepo + "/main/install-phoenix.sh"
 	maxPanelUpdaterBytes = 2 << 20
 )

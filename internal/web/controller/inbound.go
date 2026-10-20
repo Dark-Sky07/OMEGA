@@ -6,12 +6,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/Dark-Sky07/phoenix/internal/database/model"
+	"github.com/Dark-Sky07/phoenix/internal/web/middleware"
+	"github.com/Dark-Sky07/phoenix/internal/web/service"
+	"github.com/Dark-Sky07/phoenix/internal/web/session"
+	"github.com/Dark-Sky07/phoenix/internal/web/websocket"
+	"github.com/Dark-Sky07/phoenix/internal/xray"
 
 	"github.com/gin-gonic/gin"
 )

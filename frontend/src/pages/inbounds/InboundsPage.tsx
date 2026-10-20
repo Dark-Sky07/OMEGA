@@ -575,7 +575,7 @@ export default function InboundsPage() {
       value: (
         <span className="inbounds-updown">
           <ArrowUpOutlined /> {SizeFormatter.sizeFormat(totals.up)}
-          <span className="omega-sep"> / </span>
+          <span className="phoenix-sep"> / </span>
           <ArrowDownOutlined /> {SizeFormatter.sizeFormat(totals.down)}
         </span>
       ),
@@ -637,9 +637,9 @@ export default function InboundsPage() {
                     subtitle={(
                       <>
                         <span><strong>{dbInbounds.length}</strong> {t('pages.inbounds.inboundCount')}</span>
-                        <span className="omega-sep">·</span>
+                        <span className="phoenix-sep">·</span>
                         <span><strong>{totalClients}</strong> {t('clients')}</span>
-                        <span className="omega-sep">·</span>
+                        <span className="phoenix-sep">·</span>
                         <span><strong>{onlineClients.length}</strong> {t('online')}</span>
                       </>
                     )}
@@ -647,7 +647,7 @@ export default function InboundsPage() {
 
                   <StatStrip items={statItems} size={isMobile ? 'compact' : 'default'} />
 
-                  <div className="omega-rise omega-rise-3">
+                  <div className="phoenix-rise phoenix-rise-3">
                     <InboundList
                       dbInbounds={dbInbounds}
                       clientCount={clientCount}

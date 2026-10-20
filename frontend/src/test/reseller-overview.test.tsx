@@ -132,10 +132,10 @@ function switchView(label: string) {
 }
 
 function statText(title: string): string {
-  const titleEl = screen.getAllByText(title).find((el) => el.closest('.omega-stat'));
+  const titleEl = screen.getAllByText(title).find((el) => el.closest('.phoenix-stat'));
   expect(titleEl, `stat chip titled ${title} not found`).toBeTruthy();
-  const stat = (titleEl as HTMLElement).closest('.omega-stat') as HTMLElement;
-  return (stat.querySelector('.omega-stat-value') as HTMLElement).textContent || '';
+  const stat = (titleEl as HTMLElement).closest('.phoenix-stat') as HTMLElement;
+  return (stat.querySelector('.phoenix-stat-value') as HTMLElement).textContent || '';
 }
 
 describe('resellers overview (admin)', () => {

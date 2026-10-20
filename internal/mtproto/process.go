@@ -16,8 +16,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/config"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/Dark-Sky07/phoenix/internal/config"
+	"github.com/Dark-Sky07/phoenix/internal/logger"
 )
 
 // GetBinaryName returns the mtg binary filename for the current OS and arch,

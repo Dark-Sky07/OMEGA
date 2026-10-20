@@ -17,10 +17,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/Dark-Sky07/phoenix/internal/logger"
+	"github.com/Dark-Sky07/phoenix/internal/util/common"
+	"github.com/Dark-Sky07/phoenix/internal/util/wireguard"
+	"github.com/Dark-Sky07/phoenix/internal/web/service"
 )
 
 // WarpService provides business logic for Cloudflare WARP integration.

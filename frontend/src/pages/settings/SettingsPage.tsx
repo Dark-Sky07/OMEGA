@@ -272,8 +272,8 @@ export default function SettingsPage() {
                     actions={(
                       <>
                         {!saveDisabled && (
-                          <span className="omega-pill is-stop omega-dirty">
-                            <span className="omega-dot" />
+                          <span className="phoenix-pill is-stop phoenix-dirty">
+                            <span className="phoenix-dot" />
                             {t('pages.settings.unsaved', 'Unsaved changes')}
                           </span>
                         )}
@@ -286,13 +286,13 @@ export default function SettingsPage() {
                       </>
                     )}
                   >
-                    <p className="omega-note"><InfoCircleOutlined /> {t('pages.settings.infoDesc')}</p>
-                    <nav className="omega-subnav" aria-label={t('menu.settings')}>
+                    <p className="phoenix-note"><InfoCircleOutlined /> {t('pages.settings.infoDesc')}</p>
+                    <nav className="phoenix-subnav" aria-label={t('menu.settings')}>
                       {categories.map((c) => (
                         <button
                           key={c.slug}
                           type="button"
-                          className={`omega-subnav-item${c.slug === activeSlug ? ' is-active' : ''}`}
+                          className={`phoenix-subnav-item${c.slug === activeSlug ? ' is-active' : ''}`}
                           onClick={() => navigate(`/settings#${c.slug}`)}
                         >
                           {c.icon}
@@ -304,7 +304,7 @@ export default function SettingsPage() {
 
                   <FloatButton.BackTop target={scrollTarget} visibilityHeight={200} />
 
-                  <Card className="omega-section-card omega-rise omega-rise-2" key={activeSlug}>
+                  <Card className="phoenix-section-card phoenix-rise phoenix-rise-2" key={activeSlug}>
                     {categoryBody}
                   </Card>
                 </>

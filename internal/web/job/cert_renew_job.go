@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/Dark-Sky07/phoenix/internal/web/service"
 )
 
 // CertRenewJob checks the configured panel certificate once a day and renews

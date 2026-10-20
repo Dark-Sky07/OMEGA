@@ -12,8 +12,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/tproxy"
+	"github.com/Dark-Sky07/phoenix/internal/logger"
+	"github.com/Dark-Sky07/phoenix/internal/util/tproxy"
 )
 
 // NetworkManager owns the firewall rules required by the L2TP pool. Rules are

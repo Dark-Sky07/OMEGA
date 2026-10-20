@@ -10,8 +10,8 @@ import (
 	"github.com/amnezia-vpn/amneziawg-go/v3/device"
 	"github.com/amnezia-vpn/amneziawg-go/v3/tun/netstack"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
+	"github.com/Dark-Sky07/phoenix/internal/amneziawg"
+	"github.com/Dark-Sky07/phoenix/internal/util/wireguard"
 )
 
 // TestNewDeviceUDPHandlerAndReply is the UDP counterpart of

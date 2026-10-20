@@ -17,11 +17,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
+	"github.com/Dark-Sky07/phoenix/internal/database"
+	"github.com/Dark-Sky07/phoenix/internal/database/model"
+	"github.com/Dark-Sky07/phoenix/internal/util/common"
+	"github.com/Dark-Sky07/phoenix/internal/util/netsafe"
+	"github.com/Dark-Sky07/phoenix/internal/web/runtime"
 
 	"gorm.io/gorm"
 )

@@ -4,9 +4,9 @@ import (
 	"net"
 	"strings"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/Dark-Sky07/phoenix/internal/database/model"
+	"github.com/Dark-Sky07/phoenix/internal/openvpn"
+	"github.com/Dark-Sky07/phoenix/internal/util/common"
 )
 
 // openvpnProfileHost picks the address the client profile should dial,

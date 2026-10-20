@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
+	"github.com/Dark-Sky07/phoenix/internal/amneziawg"
 )
 
 func peerWithIPs(email string, ips ...string) amneziawg.Peer {

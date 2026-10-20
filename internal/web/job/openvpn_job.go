@@ -3,11 +3,11 @@ package job
 import (
 	"strings"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/openvpn"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/Dark-Sky07/phoenix/internal/database/model"
+	"github.com/Dark-Sky07/phoenix/internal/logger"
+	"github.com/Dark-Sky07/phoenix/internal/openvpn"
+	"github.com/Dark-Sky07/phoenix/internal/web/service"
+	"github.com/Dark-Sky07/phoenix/internal/xray"
 )
 
 // OpenvpnJob reconciles the running openvpn daemon processes against the

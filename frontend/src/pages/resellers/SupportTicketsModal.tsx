@@ -407,7 +407,7 @@ export default function SupportTicketsModal({
                 children: (
                   <>
                     <div style={{ marginBottom: 8, fontSize: 12, color: 'var(--ant-color-text-secondary)' }}>
-                      Webhook Endpoint: <code>POST /api/payment/webhook</code> (Header: <code>X-Omega-Signature: sha256=&lt;hmac&gt;</code>)
+                      Webhook Endpoint: <code>POST /api/payment/webhook</code> (Header: <code>X-Phoenix-Signature: sha256=&lt;hmac&gt;</code>)
                     </div>
                     <Table<PaymentOrderRow>
                       rowKey="id"

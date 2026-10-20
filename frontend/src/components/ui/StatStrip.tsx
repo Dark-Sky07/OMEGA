@@ -31,23 +31,23 @@ export interface StatStripProps {
  */
 export default function StatStrip({ items, className, size = 'default' }: StatStripProps) {
   return (
-    <div className={`omega-stat-strip is-${size}${className ? ` ${className}` : ''}`}>
+    <div className={`phoenix-stat-strip is-${size}${className ? ` ${className}` : ''}`}>
       {items.map((item, index) => {
         const interactive = !!item.onClick || !!item.popover;
         const chip = (
           <div
             key={item.key}
-            className={`omega-stat is-${item.tone ?? 'default'}${interactive ? ' is-interactive' : ''} omega-rise omega-rise-${Math.min(index + 1, 5)}`}
+            className={`phoenix-stat is-${item.tone ?? 'default'}${interactive ? ' is-interactive' : ''} phoenix-rise phoenix-rise-${Math.min(index + 1, 5)}`}
             role={item.onClick ? 'button' : undefined}
             tabIndex={item.onClick ? 0 : undefined}
             onClick={item.onClick}
             onKeyDown={item.onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.onClick?.(); } } : undefined}
           >
-            {item.icon && <span className="omega-stat-icon">{item.icon}</span>}
-            <div className="omega-stat-copy">
-              <span className="omega-stat-label">{item.label}</span>
-              <span className="omega-stat-value">{item.value}</span>
-              {item.hint && <span className="omega-stat-hint">{item.hint}</span>}
+            {item.icon && <span className="phoenix-stat-icon">{item.icon}</span>}
+            <div className="phoenix-stat-copy">
+              <span className="phoenix-stat-label">{item.label}</span>
+              <span className="phoenix-stat-value">{item.value}</span>
+              {item.hint && <span className="phoenix-stat-hint">{item.hint}</span>}
             </div>
           </div>
         );

@@ -412,8 +412,8 @@ export default function NodeList({
   ], [t, showAddress, relativeTime, latestVersion, onToggleEnable, onProbe, onEdit, onDelete, onUpdateNode, nameByGuid]);
 
   return (
-    <Card className="omega-table-card node-list-card">
-      <div className="omega-toolbar">
+    <Card className="phoenix-table-card node-list-card">
+      <div className="phoenix-toolbar">
         <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
           {t('pages.nodes.addNode')}
         </Button>
@@ -426,9 +426,9 @@ export default function NodeList({
 
       {isMobile ? (
         <>
-          <div className="node-cards omega-table-body">
+          <div className="node-cards phoenix-table-body">
             {dataSource.length === 0 ? (
-              <div className="omega-empty">
+              <div className="phoenix-empty">
                 <ClusterOutlined />
                 <div>{t('noData')}</div>
               </div>

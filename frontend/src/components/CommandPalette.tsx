@@ -35,7 +35,7 @@ import './CommandPalette.css';
 
 export { filterPaletteItems, type PaletteItem };
 
-export const OPEN_COMMAND_PALETTE_EVENT = 'omega:open-command-palette';
+export const OPEN_COMMAND_PALETTE_EVENT = 'phoenix:open-command-palette';
 
 export function openCommandPalette() {
   window.dispatchEvent(new CustomEvent(OPEN_COMMAND_PALETTE_EVENT));
@@ -406,7 +406,7 @@ export default function CommandPalette() {
       footer={null}
       closable={false}
       width={560}
-      className="omega-command-palette"
+      className="phoenix-command-palette"
       destroyOnHidden
     >
       <div className="cp-search-bar">

@@ -157,7 +157,7 @@ export default function InboundList({
   };
 
   const toolbar = (
-    <div className="omega-toolbar inbound-toolbar">
+    <div className="phoenix-toolbar inbound-toolbar">
       {!isReseller && (
         <Button type="primary" onClick={onAddInbound} icon={<PlusOutlined />}>
           {!isMobile && t('pages.inbounds.addInbound')}
@@ -187,21 +187,21 @@ export default function InboundList({
           </Button>
         </>
       )}
-      <span className="omega-toolbar-spacer" />
-      <span className="omega-muted inbound-toolbar-count">
+      <span className="phoenix-toolbar-spacer" />
+      <span className="phoenix-muted inbound-toolbar-count">
         {visibleInbounds.length} / {dbInbounds.length}
       </span>
     </div>
   );
 
   return (
-    <Card className="omega-table-card inbound-list-card">
+    <Card className="phoenix-table-card inbound-list-card">
       {toolbar}
       {isMobile ? (
-        <div className="omega-table-body">
+        <div className="phoenix-table-body">
           <div className="inbound-cards">
             {visibleInbounds.length === 0 ? (
-              <div className="omega-empty">
+              <div className="phoenix-empty">
                 <ImportOutlined />
                 <div>{t('noData')}</div>
               </div>
@@ -233,8 +233,8 @@ export default function InboundList({
                     <div className="card-title">
                       <span className="tag-name">{record.remark || `#${record.id}`}</span>
                       <span className="card-sub">
-                        <span className="omega-chip is-protocol">{record.protocol}</span>
-                        <span className="omega-id">#{record.id} · :{record.port}</span>
+                        <span className="phoenix-chip is-protocol">{record.protocol}</span>
+                        <span className="phoenix-id">#{record.id} · :{record.port}</span>
                       </span>
                     </div>
                     <div className="card-actions" onClick={(e) => e.stopPropagation()}>
@@ -280,7 +280,7 @@ export default function InboundList({
           size="middle"
           locale={{
             emptyText: (
-              <div className="omega-empty">
+              <div className="phoenix-empty">
                 <ImportOutlined />
                 <div>{t('noData')}</div>
               </div>

@@ -185,7 +185,7 @@ export default function NodesPage() {
                     subtitle={(
                       <>
                         <span><strong>{totals.total}</strong> {t('pages.nodes.totalNodes')}</span>
-                        <span className="omega-sep">·</span>
+                        <span className="phoenix-sep">·</span>
                         <span><strong>{totals.online}</strong> {t('pages.nodes.onlineNodes')}</span>
                       </>
                     )}
@@ -193,7 +193,7 @@ export default function NodesPage() {
 
                   <StatStrip size={isMobile ? 'compact' : 'default'} items={nodeStats} />
 
-                  <div className="omega-rise omega-rise-3">
+                  <div className="phoenix-rise phoenix-rise-3">
                     <NodeList
                       nodes={nodes}
                       loading={loading}

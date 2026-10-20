@@ -9,16 +9,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/Dark-Sky07/phoenix/internal/database"
+	"github.com/Dark-Sky07/phoenix/internal/database/model"
+	"github.com/Dark-Sky07/phoenix/internal/util/common"
+	"github.com/Dark-Sky07/phoenix/internal/xray"
 
 	"gorm.io/gorm"
 )
 
 const (
-	clientTransferFormat  = "omega-client-transfer"
+	clientTransferFormat  = "phoenix-client-transfer"
 	clientTransferVersion = 1
 	maxTransferClients    = 5000
 )
@@ -406,7 +406,10 @@ func (s *ClientService) ValidateClientTransfer(inboundSvc *InboundService, envel
 	if inboundSvc == nil {
 		return nil, common.NewError("inbound service is required")
 	}
-	if envelope.Format != clientTransferFormat {
+	// Accept the current format plus any structurally identical format
+	// written by earlier releases (any "*-client-transfer" spelling), so
+	// previously exported files keep importing after the rebrand.
+	if envelope.Format != clientTransferFormat && !strings.HasSuffix(envelope.Format, "-client-transfer") {
 		return nil, common.NewError("unsupported client transfer format")
 	}
 	if envelope.Version != clientTransferVersion {
