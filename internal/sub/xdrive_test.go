@@ -3,7 +3,7 @@ package sub
 import (
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/Dark-Sky07/phoenix/internal/database/model"
 )
 
 // XDRIVE has no share-link format: a link would either drop the storage secrets both

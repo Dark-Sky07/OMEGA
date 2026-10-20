@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
+	"github.com/Dark-Sky07/phoenix/internal/database"
+	"github.com/Dark-Sky07/phoenix/internal/database/model"
+	"github.com/Dark-Sky07/phoenix/internal/web/service"
+	"github.com/Dark-Sky07/phoenix/internal/web/session"
 
 	"github.com/gin-gonic/gin"
 )
@@ -559,9 +559,6 @@ func HandlePublicPaymentWebhook(c *gin.Context) {
 		return
 	}
 	sig := c.GetHeader("X-Phoenix-Signature")
-	if sig == "" {
-		sig = c.GetHeader("X-Omega-Signature")
-	}
 	if !service.VerifyPaymentWebhookHMAC(rawBody, sig, secret) {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "msg": "invalid webhook HMAC signature"})
 		return

@@ -464,7 +464,7 @@ export default function GroupsPage() {
       value: (
         <span className="inbounds-updown">
           <ArrowUpOutlined /> {SizeFormatter.sizeFormat(totalUpload)}
-          <span className="omega-sep"> / </span>
+          <span className="phoenix-sep"> / </span>
           <ArrowDownOutlined /> {SizeFormatter.sizeFormat(totalDownload)}
         </span>
       ),
@@ -498,7 +498,7 @@ export default function GroupsPage() {
                     subtitle={(
                       <>
                         <span><strong>{totalGroups}</strong> {t('pages.groups.totalGroups')}</span>
-                        <span className="omega-sep">·</span>
+                        <span className="phoenix-sep">·</span>
                         <span><strong>{totalClients}</strong> {t('pages.groups.totalGroupedClients')}</span>
                       </>
                     )}
@@ -511,7 +511,7 @@ export default function GroupsPage() {
 
                   <StatStrip size={isMobile ? 'compact' : 'default'} items={groupStats} />
 
-                  <Card className="omega-table-card omega-rise omega-rise-3">
+                  <Card className="phoenix-table-card phoenix-rise phoenix-rise-3">
                     <Table<GroupSummary>
                       dataSource={groups}
                       columns={columns}
@@ -521,7 +521,7 @@ export default function GroupsPage() {
                       loading={loading}
                       locale={{
                         emptyText: (
-                          <div className="omega-empty">
+                          <div className="phoenix-empty">
                             <TagsOutlined />
                             <div>{t('noData')}</div>
                           </div>

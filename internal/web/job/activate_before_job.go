@@ -1,7 +1,7 @@
 package job
 
 import (
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/Dark-Sky07/phoenix/internal/web/service"
 )
 
 // ActivateBeforeJob expires delayed-start clients whose activation deadline

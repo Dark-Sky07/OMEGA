@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/util/tproxy"
+	"github.com/Dark-Sky07/phoenix/internal/util/tproxy"
 )
 
 // fakeFirewall emulates iptables -C/-I/-D bookkeeping plus the sysctl/systemctl

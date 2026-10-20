@@ -1,6 +1,6 @@
 #!/bin/sh
 # Resolve the highest published Xray-core release that follows the numeric
-# vMAJOR.MINOR.PATCH tag format. OMEGA intentionally resolves this at build or
+# vMAJOR.MINOR.PATCH tag format. PHOENIX intentionally resolves this at build or
 # install time instead of silently retaining the core bundled in an old panel.
 set -eu
 

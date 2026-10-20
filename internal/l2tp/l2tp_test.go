@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/Dark-Sky07/phoenix/internal/database/model"
+	"github.com/Dark-Sky07/phoenix/internal/xray"
 )
 
 func validInstance() Instance {
@@ -192,21 +192,28 @@ func TestSystemChapSecretsPreserveUnmanagedEntries(t *testing.T) {
 	inst := validInstance()
 	inst.Credentials[0].Email = "new@example.com"
 	inst.Credentials[0].Password = "new password"
+	legacyBegin := "# BEGIN LEGACY L2TP MANAGED CREDENTIALS"
+	legacyEnd := "# END LEGACY L2TP MANAGED CREDENTIALS"
 	existing := "# administrator entry\nadmin * admin-password *\n\n" +
-		omegaChapSecretsBegin + "\nold@example.com * old-password *\n" +
-		omegaChapSecretsEnd + "\n"
+		phoenixChapSecretsBegin + "\nold@example.com * old-password *\n" +
+		phoenixChapSecretsEnd + "\n" +
+		legacyBegin + "\nlegacy@example.com * legacy-password *\n" +
+		legacyEnd + "\n"
 	contents := renderSystemChapSecrets(existing, inst)
 	if !strings.Contains(contents, "admin * admin-password *") {
 		t.Fatal("system chap-secrets reconciliation removed an unrelated PPP entry")
 	}
-	if strings.Contains(contents, "old@example.com") || strings.Count(contents, omegaChapSecretsBegin) != 1 || strings.Count(contents, omegaChapSecretsEnd) != 1 {
-		t.Fatalf("stale OMEGA credentials or duplicate managed blocks remain: %q", contents)
+	if strings.Contains(contents, "old@example.com") || strings.Contains(contents, "legacy@example.com") ||
+		strings.Count(contents, phoenixChapSecretsBegin) != 1 || strings.Count(contents, phoenixChapSecretsEnd) != 1 {
+		t.Fatalf("stale managed credentials or duplicate managed blocks remain: %q", contents)
 	}
 	if !strings.Contains(contents, `"new@example.com" * "new password" *`) {
-		t.Fatalf("current OMEGA credential was not installed in the managed block: %q", contents)
+		t.Fatalf("current PHOENIX credential was not installed in the managed block: %q", contents)
 	}
 	cleaned := stripManagedChapSecrets(contents)
-	if strings.Contains(cleaned, omegaChapSecretsBegin) || strings.Contains(cleaned, omegaChapSecretsEnd) || !strings.Contains(cleaned, "admin * admin-password *") {
+	if strings.Contains(cleaned, phoenixChapSecretsBegin) || strings.Contains(cleaned, phoenixChapSecretsEnd) ||
+		strings.Contains(cleaned, legacyBegin) || strings.Contains(cleaned, legacyEnd) ||
+		!strings.Contains(cleaned, "admin * admin-password *") {
 		t.Fatalf("removing the managed block did not preserve unrelated entries: %q", cleaned)
 	}
 }
@@ -238,13 +245,13 @@ func TestRenderIPsecConfigSupportsWindowsL2TP(t *testing.T) {
 }
 
 func TestProcessEnvironmentReplacesInheritedValues(t *testing.T) {
-	t.Setenv("OMEGA_L2TP_TEST_ENV", "old")
-	env := processEnvironment("OMEGA_L2TP_TEST_ENV=new")
+	t.Setenv("PHOENIX_L2TP_TEST_ENV", "old")
+	env := processEnvironment("PHOENIX_L2TP_TEST_ENV=new")
 	matches := 0
 	for _, entry := range env {
-		if strings.HasPrefix(entry, "OMEGA_L2TP_TEST_ENV=") {
+		if strings.HasPrefix(entry, "PHOENIX_L2TP_TEST_ENV=") {
 			matches++
-			if entry != "OMEGA_L2TP_TEST_ENV=new" {
+			if entry != "PHOENIX_L2TP_TEST_ENV=new" {
 				t.Fatalf("unexpected override value: %q", entry)
 			}
 		}

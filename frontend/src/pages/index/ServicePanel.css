@@ -14,16 +14,16 @@
   justify-content: space-between;
   gap: 16px;
   padding: 14px 14px;
-  border-radius: var(--omega-radius-sm);
+  border-radius: var(--phoenix-radius-sm);
   transition: background-color 0.18s ease;
 }
 
 .service-row + .service-row {
-  border-top: 1px solid var(--omega-border);
+  border-top: 1px solid var(--phoenix-border);
 }
 
 .service-row:hover {
-  background: var(--omega-surface-muted);
+  background: var(--phoenix-surface-muted);
 }
 
 .service-row-main {
@@ -42,21 +42,21 @@
   height: 44px;
   border-radius: 14px;
   font-size: 19px;
-  color: var(--omega-primary);
-  background: color-mix(in srgb, var(--omega-primary) 12%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--omega-primary) 22%, transparent);
+  color: var(--phoenix-primary);
+  background: color-mix(in srgb, var(--phoenix-primary) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--phoenix-primary) 22%, transparent);
 }
 
 .service-row.is-stop .service-row-icon {
-  color: var(--omega-warning);
-  background: color-mix(in srgb, var(--omega-warning) 12%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--omega-warning) 24%, transparent);
+  color: var(--phoenix-warning);
+  background: color-mix(in srgb, var(--phoenix-warning) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--phoenix-warning) 24%, transparent);
 }
 
 .service-row.is-error .service-row-icon {
-  color: var(--omega-error);
-  background: color-mix(in srgb, var(--omega-error) 12%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--omega-error) 26%, transparent);
+  color: var(--phoenix-error);
+  background: color-mix(in srgb, var(--phoenix-error) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--phoenix-error) 26%, transparent);
 }
 
 .service-row-copy {
@@ -74,7 +74,7 @@
   font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: var(--omega-text);
+  color: var(--phoenix-text);
 }
 
 .service-row-meta {
@@ -82,12 +82,12 @@
   flex-wrap: wrap;
   gap: 4px 14px;
   font-size: 12.5px;
-  color: var(--omega-text-2);
+  color: var(--phoenix-text-2);
 }
 
 .service-row-meta-item b {
   font-weight: 700;
-  color: var(--omega-text);
+  color: var(--phoenix-text);
   font-variant-numeric: tabular-nums;
 }
 

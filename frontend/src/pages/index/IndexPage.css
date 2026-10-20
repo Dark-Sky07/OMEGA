@@ -28,7 +28,7 @@
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
-  color: var(--omega-text-3);
+  color: var(--phoenix-text-3);
 }
 
 .dash-hero-pills {
@@ -38,7 +38,7 @@
   margin-top: 8px;
 }
 
-.dash-hero-pills .omega-pill em {
+.dash-hero-pills .phoenix-pill em {
   font-style: normal;
   font-family: var(--font-mono);
   font-size: 11px;
@@ -58,16 +58,16 @@
 }
 
 .dash-update-btn {
-  animation: omega-glow 2.4s ease-in-out infinite;
+  animation: phoenix-glow 2.4s ease-in-out infinite;
 }
 
-@keyframes omega-glow {
+@keyframes phoenix-glow {
   0%,
   100% {
-    box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--omega-primary) 80%, transparent);
+    box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--phoenix-primary) 80%, transparent);
   }
   50% {
-    box-shadow: 0 10px 30px -6px color-mix(in srgb, var(--omega-primary) 95%, transparent);
+    box-shadow: 0 10px 30px -6px color-mix(in srgb, var(--phoenix-primary) 95%, transparent);
   }
 }
 
@@ -121,7 +121,7 @@
   gap: 10px;
   width: 100%;
   padding: 8px 8px;
-  border-radius: var(--omega-radius-sm);
+  border-radius: var(--phoenix-radius-sm);
   border: 1px solid transparent;
   background: transparent;
   text-align: start;
@@ -137,8 +137,8 @@
 
 .info-tile.is-clickable:hover,
 .info-tile.is-clickable:focus-visible {
-  background: color-mix(in srgb, var(--omega-primary) 10%, transparent);
-  border-color: color-mix(in srgb, var(--omega-primary) 26%, transparent);
+  background: color-mix(in srgb, var(--phoenix-primary) 10%, transparent);
+  border-color: color-mix(in srgb, var(--phoenix-primary) 26%, transparent);
 }
 
 .info-tile.is-clickable:active {
@@ -153,14 +153,14 @@
   width: 32px;
   height: 32px;
   border-radius: 10px;
-  background: var(--omega-surface-muted);
-  color: var(--omega-primary);
+  background: var(--phoenix-surface-muted);
+  color: var(--phoenix-primary);
   font-size: 14px;
 }
 
 .info-tile.is-update .info-tile-icon {
-  color: var(--omega-warning);
-  background: color-mix(in srgb, var(--omega-warning) 14%, transparent);
+  color: var(--phoenix-warning);
+  background: color-mix(in srgb, var(--phoenix-warning) 14%, transparent);
 }
 
 .info-tile-copy {
@@ -172,7 +172,7 @@
 .info-tile-label {
   font-size: 11px;
   font-weight: 600;
-  color: var(--omega-text-3);
+  color: var(--phoenix-text-3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -181,7 +181,7 @@
 .info-tile-value {
   font-size: 14px;
   font-weight: 700;
-  color: var(--omega-text);
+  color: var(--phoenix-text);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
@@ -190,7 +190,7 @@
 
 .info-tile-hint {
   font-size: 11px;
-  color: var(--omega-text-3);
+  color: var(--phoenix-text-3);
 }
 
 .ip-toggle-btn {

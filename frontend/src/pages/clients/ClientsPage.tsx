@@ -629,20 +629,20 @@ export default function ClientsPage() {
   const statItems = useMemo<StatItem[]>(() => [
     { key: 'total', icon: <TeamOutlined />, tone: 'primary', label: t('clients'), value: String(summary.total) },
     {
-      key: 'online', tone: 'accent', icon: <span className="omega-dot-icon is-online" />, label: t('online'), value: String(summary.online.length),
+      key: 'online', tone: 'accent', icon: <span className="phoenix-dot-icon is-online" />, label: t('online'), value: String(summary.online.length),
       popover: summary.online.length ? { title: t('online'), content: emailList(summary.online) } : undefined,
     },
-    { key: 'active', tone: 'success', icon: <span className="omega-dot-icon is-active" />, label: t('subscription.active'), value: String(summary.active) },
+    { key: 'active', tone: 'success', icon: <span className="phoenix-dot-icon is-active" />, label: t('subscription.active'), value: String(summary.active) },
     {
-      key: 'expiring', tone: 'warning', icon: <span className="omega-dot-icon is-expiring" />, label: t('depletingSoon'), value: String(summary.expiring.length),
+      key: 'expiring', tone: 'warning', icon: <span className="phoenix-dot-icon is-expiring" />, label: t('depletingSoon'), value: String(summary.expiring.length),
       popover: summary.expiring.length ? { title: t('depletingSoon'), content: emailList(summary.expiring) } : undefined,
     },
     {
-      key: 'depleted', tone: 'danger', icon: <span className="omega-dot-icon is-depleted" />, label: t('depleted'), value: String(summary.depleted.length),
+      key: 'depleted', tone: 'danger', icon: <span className="phoenix-dot-icon is-depleted" />, label: t('depleted'), value: String(summary.depleted.length),
       popover: summary.depleted.length ? { title: t('depleted'), content: emailList(summary.depleted) } : undefined,
     },
     {
-      key: 'disabled', tone: 'muted', icon: <span className="omega-dot-icon is-disabled" />, label: t('disabled'), value: String(summary.deactive.length),
+      key: 'disabled', tone: 'muted', icon: <span className="phoenix-dot-icon is-disabled" />, label: t('disabled'), value: String(summary.deactive.length),
       popover: summary.deactive.length ? { title: t('disabled'), content: emailList(summary.deactive) } : undefined,
     },
   ], [t, summary]);
@@ -700,17 +700,17 @@ export default function ClientsPage() {
         const lastOnlineTitle = `${t('lastOnline')}: ${lastOnline > 0 ? IntlUtil.formatDate(lastOnline, datepicker) : '-'}`;
         if (bucket === 'depleted') return (
           <Tooltip title={lastOnlineTitle}>
-            <span className="omega-pill is-error"><span className="omega-dot" />{t('depleted')}</span>
+            <span className="phoenix-pill is-error"><span className="phoenix-dot" />{t('depleted')}</span>
           </Tooltip>
         );
         if (record.enable && isOnline(record.email)) return (
-          <span className="omega-pill is-running"><span className="omega-dot" />{t('pages.clients.online')}</span>
+          <span className="phoenix-pill is-running"><span className="phoenix-dot" />{t('pages.clients.online')}</span>
         );
-        if (!record.enable) return <span className="omega-pill is-muted"><span className="omega-dot" />{t('disabled')}</span>;
-        if (bucket === 'expiring') return <span className="omega-pill is-stop"><span className="omega-dot" />{t('depletingSoon')}</span>;
+        if (!record.enable) return <span className="phoenix-pill is-muted"><span className="phoenix-dot" />{t('disabled')}</span>;
+        if (bucket === 'expiring') return <span className="phoenix-pill is-stop"><span className="phoenix-dot" />{t('depletingSoon')}</span>;
         return (
           <Tooltip title={lastOnlineTitle}>
-            <span className="omega-pill is-muted"><span className="omega-dot" />{t('pages.clients.offline')}</span>
+            <span className="phoenix-pill is-muted"><span className="phoenix-dot" />{t('pages.clients.offline')}</span>
           </Tooltip>
         );
       },
@@ -746,7 +746,7 @@ export default function ClientsPage() {
       width: 130,
       hidden: allGroups.length === 0,
       render: (_v, record) => {
-        if (!record.group) return <span className="omega-muted">—</span>;
+        if (!record.group) return <span className="phoenix-muted">—</span>;
         const isActive = filters.groups.includes(record.group);
         return (
           <Tag
@@ -770,7 +770,7 @@ export default function ClientsPage() {
       width: 170,
       render: (_v, record) => {
         const ids = record.inboundIds || [];
-        if (ids.length === 0) return <span className="omega-muted">—</span>;
+        if (ids.length === 0) return <span className="phoenix-muted">—</span>;
         const visible = ids.slice(0, INBOUND_CHIP_LIMIT);
         const overflow = ids.slice(INBOUND_CHIP_LIMIT);
         const chip = (id: number, compact: boolean) => {
@@ -910,9 +910,9 @@ export default function ClientsPage() {
                     subtitle={(
                       <>
                         <span><strong>{summary.total}</strong> {t('clients')}</span>
-                        <span className="omega-sep">·</span>
+                        <span className="phoenix-sep">·</span>
                         <span><strong>{summary.online.length}</strong> {t('online')}</span>
-                        <span className="omega-sep">·</span>
+                        <span className="phoenix-sep">·</span>
                         <span><strong>{summary.active}</strong> {t('subscription.active')}</span>
                       </>
                     )}
@@ -920,9 +920,9 @@ export default function ClientsPage() {
 
                   <StatStrip items={statItems} size={isMobile ? 'compact' : 'default'} className="clients-stats" />
 
-                  <div className="omega-rise omega-rise-3">
-                    <Card className="omega-table-card clients-card">
-                        <div className="omega-toolbar card-toolbar">
+                  <div className="phoenix-rise phoenix-rise-3">
+                    <Card className="phoenix-table-card clients-card">
+                        <div className="phoenix-toolbar card-toolbar">
                           {selectedRowKeys.length === 0 ? (
                             <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
                               {!isMobile && t('pages.clients.addClients')}
@@ -1018,7 +1018,7 @@ export default function ClientsPage() {
                             </Button>
                           )}
                         </div>
-                      <div className="omega-table-body clients-filters">
+                      <div className="phoenix-table-body clients-filters">
                       <div className={isMobile ? 'filter-bar mobile' : 'filter-bar'}>
                         <Input
                           value={searchKey}
@@ -1153,7 +1153,7 @@ export default function ClientsPage() {
                           onChange={onTableChange}
                           locale={{
                             emptyText: (
-                              <div className="omega-empty">
+                              <div className="phoenix-empty">
                                 <TeamOutlined />
                                 <div>{t('noData')}</div>
                               </div>
@@ -1162,7 +1162,7 @@ export default function ClientsPage() {
                         />
                       ) : (
                         <Spin spinning={loading}>
-                          <div className="client-cards omega-table-body">
+                          <div className="client-cards phoenix-table-body">
                             {filteredClients.length > 0 && (
                               <div className="card-bulk-bar">
                                 <Checkbox

@@ -553,11 +553,11 @@ export default function ResellersPage() {
               <Alert type="error" showIcon message={t('somethingWentWrong')} style={{ marginBottom: 12 }} />
             )}
             {view === 'overview' ? (
-              <div className="omega-rise omega-rise-2">
+              <div className="phoenix-rise phoenix-rise-2">
                 <ResellersOverview stats={rows} loading={listQuery.isLoading} />
               </div>
             ) : (
-              <Card className="omega-table-card omega-rise omega-rise-2">
+              <Card className="phoenix-table-card phoenix-rise phoenix-rise-2">
                 <Table<ResellerStat>
                   rowKey={(stat) => String(stat.reseller.id)}
                   size="middle"

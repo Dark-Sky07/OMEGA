@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/Dark-Sky07/phoenix/internal/database"
 )
 
 func initSubDB(t *testing.T) {

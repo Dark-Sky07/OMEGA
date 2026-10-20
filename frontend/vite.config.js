@@ -195,7 +195,7 @@ const PREVIEW_BASE = (() => {
 
 function previewMockPlugin() {
   return {
-    name: 'omega-preview-mock',
+    name: 'phoenix-preview-mock',
     transformIndexHtml: {
       order: 'pre',
       handler(html) {

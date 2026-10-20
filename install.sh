@@ -9,10 +9,10 @@ plain='\033[0m'
 cur_dir=$(pwd)
 
 # PHOENIX: this installer ships the PHOENIX panel
-# from its own repository. Override PHOENIX_REPO (the legacy OMEGA_REPO is
-# still honoured) to install a different fork/mirror; everything else
-# (service name, paths, panel version) is untouched.
-PHOENIX_REPO="${PHOENIX_REPO:-${OMEGA_REPO:-Dark-Sky07/phoenix}}"
+# from its own repository. Override PHOENIX_REPO to install a different
+# fork/mirror; everything else (service name, paths, panel version) is
+# untouched.
+PHOENIX_REPO="${PHOENIX_REPO:-Dark-Sky07/phoenix}"
 
 xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
 xui_service="${XUI_SERVICE:=/etc/systemd/system}"
@@ -1312,7 +1312,7 @@ phoenix_latest_tag() {
         | grep -m1 '"tag_name":' \
         | sed -E 's/.*"([^"]+)".*/\1/'
 }
-phoenix_ref="${PHOENIX_REF:-${OMEGA_REF:-${1:-${tag_version:-}}}}"
+phoenix_ref="${PHOENIX_REF:-${1:-${tag_version:-}}}"
 if [[ -z "${phoenix_ref}" ]]; then
     phoenix_ref="$(phoenix_latest_tag)"
 fi
@@ -1349,7 +1349,7 @@ resolve_latest_xray_version() {
 
 stage_latest_xray() {
     local xray_arch archive_url
-    XRAY_VERSION="${PHOENIX_XRAY_VERSION:-${OMEGA_XRAY_VERSION:-$(resolve_latest_xray_version)}}" || {
+    XRAY_VERSION="${PHOENIX_XRAY_VERSION:-$(resolve_latest_xray_version)}" || {
         echo -e "${red}Failed to resolve the latest Xray-core release; installation aborted before changing the current panel.${plain}"
         exit 1
     }
@@ -1404,10 +1404,10 @@ install_x-ui() {
 
     # Download resources
     if [ $# == 0 ]; then
-        tag_version="${PHOENIX_TAG:-${OMEGA_TAG:-$(curl -4fsSL "https://api.github.com/repos/${PHOENIX_REPO}/releases/latest" | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}}"
+        tag_version="${PHOENIX_TAG:-$(curl -4fsSL "https://api.github.com/repos/${PHOENIX_REPO}/releases/latest" | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}}"
         if [[ ! -n "$tag_version" ]]; then
             echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
-            tag_version="${PHOENIX_TAG:-${OMEGA_TAG:-$(curl -4fsSL "https://api.github.com/repos/${PHOENIX_REPO}/releases/latest" | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}}"
+            tag_version="${PHOENIX_TAG:-$(curl -4fsSL "https://api.github.com/repos/${PHOENIX_REPO}/releases/latest" | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}}"
             if [[ ! -n "$tag_version" ]]; then
                 echo -e "${red}Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later${plain}"
                 exit 1

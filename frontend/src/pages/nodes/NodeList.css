@@ -51,10 +51,10 @@
 }
 
 .node-card {
-  border: 1px solid var(--omega-border);
-  border-radius: var(--omega-radius-sm);
+  border: 1px solid var(--phoenix-border);
+  border-radius: var(--phoenix-radius-sm);
   padding: 12px 14px;
-  background: var(--omega-surface-muted);
+  background: var(--phoenix-surface-muted);
   display: flex;
   flex-direction: column;
   gap: 8px;

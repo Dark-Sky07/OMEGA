@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/Dark-Sky07/phoenix/internal/database"
 )
 
 func initCertTestDB(t *testing.T) CertService {

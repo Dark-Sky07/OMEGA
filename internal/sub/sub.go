@@ -14,13 +14,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/controller"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/network"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/Dark-Sky07/phoenix/internal/logger"
+	"github.com/Dark-Sky07/phoenix/internal/util/common"
+	"github.com/Dark-Sky07/phoenix/internal/web/controller"
+	"github.com/Dark-Sky07/phoenix/internal/web/locale"
+	"github.com/Dark-Sky07/phoenix/internal/web/middleware"
+	"github.com/Dark-Sky07/phoenix/internal/web/network"
+	"github.com/Dark-Sky07/phoenix/internal/web/service"
 
 	"github.com/gin-gonic/gin"
 )

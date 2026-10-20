@@ -16,9 +16,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Dark-Sky07/phoenix/internal/logger"
+	"github.com/Dark-Sky07/phoenix/internal/web/service"
 	"github.com/gin-gonic/gin"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
 // writeSubError translates a service-layer result into an HTTP response.

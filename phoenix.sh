@@ -6,9 +6,9 @@ blue='\033[0;34m'
 yellow='\033[0;33m'
 plain='\033[0m'
 
-# PHOENIX repository. PHOENIX_REPO wins; the legacy OMEGA_REPO override is
-# still honoured so existing automation keeps working.
-PHOENIX_REPO="${PHOENIX_REPO:-${OMEGA_REPO:-Dark-Sky07/phoenix}}"
+# PHOENIX repository. Override PHOENIX_REPO to install from a different
+# fork/mirror.
+PHOENIX_REPO="${PHOENIX_REPO:-Dark-Sky07/phoenix}"
 
 #Add some basic function here
 function LOGD() {
@@ -142,7 +142,7 @@ fi
 
 phoenix_latest_tag() {
     local repo="${PHOENIX_REPO}" tag
-    tag="${PHOENIX_TAG:-${OMEGA_TAG:-$(curl -4fsSL "https://api.github.com/repos/${repo}/releases/latest" 2> /dev/null | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}}"
+    tag="${PHOENIX_TAG:-$(curl -4fsSL "https://api.github.com/repos/${repo}/releases/latest" 2> /dev/null | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}}"
     [[ -n "${tag}" ]] || return 1
     printf '%s\n' "${tag}"
 }
@@ -163,7 +163,7 @@ phoenix_run_installer() {
             return 1
         fi
     fi
-    env PHOENIX_REF="${tag}" OMEGA_REF="${tag}" bash "${tmp}" "${tag}"
+    env PHOENIX_REF="${tag}" bash "${tmp}" "${tag}"
     rc=$?
     rm -f "${tmp}"
     return "${rc}"

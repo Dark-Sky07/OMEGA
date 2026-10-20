@@ -160,18 +160,6 @@ Herramientas e integraciones construidas por la comunidad alrededor de PHOENIX.
 
 - [terraform-provider-PHOENIX](https://github.com/batonogov/terraform-provider-threexui) (Licencia: **MIT**): _Gestiona inbounds, clientes, configuración del panel y configuración de Xray como código con Terraform / OpenTofu._
 
-## Apoyar el Proyecto
-
-**Si este proyecto te es útil, puedes darle una**:star2:
-
-<a href="https://www.buymeacoffee.com/MHSanaei" target="_blank">
-<img src="./media/default-yellow.png" alt="Buy Me A Coffee" style="height: 70px !important;width: 277px !important;" >
-</a>
-
-</br>
-<a href="https://nowpayments.io/donation/hsanaei" target="_blank" rel="noreferrer noopener">
-   <img src="./media/donation-button-black.svg" alt="Crypto donation button by NOWPayments">
-</a>
 
 ## Estrellas a lo Largo del Tiempo
 
