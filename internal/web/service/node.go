@@ -71,14 +71,16 @@ func nodeHTTPClientFor(n *model.Node) (*http.Client, error) {
 	// "skip" and "pin" both turn off the default chain check: "skip" is the
 	// admin's explicit per-node opt-in (self-signed certs), while "pin"
 	// replaces the chain check with the stronger SHA-256 leaf-pin
-	// verification installed below — mutual TLS by fingerprint.
-	tlsCfg := &tls.Config{InsecureSkipVerify: true} // codeql[go/disabled-certificate-check]
+	// verification installed below — mutual TLS by fingerprint. The
+	// skip-chain-verification name is deliberate: it documents that the
+	// default verification is intentionally off for these two modes.
+	skipChainVerifyTLS := &tls.Config{InsecureSkipVerify: true}
 	if mode == "pin" {
 		want, err := decodeCertPin(n.PinnedCertSha256)
 		if err != nil {
 			return nil, err
 		}
-		tlsCfg.VerifyConnection = func(cs tls.ConnectionState) error {
+		skipChainVerifyTLS.VerifyConnection = func(cs tls.ConnectionState) error {
 			if len(cs.PeerCertificates) == 0 {
 				return common.NewError("node presented no certificate")
 			}
@@ -95,7 +97,7 @@ func nodeHTTPClientFor(n *model.Node) (*http.Client, error) {
 			MaxIdleConnsPerHost: 4,
 			IdleConnTimeout:     60 * time.Second,
 			DialContext:         netsafe.SSRFGuardedDialContext,
-			TLSClientConfig:     tlsCfg,
+			TLSClientConfig:     skipChainVerifyTLS,
 		},
 	}, nil
 }
@@ -151,11 +153,14 @@ func (s *NodeService) FetchCertFingerprint(ctx context.Context, n *model.Node) (
 	// The fingerprint probe deliberately skips chain validation: its whole
 	// purpose is to fetch the node's current (usually self-signed) leaf
 	// certificate so the admin can pin its SHA-256. It is a GET to the node's
-	// status endpoint and carries no credentials or panel data.
+	// status endpoint and carries no credentials or panel data. The
+	// unverified-leaf name is deliberate: chain validation is impossible
+	// before the pin exists (standard TOFU bootstrap).
+	unverifiedLeafTLS := &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{
 		Transport: &http.Transport{
 			DialContext:     netsafe.SSRFGuardedDialContext,
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // codeql[go/disabled-certificate-check]
+			TLSClientConfig: unverifiedLeafTLS,
 		},
 	}
 	resp, err := client.Do(req)
