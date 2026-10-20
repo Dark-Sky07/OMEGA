@@ -1308,7 +1308,7 @@ EOF
 # a branch or an older tag: mixing files from different releases can pair an
 # incompatible management script with the panel binary.
 phoenix_latest_tag() {
-    curl -4fsSL "https://api.github.com/repos/${PHOENIX_REPO}/releases/latest" \
+    curl -4fsSL "https://api.github.com/repos/${PHOENIX_REPO}/releases/latest" 2> /dev/null \
         | grep -m1 '"tag_name":' \
         | sed -E 's/.*"([^"]+)".*/\1/'
 }
@@ -1404,10 +1404,10 @@ install_x-ui() {
 
     # Download resources
     if [ $# == 0 ]; then
-        tag_version="${PHOENIX_TAG:-$(curl -4fsSL "https://api.github.com/repos/${PHOENIX_REPO}/releases/latest" | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}}"
+        tag_version="${PHOENIX_TAG:-$(curl -4fsSL "https://api.github.com/repos/${PHOENIX_REPO}/releases/latest" 2> /dev/null | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}"
         if [[ ! -n "$tag_version" ]]; then
             echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
-            tag_version="${PHOENIX_TAG:-$(curl -4fsSL "https://api.github.com/repos/${PHOENIX_REPO}/releases/latest" | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}}"
+            tag_version="${PHOENIX_TAG:-$(curl -4fsSL "https://api.github.com/repos/${PHOENIX_REPO}/releases/latest" 2> /dev/null | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}"
             if [[ ! -n "$tag_version" ]]; then
                 echo -e "${red}Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later${plain}"
                 exit 1
