@@ -142,7 +142,7 @@ fi
 
 phoenix_latest_tag() {
     local repo="${PHOENIX_REPO}" tag
-    tag="${PHOENIX_TAG:-$(curl -4fsSL "https://api.github.com/repos/${repo}/releases/latest" 2> /dev/null | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}}"
+    tag="${PHOENIX_TAG:-$(curl -4fsSL "https://api.github.com/repos/${repo}/releases/latest" 2> /dev/null | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')}"
     [[ -n "${tag}" ]] || return 1
     printf '%s\n' "${tag}"
 }
