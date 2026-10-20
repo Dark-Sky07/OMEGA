@@ -1,8 +1,9 @@
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import {
   Alert,
+  Button,
   Card,
   Col,
   ConfigProvider,
@@ -17,7 +18,7 @@ import {
   Typography,
   message,
 } from 'antd';
-import { ApiOutlined, DatabaseOutlined, ShopOutlined, ThunderboltOutlined, WifiOutlined } from '@ant-design/icons';
+import { ApiOutlined, DatabaseOutlined, DownloadOutlined, ShopOutlined, ThunderboltOutlined, WifiOutlined } from '@ant-design/icons';
 import { PageHeader, StatStrip, type StatItem } from '@/components/ui';
 
 import AppSidebar from '@/layouts/AppSidebar';
@@ -35,6 +36,23 @@ export default function ResellerReportPage() {
   const { isDark, isUltra, antdThemeConfig } = useTheme();
   const { isMobile } = useMediaQuery();
   const [messageApi, messageContextHolder] = message.useMessage();
+  const [exporting, setExporting] = useState(false);
+
+  const exportCsv = useCallback(async () => {
+    setExporting(true);
+    try {
+      const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const ok = await HttpUtil.downloadFile(
+        '/panel/api/reseller/report/export',
+        `phoenix-report-${stamp}.csv`,
+      );
+      if (!ok) {
+        messageApi.error(t('somethingWentWrong'));
+      }
+    } finally {
+      setExporting(false);
+    }
+  }, [messageApi, t]);
 
   useEffect(() => {
     setMessageInstance(messageApi);
@@ -83,6 +101,11 @@ export default function ResellerReportPage() {
                 eyebrow={t('menu.groupOverview', 'Overview')}
                 title={t('menu.report', 'Report')}
                 subtitle={stat ? <span><strong>{stat.reseller.name || stat.reseller.username}</strong></span> : undefined}
+                actions={(
+                  <Button icon={<DownloadOutlined />} loading={exporting} onClick={exportCsv}>
+                    {!isMobile && t('resellers.exportCsv', 'Export CSV')}
+                  </Button>
+                )}
               />
 
               <StatStrip size={isMobile ? 'compact' : 'default'} items={reportStats} />

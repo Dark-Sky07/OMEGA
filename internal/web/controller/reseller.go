@@ -44,6 +44,8 @@ func (a *ResellerController) initRouter(g *gin.RouterGroup) {
 	g.GET("/get/:id", a.get)
 	g.GET("/assignments", a.assignments)
 	g.GET("/report/:id", a.report)
+	g.GET("/report/:id/export", a.reportExport)
+	g.GET("/export", a.export)
 	g.POST("/add", a.add)
 	g.POST("/update/:id", a.update)
 	g.POST("/del/:id", a.del)
@@ -105,6 +107,35 @@ func (a *ResellerController) report(c *gin.Context) {
 		return
 	}
 	jsonObj(c, report, nil)
+}
+
+// reportExport streams one reseller's client report as CSV.
+func (a *ResellerController) reportExport(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	report, err := a.resellerService.Report(id)
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	name := "reseller-clients"
+	if report.Stat != nil && report.Stat.Reseller != nil {
+		name = "reseller-" + report.Stat.Reseller.Username + "-clients"
+	}
+	serveCSV(c, name, service.RenderResellerClientsCSV(report))
+}
+
+// export streams the full resellers list with live usage numbers as CSV.
+func (a *ResellerController) export(c *gin.Context) {
+	data, err := a.resellerService.ListCSV()
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	serveCSV(c, "resellers", data)
 }
 
 // assignments returns the ownership map (inbound -> reseller, client -> reseller)

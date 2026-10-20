@@ -1418,6 +1418,19 @@ export const sections: readonly Section[] = [
         params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Reseller id.' }],
       },
       {
+        method: 'GET',
+        path: '/panel/api/resellers/report/:id/export',
+        summary:
+          'Download one reseller client report as CSV (UTF-8 with BOM, CRLF rows, RFC 4180 quoting; traffic in binary GB).',
+        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Reseller id.' }],
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/resellers/export',
+        summary:
+          'Download the full resellers list with live usage numbers as CSV (UTF-8 with BOM; one row per reseller).',
+      },
+      {
         method: 'POST',
         path: '/panel/api/resellers/add',
         summary:
@@ -1574,6 +1587,12 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/reseller/report',
         summary: 'The signed-in reseller own usage/billing report (clients + ledger).',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/reseller/report/export',
+        summary:
+          'Download the signed-in reseller own client report as CSV (UTF-8 with BOM, CRLF rows, RFC 4180 quoting; traffic in binary GB).',
       },
       {
         method: 'POST',

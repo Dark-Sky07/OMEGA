@@ -36,6 +36,7 @@ import {
   AccountBookOutlined,
   CustomerServiceOutlined,
   DeleteOutlined,
+  DownloadOutlined,
   EditOutlined,
   ExportOutlined,
   GiftOutlined,
@@ -106,6 +107,8 @@ export default function ResellersPage() {
   const [reportFor, setReportFor] = useState<ResellerStat | null>(null);
   const [clientFor, setClientFor] = useState<ResellerStat | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [exportingList, setExportingList] = useState(false);
+  const [exportingReport, setExportingReport] = useState(false);
   const [form] = Form.useForm<ResellerFormValues>();
   const [passwordForm] = Form.useForm<{ password: string }>();
   const [clientForm] = Form.useForm<{ emails: string[]; resellerId: number }>();
@@ -176,6 +179,37 @@ export default function ResellersPage() {
     queryClient.invalidateQueries({ queryKey: keys.resellers.root() });
     queryClient.invalidateQueries({ queryKey: keys.inbounds.root() });
   }, [queryClient]);
+
+  const exportListCsv = useCallback(async () => {
+    setExportingList(true);
+    try {
+      const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const ok = await HttpUtil.downloadFile('/panel/api/resellers/export', `phoenix-resellers-${stamp}.csv`);
+      if (!ok) {
+        messageApi.error(t('somethingWentWrong'));
+      }
+    } finally {
+      setExportingList(false);
+    }
+  }, [messageApi, t]);
+
+  const exportReportCsv = useCallback(async () => {
+    if (!reportFor) return;
+    setExportingReport(true);
+    try {
+      const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const username = reportFor.reseller.username.replace(/[^a-zA-Z0-9._-]/g, '-') || 'reseller';
+      const ok = await HttpUtil.downloadFile(
+        `/panel/api/resellers/report/${reportFor.reseller.id}/export`,
+        `phoenix-report-${username}-${stamp}.csv`,
+      );
+      if (!ok) {
+        messageApi.error(t('somethingWentWrong'));
+      }
+    } finally {
+      setExportingReport(false);
+    }
+  }, [messageApi, reportFor, t]);
 
   const openCreate = useCallback(() => {
     setEditing(null);
@@ -542,6 +576,9 @@ export default function ResellersPage() {
                   <Button icon={<ReloadOutlined />} onClick={() => refreshAll()} loading={listQuery.isFetching}>
                     {!isMobile && t('refresh')}
                   </Button>
+                  <Button icon={<ExportOutlined />} onClick={exportListCsv} loading={exportingList}>
+                    {!isMobile && t('resellers.exportListCsv', 'Export list (CSV)')}
+                  </Button>
                   <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                     {t('resellers.add')}
                   </Button>
@@ -738,6 +775,11 @@ export default function ResellersPage() {
               onClose={() => setReportFor(null)}
               width={isMobile ? '100%' : 860}
               title={`${t('resellers.report')} — ${reportFor?.reseller.name || ''}`}
+              extra={(
+                <Button size="small" icon={<DownloadOutlined />} loading={exportingReport} onClick={exportReportCsv}>
+                  {t('resellers.exportCsv', 'Export CSV')}
+                </Button>
+              )}
             >
               {reportQuery.isLoading ? null : reportQuery.data ? (
                 <Space orientation="vertical" size={16} style={{ width: '100%' }}>

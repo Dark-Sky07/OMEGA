@@ -2028,6 +2028,8 @@
       "linkedDesc": "Akun reseller ini terhubung ke Telegram Anda. Peringatan kuota, klien, dan kedaluwarsa dikirim langsung ke obrolan Anda.",
       "unlink": "Putuskan Telegram",
       "unlinked": "Telegram diputuskan."
-    }
+    },
+    "exportCsv": "Ekspor CSV",
+    "exportListCsv": "Ekspor daftar (CSV)"
   }
 }

@@ -2028,6 +2028,8 @@
       "linkedDesc": "Esta cuenta de distribuidor está vinculada a tu Telegram. Las alertas de cuota, clientes y caducidad llegan directo a tu chat.",
       "unlink": "Desvincular Telegram",
       "unlinked": "Telegram desvinculado."
-    }
+    },
+    "exportCsv": "Exportar CSV",
+    "exportListCsv": "Exportar lista (CSV)"
   }
 }

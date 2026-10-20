@@ -2028,6 +2028,8 @@
       "linkedDesc": "該經銷商帳戶已綁定您的 Telegram。流量、客戶與到期提醒將直接傳送到您的聊天。",
       "unlink": "解除 Telegram 綁定",
       "unlinked": "已解除 Telegram 綁定。"
-    }
+    },
+    "exportCsv": "匯出 CSV",
+    "exportListCsv": "匯出清單 (CSV)"
   }
 }

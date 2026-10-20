@@ -90,6 +90,29 @@ export class HttpUtil {
     }
   }
 
+  /**
+   * Fetch an authenticated endpoint as a binary file (e.g. a CSV export) and
+   * trigger a browser download. Returns false when the endpoint answered with
+   * a JSON envelope (an error) or the request failed, so callers can toast.
+   */
+  static async downloadFile(url: string, filename: string, mimeType = 'text/csv'): Promise<boolean> {
+    try {
+      const resp = await axios.get(url, { responseType: 'blob' });
+      const blob = resp.data as Blob | undefined;
+      if (resp.status !== 200 || !blob || !(blob instanceof Blob)) {
+        return false;
+      }
+      if (blob.type && blob.type.includes('application/json')) {
+        return false; // a JSON envelope means the endpoint reported an error
+      }
+      FileManager.downloadTextFile(blob, filename, { type: mimeType });
+      return true;
+    } catch (error) {
+      console.error('File download failed:', error);
+      return false;
+    }
+  }
+
   static async postWithModal<T = unknown>(url: string, data?: unknown, modal?: HttpModal | null): Promise<Msg<T>> {
     if (modal) {
       modal.loading(true);

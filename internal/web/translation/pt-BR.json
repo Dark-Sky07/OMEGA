@@ -2028,6 +2028,8 @@
       "linkedDesc": "Esta conta de revendedor está vinculada ao seu Telegram. Alertas de cota, clientes e expiração chegam direto no seu chat.",
       "unlink": "Desvincular Telegram",
       "unlinked": "Telegram desvinculado."
-    }
+    },
+    "exportCsv": "Exportar CSV",
+    "exportListCsv": "Exportar lista (CSV)"
   }
 }
