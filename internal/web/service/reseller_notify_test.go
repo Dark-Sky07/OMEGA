@@ -239,4 +239,9 @@ func TestResellerNotifyListAndMarkRead(t *testing.T) {
 	if len(rows) != 3 {
 		t.Fatalf("rows after purge = %d, want 3 (old row removed)", len(rows))
 	}
+
+	// Absurd limits are clamped server-side and never error.
+	if _, _, err := svc.List(reseller.Id, 1<<30); err != nil {
+		t.Fatalf("List with huge limit: %v", err)
+	}
 }

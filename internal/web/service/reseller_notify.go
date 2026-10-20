@@ -23,6 +23,7 @@ const (
 	ResellerNotifExpired     = "expired"
 	resellerNotifyKeyPrefix  = "reseller:"
 	resellerNotifyDefaultCap = 50
+	resellerNotifyMaxCap     = 200
 )
 
 // Warning thresholds for the reseller notify job.
@@ -151,13 +152,18 @@ func (s *ResellerNotifyService) Evaluate(stat *ResellerStat) {
 }
 
 // List returns the newest notifications for the reseller together with the
-// unread count. limit <= 0 falls back to the default cap.
+// unread count. limit <= 0 falls back to the default cap and values above
+// resellerNotifyMaxCap are clamped so a caller can never force a huge
+// allocation.
 func (s *ResellerNotifyService) List(resellerId int, limit int) ([]*model.ResellerNotification, int64, error) {
 	if resellerId <= 0 {
 		return nil, 0, errors.New("reseller id is required")
 	}
 	if limit <= 0 {
 		limit = resellerNotifyDefaultCap
+	}
+	if limit > resellerNotifyMaxCap {
+		limit = resellerNotifyMaxCap
 	}
 	db := database.GetDB()
 	var unread int64
