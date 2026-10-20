@@ -39,10 +39,10 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import AppSidebar from '@/layouts/AppSidebar';
 import { LazyMount } from '@/components/utility';
 import { setMessageInstance } from '@/utils/messageBus';
+import { usePanelUpdateInfo } from '@/api/queries/usePanelUpdateInfo';
 import ResourceTile from './ResourceTile';
 import ServicePanel from './ServicePanel';
 import NetworkPanel from './NetworkPanel';
-import type { PanelUpdateInfo } from './PanelUpdateModal';
 const JsonEditor = lazy(() => import('@/components/form/JsonEditor'));
 const PanelUpdateModal = lazy(() => import('./PanelUpdateModal'));
 const LogModal = lazy(() => import('./LogModal'));
@@ -107,11 +107,12 @@ export default function IndexPage() {
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
   const [accessLogEnable, setAccessLogEnable] = useState(false);
-  const [panelUpdateInfo, setPanelUpdateInfo] = useState<PanelUpdateInfo>({
-    currentVersion: '',
-    latestVersion: '',
-    updateAvailable: false,
-  });
+  const {
+    info: panelUpdateInfo,
+    checkFailed: panelUpdateCheckFailed,
+    refreshing: panelUpdateRefreshing,
+    refresh: refreshPanelUpdateInfo,
+  } = usePanelUpdateInfo();
 
   const basePath = window.X_UI_BASE_PATH || '';
 
@@ -132,9 +133,6 @@ export default function IndexPage() {
   useEffect(() => {
     HttpUtil.post<{ accessLogEnable?: boolean }>('/panel/api/setting/defaultSettings').then((msg) => {
       if (msg?.success && msg.obj) setAccessLogEnable(!!msg.obj.accessLogEnable);
-    });
-    HttpUtil.get<PanelUpdateInfo>('/panel/api/server/getPanelUpdateInfo').then((msg) => {
-      if (msg?.success && msg.obj) setPanelUpdateInfo(msg.obj);
     });
   }, []);
 
@@ -202,11 +200,7 @@ export default function IndexPage() {
   }, [refresh]);
 
   function openPanelVersion() {
-    if (panelUpdateInfo.updateAvailable) {
-      setPanelUpdateOpen(true);
-    } else {
-      window.open('https://github.com/Dark-Sky07/PHOENIX/releases', '_blank', 'noopener,noreferrer');
-    }
+    setPanelUpdateOpen(true);
   }
 
   function openGithub() {
@@ -462,6 +456,9 @@ export default function IndexPage() {
           <PanelUpdateModal
             open={panelUpdateOpen}
             info={panelUpdateInfo}
+            checkFailed={panelUpdateCheckFailed}
+            refreshing={panelUpdateRefreshing}
+            onRefresh={refreshPanelUpdateInfo}
             onClose={() => setPanelUpdateOpen(false)}
             onBusy={setBusy}
           />

@@ -1,6 +1,9 @@
 package panel
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestIsNewerVersion(t *testing.T) {
 	cases := []struct {
@@ -46,5 +49,17 @@ func TestShellQuote(t *testing.T) {
 	}
 	if got := shellQuote("/tmp/a'b"); got != "'/tmp/a'\\''b'" {
 		t.Fatalf("unexpected quote result with single quote: %s", got)
+	}
+}
+
+// TestPanelUpdaterURLUsesCanonicalRepoCase guards against the v5.0.2/v5.0.3
+// bug where a lower-case repo name made raw.githubusercontent.com return 404
+// for the in-panel updater download (GitHub's raw service is case-sensitive).
+func TestPanelUpdaterURLUsesCanonicalRepoCase(t *testing.T) {
+	if phoenixRepo != "Dark-Sky07/PHOENIX" {
+		t.Fatalf("phoenixRepo must be the canonical Dark-Sky07/PHOENIX, got %q", phoenixRepo)
+	}
+	if !strings.HasPrefix(panelUpdaterURL, "https://raw.githubusercontent.com/Dark-Sky07/PHOENIX/") {
+		t.Fatalf("panelUpdaterURL must use the canonical repo case, got %q", panelUpdaterURL)
 	}
 }

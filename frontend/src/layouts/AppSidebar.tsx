@@ -38,6 +38,7 @@ import { HttpUtil } from '@/utils';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import { useAllSettings } from '@/api/queries/useAllSettings';
 import { useSession } from '@/api/queries/useSession';
+import { usePanelUpdateInfo } from '@/api/queries/usePanelUpdateInfo';
 import { openCommandPalette } from '@/components/CommandPalette';
 import phoenixCrest from '@/assets/phoenix-crest.png';
 import './AppSidebar.css';
@@ -101,19 +102,22 @@ function Brand({ compact }: { compact?: boolean }) {
 }
 
 
-function VersionBadge({ version, collapsed }: { version: string; collapsed?: boolean }) {
+function VersionBadge({ version, updateAvailable, collapsed }: { version: string; updateAvailable?: boolean; collapsed?: boolean }) {
+  const { t } = useTranslation();
   if (!version) return null;
   const label = `v${version}`;
+  const title = updateAvailable ? `${label} — ${t('pages.index.panelUpdateAvailable')}` : label;
   return (
     <a
       href={REPO_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className={`sider-version${collapsed ? ' is-collapsed' : ''}`}
+      className={`sider-version${collapsed ? ' is-collapsed' : ''}${updateAvailable ? ' has-update' : ''}`}
       aria-label={`GitHub ${label}`}
-      title={label}
+      title={title}
     >
       <GithubOutlined />
+      {updateAvailable && <span className="sider-version-dot" aria-hidden="true" />}
       {!collapsed && <span className="sider-version-text">{label}</span>}
     </a>
   );
@@ -156,6 +160,7 @@ export default function AppSidebar() {
 
   const currentTheme: 'light' | 'dark' = isDark ? 'dark' : 'light';
   const panelVersion = window.X_UI_CUR_VER || '';
+  const { info: panelUpdateInfo } = usePanelUpdateInfo();
 
   const tabs = useMemo<NavTab[]>(() => {
     if (isReseller) {
@@ -369,7 +374,7 @@ export default function AppSidebar() {
                 </button>
               </Tooltip>
             </div>
-            <VersionBadge version={panelVersion} collapsed={collapsed} />
+            <VersionBadge version={panelVersion} updateAvailable={panelUpdateInfo.updateAvailable} collapsed={collapsed} />
           </div>
         </div>
       </Layout.Sider>
@@ -428,7 +433,7 @@ export default function AppSidebar() {
           onClick={(info) => { onMenuClick(info); setDrawerOpen(false); }}
         />
         <div className="drawer-footer">
-          <VersionBadge version={panelVersion} />
+          <VersionBadge version={panelVersion} updateAvailable={panelUpdateInfo.updateAvailable} />
         </div>
       </Drawer>
 

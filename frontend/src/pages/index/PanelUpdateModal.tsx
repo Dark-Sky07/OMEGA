@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Modal, Tag } from 'antd';
-import { CloudDownloadOutlined } from '@ant-design/icons';
+import { Alert, Button, Modal, Tag, Tooltip } from 'antd';
+import { CloudDownloadOutlined, LinkOutlined, ReloadOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
 import { HttpUtil, PromiseUtil } from '@/utils';
@@ -20,11 +20,22 @@ interface BusyEvent {
 interface PanelUpdateModalProps {
   open: boolean;
   info: PanelUpdateInfo;
+  checkFailed?: boolean;
+  refreshing?: boolean;
+  onRefresh?: () => void;
   onClose: () => void;
   onBusy: (e: BusyEvent) => void;
 }
 
-export default function PanelUpdateModal({ open, info, onClose, onBusy }: PanelUpdateModalProps) {
+export default function PanelUpdateModal({
+  open,
+  info,
+  checkFailed = false,
+  refreshing = false,
+  onRefresh,
+  onClose,
+  onBusy,
+}: PanelUpdateModalProps) {
   const { t } = useTranslation();
   const [modal, contextHolder] = Modal.useModal();
 
@@ -66,6 +77,12 @@ export default function PanelUpdateModal({ open, info, onClose, onBusy }: PanelU
     });
   }
 
+  const summary = checkFailed
+    ? { type: 'error' as const, text: t('pages.index.panelUpdateCheckFailed') }
+    : info.updateAvailable
+      ? { type: 'warning' as const, text: t('pages.index.panelUpdateDesc') }
+      : { type: 'success' as const, text: t('pages.index.panelUpToDate') };
+
   return (
     <>
       {contextHolder}
@@ -75,42 +92,48 @@ export default function PanelUpdateModal({ open, info, onClose, onBusy }: PanelU
         footer={null}
         onCancel={onClose}
       >
-        {info.updateAvailable && (
-          <Alert
-            type="warning"
-            className="mb-12"
-            title={t('pages.index.panelUpdateDesc')}
-            showIcon
-          />
-        )}
+        <Alert type={summary.type} title={summary.text} showIcon className="mb-12" />
 
         <div className="version-list">
           <div className="version-list-item">
             <span>{t('pages.index.currentPanelVersion')}</span>
             <Tag color="green">v{info.currentVersion || '?'}</Tag>
           </div>
-          {info.updateAvailable ? (
+          {info.updateAvailable && (
             <div className="version-list-item">
               <span>{t('pages.index.latestPanelVersion')}</span>
               <Tag color="purple">{info.latestVersion || '-'}</Tag>
-            </div>
-          ) : (
-            <div className="version-list-item">
-              <span>{t('pages.index.panelUpToDate')}</span>
-              <Tag color="green">{t('pages.index.panelUpToDate')}</Tag>
             </div>
           )}
         </div>
 
         <div className="actions-row">
-          <Button
-            type="primary"
-            disabled={!info.updateAvailable}
-            onClick={updatePanel}
-            icon={<CloudDownloadOutlined />}
-          >
-            {t('pages.index.updatePanel')}
-          </Button>
+          {info.updateAvailable && !checkFailed && (
+            <Button
+              type="primary"
+              onClick={updatePanel}
+              icon={<CloudDownloadOutlined />}
+            >
+              {t('update')} {info.latestVersion}
+            </Button>
+          )}
+          {onRefresh && (
+            <Tooltip title={t('pages.index.panelUpdateCheckAgain')}>
+              <Button onClick={onRefresh} icon={<ReloadOutlined />} loading={refreshing}>
+                {t('pages.index.panelUpdateCheckAgain')}
+              </Button>
+            </Tooltip>
+          )}
+          <Tooltip title={t('pages.index.viewReleases')}>
+            <a
+              className="releases-link"
+              href="https://github.com/Dark-Sky07/PHOENIX/releases"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <LinkOutlined /> {t('pages.index.viewReleases')}
+            </a>
+          </Tooltip>
         </div>
       </Modal>
     </>

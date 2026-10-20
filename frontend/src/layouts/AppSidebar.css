@@ -417,3 +417,29 @@
     border: none;
   }
 }
+
+/* Update-available indicator on the sidebar version badge. */
+.sider-version {
+  position: relative;
+}
+
+.sider-version.has-update .anticon {
+  color: var(--phoenix-accent, #f28b30);
+}
+
+.sider-version-dot {
+  position: absolute;
+  top: -3px;
+  inset-inline-start: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--phoenix-accent, #f28b30);
+  box-shadow: 0 0 0 2px var(--sider-bg, #141414);
+  animation: sider-version-pulse 2s ease-in-out infinite;
+}
+
+@keyframes sider-version-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}

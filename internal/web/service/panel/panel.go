@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -33,7 +34,11 @@ type PanelUpdateInfo struct {
 
 // phoenixRepo is the canonical PHOENIX project. In-panel updates must only
 // ever pull from this repository — never from upstream panel builds.
-const phoenixRepo = "Dark-Sky07/phoenix"
+// NOTE: the case must match the repository name exactly. GitHub's API is
+// case-insensitive, but raw.githubusercontent.com is NOT — a lower-case repo
+// segment makes the installer download return 404 (this exact bug shipped in
+// v5.0.2/v5.0.3 and broke the in-panel update button).
+const phoenixRepo = "Dark-Sky07/PHOENIX"
 
 const (
 	// panelUpdaterURL is the script the in-panel update button downloads and
@@ -43,6 +48,17 @@ const (
 	// builds.
 	panelUpdaterURL      = "https://raw.githubusercontent.com/" + phoenixRepo + "/main/install-phoenix.sh"
 	maxPanelUpdaterBytes = 2 << 20
+
+	// panelUpdateInfoTTL caches the GitHub release lookup so multiple UI
+	// surfaces (dashboard card, sidebar badge, update modal) and frequent
+	// page reloads do not exhaust the GitHub API rate limit.
+	panelUpdateInfoTTL = 5 * time.Minute
+)
+
+var (
+	panelUpdateInfoMu         sync.Mutex
+	panelUpdateInfoCache      *PanelUpdateInfo
+	panelUpdateInfoFetchedAt  time.Time
 )
 
 func (s *PanelService) RestartPanel(delay time.Duration) error {
@@ -68,17 +84,27 @@ func (s *PanelService) RestartPanel(delay time.Duration) error {
 }
 
 // GetUpdateInfo checks the PHOENIX repository for the latest panel release.
-func (s *PanelService) GetUpdateInfo() (*PanelUpdateInfo, error) {
+// Results are cached for a short window so that the dashboard, sidebar and
+// the update modal can each ask without hammering the GitHub API.
+func (s *PanelService) GetUpdateInfo(force bool) (*PanelUpdateInfo, error) {
+	panelUpdateInfoMu.Lock()
+	defer panelUpdateInfoMu.Unlock()
+	if !force && panelUpdateInfoCache != nil && time.Since(panelUpdateInfoFetchedAt) < panelUpdateInfoTTL {
+		return panelUpdateInfoCache, nil
+	}
 	latest, err := fetchLatestPanelVersion()
 	if err != nil {
 		return nil, err
 	}
 	current := config.GetVersion()
-	return &PanelUpdateInfo{
+	info := &PanelUpdateInfo{
 		CurrentVersion:  current,
 		LatestVersion:   latest,
 		UpdateAvailable: isNewerVersion(latest, current),
-	}, nil
+	}
+	panelUpdateInfoCache = info
+	panelUpdateInfoFetchedAt = time.Now()
+	return info, nil
 }
 
 // StartUpdate starts the official updater outside of the current web request.

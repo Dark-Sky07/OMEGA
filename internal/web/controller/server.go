@@ -198,11 +198,14 @@ func (a *ServerController) getXrayVersion(c *gin.Context) {
 }
 
 // getPanelUpdateInfo retrieves the current and latest panel version.
+// `force=true` bypasses the short-lived cache (used by the "Check again"
+// button in the update modal).
 func (a *ServerController) getPanelUpdateInfo(c *gin.Context) {
-	info, err := a.panelService.GetUpdateInfo()
+	force := c.Query("force") == "true" || c.Query("force") == "1"
+	info, err := a.panelService.GetUpdateInfo(force)
 	if err != nil {
 		logger.Debug("panel update check failed:", err)
-		c.JSON(http.StatusOK, entity.Msg{Success: false})
+		c.JSON(http.StatusOK, entity.Msg{Success: false, Msg: err.Error()})
 		return
 	}
 	jsonObj(c, info, nil)
