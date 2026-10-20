@@ -172,7 +172,9 @@ func (s *ResellerNotifyService) List(resellerId int, limit int) ([]*model.Resell
 		Count(&unread).Error; err != nil {
 		return nil, 0, err
 	}
-	rows := make([]*model.ResellerNotification, 0, limit)
+	// No capacity hint: limit originates from a request query parameter, and
+	// the row count is bounded (<= resellerNotifyMaxCap) anyway.
+	rows := make([]*model.ResellerNotification, 0)
 	if err := db.Where("reseller_id = ?", resellerId).
 		Order("id DESC").
 		Limit(limit).
