@@ -1790,7 +1790,8 @@
       "startDesc": "Mostrar menu principal",
       "helpDesc": "Ajuda do bot",
       "statusDesc": "Verificar status do bot",
-      "idDesc": "Mostrar seu ID do Telegram"
+      "idDesc": "Mostrar seu ID do Telegram",
+      "helpResellerCommands": "Comandos do revendedor:\r\n\r\n<code>/usage</code> — resumo da sua cota\r\n<code>/notifications</code> — alertas recentes\r\n\r\nID do chat do Telegram:\r\n<code>/id</code>"
     },
     "messages": {
       "cpuThreshold": "🔴 A carga da CPU {{ .Percent }}% excede o limite de {{ .Threshold }}%",
@@ -1871,7 +1872,20 @@
       "inviteInvalid": "Este link de convite é inválido. Peça um novo ao seu provedor.",
       "inviteUsed": "Este link de convite já foi usado. Peça um novo ao seu provedor.",
       "inviteExpired": "Este link de convite expirou. Peça um novo ao seu provedor.",
-      "userReport": "📊 Seu relatório de uso — {{ .DateTime }}"
+      "userReport": "📊 Seu relatório de uso — {{ .DateTime }}",
+      "resellerLinked": "✅ Conta de revendedor {{ .Name }} vinculada!\nVocê receberá aqui os alertas de cota, clientes e expiração.",
+      "resellerLinkAlreadyBound": "⚠️ Esta conta do Telegram já está vinculada a outro revendedor.",
+      "resellerLinkExpired": "⌛ Este código de vinculação expirou. Gere um novo no seu perfil do painel.",
+      "resellerLinkInvalid": "❗ Código de vinculação inválido. Gere um novo no seu perfil do painel.",
+      "resellerUsage": "📊 Uso do revendedor — {{ .Name }}\n\n💳 Tráfego: {{ .Allocated }} / {{ .TrafficLimit }} ({{ .Pct }}%)\n📈 Usado: {{ .Used }}\n👥 Clientes: {{ .Clients }} / {{ .ClientLimit }}\n🟢 Online: {{ .Online }}\n📅 Expira: {{ .Expiry }}",
+      "resellerNoNotifications": "📭 Você ainda não tem notificações.",
+      "resellerNotifQuota80": "⚠️ {{ .Name }}: {{ .Pct }}% da cota de tráfego alocada",
+      "resellerNotifQuota95": "🚨 {{ .Name }}: {{ .Pct }}% da cota de tráfego alocada — crítico",
+      "resellerNotifQuotaOut": "⛔ {{ .Name }}: cota de tráfego esgotada",
+      "resellerNotifClient80": "⚠️ {{ .Name }}: {{ .Pct }}% do limite de clientes usado",
+      "resellerNotifClientMax": "⛔ {{ .Name }}: limite de clientes atingido ({{ .Count }}/{{ .Limit }})",
+      "resellerNotifExpirySoon": "⏳ {{ .Name }}: a conta expira em {{ .Days }} dias",
+      "resellerNotifExpired": "⛔ {{ .Name }}: a conta expirou"
     },
     "buttons": {
       "closeKeyboard": "❌ Fechar teclado",
@@ -1919,7 +1933,10 @@
       "SortedTrafficUsageReport": "Relatório de Uso de Tráfego Ordenado",
       "broadcast": "📣 Transmissão",
       "confirmBroadcast": "✅ Enviar agora",
-      "invite": "🔗 Link de convite"
+      "invite": "🔗 Link de convite",
+      "resellerUsage": "Meu uso",
+      "resellerNotifications": "Notificações",
+      "resellerCommands": "Comandos"
     },
     "answers": {
       "successfulOperation": "✅ Operação bem-sucedida!",
@@ -1997,6 +2014,20 @@
       "expired": {
         "title": "A conta de revendedor expirou"
       }
+    },
+    "telegram": {
+      "title": "Bot do Telegram",
+      "desc": "Vincule seu Telegram para receber alertas de cota, clientes e expiração e conferir seu consumo direto no bot.",
+      "generate": "Gerar código de vinculação",
+      "regenerate": "Gerar um novo código",
+      "copy": "Copiar comando",
+      "copied": "Copiado para a área de transferência",
+      "openBot": "Abrir no Telegram",
+      "expires": "O código expira às",
+      "linked": "Vinculado",
+      "linkedDesc": "Esta conta de revendedor está vinculada ao seu Telegram. Alertas de cota, clientes e expiração chegam direto no seu chat.",
+      "unlink": "Desvincular Telegram",
+      "unlinked": "Telegram desvinculado."
     }
   }
 }

@@ -1789,7 +1789,8 @@
       "startDesc": "Ana menüyü göster",
       "helpDesc": "Bot yardımı",
       "statusDesc": "Bot durumunu kontrol et",
-      "idDesc": "Telegram Kimliğinizi gösterir"
+      "idDesc": "Telegram Kimliğinizi gösterir",
+      "helpResellerCommands": "Bayi komutları:\r\n\r\n<code>/usage</code> — kota özetiniz\r\n<code>/notifications</code> — son uyarılar\r\n\r\nTelegram sohbet kimliği:\r\n<code>/id</code>"
     },
     "messages": {
       "cpuThreshold": "🔴 CPU Yükü ({{ .Percent }}%), {{ .Threshold }}% eşiğini aşıyor",
@@ -1870,7 +1871,20 @@
       "inviteInvalid": "Bu davet bağlantısı geçersiz. Sağlayıcınızdan yeni bir bağlantı isteyin.",
       "inviteUsed": "Bu davet bağlantısı zaten kullanılmış. Sağlayıcınızdan yeni bir bağlantı isteyin.",
       "inviteExpired": "Bu davet bağlantısının süresi doldu. Sağlayıcınızdan yeni bir bağlantı isteyin.",
-      "userReport": "📊 Kullanım raporunuz — {{ .DateTime }}"
+      "userReport": "📊 Kullanım raporunuz — {{ .DateTime }}",
+      "resellerLinked": "✅ {{ .Name }} bayi hesabı bağlandı!\nKota, müşteri ve süre uyarıları artık buraya gelecek.",
+      "resellerLinkAlreadyBound": "⚠️ Bu Telegram hesabı zaten başka bir bayiye bağlı.",
+      "resellerLinkExpired": "⌛ Bu bağlantı kodunun süresi doldu. Panel profilinizden yenisini oluşturun.",
+      "resellerLinkInvalid": "❗ Geçersiz bağlantı kodu. Panel profilinizden yenisini oluşturun.",
+      "resellerUsage": "📊 Bayi kullanımı — {{ .Name }}\n\n💳 Trafik: {{ .Allocated }} / {{ .TrafficLimit }} (%{{ .Pct }})\n📈 Kullanılan: {{ .Used }}\n👥 Müşteri: {{ .Clients }} / {{ .ClientLimit }}\n🟢 Çevrimiçi: {{ .Online }}\n📅 Bitiş: {{ .Expiry }}",
+      "resellerNoNotifications": "📭 Henüz bildiriminiz yok.",
+      "resellerNotifQuota80": "⚠️ {{ .Name }}: trafik kotasının %{{ .Pct }}'i ayrıldı",
+      "resellerNotifQuota95": "🚨 {{ .Name }}: trafik kotasının %{{ .Pct }}'i ayrıldı — kritik",
+      "resellerNotifQuotaOut": "⛔ {{ .Name }}: trafik kotası tükendi",
+      "resellerNotifClient80": "⚠️ {{ .Name }}: müşteri limitinin %{{ .Pct }}'i kullanıldı",
+      "resellerNotifClientMax": "⛔ {{ .Name }}: müşteri limitine ulaşıldı ({{ .Count }}/{{ .Limit }})",
+      "resellerNotifExpirySoon": "⏳ {{ .Name }}: hesap {{ .Days }} gün içinde sona eriyor",
+      "resellerNotifExpired": "⛔ {{ .Name }}: hesabın süresi doldu"
     },
     "buttons": {
       "closeKeyboard": "❌ Klavyeyi Kapat",
@@ -1918,7 +1932,10 @@
       "SortedTrafficUsageReport": "Sıralı Trafik Kullanım Raporu",
       "broadcast": "📣 Toplu Mesaj",
       "confirmBroadcast": "✅ Şimdi gönder",
-      "invite": "🔗 Davet bağlantısı"
+      "invite": "🔗 Davet bağlantısı",
+      "resellerUsage": "Kullanımım",
+      "resellerNotifications": "Bildirimler",
+      "resellerCommands": "Komutlar"
     },
     "answers": {
       "successfulOperation": "✅ İşlem başarılı!",
@@ -1996,6 +2013,20 @@
       "expired": {
         "title": "Bayi hesabının süresi doldu"
       }
+    },
+    "telegram": {
+      "title": "Telegram Botu",
+      "desc": "Telegram'ınızı bağlayın; kota, müşteri ve süre uyarılarını alın ve kullanımınızı doğrudan bot içinde görün.",
+      "generate": "Bağlantı kodu oluştur",
+      "regenerate": "Yeni kod oluştur",
+      "copy": "Komutu kopyala",
+      "copied": "Panoya kopyalandı",
+      "openBot": "Telegram'da aç",
+      "expires": "Kodun geçerlilik süresi",
+      "linked": "Bağlı",
+      "linkedDesc": "Bu bayi hesabı Telegram'ınıza bağlı. Kota, müşteri ve süre uyarıları doğrudan sohbetinize gelir.",
+      "unlink": "Telegram'ı ayır",
+      "unlinked": "Telegram bağlantısı kaldırıldı."
     }
   }
 }

@@ -202,6 +202,13 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 	// Handle the command.
 	switch command {
 	case "help":
+		if !isAdmin {
+			if reseller := t.linkedReseller(message.From.ID); reseller != nil {
+				onlyMessage = true
+				t.SendResellerAnswer(chatId, t.I18nBot("tgbot.commands.helpResellerCommands"))
+				return
+			}
+		}
 		msg += t.I18nBot("tgbot.commands.help")
 		msg += t.I18nBot("tgbot.commands.pleaseChoose")
 	case "start":
@@ -210,11 +217,23 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 			t.redeemInviteStart(chatId, message.From, strings.TrimPrefix(commandArgs[0], inviteStartPrefix))
 			return
 		}
+		if len(commandArgs) > 0 && strings.HasPrefix(commandArgs[0], resellerStartPrefix) {
+			onlyMessage = true
+			t.redeemResellerStart(chatId, message.From, strings.TrimPrefix(commandArgs[0], resellerStartPrefix))
+			return
+		}
 		msg += t.I18nBot("tgbot.commands.start", "Firstname=="+html.EscapeString(message.From.FirstName))
 		if isAdmin {
 			msg += t.I18nBot("tgbot.commands.welcome", "Hostname=="+hostname)
 		}
 		msg += "\n\n" + t.I18nBot("tgbot.commands.pleaseChoose")
+		if !isAdmin {
+			if reseller := t.linkedReseller(message.From.ID); reseller != nil {
+				onlyMessage = true
+				t.SendResellerAnswer(chatId, msg)
+				return
+			}
+		}
 	case "status":
 		onlyMessage = true
 		msg += t.I18nBot("tgbot.commands.status")
@@ -229,8 +248,17 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 			} else {
 				t.getClientUsage(chatId, int64(message.From.ID), commandArgs[0])
 			}
+		} else if reseller := t.linkedReseller(message.From.ID); !isAdmin && reseller != nil {
+			t.sendResellerUsage(chatId, reseller)
 		} else {
 			msg += t.I18nBot("tgbot.commands.usage")
+		}
+	case "notifications":
+		onlyMessage = true
+		if reseller := t.linkedReseller(message.From.ID); reseller != nil {
+			t.sendResellerNotifications(chatId, reseller)
+		} else {
+			handleUnknownCommand()
 		}
 	case "inbound":
 		onlyMessage = true
@@ -1198,6 +1226,27 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		tgUserID := callbackQuery.From.ID
 		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.clientUsage"))
 		t.getClientUsage(chatId, tgUserID)
+	case "reseller_usage":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.resellerUsage"))
+		if reseller := t.linkedReseller(callbackQuery.From.ID); reseller != nil {
+			t.sendResellerUsage(chatId, reseller)
+		} else {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.noResult"))
+		}
+	case "reseller_notifications":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.resellerNotifications"))
+		if reseller := t.linkedReseller(callbackQuery.From.ID); reseller != nil {
+			t.sendResellerNotifications(chatId, reseller)
+		} else {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.noResult"))
+		}
+	case "reseller_commands":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.resellerCommands"))
+		if reseller := t.linkedReseller(callbackQuery.From.ID); reseller != nil {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.helpResellerCommands"))
+		} else {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.noResult"))
+		}
 	case "client_commands":
 		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.commands"))
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.helpClientCommands"))

@@ -59,34 +59,46 @@ func (s *ResellerNotifyService) resetEpisode(resellerId int, kinds ...string) {
 	}
 }
 
-// Notify appends one notification row for the reseller. params may be nil.
-func (s *ResellerNotifyService) Notify(resellerId int, kind string, params map[string]any) error {
+// Notify appends one notification row for the reseller and returns it.
+// params may be nil.
+func (s *ResellerNotifyService) Notify(resellerId int, kind string, params map[string]any) (*model.ResellerNotification, error) {
 	if resellerId <= 0 || kind == "" {
-		return errors.New("reseller id and kind are required")
+		return nil, errors.New("reseller id and kind are required")
 	}
 	paramsJSON := "{}"
 	if params != nil {
 		encoded, err := json.Marshal(params)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		paramsJSON = string(encoded)
 	}
-	db := database.GetDB()
-	return db.Create(&model.ResellerNotification{
+	row := &model.ResellerNotification{
 		ResellerId: resellerId,
 		Kind:       kind,
 		Params:     paramsJSON,
-	}).Error
+	}
+	db := database.GetDB()
+	if err := db.Create(row).Error; err != nil {
+		return nil, err
+	}
+	return row, nil
 }
 
 // Evaluate inspects one reseller's live usage snapshot and emits at most one
 // notification per kind per depletion episode. Conditions that go away clear
 // the episode marker so the reseller can be warned again on the next cycle.
-// It is safe to call on every job run.
-func (s *ResellerNotifyService) Evaluate(stat *ResellerStat) {
+// It is safe to call on every job run; the freshly created notifications are
+// returned so callers (the notify job) can push them to Telegram.
+func (s *ResellerNotifyService) Evaluate(stat *ResellerStat) []*model.ResellerNotification {
+	fresh := make([]*model.ResellerNotification, 0)
+	emit := func(kind string, params map[string]any) {
+		if row, err := s.Notify(stat.Reseller.Id, kind, params); err == nil {
+			fresh = append(fresh, row)
+		}
+	}
 	if stat == nil || stat.Reseller == nil || stat.Reseller.Id <= 0 {
-		return
+		return fresh
 	}
 	reseller := stat.Reseller
 	id := reseller.Id
@@ -98,15 +110,15 @@ func (s *ResellerNotifyService) Evaluate(stat *ResellerStat) {
 		switch {
 		case quotaOut:
 			if s.claimEpisode(id, ResellerNotifQuotaOut) {
-				_ = s.Notify(id, ResellerNotifQuotaOut, map[string]any{"pct": pct})
+				emit(ResellerNotifQuotaOut, map[string]any{"pct": pct})
 			}
 		case pct >= ResellerQuotaCritPercent:
 			if s.claimEpisode(id, ResellerNotifQuota95) {
-				_ = s.Notify(id, ResellerNotifQuota95, map[string]any{"pct": pct})
+				emit(ResellerNotifQuota95, map[string]any{"pct": pct})
 			}
 		case pct >= ResellerQuotaWarnPercent:
 			if s.claimEpisode(id, ResellerNotifQuota80) {
-				_ = s.Notify(id, ResellerNotifQuota80, map[string]any{"pct": pct})
+				emit(ResellerNotifQuota80, map[string]any{"pct": pct})
 			}
 		default:
 			s.resetEpisode(id, ResellerNotifQuota80, ResellerNotifQuota95, ResellerNotifQuotaOut)
@@ -119,14 +131,14 @@ func (s *ResellerNotifyService) Evaluate(stat *ResellerStat) {
 		switch {
 		case stat.ClientCount >= reseller.ClientLimit:
 			if s.claimEpisode(id, ResellerNotifClientMax) {
-				_ = s.Notify(id, ResellerNotifClientMax, map[string]any{
+				emit(ResellerNotifClientMax, map[string]any{
 					"count": stat.ClientCount,
 					"limit": reseller.ClientLimit,
 				})
 			}
 		case pct >= ResellerClientWarnPercent:
 			if s.claimEpisode(id, ResellerNotifClient80) {
-				_ = s.Notify(id, ResellerNotifClient80, map[string]any{"pct": pct})
+				emit(ResellerNotifClient80, map[string]any{"pct": pct})
 			}
 		default:
 			s.resetEpisode(id, ResellerNotifClient80, ResellerNotifClientMax)
@@ -138,17 +150,18 @@ func (s *ResellerNotifyService) Evaluate(stat *ResellerStat) {
 		switch {
 		case IsExpired(reseller.ExpiryTime):
 			if s.claimEpisode(id, ResellerNotifExpired) {
-				_ = s.Notify(id, ResellerNotifExpired, nil)
+				emit(ResellerNotifExpired, nil)
 			}
 		case reseller.ExpiryTime <= time.Now().UnixMilli()+ResellerExpiryWarningDays*resellerDayMilliseconds:
 			days := int((reseller.ExpiryTime - time.Now().UnixMilli()) / resellerDayMilliseconds)
 			if s.claimEpisode(id, ResellerNotifExpirySoon) {
-				_ = s.Notify(id, ResellerNotifExpirySoon, map[string]any{"days": days})
+				emit(ResellerNotifExpirySoon, map[string]any{"days": days})
 			}
 		default:
 			s.resetEpisode(id, ResellerNotifExpirySoon, ResellerNotifExpired)
 		}
 	}
+	return fresh
 }
 
 // List returns the newest notifications for the reseller together with the

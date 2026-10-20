@@ -1790,7 +1790,8 @@
       "startDesc": "显示主菜单",
       "helpDesc": "机器人帮助",
       "statusDesc": "检查机器人状态",
-      "idDesc": "显示您的 Telegram ID"
+      "idDesc": "显示您的 Telegram ID",
+      "helpResellerCommands": "经销商命令：\r\n\r\n<code>/usage</code> — 配额概览\r\n<code>/notifications</code> — 最新提醒\r\n\r\nTelegram 会话 ID：\r\n<code>/id</code>"
     },
     "messages": {
       "cpuThreshold": "🔴 CPU 使用率为 {{ .Percent }}%，超过阈值 {{ .Threshold }}%",
@@ -1871,7 +1872,20 @@
       "inviteInvalid": "此邀请链接无效。请向您的提供者索取新链接。",
       "inviteUsed": "此邀请链接已被使用。请向您的提供者索取新链接。",
       "inviteExpired": "此邀请链接已过期。请向您的提供者索取新链接。",
-      "userReport": "📊 您的用量报告 — {{ .DateTime }}"
+      "userReport": "📊 您的用量报告 — {{ .DateTime }}",
+      "resellerLinked": "✅ 经销商账户 {{ .Name }} 绑定成功！\n流量、客户与到期提醒将发送到这里。",
+      "resellerLinkAlreadyBound": "⚠️ 该 Telegram 账户已绑定其他经销商。",
+      "resellerLinkExpired": "⌛ 绑定码已过期，请在面板个人资料中重新生成。",
+      "resellerLinkInvalid": "❗ 绑定码无效，请在面板个人资料中重新生成。",
+      "resellerUsage": "📊 经销商用况 — {{ .Name }}\n\n💳 流量：{{ .Allocated }} / {{ .TrafficLimit }}（{{ .Pct }}%）\n📈 已用：{{ .Used }}\n👥 客户：{{ .Clients }} / {{ .ClientLimit }}\n🟢 在线：{{ .Online }}\n📅 到期：{{ .Expiry }}",
+      "resellerNoNotifications": "📭 暂无通知。",
+      "resellerNotifQuota80": "⚠️ {{ .Name }}：流量配额已分配 {{ .Pct }}%",
+      "resellerNotifQuota95": "🚨 {{ .Name }}：流量配额已分配 {{ .Pct }}% — 危急",
+      "resellerNotifQuotaOut": "⛔ {{ .Name }}：流量配额已耗尽",
+      "resellerNotifClient80": "⚠️ {{ .Name }}：客户上限已使用 {{ .Pct }}%",
+      "resellerNotifClientMax": "⛔ {{ .Name }}：已达客户上限（{{ .Count }}/{{ .Limit }}）",
+      "resellerNotifExpirySoon": "⏳ {{ .Name }}：账户将在 {{ .Days }} 天后到期",
+      "resellerNotifExpired": "⛔ {{ .Name }}：账户已到期"
     },
     "buttons": {
       "closeKeyboard": "❌ 关闭键盘",
@@ -1919,7 +1933,10 @@
       "SortedTrafficUsageReport": "排序的流量使用报告",
       "broadcast": "📣 广播",
       "confirmBroadcast": "✅ 立即发送",
-      "invite": "🔗 邀请链接"
+      "invite": "🔗 邀请链接",
+      "resellerUsage": "我的用量",
+      "resellerNotifications": "通知",
+      "resellerCommands": "命令"
     },
     "answers": {
       "successfulOperation": "✅ 成功！",
@@ -1997,6 +2014,20 @@
       "expired": {
         "title": "经销商账户已到期"
       }
+    },
+    "telegram": {
+      "title": "Telegram 机器人",
+      "desc": "绑定您的 Telegram，即可接收流量、客户与到期提醒，并直接在机器人中查看用量。",
+      "generate": "生成绑定码",
+      "regenerate": "生成新绑定码",
+      "copy": "复制命令",
+      "copied": "已复制到剪贴板",
+      "openBot": "在 Telegram 中打开",
+      "expires": "绑定码过期时间",
+      "linked": "已绑定",
+      "linkedDesc": "该经销商账户已绑定您的 Telegram。流量、客户与到期提醒将直接发送到您的聊天。",
+      "unlink": "解绑 Telegram",
+      "unlinked": "已解绑 Telegram。"
     }
   }
 }

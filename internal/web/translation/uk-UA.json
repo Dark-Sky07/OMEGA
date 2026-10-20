@@ -1790,7 +1790,8 @@
       "startDesc": "Показати головне меню",
       "helpDesc": "Довідка по боту",
       "statusDesc": "Перевірити статус бота",
-      "idDesc": "Показати ваш Telegram ID"
+      "idDesc": "Показати ваш Telegram ID",
+      "helpResellerCommands": "Команди реселлера:\r\n\r\n<code>/usage</code> — підсумок квоти\r\n<code>/notifications</code> — останні сповіщення\r\n\r\nID чату Telegram:\r\n<code>/id</code>"
     },
     "messages": {
       "cpuThreshold": "🔴 Навантаження ЦП  {{ .Percent }}% перевищує порогове значення {{ .Threshold }}%",
@@ -1871,7 +1872,20 @@
       "inviteInvalid": "Це посилання-запрошення недійсне. Запитайте нове у свого провайдера.",
       "inviteUsed": "Це посилання-запрошення вже використано. Запитайте нове у свого провайдера.",
       "inviteExpired": "Термін дії цього посилання-запрошення минув. Запитайте нове у свого провайдера.",
-      "userReport": "📊 Ваш звіт про використання — {{ .DateTime }}"
+      "userReport": "📊 Ваш звіт про використання — {{ .DateTime }}",
+      "resellerLinked": "✅ Акаунт реселлера {{ .Name }} прив'язано!\nТепер сповіщення про трафік, клієнтів і термін дії надходитимуть сюди.",
+      "resellerLinkAlreadyBound": "⚠️ Цей акаунт Telegram уже прив’язаний до іншого реселлера.",
+      "resellerLinkExpired": "⌛ Термін дії цього коду вичерпано. Створіть новий у профілі панелі.",
+      "resellerLinkInvalid": "❗ Некоректний код прив'язки. Створіть новий у профілі панелі.",
+      "resellerUsage": "📊 Витрата реселлера — {{ .Name }}\n\n💳 Трафік: {{ .Allocated }} / {{ .TrafficLimit }} ({{ .Pct }}%)\n📈 Витрачено: {{ .Used }}\n👥 Клієнти: {{ .Clients }} / {{ .ClientLimit }}\n🟢 Онлайн: {{ .Online }}\n📅 Термін: {{ .Expiry }}",
+      "resellerNoNotifications": "📭 Сповіщень ще немає.",
+      "resellerNotifQuota80": "⚠️ {{ .Name }}: виділено {{ .Pct }}% квоти трафіку",
+      "resellerNotifQuota95": "🚨 {{ .Name }}: виділено {{ .Pct }}% квоти трафіку — критично",
+      "resellerNotifQuotaOut": "⛔ {{ .Name }}: квоту трафіку вичерпано",
+      "resellerNotifClient80": "⚠️ {{ .Name }}: використано {{ .Pct }}% ліміту клієнтів",
+      "resellerNotifClientMax": "⛔ {{ .Name }}: досягнуто ліміту клієнтів ({{ .Count }}/{{ .Limit }})",
+      "resellerNotifExpirySoon": "⏳ {{ .Name }}: акаунт завершується через {{ .Days }} дн.",
+      "resellerNotifExpired": "⛔ {{ .Name }}: термін дії акаунта вичерпано"
     },
     "buttons": {
       "closeKeyboard": "❌ Закрити клавіатуру",
@@ -1919,7 +1933,10 @@
       "SortedTrafficUsageReport": "Відсортований звіт про використання трафіку",
       "broadcast": "📣 Розсилка",
       "confirmBroadcast": "✅ Надіслати зараз",
-      "invite": "🔗 Посилання-запрошення"
+      "invite": "🔗 Посилання-запрошення",
+      "resellerUsage": "Моя витрата",
+      "resellerNotifications": "Сповіщення",
+      "resellerCommands": "Команди"
     },
     "answers": {
       "successfulOperation": "✅ Операція успішна!",
@@ -1997,6 +2014,20 @@
       "expired": {
         "title": "Термін дії акаунта дилера минув"
       }
+    },
+    "telegram": {
+      "title": "Telegram-бот",
+      "desc": "Прив'яжіть Telegram, щоб отримувати сповіщення про трафік, клієнтів і термін дії та слідкувати за витратою прямо в боті.",
+      "generate": "Створити код прив'язки",
+      "regenerate": "Створити новий код",
+      "copy": "Копіювати команду",
+      "copied": "Скопійовано в буфер обміну",
+      "openBot": "Відкрити в Telegram",
+      "expires": "Термін дії коду",
+      "linked": "Прив'язано",
+      "linkedDesc": "Цей акаунт реселлера прив'язаний до вашого Telegram. Сповіщення про трафік, клієнтів і термін дії надходять прямо в чат.",
+      "unlink": "Відв’язати Telegram",
+      "unlinked": "Telegram відв’язано."
     }
   }
 }

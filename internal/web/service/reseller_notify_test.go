@@ -29,18 +29,23 @@ func TestResellerNotifyEvaluateQuotaEpisodes(t *testing.T) {
 	}
 	svc := &ResellerNotifyService{}
 
-	eval := func(allocated, used int64) {
-		svc.Evaluate(&ResellerStat{Reseller: reseller, AllocatedTraffic: allocated, UsedTraffic: used})
+	eval := func(allocated, used int64) []*model.ResellerNotification {
+		return svc.Evaluate(&ResellerStat{Reseller: reseller, AllocatedTraffic: allocated, UsedTraffic: used})
 	}
 
 	// Far below the warning threshold: silent.
-	eval(500, 0)
+	if fresh := eval(500, 0); len(fresh) != 0 {
+		t.Fatalf("below threshold fresh = %d, want 0", len(fresh))
+	}
 	if got := notifyRowCount(t, reseller.Id); got != 0 {
 		t.Fatalf("below threshold rows = %d, want 0", got)
 	}
 
 	// Crossing 80% emits exactly one quota80 notification.
-	eval(850, 0)
+	fresh := eval(850, 0)
+	if len(fresh) != 1 || fresh[0].Kind != ResellerNotifQuota80 {
+		t.Fatalf("fresh rows = %+v, want one %q", fresh, ResellerNotifQuota80)
+	}
 	if got := notifyRowCount(t, reseller.Id); got != 1 {
 		t.Fatalf("after 85%% rows = %d, want 1", got)
 	}
@@ -184,12 +189,12 @@ func TestResellerNotifyListAndMarkRead(t *testing.T) {
 	if err := db.Create(other).Error; err != nil {
 		t.Fatalf("create other reseller: %v", err)
 	}
-	if err := svc.Notify(other.Id, ResellerNotifQuota80, map[string]any{"pct": 80}); err != nil {
+	if _, err := svc.Notify(other.Id, ResellerNotifQuota80, map[string]any{"pct": 80}); err != nil {
 		t.Fatalf("notify other: %v", err)
 	}
 
 	for _, kind := range []string{ResellerNotifQuota80, ResellerNotifQuota95, ResellerNotifExpired} {
-		if err := svc.Notify(reseller.Id, kind, nil); err != nil {
+		if _, err := svc.Notify(reseller.Id, kind, nil); err != nil {
 			t.Fatalf("notify %s: %v", kind, err)
 		}
 	}
