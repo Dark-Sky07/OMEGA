@@ -68,7 +68,11 @@ func nodeHTTPClientFor(n *model.Node) (*http.Client, error) {
 	if mode == "verify" || n.Scheme == "http" {
 		return nodeHTTPClient, nil
 	}
-	tlsCfg := &tls.Config{InsecureSkipVerify: true}
+	// "skip" and "pin" both turn off the default chain check: "skip" is the
+	// admin's explicit per-node opt-in (self-signed certs), while "pin"
+	// replaces the chain check with the stronger SHA-256 leaf-pin
+	// verification installed below — mutual TLS by fingerprint.
+	tlsCfg := &tls.Config{InsecureSkipVerify: true} // codeql[go/disabled-certificate-check]
 	if mode == "pin" {
 		want, err := decodeCertPin(n.PinnedCertSha256)
 		if err != nil {
@@ -144,10 +148,14 @@ func (s *NodeService) FetchCertFingerprint(ctx context.Context, n *model.Node) (
 	if err != nil {
 		return "", err
 	}
+	// The fingerprint probe deliberately skips chain validation: its whole
+	// purpose is to fetch the node's current (usually self-signed) leaf
+	// certificate so the admin can pin its SHA-256. It is a GET to the node's
+	// status endpoint and carries no credentials or panel data.
 	client := &http.Client{
 		Transport: &http.Transport{
 			DialContext:     netsafe.SSRFGuardedDialContext,
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // lgtm[go/disabled-certificate-check]
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // codeql[go/disabled-certificate-check]
 		},
 	}
 	resp, err := client.Do(req)

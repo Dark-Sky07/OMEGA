@@ -330,8 +330,17 @@ func (s *Server) Start() (err error) {
 	}
 	s.listener = listener
 
+	// The sub server is the panel's only unauthenticated, internet-facing
+	// HTTP surface, so it gets the same slow-client protections as the panel
+	// itself: bounded header/body read, bounded write, and idle-connection
+	// reaping. Without these a single client sending headers byte-by-byte
+	// (slowloris) or hoarding idle connections can exhaust file descriptors.
 	s.httpServer = &http.Server{
-		Handler: engine,
+		Handler:           engine,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	go func() {
