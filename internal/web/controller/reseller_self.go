@@ -38,6 +38,7 @@ func (a *ResellerSelfController) initRouter(g *gin.RouterGroup) {
 	g.GET("/profile", a.profile)
 	g.GET("/stats", a.stats)
 	g.GET("/report", a.report)
+	g.GET("/report/export", a.reportExport)
 	g.POST("/password", a.changePassword)
 	g.GET("/tickets", a.listTickets)
 	g.GET("/tickets/:id", a.getTicket)
@@ -100,6 +101,20 @@ func (a *ResellerSelfController) report(c *gin.Context) {
 		return
 	}
 	jsonObj(c, report, nil)
+}
+
+// reportExport streams the signed-in reseller's own client report as CSV.
+func (a *ResellerSelfController) reportExport(c *gin.Context) {
+	reseller := a.currentReseller(c)
+	if reseller == nil {
+		return
+	}
+	report, err := a.resellerService.Report(reseller.Id)
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	serveCSV(c, "reseller-"+reseller.Username+"-clients", service.RenderResellerClientsCSV(report))
 }
 
 func (a *ResellerSelfController) changePassword(c *gin.Context) {

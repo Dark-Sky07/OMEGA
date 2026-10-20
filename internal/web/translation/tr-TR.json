@@ -2027,6 +2027,8 @@
       "linkedDesc": "Bu bayi hesabı Telegram'ınıza bağlı. Kota, müşteri ve süre uyarıları doğrudan sohbetinize gelir.",
       "unlink": "Telegram'ı ayır",
       "unlinked": "Telegram bağlantısı kaldırıldı."
-    }
+    },
+    "exportCsv": "CSV indir",
+    "exportListCsv": "Listeyi indir (CSV)"
   }
 }

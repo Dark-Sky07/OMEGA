@@ -2028,6 +2028,8 @@
       "linkedDesc": "Tài khoản đại lý này đã liên kết với Telegram của bạn. Các cảnh báo lưu lượng, khách hàng và hạn dùng được gửi thẳng vào cuộc trò chuyện của bạn.",
       "unlink": "Gỡ liên kết Telegram",
       "unlinked": "Đã gỡ liên kết Telegram."
-    }
+    },
+    "exportCsv": "Xuất CSV",
+    "exportListCsv": "Xuất danh sách (CSV)"
   }
 }

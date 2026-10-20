@@ -2028,6 +2028,8 @@
       "linkedDesc": "このリセラーアカウントはあなたのTelegramに連携されています。トラフィック・クライアント・期限のアラートがチャットへ直接届きます。",
       "unlink": "Telegramを解除",
       "unlinked": "Telegramの連携を解除しました。"
-    }
+    },
+    "exportCsv": "CSVエクスポート",
+    "exportListCsv": "リストをエクスポート (CSV)"
   }
 }

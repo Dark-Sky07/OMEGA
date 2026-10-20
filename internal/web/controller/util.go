@@ -127,6 +127,27 @@ func jsonObj(c *gin.Context, obj any, err error) {
 	jsonMsgObj(c, "", obj, err)
 }
 
+// serveCSV streams data as a UTF-8 CSV attachment. The filename is reduced to
+// a strict character whitelist so user-controlled values (e.g. reseller
+// usernames) can never smuggle header or path syntax into the response.
+func serveCSV(c *gin.Context, name string, data []byte) {
+	var b strings.Builder
+	for _, r := range name {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9',
+			r == '-', r == '_', r == '.':
+			b.WriteRune(r)
+		default:
+			b.WriteRune('-')
+		}
+	}
+	if b.Len() == 0 {
+		b.WriteString("export")
+	}
+	c.Header("Content-Disposition", `attachment; filename="`+b.String()+`.csv"`)
+	c.Data(http.StatusOK, "text/csv; charset=utf-8", data)
+}
+
 func requestErrorContext(c *gin.Context) string {
 	handler, loc := callerOutsideUtil()
 	return fmt.Sprintf("[%s %s handler=%s %s]", c.Request.Method, c.Request.URL.Path, handler, loc)

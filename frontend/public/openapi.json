@@ -10042,6 +10042,77 @@
         }
       }
     },
+    "/panel/api/resellers/report/{id}/export": {
+      "get": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Download one reseller client report as CSV (UTF-8 with BOM, CRLF rows, RFC 4180 quoting; traffic in binary GB).",
+        "operationId": "get_panel_api_resellers_report_id_export",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Reseller id.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/resellers/export": {
+      "get": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Download the full resellers list with live usage numbers as CSV (UTF-8 with BOM; one row per reseller).",
+        "operationId": "get_panel_api_resellers_export",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/resellers/add": {
       "post": {
         "tags": [
@@ -10603,6 +10674,36 @@
         ],
         "summary": "The signed-in reseller own usage/billing report (clients + ledger).",
         "operationId": "get_panel_api_reseller_report",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/reseller/report/export": {
+      "get": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Download the signed-in reseller own client report as CSV (UTF-8 with BOM, CRLF rows, RFC 4180 quoting; traffic in binary GB).",
+        "operationId": "get_panel_api_reseller_report_export",
         "responses": {
           "200": {
             "description": "Successful response",

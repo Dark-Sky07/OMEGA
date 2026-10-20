@@ -2293,7 +2293,9 @@
       "linkedDesc": "This reseller account is linked to your Telegram. Quota, client and expiry alerts are delivered straight to your chat.",
       "unlink": "Disconnect Telegram",
       "unlinked": "Telegram disconnected."
-    }
+    },
+    "exportCsv": "Export CSV",
+    "exportListCsv": "Export list (CSV)"
   },
   "commandPalette": {
     "open": "Quick search",
