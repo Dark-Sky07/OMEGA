@@ -1790,7 +1790,8 @@
       "startDesc": "عرض القائمة الرئيسية",
       "helpDesc": "مساعدة البوت",
       "statusDesc": "التحقق من حالة البوت",
-      "idDesc": "عرض معرف Telegram الخاص بك"
+      "idDesc": "عرض معرف Telegram الخاص بك",
+      "helpResellerCommands": "أوامر الوكيل:\r\n\r\n<code>/usage</code> — حالة حصتك\r\n<code>/notifications</code> — أحدث التنبيهات\r\n\r\nمعرّف محادثة تلجرام:\r\n<code>/id</code>"
     },
     "messages": {
       "cpuThreshold": "🔴 حمل المعالج {{ .Percent }}% عدى الحد المسموح ({{ .Threshold }}%)",
@@ -1871,7 +1872,20 @@
       "inviteInvalid": "رابط الدعوة هذا غير صالح. اطلب من مزوّدك رابطًا جديدًا.",
       "inviteUsed": "رابط الدعوة هذا مستخدم بالفعل. اطلب من مزوّدك رابطًا جديدًا.",
       "inviteExpired": "انتهت صلاحية رابط الدعوة هذا. اطلب من مزوّدك رابطًا جديدًا.",
-      "userReport": "📊 تقرير استخدامك — {{ .DateTime }}"
+      "userReport": "📊 تقرير استخدامك — {{ .DateTime }}",
+      "resellerLinked": "✅ تم ربط حساب الوكيل {{ .Name }}!\nستصلك تنبيهات الحصة والعملاء وانتهاء الصلاحية هنا.",
+      "resellerLinkAlreadyBound": "⚠️ حساب تلجرام هذا مرتبط بالفعل بوكيل آخر.",
+      "resellerLinkExpired": "⌛ انتهت صلاحية رمز الربط. أنشئ رمزًا جديدًا من ملفك في اللوحة.",
+      "resellerLinkInvalid": "❗ رمز ربط غير صالح. أنشئ رمزًا جديدًا من ملفك في اللوحة.",
+      "resellerUsage": "📊 استهلاك الوكيل — {{ .Name }}\n\n💳 الحصة: {{ .Allocated }} / {{ .TrafficLimit }} ({{ .Pct }}٪)\n📈 المستهلك: {{ .Used }}\n👥 العملاء: {{ .Clients }} / {{ .ClientLimit }}\n🟢 متصل الآن: {{ .Online }}\n📅 ينتهي: {{ .Expiry }}",
+      "resellerNoNotifications": "📭 لا توجد إشعارات بعد.",
+      "resellerNotifQuota80": "⚠️ {{ .Name }}: تم تخصيص {{ .Pct }}٪ من حصة الترافيك",
+      "resellerNotifQuota95": "🚨 {{ .Name }}: تم تخصيص {{ .Pct }}٪ من حصة الترافيك — حرج",
+      "resellerNotifQuotaOut": "⛔ {{ .Name }}: نفدت حصة الترافيك",
+      "resellerNotifClient80": "⚠️ {{ .Name }}: تم استخدام {{ .Pct }}٪ من حد العملاء",
+      "resellerNotifClientMax": "⛔ {{ .Name }}: اكتمل حد العملاء ({{ .Count }}/{{ .Limit }})",
+      "resellerNotifExpirySoon": "⏳ {{ .Name }}: تنتهي صلاحية الحساب خلال {{ .Days }} أيام",
+      "resellerNotifExpired": "⛔ {{ .Name }}: انتهت صلاحية الحساب"
     },
     "buttons": {
       "closeKeyboard": "❌ اقفل الكيبورد",
@@ -1919,7 +1933,10 @@
       "SortedTrafficUsageReport": "تقرير استخدام الترافيك المرتب",
       "broadcast": "📣 إرسال جماعي",
       "confirmBroadcast": "✅ إرسال الآن",
-      "invite": "🔗 رابط دعوة"
+      "invite": "🔗 رابط دعوة",
+      "resellerUsage": "استهلاكي",
+      "resellerNotifications": "الإشعارات",
+      "resellerCommands": "الأوامر"
     },
     "answers": {
       "successfulOperation": "✅ العملية نجحت!",
@@ -1997,6 +2014,20 @@
       "expired": {
         "title": "انتهت صلاحية حساب الوكيل"
       }
+    },
+    "telegram": {
+      "title": "بوت تلجرام",
+      "desc": "اربط حسابك في تلجرام لاستقبال تنبيهات الحصة والعملاء وانتهاء الصلاحية ومتابعة استهلاكك مباشرة داخل البوت.",
+      "generate": "إنشاء رمز الربط",
+      "regenerate": "إنشاء رمز جديد",
+      "copy": "نسخ الأمر",
+      "copied": "تم النسخ إلى الحافظة",
+      "openBot": "فتح في تلجرام",
+      "expires": "تنتهي صلاحية الرمز في",
+      "linked": "متصل",
+      "linkedDesc": "هذا الحساب مرتبط بحسابك في تلجرام. تصل تنبيهات الحصة والعملاء وانتهاء الصلاحية مباشرة إلى محادثتك.",
+      "unlink": "فصل تلجرام",
+      "unlinked": "تم فصل تلجرام."
     }
   }
 }

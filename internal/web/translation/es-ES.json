@@ -1790,7 +1790,8 @@
       "startDesc": "Mostrar el menú principal",
       "helpDesc": "Ayuda del bot",
       "statusDesc": "Comprobar el estado del bot",
-      "idDesc": "Mostrar tu ID de Telegram"
+      "idDesc": "Mostrar tu ID de Telegram",
+      "helpResellerCommands": "Comandos de distribuidor:\r\n\r\n<code>/usage</code> — estado de tu cuota\r\n<code>/notifications</code> — últimas alertas\r\n\r\nID de chat de Telegram:\r\n<code>/id</code>"
     },
     "messages": {
       "cpuThreshold": "🔴 El uso de CPU {{ .Percent }}% es mayor que el umbral {{ .Threshold }}%",
@@ -1871,7 +1872,20 @@
       "inviteInvalid": "Este enlace de invitación no es válido. Pídele uno nuevo a tu proveedor.",
       "inviteUsed": "Este enlace de invitación ya fue usado. Pídele uno nuevo a tu proveedor.",
       "inviteExpired": "Este enlace de invitación ha caducado. Pídele uno nuevo a tu proveedor.",
-      "userReport": "📊 Tu informe de uso — {{ .DateTime }}"
+      "userReport": "📊 Tu informe de uso — {{ .DateTime }}",
+      "resellerLinked": "✅ ¡Cuenta de distribuidor {{ .Name }} vinculada!\nAhora recibirás aquí las alertas de cuota, clientes y caducidad.",
+      "resellerLinkAlreadyBound": "⚠️ Esta cuenta de Telegram ya está vinculada a otro distribuidor.",
+      "resellerLinkExpired": "⌛ Este código de vinculación ha caducado. Genera uno nuevo desde tu perfil del panel.",
+      "resellerLinkInvalid": "❗ Código de vinculación no válido. Genera uno nuevo desde tu perfil del panel.",
+      "resellerUsage": "📊 Consumo del distribuidor — {{ .Name }}\n\n💳 Tráfico: {{ .Allocated }} / {{ .TrafficLimit }} ({{ .Pct }}%)\n📈 Usado: {{ .Used }}\n👥 Clientes: {{ .Clients }} / {{ .ClientLimit }}\n🟢 En línea: {{ .Online }}\n📅 Caduca: {{ .Expiry }}",
+      "resellerNoNotifications": "📭 Todavía no tienes notificaciones.",
+      "resellerNotifQuota80": "⚠️ {{ .Name }}: cuota de tráfico al {{ .Pct }}%",
+      "resellerNotifQuota95": "🚨 {{ .Name }}: cuota de tráfico al {{ .Pct }}% — crítico",
+      "resellerNotifQuotaOut": "⛔ {{ .Name }}: cuota de tráfico agotada",
+      "resellerNotifClient80": "⚠️ {{ .Name }}: límite de clientes al {{ .Pct }}%",
+      "resellerNotifClientMax": "⛔ {{ .Name }}: límite de clientes alcanzado ({{ .Count }}/{{ .Limit }})",
+      "resellerNotifExpirySoon": "⏳ {{ .Name }}: la cuenta caduca en {{ .Days }} días",
+      "resellerNotifExpired": "⛔ {{ .Name }}: la cuenta ha caducado"
     },
     "buttons": {
       "closeKeyboard": "❌ Cerrar Teclado",
@@ -1919,7 +1933,10 @@
       "SortedTrafficUsageReport": "Informe de uso de tráfico ordenado",
       "broadcast": "📣 Difusión",
       "confirmBroadcast": "✅ Enviar ahora",
-      "invite": "🔗 Enlace de invitación"
+      "invite": "🔗 Enlace de invitación",
+      "resellerUsage": "Mi consumo",
+      "resellerNotifications": "Notificaciones",
+      "resellerCommands": "Comandos"
     },
     "answers": {
       "successfulOperation": "✅ ¡Exitosa!",
@@ -1997,6 +2014,20 @@
       "expired": {
         "title": "La cuenta de distribuidor ha caducado"
       }
+    },
+    "telegram": {
+      "title": "Bot de Telegram",
+      "desc": "Vincula tu Telegram para recibir alertas de cuota, clientes y caducidad y consultar tu consumo directamente en el bot.",
+      "generate": "Generar código de vinculación",
+      "regenerate": "Generar un código nuevo",
+      "copy": "Copiar comando",
+      "copied": "Copiado al portapapeles",
+      "openBot": "Abrir en Telegram",
+      "expires": "El código caduca a las",
+      "linked": "Vinculado",
+      "linkedDesc": "Esta cuenta de distribuidor está vinculada a tu Telegram. Las alertas de cuota, clientes y caducidad llegan directo a tu chat.",
+      "unlink": "Desvincular Telegram",
+      "unlinked": "Telegram desvinculado."
     }
   }
 }

@@ -1957,7 +1957,8 @@
       "startDesc": "Show the main menu",
       "helpDesc": "Bot help",
       "statusDesc": "Check bot status",
-      "idDesc": "Show your Telegram ID"
+      "idDesc": "Show your Telegram ID",
+      "helpResellerCommands": "Reseller commands:\r\n\r\n<code>/usage</code> — your quota snapshot\r\n<code>/notifications</code> — latest alerts\r\n\r\nTelegram Chat ID:\r\n<code>/id</code>"
     },
     "messages": {
       "cpuThreshold": "🔴 CPU Load {{ .Percent }}% exceeds the threshold of {{ .Threshold }}%",
@@ -2038,7 +2039,20 @@
       "inviteInvalid": "This invite link is invalid. Ask your provider for a new one.",
       "inviteUsed": "This invite link has already been used. Ask your provider for a new one.",
       "inviteExpired": "This invite link has expired. Ask your provider for a new one.",
-      "userReport": "📊 Your usage report — {{ .DateTime }}"
+      "userReport": "📊 Your usage report — {{ .DateTime }}",
+      "resellerLinked": "✅ Reseller account {{ .Name }} linked!\nYou will now receive quota, client and expiry alerts here.",
+      "resellerLinkAlreadyBound": "⚠️ This Telegram account is already linked to another reseller.",
+      "resellerLinkExpired": "⌛ This link code has expired. Generate a new one from your panel profile.",
+      "resellerLinkInvalid": "❗ Invalid link code. Generate a fresh one from your panel profile.",
+      "resellerUsage": "📊 Reseller usage — {{ .Name }}\n\n💳 Traffic: {{ .Allocated }} / {{ .TrafficLimit }} ({{ .Pct }}%)\n📈 Used: {{ .Used }}\n👥 Clients: {{ .Clients }} / {{ .ClientLimit }}\n🟢 Online: {{ .Online }}\n📅 Expires: {{ .Expiry }}",
+      "resellerNoNotifications": "📭 You have no notifications yet.",
+      "resellerNotifQuota80": "⚠️ {{ .Name }}: traffic quota {{ .Pct }}% allocated",
+      "resellerNotifQuota95": "🚨 {{ .Name }}: traffic quota {{ .Pct }}% allocated — critical",
+      "resellerNotifQuotaOut": "⛔ {{ .Name }}: traffic quota exhausted",
+      "resellerNotifClient80": "⚠️ {{ .Name }}: client limit {{ .Pct }}% used",
+      "resellerNotifClientMax": "⛔ {{ .Name }}: client limit reached ({{ .Count }}/{{ .Limit }})",
+      "resellerNotifExpirySoon": "⏳ {{ .Name }}: account expires in {{ .Days }} days",
+      "resellerNotifExpired": "⛔ {{ .Name }}: account has expired"
     },
     "buttons": {
       "closeKeyboard": "❌ Close Keyboard",
@@ -2086,7 +2100,10 @@
       "SortedTrafficUsageReport": "Sorted Traffic Usage Report",
       "broadcast": "📣 Broadcast",
       "confirmBroadcast": "✅ Send now",
-      "invite": "🔗 Invite link"
+      "invite": "🔗 Invite link",
+      "resellerUsage": "Usage",
+      "resellerNotifications": "Notifications",
+      "resellerCommands": "Commands"
     },
     "answers": {
       "successfulOperation": "✅ Operation successful!",
@@ -2262,6 +2279,20 @@
       "expired": {
         "title": "Reseller account expired"
       }
+    },
+    "telegram": {
+      "title": "Telegram Bot",
+      "desc": "Link your Telegram to receive quota, client and expiry alerts and check your usage right inside the bot.",
+      "generate": "Generate link code",
+      "regenerate": "Generate a new code",
+      "copy": "Copy command",
+      "copied": "Copied to clipboard",
+      "openBot": "Open in Telegram",
+      "expires": "Code expires at",
+      "linked": "Linked",
+      "linkedDesc": "This reseller account is linked to your Telegram. Quota, client and expiry alerts are delivered straight to your chat.",
+      "unlink": "Disconnect Telegram",
+      "unlinked": "Telegram disconnected."
     }
   },
   "commandPalette": {

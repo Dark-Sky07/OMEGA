@@ -1904,7 +1904,8 @@
       "startDesc": "نمایش منوی اصلی",
       "helpDesc": "راهنمای ربات",
       "statusDesc": "بررسی وضعیت ربات",
-      "idDesc": "نمایش شناسه تلگرام شما"
+      "idDesc": "نمایش شناسه تلگرام شما",
+      "helpResellerCommands": "دستورات نمایندگی:\r\n\r\n<code>/usage</code> — وضعیت سهمیه شما\r\n<code>/notifications</code> — آخرین هشدارها\r\n\r\nشناسه گفتگوی تلگرام:\r\n<code>/id</code>"
     },
     "messages": {
       "cpuThreshold": "🔴 بار ‌پردازنده {{ .Percent }}% بیشتر از آستانه است {{ .Threshold }}%",
@@ -1985,7 +1986,20 @@
       "inviteInvalid": "این لینک دعوت معتبر نیست. از ارائه‌دهندهٔ خود لینک جدید بخواهید.",
       "inviteUsed": "این لینک دعوت قبلاً استفاده شده است. از ارائه‌دهندهٔ خود لینک جدید بخواهید.",
       "inviteExpired": "اعتبار این لینک دعوت منقضی شده است. از ارائه‌دهندهٔ خود لینک جدید بخواهید.",
-      "userReport": "📊 گزارش مصرف شما — {{ .DateTime }}"
+      "userReport": "📊 گزارش مصرف شما — {{ .DateTime }}",
+      "resellerLinked": "✅ حساب نمایندگی {{ .Name }} متصل شد!\nاز این پس هشدارهای ترافیک، کلاینت و انقضا را همین‌جا دریافت می‌کنید.",
+      "resellerLinkAlreadyBound": "⚠️ این حساب تلگرام قبلاً به نمایندگی دیگری متصل شده است.",
+      "resellerLinkExpired": "⌛ این کد اتصال منقضی شده است. از پروفایل پنل کد جدید بگیرید.",
+      "resellerLinkInvalid": "❗ کد اتصال نامعتبر است. از پروفایل پنل کد جدید بگیرید.",
+      "resellerUsage": "📊 مصرف نمایندگی — {{ .Name }}\n\n💳 ترافیک: {{ .Allocated }} / {{ .TrafficLimit }} ({{ .Pct }}٪)\n📈 مصرف‌شده: {{ .Used }}\n👥 کلاینت‌ها: {{ .Clients }} / {{ .ClientLimit }}\n🟢 آنلاین: {{ .Online }}\n📅 انقضا: {{ .Expiry }}",
+      "resellerNoNotifications": "📭 هنوز اعلانی ندارید.",
+      "resellerNotifQuota80": "⚠️ {{ .Name }}: سهمیه ترافیک {{ .Pct }}٪ تخصیص یافته است",
+      "resellerNotifQuota95": "🚨 {{ .Name }}: سهمیه ترافیک {{ .Pct }}٪ تخصیص یافته — بحرانی",
+      "resellerNotifQuotaOut": "⛔ {{ .Name }}: سهمیه ترافیک به پایان رسیده است",
+      "resellerNotifClient80": "⚠️ {{ .Name }}: {{ .Pct }}٪ سقف تعداد کلاینت استفاده شده است",
+      "resellerNotifClientMax": "⛔ {{ .Name }}: سقف تعداد کلاینت پر شده است ({{ .Count }}/{{ .Limit }})",
+      "resellerNotifExpirySoon": "⏳ {{ .Name }}: حساب نمایندگی تا {{ .Days }} روز دیگر منقضی می‌شود",
+      "resellerNotifExpired": "⛔ {{ .Name }}: حساب نمایندگی منقضی شده است"
     },
     "buttons": {
       "closeKeyboard": "❌ بستن کیبورد",
@@ -2033,7 +2047,10 @@
       "SortedTrafficUsageReport": "گزارش استفاده از ترافیک مرتب‌شده",
       "broadcast": "📣 ارسال همگانی",
       "confirmBroadcast": "✅ ارسال شود",
-      "invite": "🔗 لینک دعوت"
+      "invite": "🔗 لینک دعوت",
+      "resellerUsage": "مصرف من",
+      "resellerNotifications": "اعلان‌ها",
+      "resellerCommands": "دستورات"
     },
     "answers": {
       "successfulOperation": "✅ انجام شد!",
@@ -2209,6 +2226,20 @@
       "expired": {
         "title": "حساب نمایندگی منقضی شده است"
       }
+    },
+    "telegram": {
+      "title": "ربات تلگرام",
+      "desc": "تلگرام خود را متصل کنید تا هشدارهای ترافیک، کلاینت و انقضا را دریافت کنید و مصرف خود را مستقیم در بات ببینید.",
+      "generate": "ساخت کد اتصال",
+      "regenerate": "ساخت کد جدید",
+      "copy": "کپی دستور",
+      "copied": "در کلیپ‌بورد کپی شد",
+      "openBot": "باز کردن در تلگرام",
+      "expires": "انقضای کد",
+      "linked": "متصل",
+      "linkedDesc": "این حساب نمایندگی به تلگرام شما متصل است. هشدارهای ترافیک، کلاینت و انقضا مستقیم به چت شما ارسال می‌شوند.",
+      "unlink": "قطع اتصال تلگرام",
+      "unlinked": "اتصال تلگرام قطع شد."
     }
   },
   "commandPalette": {

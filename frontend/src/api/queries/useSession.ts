@@ -14,6 +14,8 @@ export interface ResellerStat {
     trafficLimit: number;
     clientLimit: number;
     expiryTime: number;
+    /** Linked Telegram chat id, 0 = not linked. */
+    tgId?: number;
     // Kept for backward compat, billing is now removed from UI
     pricePerGb?: number;
     deposit?: number;

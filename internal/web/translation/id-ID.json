@@ -1790,7 +1790,8 @@
       "startDesc": "Tampilkan menu utama",
       "helpDesc": "Bantuan bot",
       "statusDesc": "Periksa status bot",
-      "idDesc": "Tampilkan ID Telegram Anda"
+      "idDesc": "Tampilkan ID Telegram Anda",
+      "helpResellerCommands": "Perintah reseller:\r\n\r\n<code>/usage</code> — ringkasan kuota Anda\r\n<code>/notifications</code> — peringatan terbaru\r\n\r\nID Obrolan Telegram:\r\n<code>/id</code>"
     },
     "messages": {
       "cpuThreshold": "🔴 Beban CPU {{ .Percent }}% melebihi batas {{ .Threshold }}%",
@@ -1871,7 +1872,20 @@
       "inviteInvalid": "Tautan undangan ini tidak valid. Minta tautan baru dari penyedia Anda.",
       "inviteUsed": "Tautan undangan ini sudah pernah digunakan. Minta tautan baru dari penyedia Anda.",
       "inviteExpired": "Tautan undangan ini sudah kedaluwarsa. Minta tautan baru dari penyedia Anda.",
-      "userReport": "📊 Laporan penggunaan Anda — {{ .DateTime }}"
+      "userReport": "📊 Laporan penggunaan Anda — {{ .DateTime }}",
+      "resellerLinked": "✅ Akun reseller {{ .Name }} terhubung!\nAnda akan menerima peringatan kuota, klien, dan kedaluwarsa di sini.",
+      "resellerLinkAlreadyBound": "⚠️ Akun Telegram ini sudah terhubung ke reseller lain.",
+      "resellerLinkExpired": "⌛ Kode tautan ini sudah kedaluwarsa. Buat yang baru dari profil panel Anda.",
+      "resellerLinkInvalid": "❗ Kode tautan tidak valid. Buat yang baru dari profil panel Anda.",
+      "resellerUsage": "📊 Pemakaian reseller — {{ .Name }}\n\n💳 Trafik: {{ .Allocated }} / {{ .TrafficLimit }} ({{ .Pct }}%)\n📈 Terpakai: {{ .Used }}\n👥 Klien: {{ .Clients }} / {{ .ClientLimit }}\n🟢 Daring: {{ .Online }}\n📅 Kedaluwarsa: {{ .Expiry }}",
+      "resellerNoNotifications": "📭 Belum ada notifikasi.",
+      "resellerNotifQuota80": "⚠️ {{ .Name }}: kuota trafik terpakai {{ .Pct }}%",
+      "resellerNotifQuota95": "🚨 {{ .Name }}: kuota trafik terpakai {{ .Pct }}% — kritis",
+      "resellerNotifQuotaOut": "⛔ {{ .Name }}: kuota trafik habis",
+      "resellerNotifClient80": "⚠️ {{ .Name }}: batas klien terpakai {{ .Pct }}%",
+      "resellerNotifClientMax": "⛔ {{ .Name }}: batas klien tercapai ({{ .Count }}/{{ .Limit }})",
+      "resellerNotifExpirySoon": "⏳ {{ .Name }}: akun kedaluwarsa dalam {{ .Days }} hari",
+      "resellerNotifExpired": "⛔ {{ .Name }}: akun telah kedaluwarsa"
     },
     "buttons": {
       "closeKeyboard": "❌ Tutup Papan Ketik",
@@ -1919,7 +1933,10 @@
       "SortedTrafficUsageReport": "Laporan Penggunaan Lalu Lintas yang Terurut",
       "broadcast": "📣 Siaran",
       "confirmBroadcast": "✅ Kirim sekarang",
-      "invite": "🔗 Tautan undangan"
+      "invite": "🔗 Tautan undangan",
+      "resellerUsage": "Pemakaian Saya",
+      "resellerNotifications": "Notifikasi",
+      "resellerCommands": "Perintah"
     },
     "answers": {
       "successfulOperation": "✅ Operasi berhasil!",
@@ -1997,6 +2014,20 @@
       "expired": {
         "title": "Akun reseller telah kedaluwarsa"
       }
+    },
+    "telegram": {
+      "title": "Bot Telegram",
+      "desc": "Hubungkan Telegram Anda untuk menerima peringatan kuota, klien, dan kedaluwarsa serta memeriksa pemakaian langsung di bot.",
+      "generate": "Buat kode tautan",
+      "regenerate": "Buat kode baru",
+      "copy": "Salin perintah",
+      "copied": "Tersalin ke papan klip",
+      "openBot": "Buka di Telegram",
+      "expires": "Kode kedaluwarsa pada",
+      "linked": "Terhubung",
+      "linkedDesc": "Akun reseller ini terhubung ke Telegram Anda. Peringatan kuota, klien, dan kedaluwarsa dikirim langsung ke obrolan Anda.",
+      "unlink": "Putuskan Telegram",
+      "unlinked": "Telegram diputuskan."
     }
   }
 }

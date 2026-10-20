@@ -1790,7 +1790,8 @@
       "startDesc": "Hiển thị menu chính",
       "helpDesc": "Trợ giúp bot",
       "statusDesc": "Kiểm tra trạng thái bot",
-      "idDesc": "Hiển thị ID Telegram của bạn"
+      "idDesc": "Hiển thị ID Telegram của bạn",
+      "helpResellerCommands": "Lệnh đại lý:\r\n\r\n<code>/usage</code> — tổng quan hạn mức\r\n<code>/notifications</code> — cảnh báo mới nhất\r\n\r\nID chat Telegram:\r\n<code>/id</code>"
     },
     "messages": {
       "cpuThreshold": "🔴 Sử dụng CPU {{ .Percent }}% vượt quá ngưỡng {{ .Threshold }}%",
@@ -1871,7 +1872,20 @@
       "inviteInvalid": "Liên kết mời này không hợp lệ. Hãy yêu cầu nhà cung cấp cấp liên kết mới.",
       "inviteUsed": "Liên kết mời này đã được sử dụng. Hãy yêu cầu nhà cung cấp cấp liên kết mới.",
       "inviteExpired": "Liên kết mời này đã hết hạn. Hãy yêu cầu nhà cung cấp cấp liên kết mới.",
-      "userReport": "📊 Báo cáo sử dụng của bạn — {{ .DateTime }}"
+      "userReport": "📊 Báo cáo sử dụng của bạn — {{ .DateTime }}",
+      "resellerLinked": "✅ Đã liên kết tài khoản đại lý {{ .Name }}!\nBạn sẽ nhận cảnh báo lưu lượng, khách hàng và hạn dùng tại đây.",
+      "resellerLinkAlreadyBound": "⚠️ Tài khoản Telegram này đã liên kết với đại lý khác.",
+      "resellerLinkExpired": "⌛ Mã liên kết đã hết hạn. Hãy tạo mã mới từ hồ sơ trên bảng điều khiển.",
+      "resellerLinkInvalid": "❗ Mã liên kết không hợp lệ. Hãy tạo mã mới từ hồ sơ trên bảng điều khiển.",
+      "resellerUsage": "📊 Mức dùng đại lý — {{ .Name }}\n\n💳 Lưu lượng: {{ .Allocated }} / {{ .TrafficLimit }} ({{ .Pct }}%)\n📈 Đã dùng: {{ .Used }}\n👥 Khách: {{ .Clients }} / {{ .ClientLimit }}\n🟢 Trực tuyến: {{ .Online }}\n📅 Hết hạn: {{ .Expiry }}",
+      "resellerNoNotifications": "📭 Bạn chưa có thông báo nào.",
+      "resellerNotifQuota80": "⚠️ {{ .Name }}: đã phân bổ {{ .Pct }}% hạn mức lưu lượng",
+      "resellerNotifQuota95": "🚨 {{ .Name }}: đã phân bổ {{ .Pct }}% hạn mức lưu lượng — nghiêm trọng",
+      "resellerNotifQuotaOut": "⛔ {{ .Name }}: hạn mức lưu lượng đã cạn",
+      "resellerNotifClient80": "⚠️ {{ .Name }}: đã dùng {{ .Pct }}% giới hạn khách hàng",
+      "resellerNotifClientMax": "⛔ {{ .Name }}: đã chạm giới hạn khách hàng ({{ .Count }}/{{ .Limit }})",
+      "resellerNotifExpirySoon": "⏳ {{ .Name }}: tài khoản hết hạn sau {{ .Days }} ngày",
+      "resellerNotifExpired": "⛔ {{ .Name }}: tài khoản đã hết hạn"
     },
     "buttons": {
       "closeKeyboard": "❌ Đóng Bàn Phím",
@@ -1919,7 +1933,10 @@
       "SortedTrafficUsageReport": "Báo cáo sử dụng lưu lượng đã sắp xếp",
       "broadcast": "📣 Phát sóng",
       "confirmBroadcast": "✅ Gửi ngay",
-      "invite": "🔗 Liên kết mời"
+      "invite": "🔗 Liên kết mời",
+      "resellerUsage": "Mức dùng",
+      "resellerNotifications": "Thông báo",
+      "resellerCommands": "Lệnh"
     },
     "answers": {
       "successfulOperation": "✅ Thành công!",
@@ -1997,6 +2014,20 @@
       "expired": {
         "title": "Tài khoản đại lý đã hết hạn"
       }
+    },
+    "telegram": {
+      "title": "Bot Telegram",
+      "desc": "Liên kết Telegram để nhận cảnh báo về lưu lượng, khách hàng và hạn dùng, đồng thời xem mức sử dụng ngay trong bot.",
+      "generate": "Tạo mã liên kết",
+      "regenerate": "Tạo mã mới",
+      "copy": "Sao chép lệnh",
+      "copied": "Đã sao chép vào bộ nhớ tạm",
+      "openBot": "Mở trong Telegram",
+      "expires": "Mã hết hạn lúc",
+      "linked": "Đã liên kết",
+      "linkedDesc": "Tài khoản đại lý này đã liên kết với Telegram của bạn. Các cảnh báo lưu lượng, khách hàng và hạn dùng được gửi thẳng vào cuộc trò chuyện của bạn.",
+      "unlink": "Gỡ liên kết Telegram",
+      "unlinked": "Đã gỡ liên kết Telegram."
     }
   }
 }

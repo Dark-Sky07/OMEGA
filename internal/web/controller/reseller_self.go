@@ -8,6 +8,7 @@ import (
 
 	"github.com/Dark-Sky07/phoenix/internal/database/model"
 	"github.com/Dark-Sky07/phoenix/internal/web/service"
+	"github.com/Dark-Sky07/phoenix/internal/web/service/tgbot"
 	"github.com/Dark-Sky07/phoenix/internal/web/session"
 
 	"github.com/gin-gonic/gin"
@@ -46,6 +47,8 @@ func (a *ResellerSelfController) initRouter(g *gin.RouterGroup) {
 	g.POST("/vouchers/redeem", a.redeemVoucher)
 	g.GET("/notifications", a.notifications)
 	g.POST("/notifications/read", a.markNotificationsRead)
+	g.POST("/telegram/link", a.telegramLink)
+	g.POST("/telegram/unlink", a.telegramUnlink)
 }
 
 // currentReseller returns the reseller bound to the request, or nil for admin
@@ -244,6 +247,34 @@ func (a *ResellerSelfController) redeemVoucher(c *gin.Context) {
 		"reseller": updatedReseller,
 		"voucher":  voucher,
 	}, nil)
+}
+
+// telegramLink issues a fresh one-time link code. The reseller sends
+// "/start reseller_<code>" to the panel's Telegram bot to bind their chat.
+func (a *ResellerSelfController) telegramLink(c *gin.Context) {
+	reseller := a.currentReseller(c)
+	if reseller == nil {
+		return
+	}
+	code, expiresAt, err := (&service.ResellerTelegramService{}).CreateLinkCode(reseller.Id)
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, gin.H{
+		"code":        code,
+		"expiresAt":   expiresAt,
+		"botUsername": tgbot.BotUsername(),
+	}, nil)
+}
+
+// telegramUnlink detaches the reseller's Telegram account from the bot.
+func (a *ResellerSelfController) telegramUnlink(c *gin.Context) {
+	reseller := a.currentReseller(c)
+	if reseller == nil {
+		return
+	}
+	jsonMsg(c, "", (&service.ResellerTelegramService{}).Unlink(reseller.Id))
 }
 
 // notifications returns the signed-in reseller's in-panel notification feed

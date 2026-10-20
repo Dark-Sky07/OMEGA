@@ -21,7 +21,7 @@ import {
   Typography,
   message,
 } from 'antd';
-import { BellOutlined, CheckOutlined, CustomerServiceOutlined, GiftOutlined, ShopOutlined, UserOutlined } from '@ant-design/icons';
+import { BellOutlined, CheckOutlined, CopyOutlined, CustomerServiceOutlined, GiftOutlined, SendOutlined, ShopOutlined, UserOutlined } from '@ant-design/icons';
 
 import AppSidebar from '@/layouts/AppSidebar';
 import { PageHeader } from '@/components/ui';
@@ -48,6 +48,12 @@ type ResellerNotificationRow = {
 type ResellerNotificationFeed = {
   list: ResellerNotificationRow[];
   unreadCount: number;
+};
+
+type TelegramLinkInfo = {
+  code: string;
+  expiresAt: number;
+  botUsername?: string;
 };
 
 const NOTIF_TAG_COLOR: Record<string, string> = {
@@ -94,6 +100,9 @@ export default function ResellerProfilePage() {
   const [ticketsOpen, setTicketsOpen] = useState(false);
   const [voucherCode, setVoucherCode] = useState('');
   const [redeeming, setRedeeming] = useState(false);
+  const [tgLink, setTgLink] = useState<TelegramLinkInfo | null>(null);
+  const [tgLinking, setTgLinking] = useState(false);
+  const [tgUnlinking, setTgUnlinking] = useState(false);
   const [passwordForm] = Form.useForm<{ oldPassword: string; newPassword: string; confirmPassword: string }>();
 
   const redeemVoucher = useCallback(async () => {
@@ -154,6 +163,42 @@ export default function ResellerProfilePage() {
       queryClient.invalidateQueries({ queryKey: keys.resellers.notifications() });
     }
   }, [queryClient]);
+
+  const generateTgLink = useCallback(async () => {
+    setTgLinking(true);
+    try {
+      const msg = await HttpUtil.post('/panel/api/reseller/telegram/link', {}, JSON_HEADERS as never);
+      if (msg?.success) {
+        setTgLink(msg.obj as TelegramLinkInfo);
+      } else {
+        messageApi.error(msg?.msg || t('somethingWentWrong'));
+      }
+    } finally {
+      setTgLinking(false);
+    }
+  }, [messageApi, t]);
+
+  const unlinkTelegram = useCallback(async () => {
+    setTgUnlinking(true);
+    try {
+      const msg = await HttpUtil.post('/panel/api/reseller/telegram/unlink', {}, JSON_HEADERS as never);
+      if (msg?.success) {
+        setTgLink(null);
+        messageApi.success(t('resellers.telegram.unlinked', 'Telegram disconnected.'));
+        queryClient.invalidateQueries({ queryKey: [...keys.resellers.selfReport(), 'profile'] });
+      } else {
+        messageApi.error(msg?.msg || t('somethingWentWrong'));
+      }
+    } finally {
+      setTgUnlinking(false);
+    }
+  }, [messageApi, queryClient, t]);
+
+  const copyTgCode = useCallback(async () => {
+    if (!tgLink?.code) return;
+    await navigator.clipboard.writeText(`/start reseller_${tgLink.code}`);
+    messageApi.success(t('resellers.telegram.copied', 'Copied to clipboard'));
+  }, [messageApi, t, tgLink]);
 
   const changePassword = useCallback(async () => {
     const values = await passwordForm.validateFields().catch(() => null);
@@ -316,6 +361,81 @@ export default function ResellerProfilePage() {
                           </List.Item>
                         )}
                       />
+                    )}
+                  </Card>
+                </Col>
+
+                <Col span={24}>
+                  <Card
+                    size="small"
+                    hoverable
+                    className="phoenix-rise phoenix-rise-2"
+                    title={
+                      <Space>
+                        <SendOutlined />
+                        {t('resellers.telegram.title', 'Telegram Bot')}
+                      </Space>
+                    }
+                    extra={
+                      stat?.reseller.tgId ? (
+                        <Tag color="green">{t('resellers.telegram.linked', 'Linked')}</Tag>
+                      ) : undefined
+                    }
+                  >
+                    {stat?.reseller.tgId ? (
+                      <Space direction="vertical" size={8}>
+                        <span style={{ color: 'var(--ant-color-text-secondary)' }}>
+                          {t(
+                            'resellers.telegram.linkedDesc',
+                            'This reseller account is linked to your Telegram. Quota, client and expiry alerts are delivered straight to your chat.',
+                          )}
+                        </span>
+                        <Button danger loading={tgUnlinking} onClick={unlinkTelegram}>
+                          {t('resellers.telegram.unlink', 'Disconnect Telegram')}
+                        </Button>
+                      </Space>
+                    ) : (
+                      <Space direction="vertical" size={8}>
+                        <span style={{ color: 'var(--ant-color-text-secondary)' }}>
+                          {t(
+                            'resellers.telegram.desc',
+                            'Link your Telegram to receive quota, client and expiry alerts and check your usage right inside the bot.',
+                          )}
+                        </span>
+                        {tgLink ? (
+                          <>
+                            <Space wrap>
+                              <Typography.Text code style={{ fontSize: 15 }}>
+                                /start reseller_{tgLink.code}
+                              </Typography.Text>
+                              <Button size="small" icon={<CopyOutlined />} onClick={copyTgCode}>
+                                {t('resellers.telegram.copy', 'Copy command')}
+                              </Button>
+                              {tgLink.botUsername ? (
+                                <Button
+                                  size="small"
+                                  type="primary"
+                                  icon={<SendOutlined />}
+                                  href={`https://t.me/${tgLink.botUsername}?start=reseller_${tgLink.code}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  {t('resellers.telegram.openBot', 'Open in Telegram')}
+                                </Button>
+                              ) : undefined}
+                            </Space>
+                            <Typography.Text type="secondary">
+                              {t('resellers.telegram.expires', 'Code expires at')}:{' '}
+                              {new Date(tgLink.expiresAt).toLocaleTimeString()}
+                            </Typography.Text>
+                          </>
+                        ) : undefined}
+                        <Button type="primary" icon={<SendOutlined />} loading={tgLinking} onClick={generateTgLink}>
+                          {tgLink
+                            ? t('resellers.telegram.regenerate', 'Generate a new code')
+                            : t('resellers.telegram.generate', 'Generate link code')}
+                        </Button>
+                      </Space>
                     )}
                   </Card>
                 </Col>

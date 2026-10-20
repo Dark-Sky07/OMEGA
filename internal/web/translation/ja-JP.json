@@ -1790,7 +1790,8 @@
       "startDesc": "メインメニューを表示",
       "helpDesc": "ボットのヘルプ",
       "statusDesc": "ボットの状態を確認",
-      "idDesc": "Telegram IDを表示"
+      "idDesc": "Telegram IDを表示",
+      "helpResellerCommands": "リセラーコマンド:\r\n\r\n<code>/usage</code> — クォータの確認\r\n<code>/notifications</code> — 最新のアラート\r\n\r\nTelegramチャットID:\r\n<code>/id</code>"
     },
     "messages": {
       "cpuThreshold": "🔴 CPU使用率は{{ .Percent }}%、しきい値{{ .Threshold }}%を超えました",
@@ -1871,7 +1872,20 @@
       "inviteInvalid": "この招待リンクは無効です。提供者に新しいリンクを依頼してください。",
       "inviteUsed": "この招待リンクは既に使用されています。提供者に新しいリンクを依頼してください。",
       "inviteExpired": "この招待リンクの有効期限が切れています。提供者に新しいリンクを依頼してください。",
-      "userReport": "📊 ご利用状況レポート — {{ .DateTime }}"
+      "userReport": "📊 ご利用状況レポート — {{ .DateTime }}",
+      "resellerLinked": "✅ リセラーアカウント {{ .Name }} を連携しました！\nトラフィック・クライアント・期限のアラートがここに届きます。",
+      "resellerLinkAlreadyBound": "⚠️ このTelegramアカウントは既に別のリセラーに連携されています。",
+      "resellerLinkExpired": "⌛ この連携コードは有効期限切れです。パネルのプロフィールから新しいコードを生成してください。",
+      "resellerLinkInvalid": "❗ 連携コードが無効です。パネルのプロフィールから新しいコードを生成してください。",
+      "resellerUsage": "📊 リセラー使用状況 — {{ .Name }}\n\n💳 トラフィック: {{ .Allocated }} / {{ .TrafficLimit }} ({{ .Pct }}%)\n📈 使用済み: {{ .Used }}\n👥 クライアント: {{ .Clients }} / {{ .ClientLimit }}\n🟢 オンライン: {{ .Online }}\n📅 期限: {{ .Expiry }}",
+      "resellerNoNotifications": "📭 通知はまだありません。",
+      "resellerNotifQuota80": "⚠️ {{ .Name }}: トラフィック枠の{{ .Pct }}%を割り当て済み",
+      "resellerNotifQuota95": "🚨 {{ .Name }}: トラフィック枠の{{ .Pct }}%を割り当て済み — 危険",
+      "resellerNotifQuotaOut": "⛔ {{ .Name }}: トラフィック枠を使い切りました",
+      "resellerNotifClient80": "⚠️ {{ .Name }}: クライアント上限の{{ .Pct }}%を使用",
+      "resellerNotifClientMax": "⛔ {{ .Name }}: クライアント上限に達しました ({{ .Count }}/{{ .Limit }})",
+      "resellerNotifExpirySoon": "⏳ {{ .Name }}: アカウントはあと{{ .Days }}日で期限切れです",
+      "resellerNotifExpired": "⛔ {{ .Name }}: アカウントの有効期限が切れました"
     },
     "buttons": {
       "closeKeyboard": "❌ キーボードを閉じる",
@@ -1919,7 +1933,10 @@
       "SortedTrafficUsageReport": "ソートされたトラフィック使用レポート",
       "broadcast": "📣 一斉送信",
       "confirmBroadcast": "✅ 今すぐ送信",
-      "invite": "🔗 招待リンク"
+      "invite": "🔗 招待リンク",
+      "resellerUsage": "使用状況",
+      "resellerNotifications": "通知",
+      "resellerCommands": "コマンド"
     },
     "answers": {
       "successfulOperation": "✅ 成功！",
@@ -1997,6 +2014,20 @@
       "expired": {
         "title": "リセラーアカウントの期限が切れました"
       }
+    },
+    "telegram": {
+      "title": "Telegramボット",
+      "desc": "Telegramを連携すると、トラフィック・クライアント・期限のアラートを受け取れ、ボット内で直接 使用状況を確認できます。",
+      "generate": "連携コードを生成",
+      "regenerate": "新しいコードを生成",
+      "copy": "コマンドをコピー",
+      "copied": "クリップボードにコピーしました",
+      "openBot": "Telegramで開く",
+      "expires": "コードの有効期限",
+      "linked": "連携済み",
+      "linkedDesc": "このリセラーアカウントはあなたのTelegramに連携されています。トラフィック・クライアント・期限のアラートがチャットへ直接届きます。",
+      "unlink": "Telegramを解除",
+      "unlinked": "Telegramの連携を解除しました。"
     }
   }
 }

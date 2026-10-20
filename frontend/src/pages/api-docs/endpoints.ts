@@ -1718,6 +1718,17 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/reseller/telegram/link',
+        summary: 'Issue a fresh one-time Telegram link code for the signed-in reseller; sending "/start reseller_<code>" to the panel bot binds their Telegram chat.',
+        response: '{\n  "success": true,\n  "obj": { "code": "a1b2c3d4e5f60718", "expiresAt": 1761000000000, "botUsername": "phoenix_panel_bot" }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/reseller/telegram/unlink',
+        summary: 'Detach the signed-in reseller Telegram account from the panel bot.',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/server/checkHost',
         summary: 'Run an Iran & international Check-Host TCP port or ICMP ping reachability test against a target host or host:port.',
       },

@@ -19,6 +19,14 @@ type Reseller struct {
 	Enable     bool   `json:"enable" form:"enable" gorm:"default:true" example:"true"`
 	LoginEpoch int64  `json:"-" gorm:"default:0"` // Bumped to invalidate existing sessions
 
+	// Telegram bot access (reseller tier). TgID is the linked chat id,
+	// 0 = not linked. TgCode is a short-lived one-time code generated from
+	// the reseller's own profile page and redeemed by sending
+	// "/start reseller_<code>" to the panel bot.
+	TgID         int64  `json:"tgId" form:"tgId" gorm:"column:tg_id;default:0"`
+	TgCode       string `json:"-" gorm:"column:tg_code;size:64"`
+	TgCodeExpiry int64  `json:"-" gorm:"column:tg_code_expiry;default:0"`
+
 	// Quotas. A zero value means "no limit".
 	TrafficLimit int64 `json:"trafficLimit" form:"trafficLimit" gorm:"column:traffic_limit;default:0" example:"1099511627776"` // Bytes, cap on the sum of the reseller's client quotas
 	ClientLimit  int   `json:"clientLimit" form:"clientLimit" gorm:"column:client_limit;default:0" example:"100"`
