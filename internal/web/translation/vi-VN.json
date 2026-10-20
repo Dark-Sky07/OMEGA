@@ -1966,6 +1966,37 @@
     "ticketPriority": "Priority",
     "ticketMessage": "Message",
     "ticketReplyPlaceholder": "Write a reply...",
-    "ticketSubjectAndMessageRequired": "Subject and message are required"
+    "ticketSubjectAndMessageRequired": "Subject and message are required",
+    "notifications": "Thông báo",
+    "notif": {
+      "markAllRead": "Đánh dấu tất cả đã đọc",
+      "empty": "Mọi thứ ổn thỏa — không có thông báo mới.",
+      "kind": {
+        "quota": "Lưu lượng",
+        "clients": "Khách hàng",
+        "expiry": "Hết hạn"
+      },
+      "quota80": {
+        "title": "Đã phân bổ {{pct}}% hạn mức lưu lượng"
+      },
+      "quota95": {
+        "title": "Đã phân bổ {{pct}}% hạn mức lưu lượng — nghiêm trọng"
+      },
+      "quota_out": {
+        "title": "Hạn mức lưu lượng đã hết"
+      },
+      "climit80": {
+        "title": "Đã dùng {{pct}}% giới hạn khách hàng"
+      },
+      "climit_max": {
+        "title": "Đã đạt giới hạn khách hàng ({{count}}/{{limit}})"
+      },
+      "expiry_soon": {
+        "title": "Tài khoản đại lý hết hạn sau {{days}} ngày"
+      },
+      "expired": {
+        "title": "Tài khoản đại lý đã hết hạn"
+      }
+    }
   }
 }

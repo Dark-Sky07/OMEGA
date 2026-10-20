@@ -1966,6 +1966,37 @@
     "ticketPriority": "Priority",
     "ticketMessage": "Message",
     "ticketReplyPlaceholder": "Write a reply...",
-    "ticketSubjectAndMessageRequired": "Subject and message are required"
+    "ticketSubjectAndMessageRequired": "Subject and message are required",
+    "notifications": "Notificações",
+    "notif": {
+      "markAllRead": "Marcar tudo como lido",
+      "empty": "Tudo em ordem — você não tem notificações novas.",
+      "kind": {
+        "quota": "Tráfego",
+        "clients": "Clientes",
+        "expiry": "Validade"
+      },
+      "quota80": {
+        "title": "{{pct}}% da cota de tráfego alocada"
+      },
+      "quota95": {
+        "title": "{{pct}}% da cota de tráfego alocada — crítico"
+      },
+      "quota_out": {
+        "title": "Cota de tráfego esgotada"
+      },
+      "climit80": {
+        "title": "{{pct}}% do limite de clientes em uso"
+      },
+      "climit_max": {
+        "title": "Limite de clientes atingido ({{count}}/{{limit}})"
+      },
+      "expiry_soon": {
+        "title": "A conta de revendedor expira em {{days}} dias"
+      },
+      "expired": {
+        "title": "A conta de revendedor expirou"
+      }
+    }
   }
 }

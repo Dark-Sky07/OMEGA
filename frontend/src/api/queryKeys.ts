@@ -8,6 +8,7 @@ export const keys = {
     assignments: () => ['resellers', 'assignments'] as const,
     report: (id: number) => ['resellers', 'report', id] as const,
     selfReport: () => ['resellers', 'selfReport'] as const,
+    notifications: () => ['resellers', 'notifications'] as const,
   },
   server: {
     status: () => ['server', 'status'] as const,

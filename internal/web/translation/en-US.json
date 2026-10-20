@@ -2231,7 +2231,38 @@
     "ticketPriority": "Priority",
     "ticketMessage": "Message",
     "ticketReplyPlaceholder": "Write a reply...",
-    "ticketSubjectAndMessageRequired": "Subject and message are required"
+    "ticketSubjectAndMessageRequired": "Subject and message are required",
+    "notifications": "Notifications",
+    "notif": {
+      "markAllRead": "Mark all as read",
+      "empty": "You're all caught up — no notifications.",
+      "kind": {
+        "quota": "Traffic",
+        "clients": "Clients",
+        "expiry": "Expiry"
+      },
+      "quota80": {
+        "title": "Traffic quota {{pct}}% allocated"
+      },
+      "quota95": {
+        "title": "Traffic quota {{pct}}% allocated — critical"
+      },
+      "quota_out": {
+        "title": "Traffic quota exhausted"
+      },
+      "climit80": {
+        "title": "Client limit {{pct}}% used"
+      },
+      "climit_max": {
+        "title": "Client limit reached ({{count}}/{{limit}})"
+      },
+      "expiry_soon": {
+        "title": "Reseller account expires in {{days}} days"
+      },
+      "expired": {
+        "title": "Reseller account expired"
+      }
+    }
   },
   "commandPalette": {
     "open": "Quick search",

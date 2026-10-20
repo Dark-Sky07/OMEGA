@@ -1704,6 +1704,19 @@ export const sections: readonly Section[] = [
         summary: 'Redeem a gift/voucher code to credit the signed-in reseller wallet balance and/or traffic quota.',
       },
       {
+        method: 'GET',
+        path: '/panel/api/reseller/notifications',
+        summary:
+          "The signed-in reseller's in-panel notification feed (newest first) with the unread count. Rows carry a kind (quota80, quota95, quota_out, climit80, climit_max, expiry_soon, expired) and a JSON params map for localized rendering.",
+        params: [{ name: 'limit', in: 'query', type: 'integer', optional: true, desc: 'Maximum rows to return (default 50).' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/reseller/notifications/read',
+        summary: 'Flag one notification (body id > 0) or every unread notification (id omitted/0) of the signed-in reseller as read.',
+        params: [{ name: 'id', in: 'body (json)', type: 'integer', optional: true, desc: 'Notification id, or 0/omitted to mark all as read.' }],
+      },
+      {
         method: 'POST',
         path: '/panel/api/server/checkHost',
         summary: 'Run an Iran & international Check-Host TCP port or ICMP ping reachability test against a target host or host:port.',

@@ -1966,6 +1966,37 @@
     "ticketPriority": "Priority",
     "ticketMessage": "Message",
     "ticketReplyPlaceholder": "Write a reply...",
-    "ticketSubjectAndMessageRequired": "Subject and message are required"
+    "ticketSubjectAndMessageRequired": "Subject and message are required",
+    "notifications": "Notificaciones",
+    "notif": {
+      "markAllRead": "Marcar todo como leído",
+      "empty": "Todo en orden: no tienes notificaciones nuevas.",
+      "kind": {
+        "quota": "Tráfico",
+        "clients": "Clientes",
+        "expiry": "Vencimiento"
+      },
+      "quota80": {
+        "title": "Cuota de tráfico asignada al {{pct}}%"
+      },
+      "quota95": {
+        "title": "Cuota de tráfico asignada al {{pct}}% — crítica"
+      },
+      "quota_out": {
+        "title": "Cuota de tráfico agotada"
+      },
+      "climit80": {
+        "title": "{{pct}}% del límite de clientes en uso"
+      },
+      "climit_max": {
+        "title": "Límite de clientes alcanzado ({{count}}/{{limit}})"
+      },
+      "expiry_soon": {
+        "title": "La cuenta de distribuidor caduca en {{days}} días"
+      },
+      "expired": {
+        "title": "La cuenta de distribuidor ha caducado"
+      }
+    }
   }
 }

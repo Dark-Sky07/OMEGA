@@ -1965,6 +1965,37 @@
     "ticketPriority": "Priority",
     "ticketMessage": "Message",
     "ticketReplyPlaceholder": "Write a reply...",
-    "ticketSubjectAndMessageRequired": "Subject and message are required"
+    "ticketSubjectAndMessageRequired": "Subject and message are required",
+    "notifications": "Bildirimler",
+    "notif": {
+      "markAllRead": "Tümünü okundu işaretle",
+      "empty": "Her şey yolunda — yeni bildirim yok.",
+      "kind": {
+        "quota": "Trafik",
+        "clients": "İstemciler",
+        "expiry": "Süre"
+      },
+      "quota80": {
+        "title": "Trafik kotasının {{pct}}%'i tahsis edildi"
+      },
+      "quota95": {
+        "title": "Trafik kotasının {{pct}}%'i tahsis edildi — kritik"
+      },
+      "quota_out": {
+        "title": "Trafik kotası tükendi"
+      },
+      "climit80": {
+        "title": "İstemci sınırının {{pct}}%'i kullanıldı"
+      },
+      "climit_max": {
+        "title": "İstemci sınırına ulaşıldı ({{count}}/{{limit}})"
+      },
+      "expiry_soon": {
+        "title": "Bayi hesabı {{days}} gün içinde sona eriyor"
+      },
+      "expired": {
+        "title": "Bayi hesabının süresi doldu"
+      }
+    }
   }
 }

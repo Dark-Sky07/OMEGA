@@ -1966,6 +1966,37 @@
     "ticketPriority": "Priority",
     "ticketMessage": "Message",
     "ticketReplyPlaceholder": "Write a reply...",
-    "ticketSubjectAndMessageRequired": "Subject and message are required"
+    "ticketSubjectAndMessageRequired": "Subject and message are required",
+    "notifications": "الإشعارات",
+    "notif": {
+      "markAllRead": "وضع الكل كمقروء",
+      "empty": "كل شيء على ما يرام — لا إشعارات جديدة.",
+      "kind": {
+        "quota": "البيانات",
+        "clients": "العملاء",
+        "expiry": "الانتهاء"
+      },
+      "quota80": {
+        "title": "تم تخصيص {{pct}}٪ من حصة البيانات"
+      },
+      "quota95": {
+        "title": "تم تخصيص {{pct}}٪ من حصة البيانات — حرج"
+      },
+      "quota_out": {
+        "title": "نفدت حصة البيانات"
+      },
+      "climit80": {
+        "title": "تم استخدام {{pct}}٪ من حد العملاء"
+      },
+      "climit_max": {
+        "title": "تم بلوغ حد العملاء ({{count}}/{{limit}})"
+      },
+      "expiry_soon": {
+        "title": "ينتهي حساب الوكيل خلال {{days}} أيام"
+      },
+      "expired": {
+        "title": "انتهت صلاحية حساب الوكيل"
+      }
+    }
   }
 }

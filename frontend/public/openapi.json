@@ -11407,6 +11407,77 @@
         }
       }
     },
+    "/panel/api/reseller/notifications": {
+      "get": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "The signed-in reseller's in-panel notification feed (newest first) with the unread count. Rows carry a kind (quota80, quota95, quota_out, climit80, climit_max, expiry_soon, expired) and a JSON params map for localized rendering.",
+        "operationId": "get_panel_api_reseller_notifications",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum rows to return (default 50).",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/reseller/notifications/read": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Flag one notification (body id > 0) or every unread notification (id omitted/0) of the signed-in reseller as read.",
+        "operationId": "post_panel_api_reseller_notifications_read",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/server/checkHost": {
       "post": {
         "tags": [

@@ -1966,6 +1966,37 @@
     "ticketPriority": "Priority",
     "ticketMessage": "Message",
     "ticketReplyPlaceholder": "Write a reply...",
-    "ticketSubjectAndMessageRequired": "Subject and message are required"
+    "ticketSubjectAndMessageRequired": "Subject and message are required",
+    "notifications": "Notifikasi",
+    "notif": {
+      "markAllRead": "Tandai semua sudah dibaca",
+      "empty": "Semua beres — tidak ada notifikasi baru.",
+      "kind": {
+        "quota": "Traffic",
+        "clients": "Klien",
+        "expiry": "Kedaluwarsa"
+      },
+      "quota80": {
+        "title": "Kuota traffic terpakai {{pct}}%"
+      },
+      "quota95": {
+        "title": "Kuota traffic terpakai {{pct}}% — kritis"
+      },
+      "quota_out": {
+        "title": "Kuota traffic habis"
+      },
+      "climit80": {
+        "title": "{{pct}}% batas klien terpakai"
+      },
+      "climit_max": {
+        "title": "Batas klien tercapai ({{count}}/{{limit}})"
+      },
+      "expiry_soon": {
+        "title": "Akun reseller kedaluwarsa dalam {{days}} hari"
+      },
+      "expired": {
+        "title": "Akun reseller telah kedaluwarsa"
+      }
+    }
   }
 }

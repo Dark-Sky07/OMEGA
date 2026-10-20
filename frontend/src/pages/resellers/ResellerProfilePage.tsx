@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
+  Badge,
   Button,
   Card,
   Col,
@@ -11,6 +12,7 @@ import {
   Form,
   Input,
   Layout,
+  List,
   Progress,
   Row,
   Space,
@@ -19,7 +21,7 @@ import {
   Typography,
   message,
 } from 'antd';
-import { CustomerServiceOutlined, GiftOutlined, ShopOutlined, UserOutlined } from '@ant-design/icons';
+import { BellOutlined, CheckOutlined, CustomerServiceOutlined, GiftOutlined, ShopOutlined, UserOutlined } from '@ant-design/icons';
 
 import AppSidebar from '@/layouts/AppSidebar';
 import { PageHeader } from '@/components/ui';
@@ -34,6 +36,53 @@ import SupportTicketsModal from './SupportTicketsModal';
 import './ResellersPage.css';
 
 const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
+
+type ResellerNotificationRow = {
+  id: number;
+  kind: string;
+  params: string;
+  isRead: boolean;
+  createdAt: number;
+};
+
+type ResellerNotificationFeed = {
+  list: ResellerNotificationRow[];
+  unreadCount: number;
+};
+
+const NOTIF_TAG_COLOR: Record<string, string> = {
+  quota80: 'gold',
+  quota95: 'orange',
+  quota_out: 'red',
+  climit80: 'gold',
+  climit_max: 'red',
+  expiry_soon: 'orange',
+  expired: 'red',
+};
+
+function notifKindGroup(kind: string): 'quota' | 'clients' | 'expiry' {
+  if (kind.startsWith('quota')) return 'quota';
+  if (kind.startsWith('climit')) return 'clients';
+  return 'expiry';
+}
+
+function parseNotifParams(params: string): Record<string, unknown> {
+  if (!params) return {};
+  try {
+    const parsed = JSON.parse(params) as Record<string, unknown>;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function notifTitle(
+  t: (key: string, opts?: Record<string, unknown>) => string,
+  kind: string,
+  params: string,
+): string {
+  return t(`resellers.notif.${kind}.title`, parseNotifParams(params));
+}
 
 export default function ResellerProfilePage() {
   const { t } = useTranslation();
@@ -87,6 +136,24 @@ export default function ResellerProfilePage() {
   const trafficPercent = stat?.reseller.trafficLimit
     ? Math.min(100, Math.round((stat.allocatedTraffic / stat.reseller.trafficLimit) * 100))
     : 0;
+
+  const notificationsQuery = useQuery({
+    queryKey: keys.resellers.notifications(),
+    queryFn: async (): Promise<ResellerNotificationFeed> => {
+      const msg = await HttpUtil.get<ResellerNotificationFeed>('/panel/api/reseller/notifications');
+      if (!msg.success) throw new Error(msg.msg || 'failed');
+      return msg.obj as ResellerNotificationFeed;
+    },
+  });
+  const notifications = notificationsQuery.data?.list ?? [];
+  const unreadCount = notificationsQuery.data?.unreadCount ?? 0;
+
+  const markAllNotificationsRead = useCallback(async () => {
+    const msg = await HttpUtil.post('/panel/api/reseller/notifications/read', {}, JSON_HEADERS as never);
+    if (msg?.success) {
+      queryClient.invalidateQueries({ queryKey: keys.resellers.notifications() });
+    }
+  }, [queryClient]);
 
   const changePassword = useCallback(async () => {
     const values = await passwordForm.validateFields().catch(() => null);
@@ -206,6 +273,50 @@ export default function ResellerProfilePage() {
                         </Col>
                       </Row>
                     </Space>
+                  </Card>
+                </Col>
+
+                <Col span={24}>
+                  <Card
+                    size="small"
+                    hoverable
+                    className="phoenix-rise phoenix-rise-2"
+                    title={
+                      <Space>
+                        <Badge count={unreadCount} size="small" offset={[6, -2]}>
+                          <BellOutlined />
+                        </Badge>
+                        {t('resellers.notifications')}
+                      </Space>
+                    }
+                    extra={
+                      unreadCount > 0 ? (
+                        <Button size="small" type="link" icon={<CheckOutlined />} onClick={markAllNotificationsRead}>
+                          {t('resellers.notif.markAllRead')}
+                        </Button>
+                      ) : undefined
+                    }
+                  >
+                    {notifications.length === 0 ? (
+                      <Typography.Text type="secondary">{t('resellers.notif.empty')}</Typography.Text>
+                    ) : (
+                      <List
+                        size="small"
+                        dataSource={notifications}
+                        rowKey={(item) => String(item.id)}
+                        renderItem={(item) => (
+                          <List.Item style={{ opacity: item.isRead ? 0.55 : 1 }}>
+                            <Space wrap size={12}>
+                              <Tag color={NOTIF_TAG_COLOR[item.kind] || 'blue'}>
+                                {t(`resellers.notif.kind.${notifKindGroup(item.kind)}`)}
+                              </Tag>
+                              <Typography.Text>{notifTitle(t, item.kind, item.params)}</Typography.Text>
+                              <Typography.Text type="secondary">{new Date(item.createdAt).toLocaleString()}</Typography.Text>
+                            </Space>
+                          </List.Item>
+                        )}
+                      />
+                    )}
                   </Card>
                 </Col>
 
