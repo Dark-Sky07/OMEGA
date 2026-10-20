@@ -61,6 +61,11 @@ Construido como un fork mejorado del proyecto X-UI original, PHOENIX añade un s
 </picture>
 
 <picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/09-add-reseller-dark.png">
+  <img alt="Añadir revendedor" src="./media/09-add-reseller-light.png">
+</picture>
+
+<picture>
   <source media="(prefers-color-scheme: dark)" srcset="./media/05-add-nodes-dark.png">
   <img alt="Configs" src="./media/05-add-nodes-light.png">
 </picture>
