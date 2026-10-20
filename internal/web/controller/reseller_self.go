@@ -44,6 +44,8 @@ func (a *ResellerSelfController) initRouter(g *gin.RouterGroup) {
 	g.POST("/tickets/:id/reply", a.replyTicket)
 	g.POST("/tickets/:id/close", a.closeTicket)
 	g.POST("/vouchers/redeem", a.redeemVoucher)
+	g.GET("/notifications", a.notifications)
+	g.POST("/notifications/read", a.markNotificationsRead)
 }
 
 // currentReseller returns the reseller bound to the request, or nil for admin
@@ -242,4 +244,48 @@ func (a *ResellerSelfController) redeemVoucher(c *gin.Context) {
 		"reseller": updatedReseller,
 		"voucher":  voucher,
 	}, nil)
+}
+
+// notifications returns the signed-in reseller's in-panel notification feed
+// (newest first) together with the unread count. The optional ?limit= query
+// bounds the feed; the default cap is 50.
+func (a *ResellerSelfController) notifications(c *gin.Context) {
+	reseller := a.currentReseller(c)
+	if reseller == nil {
+		return
+	}
+	limit := 0
+	if raw := c.Query("limit"); raw != "" {
+		if parsed, err := strconv.Atoi(raw); err == nil {
+			limit = parsed
+		}
+	}
+	notify := &service.ResellerNotifyService{}
+	list, unread, err := notify.List(reseller.Id, limit)
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, gin.H{
+		"list":        list,
+		"unreadCount": unread,
+	}, nil)
+}
+
+// markNotificationsRead flags one notification (id > 0) or every unread
+// notification (id == 0) of the signed-in reseller as read.
+func (a *ResellerSelfController) markNotificationsRead(c *gin.Context) {
+	reseller := a.currentReseller(c)
+	if reseller == nil {
+		return
+	}
+	var form struct {
+		Id int `json:"id"`
+	}
+	if err := c.ShouldBindJSON(&form); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	notify := &service.ResellerNotifyService{}
+	jsonMsg(c, "", notify.MarkRead(reseller.Id, form.Id))
 }

@@ -2178,7 +2178,38 @@
     "ticketPriority": "اولویت",
     "ticketMessage": "متن پیام",
     "ticketReplyPlaceholder": "پاسخ خود را بنویسید...",
-    "ticketSubjectAndMessageRequired": "وارد کردن موضوع و متن پیام الزامی است"
+    "ticketSubjectAndMessageRequired": "وارد کردن موضوع و متن پیام الزامی است",
+    "notifications": "اعلان‌ها",
+    "notif": {
+      "markAllRead": "علامت‌گذاری همه به‌عنوان خوانده‌شده",
+      "empty": "همه‌چیز مرتب است — اعلان جدیدی ندارید.",
+      "kind": {
+        "quota": "ترافیک",
+        "clients": "کلاینت‌ها",
+        "expiry": "انقضا"
+      },
+      "quota80": {
+        "title": "سهمیه ترافیک {{pct}}٪ تخصیص یافته است"
+      },
+      "quota95": {
+        "title": "سهمیه ترافیک {{pct}}٪ تخصیص یافته — بحرانی"
+      },
+      "quota_out": {
+        "title": "سهمیه ترافیک به پایان رسیده است"
+      },
+      "climit80": {
+        "title": "{{pct}}٪ سقف تعداد کلاینت استفاده شده است"
+      },
+      "climit_max": {
+        "title": "سقف تعداد کلاینت پر شده است ({{count}}/{{limit}})"
+      },
+      "expiry_soon": {
+        "title": "حساب نمایندگی تا {{days}} روز دیگر منقضی می‌شود"
+      },
+      "expired": {
+        "title": "حساب نمایندگی منقضی شده است"
+      }
+    }
   },
   "commandPalette": {
     "open": "جستجوی سریع",

@@ -1966,6 +1966,37 @@
     "ticketPriority": "Priority",
     "ticketMessage": "Message",
     "ticketReplyPlaceholder": "Write a reply...",
-    "ticketSubjectAndMessageRequired": "Subject and message are required"
+    "ticketSubjectAndMessageRequired": "Subject and message are required",
+    "notifications": "通知",
+    "notif": {
+      "markAllRead": "すべて既読にする",
+      "empty": "新しい通知はありません。",
+      "kind": {
+        "quota": "トラフィック",
+        "clients": "クライアント",
+        "expiry": "有効期限"
+      },
+      "quota80": {
+        "title": "トラフィック枠の {{pct}}% を割り当て済み"
+      },
+      "quota95": {
+        "title": "トラフィック枠の {{pct}}% を割り当て済み — 危険"
+      },
+      "quota_out": {
+        "title": "トラフィック枠を使い切りました"
+      },
+      "climit80": {
+        "title": "クライアント上限の {{pct}}% を使用中"
+      },
+      "climit_max": {
+        "title": "クライアント上限に達しました（{{count}}/{{limit}}）"
+      },
+      "expiry_soon": {
+        "title": "リセラーアカウントはあと {{days}} 日で期限切れです"
+      },
+      "expired": {
+        "title": "リセラーアカウントの期限が切れました"
+      }
+    }
   }
 }

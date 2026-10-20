@@ -1966,6 +1966,37 @@
     "ticketPriority": "Priority",
     "ticketMessage": "Message",
     "ticketReplyPlaceholder": "Write a reply...",
-    "ticketSubjectAndMessageRequired": "Subject and message are required"
+    "ticketSubjectAndMessageRequired": "Subject and message are required",
+    "notifications": "Сповіщення",
+    "notif": {
+      "markAllRead": "Позначити все як прочитане",
+      "empty": "Усе гаразд — нових сповіщень немає.",
+      "kind": {
+        "quota": "Трафік",
+        "clients": "Клієнти",
+        "expiry": "Термін"
+      },
+      "quota80": {
+        "title": "Виділено {{pct}}% трафік-квоти"
+      },
+      "quota95": {
+        "title": "Виділено {{pct}}% трафік-квоти — критично"
+      },
+      "quota_out": {
+        "title": "Трафік-квоту вичерпано"
+      },
+      "climit80": {
+        "title": "Використано {{pct}}% ліміту клієнтів"
+      },
+      "climit_max": {
+        "title": "Досягнуто ліміту клієнтів ({{count}}/{{limit}})"
+      },
+      "expiry_soon": {
+        "title": "Акаунт дилера завершується через {{days}} дн."
+      },
+      "expired": {
+        "title": "Термін дії акаунта дилера минув"
+      }
+    }
   }
 }

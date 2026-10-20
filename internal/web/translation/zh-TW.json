@@ -1966,6 +1966,37 @@
     "ticketPriority": "Priority",
     "ticketMessage": "Message",
     "ticketReplyPlaceholder": "Write a reply...",
-    "ticketSubjectAndMessageRequired": "Subject and message are required"
+    "ticketSubjectAndMessageRequired": "Subject and message are required",
+    "notifications": "通知",
+    "notif": {
+      "markAllRead": "全部標為已讀",
+      "empty": "一切正常 — 暫無新通知。",
+      "kind": {
+        "quota": "流量",
+        "clients": "客戶",
+        "expiry": "到期"
+      },
+      "quota80": {
+        "title": "流量配額已配置 {{pct}}%"
+      },
+      "quota95": {
+        "title": "流量配額已配置 {{pct}}% — 嚴重"
+      },
+      "quota_out": {
+        "title": "流量配額已用盡"
+      },
+      "climit80": {
+        "title": "客戶上限已使用 {{pct}}%"
+      },
+      "climit_max": {
+        "title": "已達客戶上限（{{count}}/{{limit}}）"
+      },
+      "expiry_soon": {
+        "title": "經銷商帳戶將於 {{days}} 天後到期"
+      },
+      "expired": {
+        "title": "經銷商帳戶已到期"
+      }
+    }
   }
 }

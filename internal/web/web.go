@@ -342,6 +342,9 @@ func (s *Server) startTask(restartXray bool) {
 	s.cron.AddJob("@every 15m", job.NewCloudBackupJob())
 	s.cron.AddJob("@hourly", job.NewWarpIpJob())
 
+	// Reseller quota/expiry in-panel notifications (once per episode)
+	s.cron.AddJob("@every 10m", job.NewResellerNotifyJob())
+
 	// Inbound traffic reset jobs
 	// Run every hour
 	s.cron.AddJob("@hourly", job.NewPeriodicTrafficResetJob("hourly"))
