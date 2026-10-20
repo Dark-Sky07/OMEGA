@@ -11,6 +11,7 @@ export const keys = {
   },
   server: {
     status: () => ['server', 'status'] as const,
+    panelUpdateInfo: () => ['server', 'panelUpdateInfo'] as const,
   },
   nodes: {
     root: () => ['nodes'] as const,

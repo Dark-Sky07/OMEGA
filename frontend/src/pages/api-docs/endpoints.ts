@@ -308,7 +308,7 @@ export const sections: readonly Section[] = [
       {
         method: 'GET',
         path: '/panel/api/server/getPanelUpdateInfo',
-        summary: 'Check whether a newer PHOENIX release is available on GitHub.',
+        summary: 'Check whether a newer PHOENIX release is available on GitHub. Pass ?force=true to bypass the short-lived server-side cache.',
       },
       {
         method: 'GET',

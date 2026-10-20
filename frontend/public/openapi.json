@@ -4145,7 +4145,7 @@
         "tags": [
           "Server"
         ],
-        "summary": "Check whether a newer PHOENIX release is available on GitHub.",
+        "summary": "Check whether a newer PHOENIX release is available on GitHub. Pass ?force=true to bypass the short-lived server-side cache.",
         "operationId": "get_panel_api_server_getPanelUpdateInfo",
         "responses": {
           "200": {
