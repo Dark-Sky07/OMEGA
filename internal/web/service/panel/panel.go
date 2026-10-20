@@ -56,9 +56,9 @@ const (
 )
 
 var (
-	panelUpdateInfoMu         sync.Mutex
-	panelUpdateInfoCache      *PanelUpdateInfo
-	panelUpdateInfoFetchedAt  time.Time
+	panelUpdateInfoMu        sync.Mutex
+	panelUpdateInfoCache     *PanelUpdateInfo
+	panelUpdateInfoFetchedAt time.Time
 )
 
 func (s *PanelService) RestartPanel(delay time.Duration) error {
