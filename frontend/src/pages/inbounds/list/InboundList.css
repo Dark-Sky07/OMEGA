@@ -1,4 +1,4 @@
-/* Inbound list — Aurora. Table chrome comes from theme.css (.omega-table-card);
+/* Inbound list — Aurora. Table chrome comes from theme.css (.phoenix-table-card);
    this file only styles the cells and the mobile card list. */
 .action-buttons {
   display: flex;
@@ -15,7 +15,7 @@
 
 .inbound-remark {
   font-weight: 650;
-  color: var(--omega-text);
+  color: var(--phoenix-text);
 }
 
 .inbound-row-disabled > td {
@@ -44,7 +44,7 @@
 .row-action-trigger {
   font-size: 20px;
   cursor: pointer;
-  color: var(--omega-text-2);
+  color: var(--phoenix-text-2);
 }
 
 .client-email-list {
@@ -67,10 +67,10 @@
 }
 
 .inbound-card {
-  border: 1px solid var(--omega-border);
-  border-radius: var(--omega-radius-sm);
+  border: 1px solid var(--phoenix-border);
+  border-radius: var(--phoenix-radius-sm);
   padding: 12px 14px;
-  background: var(--omega-surface-muted);
+  background: var(--phoenix-surface-muted);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -78,8 +78,8 @@
 }
 
 .inbound-card.is-selected {
-  border-color: color-mix(in srgb, var(--omega-primary) 55%, transparent);
-  background: color-mix(in srgb, var(--omega-primary) 8%, transparent);
+  border-color: color-mix(in srgb, var(--phoenix-primary) 55%, transparent);
+  background: color-mix(in srgb, var(--phoenix-primary) 8%, transparent);
 }
 
 .inbound-card.is-disabled .card-title {
@@ -95,8 +95,8 @@
 
 .bulk-count {
   font-size: 12px;
-  background: color-mix(in srgb, var(--omega-primary) 14%, transparent);
-  color: var(--omega-primary);
+  background: color-mix(in srgb, var(--phoenix-primary) 14%, transparent);
+  color: var(--phoenix-primary);
   padding: 1px 8px;
   border-radius: 10px;
 }
@@ -165,7 +165,7 @@
 
 .card-empty {
   text-align: center;
-  color: var(--omega-text-3);
+  color: var(--phoenix-text-3);
   padding: 24px 12px;
   display: flex;
   flex-direction: column;

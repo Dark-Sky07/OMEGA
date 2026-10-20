@@ -1,18 +1,18 @@
-.omega-page-heading {
+.phoenix-page-heading {
   display: flex;
   flex-direction: column;
   gap: 6px;
   min-width: 0;
 }
 
-.omega-page-title-row {
+.phoenix-page-title-row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 10px 14px;
 }
 
-.omega-page-heading .omega-page-subtitle {
+.phoenix-page-heading .phoenix-page-subtitle {
   margin: 0;
   display: flex;
   flex-wrap: wrap;
@@ -20,17 +20,17 @@
   gap: 4px 10px;
 }
 
-.omega-page-subtitle .omega-sep {
+.phoenix-page-subtitle .phoenix-sep {
   opacity: 0.4;
 }
 
-.omega-page-subtitle strong {
+.phoenix-page-subtitle strong {
   font-weight: 700;
-  color: var(--omega-text);
+  color: var(--phoenix-text);
   font-variant-numeric: tabular-nums;
 }
 
-.omega-page-actions {
+.phoenix-page-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -40,16 +40,16 @@
 }
 
 @media (max-width: 768px) {
-  .omega-page-header {
+  .phoenix-page-header {
     margin-bottom: 14px;
     gap: 10px 16px;
   }
 
-  .omega-page-title {
+  .phoenix-page-title {
     font-size: 22px;
   }
 
-  .omega-page-actions {
+  .phoenix-page-actions {
     width: 100%;
     justify-content: flex-start;
     margin-inline-start: 0;

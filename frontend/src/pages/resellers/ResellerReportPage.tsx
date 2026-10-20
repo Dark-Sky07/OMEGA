@@ -90,7 +90,7 @@ export default function ResellerReportPage() {
               <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 12]}>
                 {stat && (
                   <Col span={24}>
-                    <Card className="omega-rise omega-rise-2">
+                    <Card className="phoenix-rise phoenix-rise-2">
                       <Typography.Text type="secondary">
                         {t('resellers.usedTraffic')}: {SizeFormatter.sizeFormat(stat.usedTraffic)}
                         {stat.reseller.trafficLimit

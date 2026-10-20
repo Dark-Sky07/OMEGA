@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"slices"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/Dark-Sky07/phoenix/internal/util/common"
+	"github.com/Dark-Sky07/phoenix/internal/xray"
 )
 
 // XraySettingService provides business logic for Xray configuration management.

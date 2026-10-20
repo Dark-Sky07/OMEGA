@@ -13,13 +13,13 @@ func TestIsNewerVersion(t *testing.T) {
 		{"v2.9.3", "2.9.3", false},
 		{"v2.9.2", "2.9.3", false},
 		{"v3.0.0", "2.9.3", true},
-		// OMEGA ships "-omega" suffixed tags; the suffix must not break the
+		// PHOENIX ships "-phoenix" suffixed tags; the suffix must not break the
 		// numeric comparison.
-		{"v3.3.4-omega", "3.3.4-omega", false},
-		{"v3.3.4-omega", "3.3.3-omega", true},
-		{"v3.3.3-omega", "3.3.4-omega", false},
-		{"v3.3.10-omega", "3.3.9-omega", true},
-		{"v5.0.0-phoenix", "4.7.3-omega", true},
+		{"v3.3.4-phoenix", "3.3.4-phoenix", false},
+		{"v3.3.4-phoenix", "3.3.3-phoenix", true},
+		{"v3.3.3-phoenix", "3.3.4-phoenix", false},
+		{"v3.3.10-phoenix", "3.3.9-phoenix", true},
+		{"v5.0.0-phoenix", "4.7.3-phoenix", true},
 		{"v5.0.0-phoenix", "5.0.0-phoenix", false},
 		{"v5.0.1-phoenix", "5.0.0-phoenix", true},
 	}

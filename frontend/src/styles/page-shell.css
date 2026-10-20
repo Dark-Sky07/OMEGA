@@ -10,7 +10,7 @@
 .groups-page,
 .api-docs-page {
   --bg-page: transparent;
-  --bg-card: var(--omega-surface);
+  --bg-card: var(--phoenix-surface);
   min-height: 100vh;
   background: transparent;
 }

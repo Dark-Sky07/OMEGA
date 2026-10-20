@@ -1,6 +1,7 @@
 # Publishes the Aurora design preview (frontend only, in-browser mock data,
-# no backend) to GitHub Pages so the redesign can be reviewed on any device
-# without touching a real panel. Runs only for the redesign branch.
+# no backend) to GitHub Pages so the design can be reviewed on any device
+# without touching a real panel. Tracks main so the published preview stays
+# current.
 #
 # Published at: https://dark-sky07.github.io/phoenix/  (login)  and  …/phoenix/panel/
 # Requires: Settings → Pages → Source = GitHub Actions, and the github-pages
@@ -10,7 +11,7 @@ name: Design preview (Pages)
 on:
   push:
     branches:
-      - arena/01a0e3d1-omega
+      - main
     paths:
       - "frontend/**"
       - "internal/web/translation/**"

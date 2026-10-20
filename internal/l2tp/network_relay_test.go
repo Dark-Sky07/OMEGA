@@ -9,7 +9,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/util/tproxy"
+	"github.com/Dark-Sky07/phoenix/internal/util/tproxy"
 )
 
 type fakeFirewall struct {

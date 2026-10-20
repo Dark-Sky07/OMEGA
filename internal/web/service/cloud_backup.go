@@ -25,9 +25,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/config"
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/Dark-Sky07/phoenix/internal/config"
+	"github.com/Dark-Sky07/phoenix/internal/database"
+	"github.com/Dark-Sky07/phoenix/internal/logger"
 )
 
 // CloudBackupService uploads periodic database snapshots to S3-compatible
@@ -173,7 +173,7 @@ func (s *CloudBackupService) BackupNow() (string, error) {
 		}
 	case "gdrive", "google_drive", "googledrive":
 		driveName := fileName
-		if pfx := strings.Trim(prefix, "/"); pfx != "" && pfx != "phoenix-backups" && pfx != "omega-backups" {
+		if pfx := strings.Trim(prefix, "/"); pfx != "" && pfx != "phoenix-backups" {
 			driveName = strings.ReplaceAll(pfx, "/", "-") + "-" + fileName
 		}
 		folderID := extractGoogleDriveFolderID(bucket)

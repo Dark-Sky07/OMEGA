@@ -58,7 +58,7 @@ export function useInboundColumns({
         key: 'id',
         align: 'right',
         width: 30,
-        render: (id: number) => <span className="omega-id">#{id}</span>,
+        render: (id: number) => <span className="phoenix-id">#{id}</span>,
       },
       {
         title: t('pages.inbounds.operate'),
@@ -143,7 +143,7 @@ export function useInboundColumns({
         key: 'port',
         align: 'center',
         width: 40,
-        render: (port: number) => <span className="omega-mono-sm">{port}</span>,
+        render: (port: number) => <span className="phoenix-mono-sm">{port}</span>,
       },
       {
         title: t('pages.inbounds.protocol'),
@@ -152,7 +152,7 @@ export function useInboundColumns({
         width: 130,
         render: (_, record) => {
           const chip = (key: string, label: ReactElement | string, tone = '') => (
-            <span key={key} className={`omega-chip${tone ? ` ${tone}` : ''}`}>{label}</span>
+            <span key={key} className={`phoenix-chip${tone ? ` ${tone}` : ''}`}>{label}</span>
           );
           const tags: ReactElement[] = [chip('p', record.protocol, 'is-protocol')];
           if (record.isWireguard || record.isHysteria || record.isTuic) {

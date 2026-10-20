@@ -33,16 +33,16 @@
   width: 42px;
   height: 42px;
   border-radius: 14px !important;
-  border-color: var(--omega-border-strong);
-  background: var(--omega-surface);
-  color: var(--omega-text-2);
+  border-color: var(--phoenix-border-strong);
+  background: var(--phoenix-surface);
+  color: var(--phoenix-text-2);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 }
 
 .toolbar-btn.ant-btn:hover {
-  color: var(--omega-primary);
-  border-color: color-mix(in srgb, var(--omega-primary) 40%, transparent);
+  color: var(--phoenix-primary);
+  border-color: color-mix(in srgb, var(--phoenix-primary) 40%, transparent);
 }
 
 .toolbar-btn .anticon {
@@ -69,9 +69,9 @@
   width: 100%;
   border-radius: 28px;
   overflow: hidden;
-  border: 1px solid var(--omega-border-strong);
-  background: var(--omega-surface);
-  box-shadow: var(--omega-shadow-hover), inset 0 1px 0 var(--omega-highlight);
+  border: 1px solid var(--phoenix-border-strong);
+  background: var(--phoenix-surface);
+  box-shadow: var(--phoenix-shadow-hover), inset 0 1px 0 var(--phoenix-highlight);
   -webkit-backdrop-filter: blur(24px) saturate(160%);
   backdrop-filter: blur(24px) saturate(160%);
   animation: login-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -310,14 +310,14 @@
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.22em;
-  color: var(--omega-primary);
+  color: var(--phoenix-primary);
 }
 
 .brand-accent {
   width: 34px;
   height: 3px;
   border-radius: 999px;
-  background: var(--omega-gradient);
+  background: var(--phoenix-gradient);
 }
 
 .welcome {
@@ -326,7 +326,7 @@
   line-height: 1.2;
   font-weight: 800;
   letter-spacing: -0.03em;
-  color: var(--omega-text);
+  color: var(--phoenix-text);
   min-height: 1.2em;
 }
 
@@ -347,7 +347,7 @@
 
 .login-form .ant-form-item-label > label {
   font-weight: 600;
-  color: var(--omega-text-2);
+  color: var(--phoenix-text-2);
 }
 
 .login-form .ant-input-affix-wrapper,
@@ -356,14 +356,14 @@
 }
 
 .login-form .ant-input-prefix {
-  color: var(--omega-text-3);
+  color: var(--phoenix-text-3);
   margin-inline-end: 10px;
 }
 
 .login-form input.ant-input:-webkit-autofill,
 .login-form input.ant-input:-webkit-autofill:hover,
 .login-form input.ant-input:-webkit-autofill:focus {
-  -webkit-text-fill-color: var(--omega-text);
+  -webkit-text-fill-color: var(--phoenix-text);
   transition: background-color 9999s ease-in-out 0s;
 }
 

@@ -218,8 +218,8 @@ export default function ResellersOverview({ stats, loading }: ResellersOverviewP
     <>
       <StatStrip items={statItems} size="compact" className="resellers-stats" />
 
-      <Card className="omega-table-card">
-        <div className="omega-toolbar">
+      <Card className="phoenix-table-card">
+        <div className="phoenix-toolbar">
           <Input
             allowClear
             placeholder={t('resellers.searchPlaceholder')}
@@ -227,7 +227,7 @@ export default function ResellersOverview({ stats, loading }: ResellersOverviewP
             onChange={(e) => setSearch(e.target.value)}
             style={{ maxWidth: 320 }}
           />
-          <span className="omega-toolbar-spacer" />
+          <span className="phoenix-toolbar-spacer" />
           <Select<StatusFilter>
             value={statusFilter}
             onChange={setStatusFilter}

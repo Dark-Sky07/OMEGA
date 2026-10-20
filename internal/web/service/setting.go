@@ -13,16 +13,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Dark-Sky07/phoenix/internal/database"
+	"github.com/Dark-Sky07/phoenix/internal/database/model"
+	"github.com/Dark-Sky07/phoenix/internal/logger"
+	"github.com/Dark-Sky07/phoenix/internal/util/common"
+	"github.com/Dark-Sky07/phoenix/internal/util/netproxy"
+	"github.com/Dark-Sky07/phoenix/internal/util/random"
+	"github.com/Dark-Sky07/phoenix/internal/util/reflect_util"
+	"github.com/Dark-Sky07/phoenix/internal/web/entity"
+	"github.com/Dark-Sky07/phoenix/internal/xray"
 	"github.com/google/uuid"
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/netproxy"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/reflect_util"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 //go:embed config.json

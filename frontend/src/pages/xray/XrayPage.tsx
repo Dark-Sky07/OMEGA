@@ -333,8 +333,8 @@ export default function XrayPage() {
                     actions={(
                       <>
                         {!saveDisabled && (
-                          <span className="omega-pill is-stop omega-dirty">
-                            <span className="omega-dot" />
+                          <span className="phoenix-pill is-stop phoenix-dirty">
+                            <span className="phoenix-dot" />
                             {t('pages.settings.unsaved', 'Unsaved changes')}
                           </span>
                         )}
@@ -344,13 +344,13 @@ export default function XrayPage() {
                       </>
                     )}
                   >
-                    <p className="omega-note"><InfoCircleOutlined /> {t('pages.settings.infoDesc')}</p>
-                    <nav className="omega-subnav" aria-label={t('menu.xray')}>
+                    <p className="phoenix-note"><InfoCircleOutlined /> {t('pages.settings.infoDesc')}</p>
+                    <nav className="phoenix-subnav" aria-label={t('menu.xray')}>
                       {sections.map((x) => (
                         <button
                           key={x.slug}
                           type="button"
-                          className={`omega-subnav-item${x.slug === activeSection ? ' is-active' : ''}`}
+                          className={`phoenix-subnav-item${x.slug === activeSection ? ' is-active' : ''}`}
                           onClick={() => navigate(`/xray#${x.slug}`)}
                         >
                           {x.icon}
@@ -362,7 +362,7 @@ export default function XrayPage() {
 
                   <FloatButton.BackTop target={scrollTarget} visibilityHeight={200} />
 
-                  <Card className="omega-section-card xray-card omega-rise omega-rise-2" key={activeSection}>
+                  <Card className="phoenix-section-card xray-card phoenix-rise phoenix-rise-2" key={activeSection}>
                     {sectionBody}
                   </Card>
                 </>

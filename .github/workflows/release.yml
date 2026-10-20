@@ -104,7 +104,7 @@ jobs:
           esac
           PANEL_LDFLAGS="-w -s -linkmode external -extldflags '-static'"
           if [ -n "$PANEL_VERSION" ]; then
-            PANEL_LDFLAGS="$PANEL_LDFLAGS -X github.com/mhsanaei/3x-ui/v3/internal/config.version=$PANEL_VERSION"
+            PANEL_LDFLAGS="$PANEL_LDFLAGS -X github.com/Dark-Sky07/phoenix/internal/config.version=$PANEL_VERSION"
           fi
           echo "Building panel version ${PANEL_VERSION:-embedded default}"
           for attempt in 1 2 3; do
@@ -283,7 +283,7 @@ jobs:
           esac
           PANEL_LDFLAGS="-w -s"
           if [ -n "$PANEL_VERSION" ]; then
-            PANEL_LDFLAGS="$PANEL_LDFLAGS -X github.com/mhsanaei/3x-ui/v3/internal/config.version=$PANEL_VERSION"
+            PANEL_LDFLAGS="$PANEL_LDFLAGS -X github.com/Dark-Sky07/phoenix/internal/config.version=$PANEL_VERSION"
           fi
           echo "Building panel version ${PANEL_VERSION:-embedded default}"
           go build -ldflags "$PANEL_LDFLAGS" -o xui-release.exe -v main.go

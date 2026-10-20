@@ -33,9 +33,9 @@ export default function ApiDocsPage() {
             <PageHeader
               eyebrow={t('menu.groupSystem', 'System')}
               title={t('menu.apiDocs')}
-              subtitle={<span className="omega-mono-sm">{openApiUrl}</span>}
+              subtitle={<span className="phoenix-mono-sm">{openApiUrl}</span>}
             />
-            <div className="docs-wrapper omega-glass omega-rise omega-rise-2">
+            <div className="docs-wrapper phoenix-glass phoenix-rise phoenix-rise-2">
               <SwaggerUI
                 url={openApiUrl}
                 docExpansion="list"

@@ -5436,7 +5436,7 @@
                   }
                 },
                 "example": {
-                  "format": "omega-client-transfer",
+                  "format": "phoenix-client-transfer",
                   "version": 1,
                   "exportedAt": "2026-01-01T00:00:00Z",
                   "clients": []
@@ -5697,7 +5697,7 @@
                 "type": "object"
               },
               "example": {
-                "format": "omega-client-transfer",
+                "format": "phoenix-client-transfer",
                 "version": 1,
                 "clients": []
               }

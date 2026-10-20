@@ -6,18 +6,18 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/config"
+	"github.com/Dark-Sky07/phoenix/internal/config"
 )
 
 const (
-	strongSwanRuntimeRoot = "/etc/strongswan.d/omega-l2tp"
+	strongSwanRuntimeRoot = "/etc/strongswan.d/phoenix-l2tp"
 
 	// pppd does not accept a per-options-file chap-secrets path. It always
-	// reads /etc/ppp/chap-secrets, so OMEGA owns only a marked block there and
-	// preserves entries managed by other PPP services.
-	systemChapSecretsPath = "/etc/ppp/chap-secrets"
-	omegaChapSecretsBegin = "# BEGIN OMEGA L2TP MANAGED CREDENTIALS"
-	omegaChapSecretsEnd   = "# END OMEGA L2TP MANAGED CREDENTIALS"
+	// reads /etc/ppp/chap-secrets, so PHOENIX owns only a marked block there
+	// and preserves entries managed by other PPP services.
+	systemChapSecretsPath   = "/etc/ppp/chap-secrets"
+	phoenixChapSecretsBegin = "# BEGIN PHOENIX L2TP MANAGED CREDENTIALS"
+	phoenixChapSecretsEnd   = "# END PHOENIX L2TP MANAGED CREDENTIALS"
 )
 
 // l2tpBinDir resolves the panel's binary directory to an absolute path. The
@@ -96,14 +96,14 @@ func quotePPP(value string) string {
 
 func renderIPsecConf(inst Instance) string {
 	var b strings.Builder
-	b.WriteString("# Managed by OMEGA. Do not edit; changes are reconciled from the panel.\n")
+	b.WriteString("# Managed by PHOENIX. Do not edit; changes are reconciled from the panel.\n")
 	b.WriteString("config setup\n")
 	b.WriteString("    uniqueids=no\n")
 	// Keep library/config diagnostics enabled until the distro-specific
 	// strongswan.d layout has been validated; otherwise charon only reports the
 	// generic "invalid configuration" exit and hides the offending file/line.
 	b.WriteString("    charondebug=\"ike 1, knl 1, cfg 1, lib 1\"\n\n")
-	b.WriteString("conn omega-l2tp\n")
+	b.WriteString("conn phoenix-l2tp\n")
 	b.WriteString("    auto=add\n")
 	b.WriteString("    type=transport\n")
 	b.WriteString("    keyexchange=ikev1\n")
@@ -127,12 +127,12 @@ func renderIPsecConf(inst Instance) string {
 }
 
 func renderIPsecSecrets(inst Instance) string {
-	return "# Managed by OMEGA. File mode must remain 0600.\n%any %any : PSK " + quoteIPsec(inst.PSK) + "\n"
+	return "# Managed by PHOENIX. File mode must remain 0600.\n%any %any : PSK " + quoteIPsec(inst.PSK) + "\n"
 }
 
 func renderStrongSwanConf(inst Instance) string {
 	var b strings.Builder
-	b.WriteString("# Managed by OMEGA. Do not edit; changes are reconciled from the panel.\n")
+	b.WriteString("# Managed by PHOENIX. Do not edit; changes are reconciled from the panel.\n")
 	// The distro ipsec wrapper compiles /etc as its IPSEC_CONFDIR and resets
 	// that environment variable before launching starter. Keep the connection
 	// file explicit via starter --conf and redirect the stroke secrets loader
@@ -157,7 +157,7 @@ func renderXL2TPDConf(inst Instance) string {
 	var b strings.Builder
 	// xl2tpd uses semicolons for comments; a leading '#' is parsed as data
 	// before the first section by xl2tpd 1.3.x.
-	b.WriteString("; Managed by OMEGA. Do not edit; changes are reconciled from the panel.\n")
+	b.WriteString("; Managed by PHOENIX. Do not edit; changes are reconciled from the panel.\n")
 	b.WriteString("[global]\n")
 	// SAref is for the old MAST/SAref IPsec stack. Modern Linux XFRM with
 	// strongSwan uses the normal kernel transport path, and explicitly
@@ -181,7 +181,7 @@ func renderXL2TPDConf(inst Instance) string {
 
 func renderPPPOptions(inst Instance) string {
 	var b strings.Builder
-	b.WriteString("# pppd reads the OMEGA-managed block in /etc/ppp/chap-secrets.\n")
+	b.WriteString("# pppd reads the PHOENIX-managed block in /etc/ppp/chap-secrets.\n")
 	b.WriteString("require-mschap-v2\n")
 	b.WriteString("refuse-pap\n")
 	b.WriteString("refuse-eap\n")
@@ -239,27 +239,27 @@ func renderIPDownScript(inst Instance) string {
 
 func renderChapSecrets(inst Instance) string {
 	var b strings.Builder
-	b.WriteString("# Managed by OMEGA. username server password addresses\n")
+	b.WriteString("# Managed by PHOENIX. username server password addresses\n")
 	for _, c := range inst.Credentials {
 		fmt.Fprintf(&b, "%s * %s *\n", quotePPP(c.Email), quotePPP(c.Password))
 	}
 	return b.String()
 }
 
-// stripManagedChapSecrets removes every block previously written by OMEGA and
-// leaves unrelated PPP credentials untouched. A trailing newline is returned
-// for non-empty content so the next managed block cannot join another entry.
+// stripManagedChapSecrets removes every block previously written by the panel
+// and leaves unrelated PPP credentials untouched. Markers are matched by
+// structure rather than by literal project name, so blocks written by earlier
+// releases under a different brand are still recognized and cleaned up. A
+// trailing newline is returned for non-empty content so the next managed block
+// cannot join another entry.
 func stripManagedChapSecrets(contents string) string {
 	lines := strings.Split(contents, "\n")
 	kept := make([]string, 0, len(lines))
 	inManaged := false
 	for _, line := range lines {
-		switch strings.TrimSpace(line) {
-		case omegaChapSecretsBegin:
-			inManaged = true
-			continue
-		case omegaChapSecretsEnd:
-			inManaged = false
+		trimmed := strings.TrimSpace(line)
+		if isManagedChapSecretsMarker(trimmed) {
+			inManaged = strings.HasPrefix(trimmed, "# BEGIN")
 			continue
 		}
 		if !inManaged {
@@ -273,10 +273,18 @@ func stripManagedChapSecrets(contents string) string {
 	return cleaned + "\n"
 }
 
+// isManagedChapSecretsMarker matches the panel's managed-block markers
+// ("# BEGIN/END <project> L2TP MANAGED CREDENTIALS") regardless of the project
+// name embedded by a given release, so legacy blocks are reconciled too.
+func isManagedChapSecretsMarker(line string) bool {
+	return (strings.HasPrefix(line, "# BEGIN") || strings.HasPrefix(line, "# END")) &&
+		strings.Contains(line, "L2TP MANAGED CREDENTIALS")
+}
+
 func renderManagedChapSecrets(inst Instance) string {
-	return omegaChapSecretsBegin + "\n" +
+	return phoenixChapSecretsBegin + "\n" +
 		strings.TrimRight(renderChapSecrets(inst), "\n") + "\n" +
-		omegaChapSecretsEnd + "\n"
+		phoenixChapSecretsEnd + "\n"
 }
 
 func renderSystemChapSecrets(existing string, inst Instance) string {
@@ -293,7 +301,7 @@ func writeSystemChapSecrets(contents string) error {
 	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return err
 	}
-	tmp, err := os.CreateTemp(dir, ".omega-chap-secrets-*")
+	tmp, err := os.CreateTemp(dir, ".phoenix-chap-secrets-*")
 	if err != nil {
 		return err
 	}
@@ -345,10 +353,28 @@ func clearSystemChapSecrets() error {
 	return writeSystemChapSecrets(cleaned)
 }
 
+// removeLegacyRuntimeRoots deletes strongSwan runtime directories left behind
+// by earlier releases that used a different runtime root name. Matching is
+// structural (any "*-l2tp" directory beside the current root), so no legacy
+// name is embedded in the binary. Best effort: failures are ignored.
+func removeLegacyRuntimeRoots() {
+	legacy, err := filepath.Glob(filepath.Join(filepath.Dir(strongSwanRuntimeRoot), "*-l2tp"))
+	if err != nil {
+		return
+	}
+	for _, dir := range legacy {
+		if dir == strongSwanRuntimeRoot {
+			continue
+		}
+		_ = os.RemoveAll(dir)
+	}
+}
+
 func writeConfig(inst Instance) error {
 	if err := ValidateSettings(inst); err != nil {
 		return err
 	}
+	removeLegacyRuntimeRoots()
 	dir := dataDirForID(inst.Id)
 	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return err

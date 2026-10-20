@@ -9,9 +9,9 @@ plain='\033[0m'
 xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
 xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 
-# PHOENIX repository. PHOENIX_REPO wins; the legacy OMEGA_REPO override is
-# still honoured so existing automation keeps working.
-PHOENIX_REPO="${PHOENIX_REPO:-${OMEGA_REPO:-Dark-Sky07/phoenix}}"
+# PHOENIX repository. Override PHOENIX_REPO to update from a different
+# fork/mirror.
+PHOENIX_REPO="${PHOENIX_REPO:-Dark-Sky07/phoenix}"
 
 # Don't edit this config
 b_source="${BASH_SOURCE[0]}"
@@ -110,7 +110,7 @@ resolve_latest_xray_version() {
 
 stage_latest_xray() {
     local xray_arch archive_url
-    xray_update_version="${PHOENIX_XRAY_VERSION:-${OMEGA_XRAY_VERSION:-$(resolve_latest_xray_version)}}" || _fail "ERROR: Failed to resolve the latest Xray-core release."
+    xray_update_version="${PHOENIX_XRAY_VERSION:-$(resolve_latest_xray_version)}" || _fail "ERROR: Failed to resolve the latest Xray-core release."
     case "$(arch)" in
         amd64) xray_arch="64" ;;
         386) xray_arch="32" ;;
@@ -972,7 +972,7 @@ preserve_update_data() {
 
 # Resolve the database used by the currently installed binary before the live
 # directory is moved. SQLite's filename is derived from the embedded panel
-# name, which may be versioned in older OMEGA installations; do not assume that
+# name, which may be versioned in older installations; do not assume that
 # it is always x-ui.db when more than one database is present.
 configure_update_database() {
     local kind folder embedded_name candidate

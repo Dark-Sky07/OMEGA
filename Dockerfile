@@ -32,7 +32,7 @@ ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
 RUN panel_version="$PANEL_VERSION"; \
   case "$panel_version" in v*) panel_version="$(printf '%s' "$panel_version" | cut -c2-)" ;; esac; \
   if [ -n "$panel_version" ]; then \
-    go build -ldflags "-w -s -X github.com/mhsanaei/3x-ui/v3/internal/config.version=$panel_version" -o build/x-ui main.go; \
+    go build -ldflags "-w -s -X github.com/Dark-Sky07/phoenix/internal/config.version=$panel_version" -o build/x-ui main.go; \
   else \
     go build -ldflags "-w -s" -o build/x-ui main.go; \
   fi

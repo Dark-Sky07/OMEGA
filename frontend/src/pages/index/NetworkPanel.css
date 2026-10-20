@@ -16,7 +16,7 @@
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
-  border-radius: var(--omega-radius-sm);
+  border-radius: var(--phoenix-radius-sm);
   background: color-mix(in srgb, var(--net-color) 9%, transparent);
   border: 1px solid color-mix(in srgb, var(--net-color) 22%, transparent);
   min-width: 0;
@@ -46,14 +46,14 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--omega-text-3);
+  color: var(--phoenix-text-3);
 }
 
 .net-speed-value {
   font-size: 20px;
   font-weight: 800;
   letter-spacing: -0.03em;
-  color: var(--omega-text);
+  color: var(--phoenix-text);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
@@ -64,7 +64,7 @@
   margin-inline-start: 2px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--omega-text-3);
+  color: var(--phoenix-text-3);
 }
 
 .net-chart {
@@ -76,7 +76,7 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   padding-top: 12px;
-  border-top: 1px solid var(--omega-border);
+  border-top: 1px solid var(--phoenix-border);
 }
 
 .net-stat {
@@ -94,8 +94,8 @@
   width: 30px;
   height: 30px;
   border-radius: 10px;
-  background: var(--omega-surface-muted);
-  color: var(--omega-text-2);
+  background: var(--phoenix-surface-muted);
+  color: var(--phoenix-text-2);
   font-size: 13px;
 }
 
@@ -108,14 +108,14 @@
 .net-stat-label {
   font-size: 11px;
   font-weight: 600;
-  color: var(--omega-text-3);
+  color: var(--phoenix-text-3);
   white-space: nowrap;
 }
 
 .net-stat-value {
   font-size: 14px;
   font-weight: 700;
-  color: var(--omega-text);
+  color: var(--phoenix-text);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
