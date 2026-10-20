@@ -265,6 +265,11 @@ API مدیریتی سمت مدیر زیر `/panel/api/resellers` است و در 
   <img alt="افزودن کلاینت" src="./media/03-add-client-light.png">
 </picture>
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/09-add-reseller-dark.png">
+  <img alt="افزودن فروشنده" src="./media/09-add-reseller-light.png">
+</picture>
+
 </details>
 
 ---

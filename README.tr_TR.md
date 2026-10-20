@@ -61,6 +61,11 @@ Orijinal X-UI projesinin geliştirilmiş bir çatallaması (fork) olarak inşa e
 </picture>
 
 <picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/09-add-reseller-dark.png">
+  <img alt="Bayi Ekle" src="./media/09-add-reseller-light.png">
+</picture>
+
+<picture>
   <source media="(prefers-color-scheme: dark)" srcset="./media/05-add-nodes-dark.png">
   <img alt="Yapılandırmalar" src="./media/05-add-nodes-light.png">
 </picture>

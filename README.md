@@ -296,6 +296,11 @@ Panel pages inherited from PHOENIX v3.3.1 (the reseller pages follow the same de
 </picture>
 
 <picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/09-add-reseller-dark.png">
+  <img alt="Add reseller" src="./media/09-add-reseller-light.png">
+</picture>
+
+<picture>
   <source media="(prefers-color-scheme: dark)" srcset="./media/05-add-nodes-dark.png">
   <img alt="Configs" src="./media/05-add-nodes-light.png">
 </picture>
