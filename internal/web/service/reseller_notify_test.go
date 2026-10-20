@@ -117,7 +117,7 @@ func TestResellerNotifyEvaluateClientLimitAndExpiry(t *testing.T) {
 	}
 
 	// At the limit the reached notification fires once.
-	eval(&ResellerStat{Reseller: reseller, ClientCount: 10})
+	svc.Evaluate(&ResellerStat{Reseller: reseller, ClientCount: 10})
 	if got := notifyRowCount(t, reseller.Id); got != 1 {
 		t.Fatalf("client rows = %d, want 1", got)
 	}
