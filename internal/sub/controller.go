@@ -78,6 +78,16 @@ type cachedSubTemplate struct {
 
 // SUBController handles HTTP requests for subscription links and JSON configurations.
 type SUBController struct {
+	// stateMu serializes subscription requests. The underlying SubService is a
+	// single shared instance whose per-request state (resolved host, node map,
+	// remark settings) is rewritten by PrepareForRequest at the start of every
+	// request. Without the lock, two concurrent subscription fetches race on
+	// those fields: links can be generated with the other requester's host,
+	// and a concurrent map read/write on the node map fatals the whole panel
+	// (an unrecoverable runtime crash, not a recoverable panic). Subscription
+	// requests are short DB-backed reads, so serializing them is cheap.
+	stateMu sync.Mutex
+
 	subTitle         string
 	subSupportUrl    string
 	subProfileUrl    string
@@ -201,6 +211,8 @@ func (a *SUBController) initRouter(g *gin.RouterGroup) {
 // share link, so the sub info page links here instead. Authenticated like the
 // rest of the sub surface — by possession of the subId.
 func (a *SUBController) subOpenvpn(c *gin.Context) {
+	a.stateMu.Lock()
+	defer a.stateMu.Unlock()
 	subId := c.Param("subid")
 	_, host, _, _ := a.subService.ResolveRequest(c)
 	emails, err := a.subService.GetOpenvpnEmailsBySubId(subId)
@@ -235,6 +247,8 @@ func (a *SUBController) subOpenvpn(c *gin.Context) {
 
 // subs handles HTTP requests for subscription links, returning either HTML page or base64-encoded subscription data.
 func (a *SUBController) subs(c *gin.Context) {
+	a.stateMu.Lock()
+	defer a.stateMu.Unlock()
 	subId := c.Param("subid")
 	if !a.enforceDeviceLimit(c, subId) {
 		return
@@ -494,6 +508,8 @@ func (a *SUBController) loadSubTemplate(themeDir string) (*template.Template, er
 
 // subJsons handles HTTP requests for JSON subscription configurations.
 func (a *SUBController) subJsons(c *gin.Context) {
+	a.stateMu.Lock()
+	defer a.stateMu.Unlock()
 	subId := c.Param("subid")
 	if !a.enforceDeviceLimit(c, subId) {
 		return
@@ -515,6 +531,8 @@ func (a *SUBController) subJsons(c *gin.Context) {
 }
 
 func (a *SUBController) subClashs(c *gin.Context) {
+	a.stateMu.Lock()
+	defer a.stateMu.Unlock()
 	subId := c.Param("subid")
 	if !a.enforceDeviceLimit(c, subId) {
 		return
@@ -539,6 +557,8 @@ func (a *SUBController) subClashs(c *gin.Context) {
 }
 
 func (a *SUBController) subSingboxs(c *gin.Context) {
+	a.stateMu.Lock()
+	defer a.stateMu.Unlock()
 	subId := c.Param("subid")
 	if !a.enforceDeviceLimit(c, subId) {
 		return
@@ -562,6 +582,8 @@ func (a *SUBController) subSingboxs(c *gin.Context) {
 }
 
 func (a *SUBController) subOutlines(c *gin.Context) {
+	a.stateMu.Lock()
+	defer a.stateMu.Unlock()
 	subId := c.Param("subid")
 	if !a.enforceDeviceLimit(c, subId) {
 		return

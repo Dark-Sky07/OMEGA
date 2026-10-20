@@ -53,6 +53,19 @@ var distFS embed.FS
 
 var startTime = time.Now()
 
+// cronLogger adapts the project logger to the robfig/cron v3 Logger interface
+// (structured Info/Error form) so cron.Recover can report recovered job
+// panics through the normal panel logs.
+type cronLogger struct{}
+
+func (cronLogger) Info(msg string, keysAndValues ...any) {
+	logger.Info(append([]any{"cron:", msg}, keysAndValues...)...)
+}
+
+func (cronLogger) Error(err error, msg string, keysAndValues ...any) {
+	logger.Error(append([]any{"cron:", msg, err}, keysAndValues...)...)
+}
+
 // wrapDistFS adapts the embedded `dist/` directory so it can be mounted
 // as the panel's `/assets/` static route. Vite emits its bundled JS/CSS
 // under `dist/assets/`; serving the FS rooted at `dist/assets` makes
@@ -408,7 +421,11 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	}
 	service.StartTrafficWriter()
 
-	s.cron = cron.New(cron.WithLocation(loc), cron.WithSeconds())
+	// WithChain(Recover) keeps a panicking background job from taking the
+	// whole panel down: cron runs jobs on their own goroutines, so without
+	// the recover wrapper any panic in a job is an unrecoverable process
+	// crash (and, with jobs scheduled every 1-10s, a crash loop).
+	s.cron = cron.New(cron.WithLocation(loc), cron.WithSeconds(), cron.WithChain(cron.Recover(cronLogger{})))
 	s.cron.Start()
 
 	// Wire the inbound-runtime manager once so InboundService can route

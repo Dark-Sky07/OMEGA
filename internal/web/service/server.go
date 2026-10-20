@@ -401,8 +401,19 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 
 	status.LogicalPro = runtime.NumCPU()
 
-	if status.CpuSpeedMhz = s.cachedCpuSpeedMhz; s.cachedCpuSpeedMhz == 0 && time.Since(s.lastCpuInfoAttempt) > 5*time.Minute {
+	// CPU speed cache: read/refresh under s.mu — GetStatus runs concurrently
+	// from the status ticker and the Telegram bot report path. The helper
+	// goroutine only updates the cache (never the Status struct), so a
+	// timed-out query can no longer write to a Status that was already
+	// returned to its caller.
+	s.mu.Lock()
+	status.CpuSpeedMhz = s.cachedCpuSpeedMhz
+	needCpuInfo := s.cachedCpuSpeedMhz == 0 && time.Since(s.lastCpuInfoAttempt) > 5*time.Minute
+	if needCpuInfo {
 		s.lastCpuInfoAttempt = time.Now()
+	}
+	s.mu.Unlock()
+	if needCpuInfo {
 		done := make(chan struct{})
 		go func() {
 			defer close(done)
@@ -412,14 +423,20 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 				return
 			}
 			if len(cpuInfos) > 0 {
+				s.mu.Lock()
 				s.cachedCpuSpeedMhz = cpuInfos[0].Mhz
-				status.CpuSpeedMhz = s.cachedCpuSpeedMhz
+				s.mu.Unlock()
 			} else {
 				logger.Warning("could not find cpu info")
 			}
 		}()
 		select {
 		case <-done:
+			s.mu.Lock()
+			if s.cachedCpuSpeedMhz != 0 {
+				status.CpuSpeedMhz = s.cachedCpuSpeedMhz
+			}
+			s.mu.Unlock()
 		case <-time.After(1500 * time.Millisecond):
 			logger.Warning("cpu info query timed out; will retry later")
 		}
@@ -558,30 +575,44 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		"https://6.ident.me",
 	}
 
-	if s.cachedIPv4 == "" {
+	// IP fetching with caching. The cached values are guarded by s.mu because
+	// GetStatus is invoked from both the status ticker and the Telegram bot
+	// report path; an unsynchronized swap of the string fields is a data race
+	// (and a torn string read could crash the caller).
+	s.mu.Lock()
+	cachedIPv4 := s.cachedIPv4
+	cachedIPv6 := s.cachedIPv6
+	noIPv6 := s.noIPv6
+	s.mu.Unlock()
+
+	if cachedIPv4 == "" {
 		for _, ip4Service := range showIp4ServiceLists {
-			s.cachedIPv4 = getPublicIP(ip4Service)
-			if s.cachedIPv4 != "N/A" {
+			cachedIPv4 = getPublicIP(ip4Service)
+			if cachedIPv4 != "N/A" {
 				break
 			}
 		}
 	}
 
-	if s.cachedIPv6 == "" && !s.noIPv6 {
+	if cachedIPv6 == "" && !noIPv6 {
 		for _, ip6Service := range showIp6ServiceLists {
-			s.cachedIPv6 = getPublicIP(ip6Service)
-			if s.cachedIPv6 != "N/A" {
+			cachedIPv6 = getPublicIP(ip6Service)
+			if cachedIPv6 != "N/A" {
 				break
 			}
 		}
 	}
 
-	if s.cachedIPv6 == "N/A" {
+	s.mu.Lock()
+	s.cachedIPv4 = cachedIPv4
+	s.cachedIPv6 = cachedIPv6
+	if cachedIPv6 == "N/A" {
 		s.noIPv6 = true
 	}
+	s.mu.Unlock()
 
-	status.PublicIP.IPv4 = s.cachedIPv4
-	status.PublicIP.IPv6 = s.cachedIPv6
+	status.PublicIP.IPv4 = cachedIPv4
+	status.PublicIP.IPv6 = cachedIPv6
 
 	// Xray status
 	if s.xrayService.IsXrayRunning() {
@@ -1431,6 +1462,10 @@ func (s *ServerService) GetXrayLogs(
 
 		var entry LogEntry
 		parts := strings.Fields(line)
+		if len(parts) < 2 {
+			// Malformed/truncated access-log line — nothing parseable.
+			continue
+		}
 
 		for i, part := range parts {
 
@@ -1443,15 +1478,21 @@ func (s *ServerService) GetXrayLogs(
 			}
 
 			if part == "from" {
-				entry.FromAddress = strings.TrimLeft(parts[i+1], "/")
+				if i+1 < len(parts) {
+					entry.FromAddress = strings.TrimLeft(parts[i+1], "/")
+				}
 			} else if part == "accepted" {
-				entry.ToAddress = strings.TrimLeft(parts[i+1], "/")
+				if i+1 < len(parts) {
+					entry.ToAddress = strings.TrimLeft(parts[i+1], "/")
+				}
 			} else if strings.HasPrefix(part, "[") {
 				entry.Inbound = part[1:]
 			} else if strings.HasSuffix(part, "]") {
 				entry.Outbound = part[:len(part)-1]
 			} else if part == "email:" {
-				entry.Email = parts[i+1]
+				if i+1 < len(parts) {
+					entry.Email = parts[i+1]
+				}
 			}
 		}
 
