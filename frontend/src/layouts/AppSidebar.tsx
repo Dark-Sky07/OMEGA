@@ -43,7 +43,7 @@ import phoenixCrest from '@/assets/phoenix-crest.png';
 import './AppSidebar.css';
 
 const SIDEBAR_COLLAPSED_KEY = 'isSidebarCollapsed';
-const REPO_URL = 'https://github.com/Dark-Sky07/phoenix';
+const REPO_URL = 'https://github.com/Dark-Sky07/PHOENIX';
 const LOGOUT_KEY = '__logout__';
 
 type IconName =

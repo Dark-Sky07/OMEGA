@@ -12,7 +12,7 @@ cur_dir=$(pwd)
 # from its own repository. Override PHOENIX_REPO to install a different
 # fork/mirror; everything else (service name, paths, panel version) is
 # untouched.
-PHOENIX_REPO="${PHOENIX_REPO:-Dark-Sky07/phoenix}"
+PHOENIX_REPO="${PHOENIX_REPO:-Dark-Sky07/PHOENIX}"
 
 xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
 xui_service="${XUI_SERVICE:=/etc/systemd/system}"

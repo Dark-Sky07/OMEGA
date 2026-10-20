@@ -50,7 +50,7 @@ Cross-building the Linux SQLite target from Windows (or vice versa) requires a s
 ## First-time setup
 
 ```bash
-git clone https://github.com/Dark-Sky07/phoenix.git
+git clone https://github.com/Dark-Sky07/PHOENIX.git
 cd phoenix
 
 cp .env.example .env
@@ -261,6 +261,6 @@ For deeper notes on the frontend toolchain see [`frontend/README.md`](frontend/R
 
 ## Issues
 
-- Bug reports and feature requests: [GitHub Issues](https://github.com/Dark-Sky07/phoenix/issues)
+- Bug reports and feature requests: [GitHub Issues](https://github.com/Dark-Sky07/PHOENIX/issues)
 
 Before filing a bug, include the OS, Go version, panel version (`/panel/api/server/status` or the dashboard footer), and the relevant excerpt from `x-ui/phoenix.log`.

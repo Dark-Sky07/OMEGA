@@ -11,8 +11,8 @@
 
 [English](README.md) · فارسی
 
-[![Release](https://img.shields.io/github/v/release/Dark-Sky07/phoenix?include_prereleases&label=release&color=ff5500)](https://github.com/Dark-Sky07/phoenix/releases)
-[![Build](https://img.shields.io/github/actions/workflow/status/Dark-Sky07/phoenix/release.yml?label=build&color=f97316)](https://github.com/Dark-Sky07/phoenix/actions)
+[![Release](https://img.shields.io/github/v/release/Dark-Sky07/PHOENIX?include_prereleases&label=release&color=ff5500)](https://github.com/Dark-Sky07/PHOENIX/releases)
+[![Build](https://img.shields.io/github/actions/workflow/status/Dark-Sky07/PHOENIX/release.yml?label=build&color=f97316)](https://github.com/Dark-Sky07/PHOENIX/actions)
 [![License](https://img.shields.io/badge/license-GPL--3.0-fbbf24.svg)](LICENSE)
 
 <img src="./docs/assets/phoenix-emblem.jpg" alt="PHOENIX Armored Emblem" width="640">
@@ -20,7 +20,7 @@
 **نصب آخرین نسخه‌ی PHOENIX با یک دستور** — روی سرور تازه، با کاربر `root`:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/phoenix/main/install-phoenix.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/PHOENIX/main/install-phoenix.sh)
 ```
 
 این لینک، نصب‌کننده‌ی رسمی و خودکار **PHOENIX** است: جدیدترین نسخه‌ی همین مخزن را دریافت و نصب می‌کند و دستور منوی مدیریت **`phoenix`** را در سیستم ثبت می‌نماید. برای آپدیت سرورهای موجود کافیست دستور `phoenix update` را اجرا کنید.
@@ -53,7 +53,7 @@ OpenVPN یک daemon سیستم‌عامل است، نه بخشی از Xray و ن
 برای نصب یا تعمیر سرور موجود با آخرین release پایدار، با کاربر `root` اجرا کنید:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/phoenix/main/install-phoenix.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/PHOENIX/main/install-phoenix.sh)
 ```
 
 پیش‌نیاز را قبل از بررسی شبکه verify کنید:
@@ -120,7 +120,7 @@ OpenVPN و L2TP/IPsec توسط daemonهای سیستم‌عامل سرویس د�
 روی سرور تازه، با کاربر **root**:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/phoenix/main/install-phoenix.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/PHOENIX/main/install-phoenix.sh)
 ```
 
 نصب‌کننده خودش این کارها را انجام می‌دهد:
@@ -147,7 +147,7 @@ phoenix uninstall    # حذف کامل (دیتابیس در /etc/x-ui می‌م�
 
 ### نصب دستی
 
-از [صفحه‌ی ریلیزها](https://github.com/Dark-Sky07/phoenix/releases) فایل `x-ui-linux-<arch>.tar.gz` معماری خودتان را
+از [صفحه‌ی ریلیزها](https://github.com/Dark-Sky07/PHOENIX/releases) فایل `x-ui-linux-<arch>.tar.gz` معماری خودتان را
 بگیرید (`amd64`، `arm64`، `armv7`، `armv6`، `386`، `armv5`، `s390x`) و روی سرور. استخراج دستی tar به‌تنهایی بسته‌ی OpenVPN سیستم‌عامل را نصب نمی‌کند؛ اگر این روش را استفاده می‌کنید ابتدا اجرا کنید:
 
 ```bash
@@ -326,7 +326,7 @@ systemctl restart x-ui
 
 ## دونیت و اعتبار
 
-- **پروژه‌ی اصلی:** [Dark-Sky07/phoenix](https://github.com/Dark-Sky07/phoenix) — این ریپازیتوری فورک **PHOENIX نسخه‌ی 3.3.1** است
+- **پروژه‌ی اصلی:** [Dark-Sky07/PHOENIX](https://github.com/Dark-Sky07/PHOENIX) — این ریپازیتوری فورک **PHOENIX نسخه‌ی 3.3.1** است
   و طراحی، مستندات و مجوز آن را به ارث می‌برد. سپاس از [alireza0](https://github.com/alireza0/) و همه‌ی مشارکت‌کنندگان.
 - **اضافه‌شده اینجا:** قابلیت نمایندگی، AmneziaWG native، یکپارچه‌سازی OpenVPN و L2TP/IPsec، accounting و quota چرخه‌ی کلاینت، آپدیت امن، برندینگ PHOENIX و نصب‌کننده‌ی فورک‌محورِ آخرین release.
 - **مجوز:** [GPL-3.0](LICENSE) — مانند پروژه‌ی اصلی.

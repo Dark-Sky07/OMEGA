@@ -8,7 +8,7 @@ plain='\033[0m'
 
 # PHOENIX repository. Override PHOENIX_REPO to install from a different
 # fork/mirror.
-PHOENIX_REPO="${PHOENIX_REPO:-Dark-Sky07/phoenix}"
+PHOENIX_REPO="${PHOENIX_REPO:-Dark-Sky07/PHOENIX}"
 
 #Add some basic function here
 function LOGD() {
@@ -288,7 +288,7 @@ uninstall() {
     echo ""
     echo -e "Uninstalled Successfully.\n"
     echo "If you need to install this panel again, you can use below command:"
-    echo -e "${green}bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/phoenix/main/install-phoenix.sh)${plain}"
+    echo -e "${green}bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/PHOENIX/main/install-phoenix.sh)${plain}"
     echo ""
     # Trap the SIGTERM signal
     trap delete_script SIGTERM

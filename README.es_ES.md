@@ -1,6 +1,6 @@
 [English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md)
 
-> **PHOENIX** — PHOENIX v3.3.1 + Resellers (نمایندگی). Install: `bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/phoenix/main/install-phoenix.sh)`. Docs: [English](README.md) · [فارسی](README.fa_IR.md)
+> **PHOENIX** — PHOENIX v3.3.1 + Resellers (نمایندگی). Install: `bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/PHOENIX/main/install-phoenix.sh)`. Docs: [English](README.md) · [فارسی](README.fa_IR.md)
 
 <p align="center">
   <picture>
@@ -10,10 +10,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dark-Sky07/phoenix/releases"><img src="https://img.shields.io/github/v/release/dark-sky07/phoenix" alt="Release"></a>
-  <a href="https://github.com/Dark-Sky07/phoenix/actions"><img src="https://img.shields.io/github/actions/workflow/status/dark-sky07/phoenix/release.yml.svg" alt="Build"></a>
-  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/Dark-Sky07/phoenix.svg" alt="GO Version"></a>
-  <a href="https://github.com/Dark-Sky07/phoenix/releases/latest"><img src="https://img.shields.io/github/downloads/dark-sky07/phoenix/total.svg" alt="Downloads"></a>
+  <a href="https://github.com/Dark-Sky07/PHOENIX/releases"><img src="https://img.shields.io/github/v/release/dark-sky07/phoenix" alt="Release"></a>
+  <a href="https://github.com/Dark-Sky07/PHOENIX/actions"><img src="https://img.shields.io/github/actions/workflow/status/dark-sky07/phoenix/release.yml.svg" alt="Build"></a>
+  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/Dark-Sky07/PHOENIX.svg" alt="GO Version"></a>
+  <a href="https://github.com/Dark-Sky07/PHOENIX/releases/latest"><img src="https://img.shields.io/github/downloads/dark-sky07/phoenix/total.svg" alt="Downloads"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
 </p>
 
@@ -70,12 +70,12 @@ Construido como un fork mejorado del proyecto X-UI original, PHOENIX añade un s
 ## Inicio Rápido
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/phoenix/main/install-phoenix.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Dark-Sky07/PHOENIX/main/install-phoenix.sh)
 ```
 
 Durante la instalación se generan un nombre de usuario, una contraseña y una ruta de acceso aleatorios. Tras la instalación, ejecuta `phoenix` para abrir el menú de gestión, donde puedes iniciar/detener el servicio, ver o restablecer tus credenciales de acceso, gestionar certificados SSL y mucho más.
 
-Para la documentación completa, visita la [Wiki del proyecto](https://github.com/Dark-Sky07/phoenix/wiki).
+Para la documentación completa, visita la [Wiki del proyecto](https://github.com/Dark-Sky07/PHOENIX/wiki).
 
 ## Plataformas Compatibles
 
@@ -163,4 +163,4 @@ Herramientas e integraciones construidas por la comunidad alrededor de PHOENIX.
 
 ## Estrellas a lo Largo del Tiempo
 
-[![Stargazers over time](https://starchart.cc/Dark-Sky07/phoenix.svg?variant=adaptive)](https://starchart.cc/Dark-Sky07/phoenix)
+[![Stargazers over time](https://starchart.cc/Dark-Sky07/PHOENIX.svg?variant=adaptive)](https://starchart.cc/Dark-Sky07/PHOENIX)

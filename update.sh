@@ -11,7 +11,7 @@ xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 
 # PHOENIX repository. Override PHOENIX_REPO to update from a different
 # fork/mirror.
-PHOENIX_REPO="${PHOENIX_REPO:-Dark-Sky07/phoenix}"
+PHOENIX_REPO="${PHOENIX_REPO:-Dark-Sky07/PHOENIX}"
 
 # Don't edit this config
 b_source="${BASH_SOURCE[0]}"
