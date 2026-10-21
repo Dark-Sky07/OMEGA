@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/Dark-Sky07/phoenix/internal/config"
@@ -31,12 +32,16 @@ var (
 	logger     *logging.Logger
 	fileRotate *lumberjack.Logger // nil when file backend disabled
 
-	// logBuffer maintains recent log entries in memory for web UI retrieval
+	// logBuffer maintains recent log entries in memory for web UI retrieval.
+	// Guarded by logBufferMu: many goroutines (per-connection TUIC handlers,
+	// cron jobs, ...) log concurrently and an unsynchronized append can drop
+	// or interleave entries.
 	logBuffer []struct {
 		time  string
 		level logging.Level
 		log   string
 	}
+	logBufferMu sync.Mutex
 )
 
 // InitLogger initializes dual logging backends: console/syslog and file.
@@ -213,12 +218,8 @@ func Errorf(format string, args ...any) {
 // addToBuffer adds a log entry to the in-memory ring buffer for web UI retrieval.
 func addToBuffer(level string, newLog string) {
 	t := time.Now()
-	if len(logBuffer) >= maxLogBufferSize {
-		logBuffer = logBuffer[1:]
-	}
-
 	logLevel, _ := logging.LogLevel(level)
-	logBuffer = append(logBuffer, struct {
+	entry := struct {
 		time  string
 		level logging.Level
 		log   string
@@ -226,7 +227,14 @@ func addToBuffer(level string, newLog string) {
 		time:  t.Format(timeFormat),
 		level: logLevel,
 		log:   newLog,
-	})
+	}
+
+	logBufferMu.Lock()
+	defer logBufferMu.Unlock()
+	if len(logBuffer) >= maxLogBufferSize {
+		logBuffer = logBuffer[1:]
+	}
+	logBuffer = append(logBuffer, entry)
 }
 
 // GetLogs retrieves up to c log entries from the buffer that are at or below the specified level.
@@ -234,6 +242,8 @@ func GetLogs(c int, level string) []string {
 	var output []string
 	logLevel, _ := logging.LogLevel(level)
 
+	logBufferMu.Lock()
+	defer logBufferMu.Unlock()
 	for i := len(logBuffer) - 1; i >= 0 && len(output) <= c; i-- {
 		if logBuffer[i].level <= logLevel {
 			output = append(output, fmt.Sprintf("%s %s - %s", logBuffer[i].time, logBuffer[i].level, logBuffer[i].log))
