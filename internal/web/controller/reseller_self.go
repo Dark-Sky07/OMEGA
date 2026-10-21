@@ -52,6 +52,7 @@ func (a *ResellerSelfController) initRouter(g *gin.RouterGroup) {
 	g.POST("/telegram/unlink", a.telegramUnlink)
 	g.GET("/signup/templates", a.signupTemplates)
 	g.POST("/signup/link", a.createSignupLink)
+	g.POST("/deposit/link", a.createDepositLink)
 }
 
 // currentReseller returns the reseller bound to the request, or nil for admin

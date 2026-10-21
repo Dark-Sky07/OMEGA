@@ -2799,6 +2799,10 @@
       "description": "Panel sub-accounts that own a slice of the panel: their own inbounds, their own clients, and two quotas (clients, traffic). Inbounds are attached by the admin via the Attach Inbound list — the reseller can only see/manage assigned inbounds. A reseller signs in with its own username/password on the same login page; its session reads <code>/panel/api/inbounds/*</code> and <code>/panel/api/reseller/*</code>, manages its clients under <code>/panel/api/clients/*</code> and reaches <code>/panel/api/auth/me</code> — inbound writes and everything else answer 403. The endpoints below are the admin-side management API under <code>/panel/api/resellers</code>; a wrong-owner access answers 403 with <code>inbound not found</code> / <code>client not found</code>."
     },
     {
+      "name": "Reseller Wallet Top-up (Public)",
+      "description": "Anonymous wallet deposit checkout using a signed reseller link. A pending reseller_deposit order is credited only after the existing HMAC-verified payment webhook confirms its amount."
+    },
+    {
       "name": "Reseller Signup (Public)",
       "description": "Anonymous customer registration from a signed, expiring reseller invitation. Each link is bound to one reseller and one plan template; current reseller activity, inbound ownership, and quotas are revalidated at submission."
     },
@@ -12749,6 +12753,36 @@
         }
       }
     },
+    "/panel/api/reseller/deposit/link": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Generate a signed public wallet top-up link for the signed-in reseller. The link expires after one year and is available while public checkout is enabled.",
+        "operationId": "post_panel_api_reseller_deposit_link",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/server/checkHost": {
       "post": {
         "tags": [
@@ -12895,6 +12929,160 @@
             "description": "",
             "schema": {
               "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reseller-deposit/info": {
+      "get": {
+        "tags": [
+          "Reseller Wallet Top-up (Public)"
+        ],
+        "summary": "Fetch the reseller display name and configured payment currency for a signed top-up link.",
+        "operationId": "get_api_reseller_deposit_info",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "query",
+            "required": true,
+            "description": "Signed reseller deposit token.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reseller-deposit/order": {
+      "post": {
+        "tags": [
+          "Reseller Wallet Top-up (Public)"
+        ],
+        "summary": "Create a pending wallet deposit order for an amount between 0.01 and 1,000,000. Up to 10 pending orders per reseller are allowed.",
+        "operationId": "post_api_reseller_deposit_order",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "query",
+            "required": true,
+            "description": "Signed reseller deposit token.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "number",
+                    "description": "Deposit amount in configured checkout currency."
+                  }
+                },
+                "required": [
+                  "amount"
+                ]
+              },
+              "example": {
+                "amount": 25
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reseller-deposit/status": {
+      "get": {
+        "tags": [
+          "Reseller Wallet Top-up (Public)"
+        ],
+        "summary": "Poll the payment state of an order owned by the reseller referenced by the signed link.",
+        "operationId": "get_api_reseller_deposit_status",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "query",
+            "required": true,
+            "description": "Signed reseller deposit token.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orderId",
+            "in": "query",
+            "required": true,
+            "description": "Order ID returned by the order endpoint.",
+            "schema": {
+              "type": "string"
             }
           }
         ],

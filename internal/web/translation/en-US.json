@@ -1965,6 +1965,22 @@
         "submit": "Create account",
         "successTitle": "Registration complete",
         "successDesc": "Your account has been created. Contact your reseller to receive your connection details."
+      },
+      "resellerDeposit": {
+        "unavailable": "Deposit page unavailable",
+        "invalidDesc": "This link is invalid, expired, or public checkout is disabled.",
+        "completed": "Deposit received",
+        "completedDesc": "The reseller wallet has been credited. You can close this page.",
+        "title": "Add credit to reseller wallet",
+        "amount": "Deposit amount",
+        "createOrder": "Continue to payment",
+        "orderCreated": "Payment order created.",
+        "order": "Payment order",
+        "orderId": "Order",
+        "status": "Status",
+        "pending": "pending",
+        "instructions": "Payment instructions",
+        "openGateway": "Open payment page"
       }
     }
   },
@@ -2349,6 +2365,12 @@
       "createLink": "Generate registration link"
     },
     "signupLinkCopied": "Registration link copied",
+    "deposit": {
+      "title": "Public wallet top-up",
+      "description": "Share a payment link so a customer can add credit directly to your reseller wallet. Payment is confirmed by the configured webhook.",
+      "createLink": "Generate wallet top-up link"
+    },
+    "depositLinkCopied": "Wallet top-up link copied",
     "exportCsv": "Export CSV",
     "exportListCsv": "Export list (CSV)",
     "validation": {

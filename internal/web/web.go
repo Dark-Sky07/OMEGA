@@ -252,9 +252,13 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	g.GET("/api/checkout/status", controller.HandlePublicCheckoutStatus)
 	g.GET("/api/reseller-signup/info", controller.HandlePublicResellerSignupInfo)
 	g.POST("/api/reseller-signup/register", controller.HandlePublicResellerSignup)
+	g.GET("/api/reseller-deposit/info", controller.HandlePublicResellerDepositInfo)
+	g.POST("/api/reseller-deposit/order", controller.HandlePublicResellerDepositOrder)
+	g.GET("/api/reseller-deposit/status", controller.HandlePublicResellerDepositStatus)
 	// Anonymous public pages: SPA shells without the /panel login gate.
 	g.GET("/panel/checkout", controller.PublicPanelSPA)
 	g.GET("/panel/reseller-signup", controller.PublicPanelSPA)
+	g.GET("/panel/reseller-deposit", controller.PublicPanelSPA)
 	s.api = controller.NewAPIController(g)
 
 	// Initialize WebSocket hub

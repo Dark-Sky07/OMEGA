@@ -1768,6 +1768,11 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/reseller/deposit/link',
+        summary: 'Generate a signed public wallet top-up link for the signed-in reseller. The link expires after one year and is available while public checkout is enabled.',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/server/checkHost',
         summary: 'Run an Iran & international Check-Host TCP port or ICMP ping reachability test against a target host or host:port.',
       },
@@ -1796,6 +1801,38 @@ export const sections: readonly Section[] = [
     ],
   },
 
+  {
+    id: 'reseller-deposit',
+    title: 'Reseller Wallet Top-up (Public)',
+    description: 'Anonymous wallet deposit checkout using a signed reseller link. A pending reseller_deposit order is credited only after the existing HMAC-verified payment webhook confirms its amount.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/api/reseller-deposit/info',
+        summary: 'Fetch the reseller display name and configured payment currency for a signed top-up link.',
+        params: [{ name: 'ref', in: 'query', type: 'string', desc: 'Signed reseller deposit token.' }],
+      },
+      {
+        method: 'POST',
+        path: '/api/reseller-deposit/order',
+        summary: 'Create a pending wallet deposit order for an amount between 0.01 and 1,000,000. Up to 10 pending orders per reseller are allowed.',
+        params: [
+          { name: 'ref', in: 'query', type: 'string', desc: 'Signed reseller deposit token.' },
+          { name: 'amount', in: 'body (json)', type: 'number', desc: 'Deposit amount in configured checkout currency.' },
+        ],
+        body: '{ "amount": 25.00 }',
+      },
+      {
+        method: 'GET',
+        path: '/api/reseller-deposit/status',
+        summary: 'Poll the payment state of an order owned by the reseller referenced by the signed link.',
+        params: [
+          { name: 'ref', in: 'query', type: 'string', desc: 'Signed reseller deposit token.' },
+          { name: 'orderId', in: 'query', type: 'string', desc: 'Order ID returned by the order endpoint.' },
+        ],
+      },
+    ],
+  },
   {
     id: 'reseller-signup',
     title: 'Reseller Signup (Public)',
