@@ -891,7 +891,9 @@
       "selectTemplatePlaceholder": "Select a preset template...",
       "templateApplied": "Template '{{name}}' applied",
       "revokeSub": "Revoke & Rotate Subscription Link",
-      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?"
+      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?",
+      "checkoutLink": "نسخ رابط الدفع",
+      "checkoutLinkCopied": "تم نسخ رابط الدفع"
     },
     "groups": {
       "title": "المجموعات",
@@ -1332,7 +1334,20 @@
       "cloudBackupGdriveClientId": "OAuth2 Client ID (Optional)",
       "cloudBackupGdriveClientIdDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
       "cloudBackupGdriveClientSecret": "OAuth2 Client Secret (Optional)",
-      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key."
+      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
+      "checkoutTitle": "دفع العملاء",
+      "checkoutEnable": "صفحة الدفع العامة للعملاء",
+      "checkoutEnableDesc": "امنح العملاء رابطًا موقّعًا لصفحة تجديد عامة يختارون فيها بيانات إضافية أو أشهرًا ويدفعون؛ يُكمل ويب-هوك الدفع الطلب تلقائيًا.",
+      "checkoutCurrency": "رمز العملة",
+      "checkoutCurrencyDesc": "العملة المعروضة للعملاء في صفحة الدفع (مثل USD، IRT، EUR).",
+      "checkoutPricePerGB": "السعر لكل جيجابايت",
+      "checkoutPricePerGBDesc": "يُحتسب عن كل جيجابايت إضافي يختاره العميل.",
+      "checkoutPricePerMonth": "السعر لكل شهر",
+      "checkoutPricePerMonthDesc": "يُحتسب عن كل 30 يومًا من التمديد يختارها العميل.",
+      "checkoutGatewayURL": "قالب رابط بوابة الدفع",
+      "checkoutGatewayURLDesc": "اختياري. عند تعيينه يُحوَّل العميل إلى هذا العنوان بعد الطلب. العناصر: {orderId}، {amount}، {ref}.",
+      "checkoutPayInfo": "تعليمات الدفع اليدوي",
+      "checkoutPayInfoDesc": "تُعرض عندما لا يُعيَّن رابط البوابة — رقم البطاقة، تعليمات إشعار الدفع، جهة الاتصال بالدعم..."
     },
     "xray": {
       "title": "إعدادات Xray",
@@ -1750,6 +1765,29 @@
         "sniHint": "اسم خادم TLS في ملف إعداد العميل.",
         "sniRequired": "أدخل نطاقًا لملء مسارات الشهادة تلقائيًا."
       }
+    },
+    "checkout": {
+      "title": "تجديد الاشتراك",
+      "client": "الحساب",
+      "invalidLink": "رابط الدفع غير صالح",
+      "invalidLinkDesc": "رابط الدفع غير صالح أو منتهي الصلاحية أو أن الدفع معطّل حاليًا. اطلب من مزوّدك رابطًا جديدًا.",
+      "status": "الحالة",
+      "expiry": "الانتهاء",
+      "traffic": "البيانات",
+      "addTraffic": "إضافة بيانات",
+      "addMonths": "تمديد المدة",
+      "months": "أشهر",
+      "month": "شهر",
+      "pay": "ادفع",
+      "orderId": "رقم الطلب",
+      "amount": "المبلغ",
+      "waitingPayment": "في انتظار الدفع",
+      "openGateway": "فتح صفحة الدفع",
+      "payInfoTitle": "تعليمات الدفع",
+      "waitingHint": "تتحدث هذه الصفحة تلقائيًا بعد تأكيد الدفع.",
+      "paidTitle": "تم استلام الدفع",
+      "paidDesc": "تم تحديث اشتراكك. يمكنك إغلاق الصفحة الآن.",
+      "orderAgain": "طلب جديد"
     }
   },
   "tgbot": {

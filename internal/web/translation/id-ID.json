@@ -891,7 +891,9 @@
       "selectTemplatePlaceholder": "Select a preset template...",
       "templateApplied": "Template '{{name}}' applied",
       "revokeSub": "Revoke & Rotate Subscription Link",
-      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?"
+      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?",
+      "checkoutLink": "Salin tautan pembayaran",
+      "checkoutLinkCopied": "Tautan pembayaran disalin"
     },
     "groups": {
       "title": "Grup",
@@ -1332,7 +1334,20 @@
       "cloudBackupGdriveClientId": "OAuth2 Client ID (Optional)",
       "cloudBackupGdriveClientIdDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
       "cloudBackupGdriveClientSecret": "OAuth2 Client Secret (Optional)",
-      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key."
+      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
+      "checkoutTitle": "Pembayaran Klien",
+      "checkoutEnable": "Halaman Pembayaran Publik Klien",
+      "checkoutEnableDesc": "Beri klien tautan bertanda tangan ke halaman perpanjangan publik tempat mereka memilih kuota atau bulan tambahan lalu membayar; webhook pembayaran menyelesaikan pesanan secara otomatis.",
+      "checkoutCurrency": "Label Mata Uang",
+      "checkoutCurrencyDesc": "Mata uang yang ditampilkan kepada klien di halaman pembayaran (mis. USD, IDR, EUR).",
+      "checkoutPricePerGB": "Harga per GB",
+      "checkoutPricePerGBDesc": "Dikenakan untuk setiap gigabyte tambahan yang dipilih klien.",
+      "checkoutPricePerMonth": "Harga per Bulan",
+      "checkoutPricePerMonthDesc": "Dikenakan untuk setiap perpanjangan 30 hari yang dipilih klien.",
+      "checkoutGatewayURL": "Templat Tautan Gateway Pembayaran",
+      "checkoutGatewayURLDesc": "Opsional. Jika diisi, klien diarahkan ke URL ini setelah memesan. Placeholder: {orderId}, {amount}, {ref}.",
+      "checkoutPayInfo": "Instruksi Pembayaran Manual",
+      "checkoutPayInfoDesc": "Ditampilkan saat tautan gateway tidak diatur — nomor kartu, cara konfirmasi pembayaran, kontak dukungan, dsb."
     },
     "xray": {
       "title": "Konfigurasi Xray",
@@ -1750,6 +1765,29 @@
         "sniHint": "Nama server TLS dalam profil klien.",
         "sniRequired": "Masukkan domain untuk mengisi jalur sertifikat otomatis."
       }
+    },
+    "checkout": {
+      "title": "Perpanjang Paket Anda",
+      "client": "Akun",
+      "invalidLink": "Tautan pembayaran tidak valid",
+      "invalidLinkDesc": "Tautan pembayaran ini tidak valid, kedaluwarsa, atau pembayaran sedang dinonaktifkan. Minta tautan baru kepada penyedia Anda.",
+      "status": "Status",
+      "expiry": "Kedaluwarsa",
+      "traffic": "Kuota",
+      "addTraffic": "Tambah kuota",
+      "addMonths": "Perpanjang masa aktif",
+      "months": "bulan",
+      "month": "bulan",
+      "pay": "Bayar",
+      "orderId": "ID Pesanan",
+      "amount": "Jumlah",
+      "waitingPayment": "Menunggu pembayaran",
+      "openGateway": "Buka halaman pembayaran",
+      "payInfoTitle": "Instruksi pembayaran",
+      "waitingHint": "Halaman ini diperbarui otomatis setelah pembayaran dikonfirmasi.",
+      "paidTitle": "Pembayaran diterima",
+      "paidDesc": "Paket Anda telah diperbarui. Anda dapat menutup halaman ini.",
+      "orderAgain": "Pesanan baru"
     }
   },
   "tgbot": {

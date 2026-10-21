@@ -555,6 +555,13 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
+        path: '/panel/api/clients/checkout-link/:email',
+        summary: 'Issue a signed, expiring public checkout link token for one client (resellers only for their own clients). Build the client URL as <basePath>/panel/checkout?ref=<token>.',
+        params: [{ name: 'email', in: 'path', type: 'string', desc: 'Client email.' }],
+        response: '{\n  "success": true,\n  "obj": { "token": "YWxpY2VAZXhhbXBsZS5jb218MTc5OTk5OTk5OQ.8f14e45fceea167a5a36dedd4bea2543" }\n}',
+      },
+      {
+        method: 'GET',
         path: '/panel/api/clients/list/paged',
         summary: 'Filter, sort, and paginate clients on the server. Each item is a slim row (no uuid/password/auth/flow/security/reverse/tgId) so the clients page can ship 25-ish rows in a few KB instead of the full table. The response also includes a summary computed across the full DB row set so dashboard counters stay stable as the user paginates or filters. Page size capped at 200; fetch /get/:email to obtain the full per-client payload for an edit/info modal.',
         params: [
@@ -1772,6 +1779,46 @@ export const sections: readonly Section[] = [
         path: '/panel/api/setting/admins/delete/:id',
         summary: 'Delete a secondary panel admin account (owner only).',
         params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+    ],
+  },
+
+  {
+    id: 'checkout',
+    title: 'Client Checkout (Public)',
+    description:
+      'Anonymous, link-based client checkout. A signed per-client ref token (issued via /panel/api/clients/checkout-link/:email) authorizes every call; no panel session is required. Orders are recorded as pending and completed by the payment webhook.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/api/checkout/info',
+        summary: 'Fetch the linked client status (enabled/expiry/quota/used) and the checkout pricing for the public page.',
+        params: [{ name: 'ref', in: 'query', type: 'string', desc: 'Signed checkout link token.' }],
+        response: '{\n  "success": true,\n  "obj": { "email": "alice@example.com", "enabled": true, "expiryTime": 1735689600000, "totalBytes": 53687091200, "up": 1024, "down": 4096, "currency": "USD", "pricePerGb": 0.8, "pricePerMonth": 4 }\n}',
+        errorStatus: 403,
+        errorResponse: '{ "success": false, "msg": "invalid or expired checkout link" }',
+      },
+      {
+        method: 'POST',
+        path: '/api/checkout/order',
+        summary: 'Create a pending order for the linked client: extra traffic (gb) and/or renewal months (each = 30 days). Max 10 pending orders per client; amount must be > 0.',
+        params: [
+          { name: 'ref', in: 'query', type: 'string', desc: 'Signed checkout link token.' },
+          { name: 'gb', in: 'body (json)', type: 'integer', optional: true, desc: 'Extra traffic in GB (0-10000).' },
+          { name: 'months', in: 'body (json)', type: 'integer', optional: true, desc: 'Renewal months, 30 days each (0-36).' },
+        ],
+        body: '{ "gb": 20, "months": 1 }',
+        response: '{\n  "success": true,\n  "obj": { "orderId": "co_a1b2c3d4e5f60718", "amount": 20, "currency": "USD", "gatewayUrl": "https://pay.example.com/invoice?id=co_a1b2c3d4e5f60718&amount=20&ref=alice@example.com" }\n}',
+      },
+      {
+        method: 'GET',
+        path: '/api/checkout/status',
+        summary: 'Poll one order payment state for the linked client; orders that belong to another client report "unknown".',
+        params: [
+          { name: 'ref', in: 'query', type: 'string', desc: 'Signed checkout link token.' },
+          { name: 'orderId', in: 'query', type: 'string', desc: 'Order id from the order call.' },
+        ],
+        response: '{ "success": true, "obj": "pending" }',
       },
     ],
   },

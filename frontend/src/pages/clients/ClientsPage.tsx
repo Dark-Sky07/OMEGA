@@ -36,6 +36,7 @@ import {
   RestOutlined,
   RetweetOutlined,
   SearchOutlined,
+  ShoppingOutlined,
   SortAscendingOutlined,
   TagsOutlined,
   TeamOutlined,
@@ -56,7 +57,7 @@ import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import ClientTrafficCell from '@/components/clients/ClientTrafficCell';
 import AppSidebar from '@/layouts/AppSidebar';
 import { useSession } from '@/api/queries/useSession';
-import { FileManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
+import { ClipboardManager, FileManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
 import { LazyMount } from '@/components/utility';
 import { PageHeader, StatStrip, type StatItem } from '@/components/ui';
@@ -491,6 +492,28 @@ export default function ClientsPage() {
     });
   }
 
+  async function onCopyCheckoutLink(row: ClientRecord) {
+    const msg = await HttpUtil.get(
+      `/panel/api/clients/checkout-link/${encodeURIComponent(row.email)}`,
+      undefined,
+      { silent: true },
+    );
+    if (!msg?.success || !msg.obj) {
+      messageApi.error((msg?.msg as string) || t('somethingWentWrong'));
+      return;
+    }
+    const token = String((msg.obj as { token?: string }).token || '');
+    if (!token) {
+      messageApi.error(t('somethingWentWrong'));
+      return;
+    }
+    const basePath = (typeof window !== 'undefined' && window.X_UI_BASE_PATH) || '';
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const link = `${origin}${basePath}/panel/checkout?ref=${encodeURIComponent(token)}`;
+    const ok = await ClipboardManager.copyText(link);
+    if (ok) messageApi.success(t('pages.clients.checkoutLinkCopied'));
+  }
+
   async function onShowInfo(row: ClientRecord) {
     const full = await hydrate(row.email);
     setInfoClient(full
@@ -656,7 +679,7 @@ export default function ClientsPage() {
     {
       title: t('pages.clients.actions'),
       key: 'actions',
-      width: 200,
+      width: 232,
       render: (_v, record) => (
         <Space size={4}>
           <Tooltip title={t('pages.clients.qrCode')}>
@@ -667,6 +690,9 @@ export default function ClientsPage() {
           </Tooltip>
           <Tooltip title={t('pages.inbounds.resetTraffic')}>
             <Button size="small" type="text" style={{ fontSize: 18 }} icon={<RetweetOutlined />} onClick={() => onResetTraffic(record)} />
+          </Tooltip>
+          <Tooltip title={t('pages.clients.checkoutLink')}>
+            <Button size="small" type="text" style={{ fontSize: 18 }} icon={<ShoppingOutlined />} onClick={() => onCopyCheckoutLink(record)} />
           </Tooltip>
           <Tooltip title={t('edit')}>
             <Button size="small" type="text" style={{ fontSize: 18 }} icon={<EditOutlined />} onClick={() => onEdit(record)} />
@@ -1240,6 +1266,11 @@ export default function ClientsPage() {
                                               key: 'reset',
                                               label: <><RetweetOutlined /> {t('pages.inbounds.resetTraffic')}</>,
                                               onClick: () => onResetTraffic(row),
+                                            },
+                                            {
+                                              key: 'checkout-link',
+                                              label: <><ShoppingOutlined /> {t('pages.clients.checkoutLink')}</>,
+                                              onClick: () => onCopyCheckoutLink(row),
                                             },
                                             {
                                               key: 'edit',

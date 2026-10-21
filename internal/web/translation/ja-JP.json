@@ -891,7 +891,9 @@
       "selectTemplatePlaceholder": "Select a preset template...",
       "templateApplied": "Template '{{name}}' applied",
       "revokeSub": "Revoke & Rotate Subscription Link",
-      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?"
+      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?",
+      "checkoutLink": "支払いリンクをコピー",
+      "checkoutLinkCopied": "支払いリンクをコピーしました"
     },
     "groups": {
       "title": "グループ",
@@ -1332,7 +1334,20 @@
       "cloudBackupGdriveClientId": "OAuth2 Client ID (Optional)",
       "cloudBackupGdriveClientIdDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
       "cloudBackupGdriveClientSecret": "OAuth2 Client Secret (Optional)",
-      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key."
+      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
+      "checkoutTitle": "クライアント決済",
+      "checkoutEnable": "公開クライアント決済ページ",
+      "checkoutEnableDesc": "クライアントに署名付きリンクを発行し、公開の更新ページで追加トラフィックや月数を選んで支払えます。支払いウェブフックが注文を自動的に完了します。",
+      "checkoutCurrency": "通貨ラベル",
+      "checkoutCurrencyDesc": "決済ページでクライアントに表示する通貨（例: USD、JPY、EUR）。",
+      "checkoutPricePerGB": "GB あたりの単価",
+      "checkoutPricePerGBDesc": "クライアントが選択した追加 1GB ごとに課金される金額。",
+      "checkoutPricePerMonth": "1 か月あたりの単価",
+      "checkoutPricePerMonthDesc": "クライアントが選択した 30 日ごとの更新に課金される金額。",
+      "checkoutGatewayURL": "決済ゲートウェイリンクのテンプレート",
+      "checkoutGatewayURLDesc": "任意。設定すると、注文後にクライアントはこの URL へリダイレクトされます。プレースホルダー: {orderId}、{amount}、{ref}。",
+      "checkoutPayInfo": "手動支払いの手順",
+      "checkoutPayInfoDesc": "ゲートウェイリンクが未設定のときに表示 — カード番号、入金確認の方法、サポート連絡先など。"
     },
     "xray": {
       "title": "Xray 設定",
@@ -1750,6 +1765,29 @@
         "sniHint": "クライアント設定の TLS サーバー名。",
         "sniRequired": "証明書パスの自動入力にはドメインを指定してください。"
       }
+    },
+    "checkout": {
+      "title": "プランの更新",
+      "client": "アカウント",
+      "invalidLink": "無効な支払いリンクです",
+      "invalidLinkDesc": "この支払いリンクは無効か期限切れ、または現在チェックアウトが無効です。プロバイダーに新しいリンクを請求してください。",
+      "status": "状態",
+      "expiry": "有効期限",
+      "traffic": "通信量",
+      "addTraffic": "通信量を追加",
+      "addMonths": "有効期限を延長",
+      "months": "ヶ月",
+      "month": "ヶ月",
+      "pay": "支払う",
+      "orderId": "注文番号",
+      "amount": "金額",
+      "waitingPayment": "支払い待ち",
+      "openGateway": "支払いページを開く",
+      "payInfoTitle": "支払い方法",
+      "waitingHint": "支払いが確認されると、このページは自動的に更新されます。",
+      "paidTitle": "お支払いを確認しました",
+      "paidDesc": "プランが更新されました。このページを閉じてもかまいません。",
+      "orderAgain": "新しい注文"
     }
   },
   "tgbot": {

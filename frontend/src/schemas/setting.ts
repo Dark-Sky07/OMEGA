@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 const port = z.number().int().min(1).max(65535);
 const nonNegativeInt = z.number().int().min(0);
+const nonNegativeNumber = z.number().min(0);
 const absolutePath = z.string().regex(/^\//, 'pages.settings.validation.pathLeadingSlash');
 
 export const AllSettingSchema = z.object({
@@ -115,6 +116,12 @@ export const AllSettingSchema = z.object({
   outboundWatchdogTags: z.string().optional(),
   outboundWatchdogIntervalSec: nonNegativeInt.optional(),
   outboundWatchdogFailThreshold: nonNegativeInt.optional(),
+  checkoutEnable: z.boolean().optional(),
+  checkoutCurrency: z.string().optional(),
+  checkoutPricePerGB: nonNegativeNumber.optional(),
+  checkoutPricePerMonth: nonNegativeNumber.optional(),
+  checkoutGatewayURL: z.string().optional(),
+  checkoutPayInfo: z.string().optional(),
   hasTgBotToken: z.boolean().optional(),
   hasTwoFactorToken: z.boolean().optional(),
   hasLdapPassword: z.boolean().optional(),

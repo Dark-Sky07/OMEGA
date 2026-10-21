@@ -947,7 +947,9 @@
       "selectTemplatePlaceholder": "انتخاب قالب آماده (مثلاً ۵۰ گیگ ۳۰ روزه)...",
       "templateApplied": "قالب «{{name}}» اعمال شد",
       "revokeSub": "ابطال و چرخش لینک اشتراک (Revoke Sub)",
-      "revokeSubConfirm": "آیا مطمئن هستید؟ لینک اشتراک فعلی باطل شده و یک توکن جدید جایگزین می‌شود."
+      "revokeSubConfirm": "آیا مطمئن هستید؟ لینک اشتراک فعلی باطل شده و یک توکن جدید جایگزین می‌شود.",
+      "checkoutLink": "کپی لینک پرداخت",
+      "checkoutLinkCopied": "لینک پرداخت کپی شد"
     },
     "groups": {
       "title": "گروه‌ها",
@@ -1444,7 +1446,20 @@
       "cloudBackupGdriveClientId": "OAuth2 Client ID (اختیاری)",
       "cloudBackupGdriveClientIdDesc": "فقط در صورتی که به جای فایل JSON سرویس‌اکانت از Refresh Token استفاده می‌کنید لازم است.",
       "cloudBackupGdriveClientSecret": "OAuth2 Client Secret (اختیاری)",
-      "cloudBackupGdriveClientSecretDesc": "فقط در صورتی که به جای فایل JSON سرویس‌اکانت از Refresh Token استفاده می‌کنید لازم است."
+      "cloudBackupGdriveClientSecretDesc": "فقط در صورتی که به جای فایل JSON سرویس‌اکانت از Refresh Token استفاده می‌کنید لازم است.",
+      "checkoutTitle": "پرداخت کلاینت",
+      "checkoutEnable": "صفحه پرداخت عمومی کلاینت",
+      "checkoutEnableDesc": "به کلاینت‌ها لینک امضاشده‌ای بدهید تا در صفحه عمومی تمدید، ترافیک یا ماه اعتبار انتخاب کنند و پرداخت کنند؛ وب‌هوک پرداخت سفارش را خودکار تکمیل می‌کند.",
+      "checkoutCurrency": "نماد واحد پول",
+      "checkoutCurrencyDesc": "واحد پول نمایش‌داده‌شده به کلاینت در صفحه پرداخت (مثلاً USD، IRT، EUR).",
+      "checkoutPricePerGB": "قیمت هر گیگابایت",
+      "checkoutPricePerGBDesc": "مبلغ دریافتی به‌ازای هر گیگابایت ترافیک اضافه‌ای که کلاینت انتخاب می‌کند.",
+      "checkoutPricePerMonth": "قیمت هر ماه",
+      "checkoutPricePerMonthDesc": "مبلغ دریافتی به‌ازای هر ۳۰ روز تمدیدی که کلاینت انتخاب می‌کند.",
+      "checkoutGatewayURL": "قالب لینک درگاه پرداخت",
+      "checkoutGatewayURLDesc": "اختیاری. اگر تنظیم شود، کلاینت بعد از ثبت سفارش به این آدرس هدایت می‌شود. جایگزین‌ها: {orderId}، {amount}، {ref}.",
+      "checkoutPayInfo": "راهنمای پرداخت دستی",
+      "checkoutPayInfoDesc": "وقتی لینک درگاه تنظیم نشده به کلاینت نمایش داده می‌شود — شماره کارت، راهنمای اعلام پرداخت، راه ارتباطی پشتیبانی و…"
     },
     "xray": {
       "title": "پیکربندی ایکس‌ری",
@@ -1864,6 +1879,29 @@
         "sniHint": "نام سرور TLS در پروفایل کلاینت.",
         "sniRequired": "برای تکمیل خودکار مسیرهای گواهی، دامنه را وارد کنید."
       }
+    },
+    "checkout": {
+      "title": "تمدید اشتراک",
+      "client": "حساب",
+      "invalidLink": "لینک پرداخت نامعتبر است",
+      "invalidLinkDesc": "این لینک پرداخت نامعتبر است، منقضی شده، یا پرداخت در حال حاضر غیرفعال است. لطفاً از ارائه‌دهنده خود لینک جدید بگیرید.",
+      "status": "وضعیت",
+      "expiry": "انقضا",
+      "traffic": "ترافیک",
+      "addTraffic": "افزودن ترافیک",
+      "addMonths": "تمدید اعتبار",
+      "months": "ماه",
+      "month": "ماه",
+      "pay": "پرداخت",
+      "orderId": "شماره سفارش",
+      "amount": "مبلغ",
+      "waitingPayment": "در انتظار پرداخت",
+      "openGateway": "رفتن به صفحه پرداخت",
+      "payInfoTitle": "راهنمای پرداخت",
+      "waitingHint": "این صفحه بعد از تأیید پرداخت به‌صورت خودکار به‌روزرسانی می‌شود.",
+      "paidTitle": "پرداخت دریافت شد",
+      "paidDesc": "اشتراک شما به‌روزرسانی شد. می‌توانید این صفحه را ببندید.",
+      "orderAgain": "سفارش جدید"
     }
   },
   "tgbot": {

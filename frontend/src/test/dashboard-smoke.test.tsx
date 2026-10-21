@@ -241,7 +241,7 @@ describe('smoke: redesigned pages', () => {
     const { default: SettingsPage } = await import('@/pages/settings/SettingsPage');
     const { container } = wrap(<SettingsPage />);
     await waitFor(() => expect(container.querySelector('.phoenix-section-card')).toBeTruthy());
-    expect(container.querySelectorAll('.phoenix-subnav-item').length).toBe(7);
+    expect(container.querySelectorAll('.phoenix-subnav-item').length).toBe(8);
     expect(container.querySelector('.phoenix-subnav-item.is-active')).toBeTruthy();
     expect(container.querySelector('.phoenix-dirty')).toBeTruthy();
     expect(container.querySelectorAll('.setting-list-item').length).toBeGreaterThan(3);

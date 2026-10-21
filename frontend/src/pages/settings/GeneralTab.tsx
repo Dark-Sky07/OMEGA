@@ -20,6 +20,7 @@ import {
   AuditOutlined,
   BellOutlined,
   ClockCircleOutlined,
+  CreditCardOutlined,
   CloudUploadOutlined,
   DeleteOutlined,
   GlobalOutlined,
@@ -1173,11 +1174,89 @@ export default function GeneralTab({ allSetting, updateSetting, defaultSubTab = 
           </div>
         ),
       },
+      {
+        key: '11',
+        label: catTabLabel(<CreditCardOutlined />, t('pages.settings.checkoutTitle', 'Client Checkout'), isMobile),
+        children: (
+          <>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.checkoutEnable', 'Public Client Checkout')}
+              description={t('pages.settings.checkoutEnableDesc', 'Give clients a signed link to a public renewal page where they pick extra traffic or validity months and pay; the payment webhook completes the order automatically.')}
+            >
+              <Switch
+                checked={allSetting.checkoutEnable}
+                onChange={(v) => updateSetting({ checkoutEnable: v })}
+              />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.checkoutCurrency', 'Currency Label')}
+              description={t('pages.settings.checkoutCurrencyDesc', 'Currency shown to clients on the checkout page (e.g. USD, IRT, EUR).')}
+            >
+              <Input
+                value={allSetting.checkoutCurrency}
+                onChange={(e) => updateSetting({ checkoutCurrency: e.target.value })}
+                placeholder="USD"
+                style={{ width: '100%' }}
+              />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.checkoutPricePerGB', 'Price Per GB')}
+              description={t('pages.settings.checkoutPricePerGBDesc', 'Charged for each added gigabyte a client selects on the checkout page.')}
+            >
+              <InputNumber
+                value={allSetting.checkoutPricePerGB}
+                min={0}
+                style={{ width: '100%' }}
+                onChange={(v) => updateSetting({ checkoutPricePerGB: Number(v) || 0 })}
+              />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.checkoutPricePerMonth', 'Price Per Month')}
+              description={t('pages.settings.checkoutPricePerMonthDesc', 'Charged for each 30-day renewal a client selects on the checkout page.')}
+            >
+              <InputNumber
+                value={allSetting.checkoutPricePerMonth}
+                min={0}
+                style={{ width: '100%' }}
+                onChange={(v) => updateSetting({ checkoutPricePerMonth: Number(v) || 0 })}
+              />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.checkoutGatewayURL', 'Payment Gateway Link Template')}
+              description={t('pages.settings.checkoutGatewayURLDesc', 'Optional. When set, clients are redirected to this URL after ordering. Placeholders: {orderId}, {amount}, {ref}.')}
+            >
+              <Input
+                value={allSetting.checkoutGatewayURL}
+                onChange={(e) => updateSetting({ checkoutGatewayURL: e.target.value })}
+                placeholder="https://pay.example.com/invoice?id={orderId}&amount={amount}"
+                style={{ width: '100%' }}
+              />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.checkoutPayInfo', 'Manual Payment Instructions')}
+              description={t('pages.settings.checkoutPayInfoDesc', 'Shown to clients when no gateway link is set — card number, payment notice instructions, support contact, etc.')}
+            >
+              <Input.TextArea
+                value={allSetting.checkoutPayInfo}
+                onChange={(e) => updateSetting({ checkoutPayInfo: e.target.value })}
+                rows={4}
+                style={{ width: '100%' }}
+              />
+            </SettingListItem>
+          </>
+        ),
+      },
     ];
 
   const singleItem = onlySubTab ? tabItems.find((item) => item.key === onlySubTab) : undefined;
   const visibleTabs = useMemo(
-    () => tabItems.filter((item) => item.key !== '6' && item.key !== '7'),
+    () => tabItems.filter((item) => item.key !== '6' && item.key !== '7' && item.key !== '11'),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [allSetting, isMobile, lang, t, certStatus, cloudBackingUp, watchdogStatus, watchdogChecking, auditLogs, auditLoading, auditActorType, auditModule, auditSearch, checkHostTarget, checkHostMode, checkHostLoading, checkHostNodes, checkHostPermLink, inboundPorts, inboundOptions, outboundOptions],
   );

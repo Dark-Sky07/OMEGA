@@ -17,6 +17,7 @@ import {
   CloudServerOutlined,
   CloudUploadOutlined,
   CodeOutlined,
+  CreditCardOutlined,
   InfoCircleOutlined,
   MessageOutlined,
   ReloadOutlined,
@@ -44,7 +45,7 @@ interface ApiMsg {
   success?: boolean;
 }
 
-const tabSlugs = ['general', 'security', 'telegram', 'subscription', 'subscription-formats', 'ldap', 'cloud-backup'];
+const tabSlugs = ['general', 'security', 'telegram', 'subscription', 'subscription-formats', 'ldap', 'cloud-backup', 'payments'];
 
 function isIp(h: string): boolean {
   if (typeof h !== 'string') return false;
@@ -114,6 +115,7 @@ export default function SettingsPage() {
       { slug: 'subscription', icon: <CloudServerOutlined />, label: t('pages.settings.subSettings') },
       { slug: 'ldap', icon: <ApartmentOutlined />, label: 'LDAP' },
       { slug: 'cloud-backup', icon: <CloudUploadOutlined />, label: t('pages.settings.cloudBackupTitle', 'Cloud Backup') },
+      { slug: 'payments', icon: <CreditCardOutlined />, label: t('pages.settings.checkoutTitle', 'Client Checkout') },
     ];
     if (allSetting.subJsonEnable || allSetting.subClashEnable || activeSlug === 'subscription-formats') {
       list.push({ slug: 'subscription-formats', icon: <CodeOutlined />, label: 'Sub Formats' });
@@ -229,6 +231,7 @@ export default function SettingsPage() {
       case 'subscription-formats': return <SubscriptionFormatsTab allSetting={allSetting} updateSetting={updateSetting} />;
       case 'ldap': return <GeneralTab allSetting={allSetting} updateSetting={updateSetting} onlySubTab="6" />;
       case 'cloud-backup': return <GeneralTab allSetting={allSetting} updateSetting={updateSetting} onlySubTab="7" />;
+      case 'payments': return <GeneralTab allSetting={allSetting} updateSetting={updateSetting} onlySubTab="11" />;
       default: return <GeneralTab allSetting={allSetting} updateSetting={updateSetting} defaultSubTab="1" />;
     }
   }, [activeSlug, allSetting, updateSetting]);

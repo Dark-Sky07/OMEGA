@@ -151,6 +151,14 @@ var defaultValueMap = map[string]string{
 	"outboundWatchdogTags":          "",
 	"outboundWatchdogIntervalSec":   "120",
 	"outboundWatchdogFailThreshold": "2",
+
+	// Public client checkout defaults
+	"checkoutEnable":        "false",
+	"checkoutCurrency":      "USD",
+	"checkoutPricePerGB":    "0",
+	"checkoutPricePerMonth": "0",
+	"checkoutGatewayURL":    "",
+	"checkoutPayInfo":       "",
 }
 
 // SettingService provides business logic for application settings management.
@@ -213,6 +221,12 @@ func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
 			fieldV.SetString(value)
 		case bool:
 			fieldV.SetBool(effectiveSettingValue(key, value) == "true")
+		case float64:
+			f, err := strconv.ParseFloat(effectiveSettingValue(key, value), 64)
+			if err != nil {
+				return err
+			}
+			fieldV.SetFloat(f)
 		default:
 			return common.NewErrorf("unknown field %v type %v", key, t)
 		}
@@ -371,6 +385,45 @@ func (s *SettingService) getInt(key string) (int, error) {
 
 func (s *SettingService) setInt(key string, value int) error {
 	return s.setString(key, strconv.Itoa(value))
+}
+
+func (s *SettingService) getFloat(key string) (float64, error) {
+	str, err := s.getString(key)
+	if err != nil {
+		return 0, err
+	}
+	return strconv.ParseFloat(effectiveSettingValue(key, str), 64)
+}
+
+// GetCheckoutEnable reports whether the public client checkout page is on.
+func (s *SettingService) GetCheckoutEnable() (bool, error) {
+	return s.getBool("checkoutEnable")
+}
+
+// GetCheckoutCurrency returns the currency label shown to clients.
+func (s *SettingService) GetCheckoutCurrency() (string, error) {
+	return s.getString("checkoutCurrency")
+}
+
+// GetCheckoutPricePerGB returns the price charged per added gigabyte.
+func (s *SettingService) GetCheckoutPricePerGB() (float64, error) {
+	return s.getFloat("checkoutPricePerGB")
+}
+
+// GetCheckoutPricePerMonth returns the price charged per 30-day renewal.
+func (s *SettingService) GetCheckoutPricePerMonth() (float64, error) {
+	return s.getFloat("checkoutPricePerMonth")
+}
+
+// GetCheckoutGatewayURL returns the payment link template ("" when unset).
+func (s *SettingService) GetCheckoutGatewayURL() (string, error) {
+	return s.getString("checkoutGatewayURL")
+}
+
+// GetCheckoutPayInfo returns the manual payment instructions shown when no
+// gateway URL is configured.
+func (s *SettingService) GetCheckoutPayInfo() (string, error) {
+	return s.getString("checkoutPayInfo")
 }
 
 func (s *SettingService) GetWarpLastUpdate() (int64, error) {
@@ -1136,6 +1189,13 @@ func validateSettingsURLs(allSetting *entity.AllSetting) error {
 			return common.NewError("discord webhook URL is invalid:", err)
 		}
 		allSetting.DiscordWebhookURL = u
+	}
+	if allSetting.CheckoutGatewayURL != "" {
+		u, err := SanitizeHTTPURL(allSetting.CheckoutGatewayURL)
+		if err != nil {
+			return common.NewError("checkout gateway URL is invalid:", err)
+		}
+		allSetting.CheckoutGatewayURL = u
 	}
 	return nil
 }

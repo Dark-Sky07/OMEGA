@@ -891,7 +891,9 @@
       "selectTemplatePlaceholder": "Select a preset template...",
       "templateApplied": "Template '{{name}}' applied",
       "revokeSub": "Revoke & Rotate Subscription Link",
-      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?"
+      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?",
+      "checkoutLink": "Sao chép liên kết thanh toán",
+      "checkoutLinkCopied": "Đã sao chép liên kết thanh toán"
     },
     "groups": {
       "title": "Nhóm",
@@ -1332,7 +1334,20 @@
       "cloudBackupGdriveClientId": "OAuth2 Client ID (Optional)",
       "cloudBackupGdriveClientIdDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
       "cloudBackupGdriveClientSecret": "OAuth2 Client Secret (Optional)",
-      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key."
+      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
+      "checkoutTitle": "Thanh toán khách hàng",
+      "checkoutEnable": "Trang thanh toán công khai cho khách hàng",
+      "checkoutEnableDesc": "Cấp cho khách hàng một liên kết có chữ ký đến trang gia hạn công khai, nơi họ chọn thêm dung lượng hoặc số tháng rồi thanh toán; webhook thanh toán sẽ tự động hoàn tất đơn hàng.",
+      "checkoutCurrency": "Ký hiệu đơn vị tiền tệ",
+      "checkoutCurrencyDesc": "Đơn vị tiền tệ hiển thị cho khách hàng trên trang thanh toán (ví dụ: USD, VND, EUR).",
+      "checkoutPricePerGB": "Giá mỗi GB",
+      "checkoutPricePerGBDesc": "Tính cho mỗi gigabyte bổ sung khách hàng chọn.",
+      "checkoutPricePerMonth": "Giá mỗi tháng",
+      "checkoutPricePerMonthDesc": "Tính cho mỗi lần gia hạn 30 ngày khách hàng chọn.",
+      "checkoutGatewayURL": "Mẫu liên kết cổng thanh toán",
+      "checkoutGatewayURLDesc": "Tùy chọn. Nếu đặt, khách hàng sẽ được chuyển đến URL này sau khi đặt hàng. Biến thay thế: {orderId}, {amount}, {ref}.",
+      "checkoutPayInfo": "Hướng dẫn thanh toán thủ công",
+      "checkoutPayInfoDesc": "Hiển thị khi chưa đặt liên kết cổng thanh toán — số thẻ, cách báo thanh toán, liên hệ hỗ trợ, v.v."
     },
     "xray": {
       "title": "Cài đặt Xray",
@@ -1750,6 +1765,29 @@
         "sniHint": "Tên máy chủ TLS trong cấu hình máy khách.",
         "sniRequired": "Nhập tên miền để tự điền đường dẫn chứng chỉ."
       }
+    },
+    "checkout": {
+      "title": "Gia hạn gói dịch vụ",
+      "client": "Tài khoản",
+      "invalidLink": "Liên kết thanh toán không hợp lệ",
+      "invalidLinkDesc": "Liên kết thanh toán này không hợp lệ, đã hết hạn hoặc thanh toán đang bị tắt. Hãy yêu cầu nhà cung cấp gửi liên kết mới.",
+      "status": "Trạng thái",
+      "expiry": "Hết hạn",
+      "traffic": "Dung lượng",
+      "addTraffic": "Thêm dung lượng",
+      "addMonths": "Gia hạn thời hạn",
+      "months": "tháng",
+      "month": "tháng",
+      "pay": "Thanh toán",
+      "orderId": "Mã đơn hàng",
+      "amount": "Số tiền",
+      "waitingPayment": "Đang chờ thanh toán",
+      "openGateway": "Mở trang thanh toán",
+      "payInfoTitle": "Hướng dẫn thanh toán",
+      "waitingHint": "Trang này sẽ tự động cập nhật sau khi thanh toán được xác nhận.",
+      "paidTitle": "Đã nhận thanh toán",
+      "paidDesc": "Gói dịch vụ của bạn đã được cập nhật. Bạn có thể đóng trang này.",
+      "orderAgain": "Đặt đơn mới"
     }
   },
   "tgbot": {

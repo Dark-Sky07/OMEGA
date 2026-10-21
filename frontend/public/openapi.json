@@ -29,6 +29,30 @@
       "AllSetting": {
         "description": "AllSetting contains all configuration settings for the PHOENIX panel including web server, Telegram bot, and subscription settings.",
         "properties": {
+          "checkoutCurrency": {
+            "description": "Currency label shown to clients (USD, IRT, ...)",
+            "type": "string"
+          },
+          "checkoutEnable": {
+            "description": "Public client checkout (link-based renewals topped up by the payment webhook)\nEnable the public client checkout page",
+            "type": "boolean"
+          },
+          "checkoutGatewayURL": {
+            "description": "Payment link template with {orderId}/{amount}/{ref} placeholders",
+            "type": "string"
+          },
+          "checkoutPayInfo": {
+            "description": "Manual payment instructions shown when no gateway URL is set",
+            "type": "string"
+          },
+          "checkoutPricePerGB": {
+            "description": "Price charged per added GB",
+            "type": "number"
+          },
+          "checkoutPricePerMonth": {
+            "description": "Price charged per 30-day renewal",
+            "type": "number"
+          },
           "cloudBackupAccessKey": {
             "type": "string"
           },
@@ -462,6 +486,12 @@
           }
         },
         "required": [
+          "checkoutCurrency",
+          "checkoutEnable",
+          "checkoutGatewayURL",
+          "checkoutPayInfo",
+          "checkoutPricePerGB",
+          "checkoutPricePerMonth",
           "cloudBackupAccessKey",
           "cloudBackupBucket",
           "cloudBackupEnable",
@@ -577,6 +607,30 @@
       "AllSettingView": {
         "description": "AllSettingView is the browser-safe settings read model. Secret values\nare redacted from the embedded write model and represented by presence\nflags so the UI can show configured/not configured state.",
         "properties": {
+          "checkoutCurrency": {
+            "description": "Currency label shown to clients (USD, IRT, ...)",
+            "type": "string"
+          },
+          "checkoutEnable": {
+            "description": "Public client checkout (link-based renewals topped up by the payment webhook)\nEnable the public client checkout page",
+            "type": "boolean"
+          },
+          "checkoutGatewayURL": {
+            "description": "Payment link template with {orderId}/{amount}/{ref} placeholders",
+            "type": "string"
+          },
+          "checkoutPayInfo": {
+            "description": "Manual payment instructions shown when no gateway URL is set",
+            "type": "string"
+          },
+          "checkoutPricePerGB": {
+            "description": "Price charged per added GB",
+            "type": "number"
+          },
+          "checkoutPricePerMonth": {
+            "description": "Price charged per 30-day renewal",
+            "type": "number"
+          },
           "cloudBackupAccessKey": {
             "type": "string"
           },
@@ -1034,6 +1088,12 @@
           }
         },
         "required": [
+          "checkoutCurrency",
+          "checkoutEnable",
+          "checkoutGatewayURL",
+          "checkoutPayInfo",
+          "checkoutPricePerGB",
+          "checkoutPricePerMonth",
           "cloudBackupAccessKey",
           "cloudBackupBucket",
           "cloudBackupEnable",
@@ -2737,6 +2797,10 @@
     {
       "name": "Resellers (نمایندگی)",
       "description": "Panel sub-accounts that own a slice of the panel: their own inbounds, their own clients, and two quotas (clients, traffic). Inbounds are attached by the admin via the Attach Inbound list — the reseller can only see/manage assigned inbounds. A reseller signs in with its own username/password on the same login page; its session reads <code>/panel/api/inbounds/*</code> and <code>/panel/api/reseller/*</code>, manages its clients under <code>/panel/api/clients/*</code> and reaches <code>/panel/api/auth/me</code> — inbound writes and everything else answer 403. The endpoints below are the admin-side management API under <code>/panel/api/resellers</code>; a wrong-owner access answers 403 with <code>inbound not found</code> / <code>client not found</code>."
+    },
+    {
+      "name": "Client Checkout (Public)",
+      "description": "Anonymous, link-based client checkout. A signed per-client ref token (issued via /panel/api/clients/checkout-link/:email) authorizes every call; no panel session is required. Orders are recorded as pending and completed by the payment webhook."
     },
     {
       "name": "WebSocket",
@@ -5440,6 +5504,53 @@
                   "version": 1,
                   "exportedAt": "2026-01-01T00:00:00Z",
                   "clients": []
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/checkout-link/{email}": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Issue a signed, expiring public checkout link token for one client (resellers only for their own clients). Build the client URL as <basePath>/panel/checkout?ref=<token>.",
+        "operationId": "get_panel_api_clients_checkout_link_email",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "token": "YWxpY2VAZXhhbXBsZS5jb218MTc5OTk5OTk5OQ.8f14e45fceea167a5a36dedd4bea2543"
+                  }
                 }
               }
             }
@@ -11812,6 +11923,201 @@
                     },
                     "obj": {}
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/checkout/info": {
+      "get": {
+        "tags": [
+          "Client Checkout (Public)"
+        ],
+        "summary": "Fetch the linked client status (enabled/expiry/quota/used) and the checkout pricing for the public page.",
+        "operationId": "get_api_checkout_info",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "query",
+            "required": true,
+            "description": "Signed checkout link token.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "email": "alice@example.com",
+                    "enabled": true,
+                    "expiryTime": 1735689600000,
+                    "totalBytes": 53687091200,
+                    "up": 1024,
+                    "down": 4096,
+                    "currency": "USD",
+                    "pricePerGb": 0.8,
+                    "pricePerMonth": 4
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "msg": "invalid or expired checkout link"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/checkout/order": {
+      "post": {
+        "tags": [
+          "Client Checkout (Public)"
+        ],
+        "summary": "Create a pending order for the linked client: extra traffic (gb) and/or renewal months (each = 30 days). Max 10 pending orders per client; amount must be > 0.",
+        "operationId": "post_api_checkout_order",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "query",
+            "required": true,
+            "description": "Signed checkout link token.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "gb": 20,
+                "months": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "orderId": "co_a1b2c3d4e5f60718",
+                    "amount": 20,
+                    "currency": "USD",
+                    "gatewayUrl": "https://pay.example.com/invoice?id=co_a1b2c3d4e5f60718&amount=20&ref=alice@example.com"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/checkout/status": {
+      "get": {
+        "tags": [
+          "Client Checkout (Public)"
+        ],
+        "summary": "Poll one order payment state for the linked client; orders that belong to another client report \"unknown\".",
+        "operationId": "get_api_checkout_status",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "query",
+            "required": true,
+            "description": "Signed checkout link token.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orderId",
+            "in": "query",
+            "required": true,
+            "description": "Order id from the order call.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": "pending"
                 }
               }
             }

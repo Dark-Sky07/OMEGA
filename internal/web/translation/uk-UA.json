@@ -891,7 +891,9 @@
       "selectTemplatePlaceholder": "Select a preset template...",
       "templateApplied": "Template '{{name}}' applied",
       "revokeSub": "Revoke & Rotate Subscription Link",
-      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?"
+      "revokeSubConfirm": "Revoke the current subscription token and generate a new one immediately?",
+      "checkoutLink": "Копіювати посилання на оплату",
+      "checkoutLinkCopied": "Посилання на оплату скопійовано"
     },
     "groups": {
       "title": "Групи",
@@ -1332,7 +1334,20 @@
       "cloudBackupGdriveClientId": "OAuth2 Client ID (Optional)",
       "cloudBackupGdriveClientIdDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
       "cloudBackupGdriveClientSecret": "OAuth2 Client Secret (Optional)",
-      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key."
+      "cloudBackupGdriveClientSecretDesc": "Required only when using an OAuth2 Refresh Token instead of a Service Account JSON key.",
+      "checkoutTitle": "Оплата клієнтів",
+      "checkoutEnable": "Публічна сторінка оплати клієнтів",
+      "checkoutEnableDesc": "Видавайте клієнтам підписане посилання на публічну сторінку продовження, де вони обирають додатковий трафік або місяці та оплачують; вебхук платежу завершує замовлення автоматично.",
+      "checkoutCurrency": "Позначення валюти",
+      "checkoutCurrencyDesc": "Валюта, яку бачать клієнти на сторінці оплати (напр., USD, UAH, EUR).",
+      "checkoutPricePerGB": "Ціна за гігабайт",
+      "checkoutPricePerGBDesc": "Нараховується за кожен доданий гігабайт, обраний клієнтом.",
+      "checkoutPricePerMonth": "Ціна за місяць",
+      "checkoutPricePerMonthDesc": "Нараховується за кожні 30 днів продовження, обрані клієнтом.",
+      "checkoutGatewayURL": "Шаблон посилання платіжного шлюзу",
+      "checkoutGatewayURLDesc": "Необов'язково. Якщо задано, клієнта після замовлення перенаправляють за цією адресою. Плейсхолдери: {orderId}, {amount}, {ref}.",
+      "checkoutPayInfo": "Інструкція щодо ручної оплати",
+      "checkoutPayInfoDesc": "Показується, коли посилання шлюзу не задано — номер картки, порядок повідомлення про оплату, контакти підтримки тощо."
     },
     "xray": {
       "title": "Xray конфігурації",
@@ -1750,6 +1765,29 @@
         "sniHint": "Ім’я сервера для TLS у профілі клієнта.",
         "sniRequired": "Укажіть домен для автозаповнення."
       }
+    },
+    "checkout": {
+      "title": "Продовжити підписку",
+      "client": "Акаунт",
+      "invalidLink": "Недійсне посилання на оплату",
+      "invalidLinkDesc": "Посилання на оплату недійсне, прострочене або оплату зараз вимкено. Попросіть у постачальника нове посилання.",
+      "status": "Стан",
+      "expiry": "Спливає",
+      "traffic": "Трафік",
+      "addTraffic": "Додати трафік",
+      "addMonths": "Продовжити термін",
+      "months": "міс.",
+      "month": "місяць",
+      "pay": "Оплатити",
+      "orderId": "Номер замовлення",
+      "amount": "Сума",
+      "waitingPayment": "Очікування оплати",
+      "openGateway": "Відкрити сторінку оплати",
+      "payInfoTitle": "Інструкція з оплати",
+      "waitingHint": "Сторінка оновиться автоматично після підтвердження оплати.",
+      "paidTitle": "Оплату отримано",
+      "paidDesc": "Вашу підписку оновлено. Можна закрити сторінку.",
+      "orderAgain": "Нове замовлення"
     }
   },
   "tgbot": {
