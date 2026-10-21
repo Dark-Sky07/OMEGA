@@ -2076,6 +2076,7 @@
     "amount": "Valor",
     "txType": "Tipo",
     "deposit": "Depósito",
-    "withdraw": "Saque"
+    "withdraw": "Saque",
+    "walletActivity": "Movimentação da carteira"
   }
 }

@@ -2076,6 +2076,7 @@
     "amount": "Сумма",
     "txType": "Тип",
     "deposit": "Пополнение",
-    "withdraw": "Списание"
+    "withdraw": "Списание",
+    "walletActivity": "Движение средств"
   }
 }

@@ -2076,6 +2076,7 @@
     "amount": "Nominal",
     "txType": "Jenis",
     "deposit": "Deposit",
-    "withdraw": "Penarikan"
+    "withdraw": "Penarikan",
+    "walletActivity": "Aktivitas dompet"
   }
 }

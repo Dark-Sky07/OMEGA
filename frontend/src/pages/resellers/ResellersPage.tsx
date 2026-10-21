@@ -55,6 +55,7 @@ import { useTheme } from '@/hooks/useTheme';
 import type { ResellerReport, ResellerStat } from '@/api/queries/useSession';
 import { PageHeader } from '@/components/ui';
 import ResellersOverview from './ResellersOverview';
+import ResellerWalletChart from './ResellerWalletChart';
 import SupportTicketsModal from './SupportTicketsModal';
 import VouchersModal from './VouchersModal';
 import './ResellersPage.css';
@@ -547,7 +548,7 @@ export default function ResellersPage() {
       render: (_value, stat) => (
         <Space size={1} wrap>
           <Tooltip title={t('resellers.report')}>
-            <Button size="small" icon={<AccountBookOutlined />} onClick={() => setReportFor(stat)} />
+            <Button size="small" aria-label={t('resellers.report')} icon={<AccountBookOutlined />} onClick={() => setReportFor(stat)} />
           </Tooltip>
           <Tooltip title={t('resellers.assignClient')}>
             <Button
@@ -916,6 +917,7 @@ export default function ResellersPage() {
                         : t('resellers.never')}
                     </Descriptions.Item>
                   </Descriptions>
+                  <ResellerWalletChart transactions={reportQuery.data.transactions || []} />
                   <Card size="small" title={t('resellers.clientsTitle')}>
                     <Table
                       rowKey="email"

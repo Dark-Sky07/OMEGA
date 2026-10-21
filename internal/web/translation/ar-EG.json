@@ -2076,6 +2076,7 @@
     "amount": "المبلغ",
     "txType": "النوع",
     "deposit": "إيداع",
-    "withdraw": "سحب"
+    "withdraw": "سحب",
+    "walletActivity": "نشاط المحفظة"
   }
 }

@@ -2076,6 +2076,7 @@
     "amount": "Số tiền",
     "txType": "Loại",
     "deposit": "Nạp",
-    "withdraw": "Rút"
+    "withdraw": "Rút",
+    "walletActivity": "Hoạt động ví"
   }
 }

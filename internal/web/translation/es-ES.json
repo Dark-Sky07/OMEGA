@@ -2076,6 +2076,7 @@
     "amount": "Importe",
     "txType": "Tipo",
     "deposit": "Depósito",
-    "withdraw": "Retirada"
+    "withdraw": "Retirada",
+    "walletActivity": "Actividad de la cartera"
   }
 }

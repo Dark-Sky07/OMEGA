@@ -2076,6 +2076,7 @@
     "amount": "金額",
     "txType": "種別",
     "deposit": "入金",
-    "withdraw": "出金"
+    "withdraw": "出金",
+    "walletActivity": "ウォレットの入出金"
   }
 }

@@ -29,6 +29,7 @@ import { keys } from '@/api/queryKeys';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useTheme } from '@/hooks/useTheme';
 import type { ResellerReport } from '@/api/queries/useSession';
+import ResellerWalletChart from './ResellerWalletChart';
 import './ResellersPage.css';
 
 export default function ResellerReportPage() {
@@ -181,6 +182,10 @@ export default function ResellerReportPage() {
                     </Card>
                   </Col>
                 )}
+
+                <Col span={24}>
+                  <ResellerWalletChart transactions={reportQuery.data?.transactions || []} />
+                </Col>
 
                 <Col span={24}>
                   <Card size="small" hoverable title={t('resellers.clientsTitle')}>

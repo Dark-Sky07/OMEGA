@@ -2190,6 +2190,7 @@
     "txType": "نوع",
     "deposit": "واریز",
     "withdraw": "برداشت",
+    "walletActivity": "گردش کیف پول",
     "resetPassword": "بازنشانی رمز عبور",
     "report": "گزارش",
     "usedTraffic": "ترافیک مصرفی",

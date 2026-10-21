@@ -2243,6 +2243,7 @@
     "txType": "Type",
     "deposit": "Deposit",
     "withdraw": "Withdraw",
+    "walletActivity": "Wallet activity",
     "resetPassword": "Reset password",
     "report": "Report",
     "usedTraffic": "Used traffic",
