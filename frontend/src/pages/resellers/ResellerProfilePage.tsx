@@ -378,7 +378,7 @@ export default function ResellerProfilePage() {
                 <Col span={24}>
                   <Card size="small" className="phoenix-rise phoenix-rise-2" title={t('resellers.branding.title')}>
                     <Typography.Paragraph type="secondary">
-                      {t('resellers.branding.description')}
+                      {t('resellers.branding.intro')}
                     </Typography.Paragraph>
                     <Form form={brandingForm} layout="vertical">
                       <Row gutter={12}>
@@ -501,7 +501,7 @@ export default function ResellerProfilePage() {
                   >
                     <Space direction="vertical" size={10} style={{ width: '100%' }}>
                       <Typography.Text type="secondary">
-                        {t('resellers.signup.description', 'Create a shareable link that registers a customer on one of your templates. Your client and traffic limits are checked at registration.')}
+                        {t('resellers.signup.intro', 'Create a shareable link that registers a customer on one of your templates. Your client and traffic limits are checked at registration.')}
                       </Typography.Text>
                       {signupTemplatesQuery.data?.length ? (
                         <Select
@@ -536,15 +536,15 @@ export default function ResellerProfilePage() {
                   <Card
                     size="small"
                     hoverable
-                    title={<Space><WalletOutlined />{t('resellers.deposit.title', 'Public wallet top-up')}</Space>}
+                    title={<Space><WalletOutlined />{t('resellers.depositLink.title', 'Public wallet top-up')}</Space>}
                   >
                     <Space direction="vertical" size={10} style={{ width: '100%' }}>
                       <Typography.Text type="secondary">
-                        {t('resellers.deposit.description', 'Share a payment link so a customer can add credit directly to your reseller wallet. Payment is confirmed by the configured webhook.')}
+                        {t('resellers.depositLink.intro', 'Share a payment link so a customer can add credit directly to your reseller wallet. Payment is confirmed by the configured webhook.')}
                       </Typography.Text>
                       <Space wrap>
                         <Button type="primary" icon={<WalletOutlined />} loading={depositLinkLoading} onClick={createDepositLink}>
-                          {t('resellers.deposit.createLink', 'Generate wallet top-up link')}
+                          {t('resellers.depositLink.createLink', 'Generate wallet top-up link')}
                         </Button>
                         {depositLink ? <Button icon={<CopyOutlined />} onClick={copyDepositLink}>{t('copy', 'Copy link')}</Button> : null}
                       </Space>

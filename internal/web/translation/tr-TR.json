@@ -2079,7 +2079,7 @@
     "walletActivity": "Cüzdan hareketleri",
     "branding": {
       "title": "Markanız",
-      "description": "Bayi çalışma alanınızı ve herkese açık davet sayfalarınızı özelleştirin.",
+      "intro": "Bayi çalışma alanınızı ve herkese açık davet sayfalarınızı özelleştirin.",
       "name": "Marka adı",
       "logo": "Logo URL’si",
       "logoHint": "HTTPS URL’si veya aynı sitedeki bir yol kullanın.",
