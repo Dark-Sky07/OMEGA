@@ -17,6 +17,7 @@ const ResellerReportPage = lazy(() => import('@/pages/resellers/ResellerReportPa
 const ResellerProfilePage = lazy(() => import('@/pages/resellers/ResellerProfilePage'));
 const CheckoutPage = lazy(() => import('@/pages/checkout/CheckoutPage'));
 const ResellerSignupPage = lazy(() => import('@/pages/checkout/ResellerSignupPage'));
+const ResellerDepositPage = lazy(() => import('@/pages/checkout/ResellerDepositPage'));
 
 function withSuspense(node: React.ReactNode) {
   return <Suspense fallback={null}>{node}</Suspense>;
@@ -104,6 +105,11 @@ export const appRoutes: RouteObject[] = [
     // Public reseller self-registration using a signed plan invitation.
     path: 'reseller-signup',
     element: withSuspense(<ResellerSignupPage />),
+  },
+  {
+    // Public reseller wallet recharge page.
+    path: 'reseller-deposit',
+    element: withSuspense(<ResellerDepositPage />),
   },
 ];
 

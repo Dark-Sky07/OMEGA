@@ -22,7 +22,7 @@ import {
   Typography,
   message,
 } from 'antd';
-import { BellOutlined, CheckOutlined, CopyOutlined, CustomerServiceOutlined, GiftOutlined, SendOutlined, ShopOutlined, UserOutlined } from '@ant-design/icons';
+import { BellOutlined, CheckOutlined, CopyOutlined, CustomerServiceOutlined, GiftOutlined, SendOutlined, ShopOutlined, UserOutlined, WalletOutlined } from '@ant-design/icons';
 
 import AppSidebar from '@/layouts/AppSidebar';
 import { PageHeader } from '@/components/ui';
@@ -107,6 +107,8 @@ export default function ResellerProfilePage() {
   const [signupTemplateId, setSignupTemplateId] = useState<number>();
   const [signupLink, setSignupLink] = useState('');
   const [signupLinkLoading, setSignupLinkLoading] = useState(false);
+  const [depositLink, setDepositLink] = useState('');
+  const [depositLinkLoading, setDepositLinkLoading] = useState(false);
   const [passwordForm] = Form.useForm<{ oldPassword: string; newPassword: string; confirmPassword: string }>();
 
   const redeemVoucher = useCallback(async () => {
@@ -238,6 +240,28 @@ export default function ResellerProfilePage() {
     await navigator.clipboard.writeText(signupLink);
     messageApi.success(t('resellers.signupLinkCopied', 'Registration link copied'));
   }, [messageApi, signupLink, t]);
+
+  const createDepositLink = useCallback(async () => {
+    setDepositLinkLoading(true);
+    try {
+      const response = await HttpUtil.post('/panel/api/reseller/deposit/link', {}, { silent: true } as never);
+      const token = (response.obj as { token?: string } | null)?.token;
+      if (!response.success || !token) {
+        messageApi.error(response.msg || t('somethingWentWrong'));
+        return;
+      }
+      const base = (window.X_UI_BASE_PATH || '/').replace(/\/+$/, '');
+      setDepositLink(`${window.location.origin}${base}/panel/reseller-deposit?ref=${encodeURIComponent(token)}`);
+    } finally {
+      setDepositLinkLoading(false);
+    }
+  }, [messageApi, t]);
+
+  const copyDepositLink = useCallback(async () => {
+    if (!depositLink) return;
+    await navigator.clipboard.writeText(depositLink);
+    messageApi.success(t('resellers.depositLinkCopied', 'Wallet top-up link copied'));
+  }, [depositLink, messageApi, t]);
 
   const changePassword = useCallback(async () => {
     const values = await passwordForm.validateFields().catch(() => null);
@@ -439,6 +463,27 @@ export default function ResellerProfilePage() {
                         {signupLink ? <Button icon={<CopyOutlined />} onClick={copySignupLink}>{t('copy', 'Copy link')}</Button> : null}
                       </Space>
                       {signupLink ? <Input.TextArea value={signupLink} readOnly autoSize={{ minRows: 2, maxRows: 4 }} /> : null}
+                    </Space>
+                  </Card>
+                </Col>
+
+                <Col span={24}>
+                  <Card
+                    size="small"
+                    hoverable
+                    title={<Space><WalletOutlined />{t('resellers.deposit.title', 'Public wallet top-up')}</Space>}
+                  >
+                    <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                      <Typography.Text type="secondary">
+                        {t('resellers.deposit.description', 'Share a payment link so a customer can add credit directly to your reseller wallet. Payment is confirmed by the configured webhook.')}
+                      </Typography.Text>
+                      <Space wrap>
+                        <Button type="primary" icon={<WalletOutlined />} loading={depositLinkLoading} onClick={createDepositLink}>
+                          {t('resellers.deposit.createLink', 'Generate wallet top-up link')}
+                        </Button>
+                        {depositLink ? <Button icon={<CopyOutlined />} onClick={copyDepositLink}>{t('copy', 'Copy link')}</Button> : null}
+                      </Space>
+                      {depositLink ? <Input.TextArea value={depositLink} readOnly autoSize={{ minRows: 2, maxRows: 4 }} /> : null}
                     </Space>
                   </Card>
                 </Col>

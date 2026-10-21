@@ -125,6 +125,8 @@ describe('reseller pages', () => {
         };
       }
       if (url === '/panel/api/reseller/profile') return statFixture;
+      if (url === '/panel/api/reseller/signup/templates') return [];
+      if (url === '/panel/api/reseller/deposit/link') return { token: 'signed-deposit-token' };
       return {};
     });
   });
@@ -183,6 +185,8 @@ describe('reseller pages', () => {
 
     await waitFor(() => expect(screen.getByText('tg:@ali')).toBeTruthy());
     expect(HttpUtil.get).toHaveBeenCalledWith('/panel/api/reseller/profile');
+    expect(screen.getByText('Customer self-registration')).toBeTruthy();
+    expect(screen.getByText('Public wallet top-up')).toBeTruthy();
 
     const inputs = document.querySelectorAll('input[type="password"]');
     expect(inputs.length).toBe(3);
@@ -195,6 +199,13 @@ describe('reseller pages', () => {
 
     await waitFor(() => expect(screen.getByText('Passwords do not match')).toBeTruthy());
     expect(HttpUtil.post).not.toHaveBeenCalledWith('/panel/api/reseller/password', expect.anything());
+
+    fireEvent.click(screen.getByText('Generate wallet top-up link'));
+    await waitFor(() => {
+      const textarea = document.querySelector('textarea');
+      expect(textarea?.value).toContain('/panel/reseller-deposit?ref=signed-deposit-token');
+    });
+    expect(HttpUtil.post).toHaveBeenCalledWith('/panel/api/reseller/deposit/link', {}, { silent: true });
   });
 
   it('every reseller endpoint the UI calls is documented in the API docs', () => {
@@ -220,6 +231,9 @@ describe('reseller pages', () => {
       'GET /panel/api/reseller/profile',
       'GET /panel/api/reseller/report',
       'POST /panel/api/reseller/password',
+      'GET /panel/api/reseller/signup/templates',
+      'POST /panel/api/reseller/signup/link',
+      'POST /panel/api/reseller/deposit/link',
       'GET /panel/api/auth/me',
     ];
 

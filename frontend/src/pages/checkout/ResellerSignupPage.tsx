@@ -70,14 +70,14 @@ export default function ResellerSignupPage() {
       <Card style={{ width: 'min(100%, 460px)' }}>
         {infoQuery.isLoading ? <Spin /> : null}
         {(!ref || infoQuery.isError) ? (
-          <Result status="error" title={t('pages.resellerSignup.invalidTitle', 'Registration link unavailable')} subTitle={t('pages.resellerSignup.invalidDesc', 'This invitation is invalid, expired, or no longer available.')} />
+          <Result status="error" title={t('pages.checkout.resellerSignup.invalidTitle', 'Registration link unavailable')} subTitle={t('pages.checkout.resellerSignup.invalidDesc', 'This invitation is invalid, expired, or no longer available.')} />
         ) : null}
         {info && complete ? (
           <Result
             status="success"
             icon={<CheckCircleOutlined />}
-            title={t('pages.resellerSignup.successTitle', 'Registration complete')}
-            subTitle={t('pages.resellerSignup.successDesc', 'Your account has been created. Contact your reseller to receive your connection details.')}
+            title={t('pages.checkout.resellerSignup.successTitle', 'Registration complete')}
+            subTitle={t('pages.checkout.resellerSignup.successDesc', 'Your account has been created. Contact your reseller to receive your connection details.')}
           />
         ) : null}
         {info && !complete ? (
@@ -85,19 +85,19 @@ export default function ResellerSignupPage() {
             <div style={{ textAlign: 'center' }}>
               <ShopOutlined style={{ fontSize: 30, color: '#1677ff' }} />
               <Typography.Title level={3} style={{ margin: '10px 0 4px' }}>{info.resellerName}</Typography.Title>
-              <Typography.Text type="secondary">{t('pages.resellerSignup.invited', 'invites you to register')}</Typography.Text>
+              <Typography.Text type="secondary">{t('pages.checkout.resellerSignup.invited', 'invites you to register')}</Typography.Text>
             </div>
             <Card size="small" type="inner" title={info.planName}>
               {info.description ? <Typography.Paragraph>{info.description}</Typography.Paragraph> : null}
               <Typography.Text type="secondary">
                 {info.totalBytes > 0 ? `${(info.totalBytes / (1024 ** 3)).toFixed(2)} GB` : t('unlimited', 'Unlimited')}
-                {info.days > 0 ? ` · ${info.days} ${t('pages.resellerSignup.days', 'days')}` : ''}
+                {info.days > 0 ? ` · ${info.days} ${t('pages.checkout.resellerSignup.days', 'days')}` : ''}
               </Typography.Text>
             </Card>
             <Form layout="vertical" onFinish={submit}>
               <Form.Item
-                label={t('pages.resellerSignup.email', 'Email or account name')}
-                help={t('pages.resellerSignup.emailHint', 'Use a unique identifier you can share with your reseller.')}
+                label={t('pages.checkout.resellerSignup.email', 'Email or account name')}
+                help={t('pages.checkout.resellerSignup.emailHint', 'Use a unique identifier you can share with your reseller.')}
                 required
               >
                 <Input
@@ -110,7 +110,7 @@ export default function ResellerSignupPage() {
               </Form.Item>
               {error ? <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} /> : null}
               <Button block type="primary" htmlType="submit" icon={<UserAddOutlined />} loading={submitting} disabled={!email.trim()}>
-                {t('pages.resellerSignup.submit', 'Create account')}
+                {t('pages.checkout.resellerSignup.submit', 'Create account')}
               </Button>
             </Form>
           </Space>
