@@ -2080,7 +2080,7 @@
     "walletActivity": "Hoạt động ví",
     "branding": {
       "title": "Thương hiệu của bạn",
-      "description": "Tùy chỉnh không gian reseller và trang mời công khai.",
+      "intro": "Tùy chỉnh không gian reseller và trang mời công khai.",
       "name": "Tên thương hiệu",
       "logo": "URL logo",
       "logoHint": "Dùng URL HTTPS hoặc đường dẫn trên cùng trang web.",

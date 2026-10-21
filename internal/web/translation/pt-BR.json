@@ -2080,7 +2080,7 @@
     "walletActivity": "Movimentação da carteira",
     "branding": {
       "title": "Sua marca",
-      "description": "Personalize seu espaço de revendedor e as páginas públicas de convite.",
+      "intro": "Personalize seu espaço de revendedor e as páginas públicas de convite.",
       "name": "Nome da marca",
       "logo": "URL do logotipo",
       "logoHint": "Use uma URL HTTPS ou um caminho do mesmo site.",

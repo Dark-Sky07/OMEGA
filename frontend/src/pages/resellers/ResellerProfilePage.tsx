@@ -378,7 +378,7 @@ export default function ResellerProfilePage() {
                 <Col span={24}>
                   <Card size="small" className="phoenix-rise phoenix-rise-2" title={t('resellers.branding.title')}>
                     <Typography.Paragraph type="secondary">
-                      {t('resellers.branding.description')}
+                      {t('resellers.branding.intro')}
                     </Typography.Paragraph>
                     <Form form={brandingForm} layout="vertical">
                       <Row gutter={12}>

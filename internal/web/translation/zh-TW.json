@@ -2080,7 +2080,7 @@
     "walletActivity": "錢包收支",
     "branding": {
       "title": "品牌設定",
-      "description": "自訂經銷商工作區與公開邀請頁面。",
+      "intro": "自訂經銷商工作區與公開邀請頁面。",
       "name": "品牌名稱",
       "logo": "Logo 網址",
       "logoHint": "請使用 HTTPS 網址或本站路徑。",

@@ -2080,7 +2080,7 @@
     "walletActivity": "Aktivitas dompet",
     "branding": {
       "title": "Merek Anda",
-      "description": "Sesuaikan ruang kerja reseller dan halaman undangan publik.",
+      "intro": "Sesuaikan ruang kerja reseller dan halaman undangan publik.",
       "name": "Nama merek",
       "logo": "URL logo",
       "logoHint": "Gunakan URL HTTPS atau jalur di situs yang sama.",
