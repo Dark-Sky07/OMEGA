@@ -135,6 +135,12 @@
   display: none;
 }
 
+.sidebar-language-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* navigation ------------------------------------------------------------- */
 
 .sider-nav {
