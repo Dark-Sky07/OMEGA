@@ -2799,6 +2799,10 @@
       "description": "Panel sub-accounts that own a slice of the panel: their own inbounds, their own clients, and two quotas (clients, traffic). Inbounds are attached by the admin via the Attach Inbound list — the reseller can only see/manage assigned inbounds. A reseller signs in with its own username/password on the same login page; its session reads <code>/panel/api/inbounds/*</code> and <code>/panel/api/reseller/*</code>, manages its clients under <code>/panel/api/clients/*</code> and reaches <code>/panel/api/auth/me</code> — inbound writes and everything else answer 403. The endpoints below are the admin-side management API under <code>/panel/api/resellers</code>; a wrong-owner access answers 403 with <code>inbound not found</code> / <code>client not found</code>."
     },
     {
+      "name": "Reseller Signup (Public)",
+      "description": "Anonymous customer registration from a signed, expiring reseller invitation. Each link is bound to one reseller and one plan template; current reseller activity, inbound ownership, and quotas are revalidated at submission."
+    },
+    {
       "name": "Client Checkout (Public)",
       "description": "Anonymous, link-based client checkout. A signed per-client ref token (issued via /panel/api/clients/checkout-link/:email) authorizes every call; no panel session is required. Orders are recorded as pending and completed by the payment webhook."
     },
@@ -12666,6 +12670,85 @@
         }
       }
     },
+    "/panel/api/reseller/signup/templates": {
+      "get": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "List plan templates whose inbound assignments are all owned by the signed-in reseller; only these templates can be offered through public registration links.",
+        "operationId": "get_panel_api_reseller_signup_templates",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/reseller/signup/link": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Generate a signed registration link, valid for 30 days, for one eligible template. The link creates a client under the reseller and enforces client and traffic quotas.",
+        "operationId": "post_panel_api_reseller_signup_link",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "templateId": {
+                    "type": "integer",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "templateId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/server/checkHost": {
       "post": {
         "tags": [
@@ -12815,6 +12898,110 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reseller-signup/info": {
+      "get": {
+        "tags": [
+          "Reseller Signup (Public)"
+        ],
+        "summary": "Get the reseller display name and safe public details for the plan bound to a registration token.",
+        "operationId": "get_api_reseller_signup_info",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "query",
+            "required": true,
+            "description": "Signed invitation token.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reseller-signup/register": {
+      "post": {
+        "tags": [
+          "Reseller Signup (Public)"
+        ],
+        "summary": "Register a new client using the invitation plan. Duplicate identifiers are rejected and reseller client/traffic limits are checked before client creation.",
+        "operationId": "post_api_reseller_signup_register",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "query",
+            "required": true,
+            "description": "Signed invitation token.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "description": "Unique client email/account identifier."
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              },
+              "example": {
+                "email": "customer@example.com"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",

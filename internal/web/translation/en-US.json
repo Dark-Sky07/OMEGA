@@ -1954,7 +1954,18 @@
       "waitingHint": "This page updates automatically once the payment is confirmed.",
       "paidTitle": "Payment received",
       "paidDesc": "Your plan has been updated. You can close this page now.",
-      "orderAgain": "New order"
+      "orderAgain": "New order",
+      "resellerSignup": {
+        "invalidTitle": "Registration link unavailable",
+        "invalidDesc": "This invitation is invalid, expired, or no longer available.",
+        "invited": "invites you to register",
+        "days": "days",
+        "email": "Email or account name",
+        "emailHint": "Use a unique identifier you can share with your reseller.",
+        "submit": "Create account",
+        "successTitle": "Registration complete",
+        "successDesc": "Your account has been created. Contact your reseller to receive your connection details."
+      }
     }
   },
   "tgbot": {
@@ -2330,6 +2341,14 @@
       "unlink": "Disconnect Telegram",
       "unlinked": "Telegram disconnected."
     },
+    "signup": {
+      "title": "Customer self-registration",
+      "description": "Create a shareable link that registers a customer on one of your templates. Your client and traffic limits are checked at registration.",
+      "choosePlan": "Choose a plan template",
+      "noPlans": "No eligible free plan templates. Paid templates need a payment flow; ask the administrator to assign inbounds to a free template first.",
+      "createLink": "Generate registration link"
+    },
+    "signupLinkCopied": "Registration link copied",
     "exportCsv": "Export CSV",
     "exportListCsv": "Export list (CSV)",
     "validation": {
