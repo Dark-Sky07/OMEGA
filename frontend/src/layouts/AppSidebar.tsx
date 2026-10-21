@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Drawer, Layout, Menu, Tooltip } from 'antd';
+import { Drawer, Layout, Menu, Popover, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   ApiOutlined,
@@ -31,10 +31,11 @@ import {
   TagsOutlined,
   TeamOutlined,
   ToolOutlined,
+  TranslationOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
 
-import { HttpUtil } from '@/utils';
+import { HttpUtil, LanguageManager } from '@/utils';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import { useAllSettings } from '@/api/queries/useAllSettings';
 import { useSession } from '@/api/queries/useSession';
@@ -144,6 +145,57 @@ function ThemeCycleButton({ id, isDark, isUltra, onCycle, ariaLabel }: {
         {icon}
       </button>
     </Tooltip>
+  );
+}
+
+function LanguageSwitcher({ isDark }: { isDark: boolean }) {
+  const { t } = useTranslation();
+  const language = LanguageManager.getLanguage();
+  const languageItems = useMemo(
+    () => LanguageManager.supportedLanguages.map((item) => ({
+      key: item.value,
+      label: (
+        <span className="sidebar-language-option">
+          <span aria-hidden="true">{item.icon}</span>
+          <span>{item.name}</span>
+        </span>
+      ),
+    })),
+    [],
+  );
+  const onLanguageSelect = useCallback<NonNullable<MenuProps['onClick']>>(({ key }) => {
+    LanguageManager.setLanguage(String(key));
+  }, []);
+  const label = t('pages.settings.language');
+
+  return (
+    <Popover
+      rootClassName={isDark ? 'dark' : 'light'}
+      placement="topLeft"
+      trigger="click"
+      styles={{ content: { padding: 4 } }}
+      content={
+        <Menu
+          mode="vertical"
+          selectable
+          selectedKeys={[language]}
+          items={languageItems}
+          onClick={onLanguageSelect}
+          style={{ border: 'none', minWidth: 176, maxHeight: 320, overflowY: 'auto' }}
+        />
+      }
+    >
+      <Tooltip title={label} placement="top">
+        <button
+          type="button"
+          className="sidebar-language phoenix-icon-btn"
+          aria-label={label}
+          title={label}
+        >
+          <TranslationOutlined />
+        </button>
+      </Tooltip>
+    </Popover>
   );
 }
 
@@ -363,6 +415,7 @@ export default function AppSidebar() {
                   <SearchOutlined />
                 </button>
               </Tooltip>
+              {isReseller && <LanguageSwitcher isDark={isDark} />}
               <ThemeCycleButton
                 id="theme-cycle"
                 isDark={isDark}
@@ -403,6 +456,7 @@ export default function AppSidebar() {
         <div className="drawer-header">
           <Brand {...brandProps} />
           <div className="drawer-header-actions">
+            {isReseller && <LanguageSwitcher isDark={isDark} />}
             <ThemeCycleButton
               id="theme-cycle-drawer"
               isDark={isDark}

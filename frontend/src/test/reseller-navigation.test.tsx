@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryRouter, MemoryRouter, RouterProvider } from 'react-router-dom';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { ThemeProvider } from '@/hooks/useTheme';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -121,6 +121,16 @@ describe('reseller navigation', () => {
     expect(document.querySelector('.brand-mark-img')?.getAttribute('src')).toBe('/assets/northstar.svg');
     expect(document.querySelector('.brand-text')?.getAttribute('style')).toContain('color: rgb(34, 68, 102)');
     expect(document.querySelector('.sider-version')).toBeNull();
+  });
+
+  it('lets resellers change the panel language from the desktop sidebar', async () => {
+    sessionState.role = 'reseller';
+    renderSidebar();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Language' }));
+    expect(await screen.findByText('فارسی')).toBeTruthy();
+    expect(screen.getByText('Português')).toBeTruthy();
+    expect(screen.getByText('العربية')).toBeTruthy();
   });
 
   it('uses reseller branding in the tab title and favicon, then restores defaults for admins', async () => {
