@@ -10,6 +10,9 @@ export interface ResellerStat {
     username: string;
     name: string;
     comment?: string;
+    brandName?: string;
+    brandLogo?: string;
+    brandColor?: string;
     enable: boolean;
     trafficLimit: number;
     clientLimit: number;

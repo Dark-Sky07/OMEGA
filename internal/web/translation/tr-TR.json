@@ -2076,6 +2076,16 @@
     "txType": "Tür",
     "deposit": "Yatırım",
     "withdraw": "Çekim",
-    "walletActivity": "Cüzdan hareketleri"
+    "walletActivity": "Cüzdan hareketleri",
+    "branding": {
+      "title": "Markanız",
+      "description": "Bayi çalışma alanınızı ve herkese açık davet sayfalarınızı özelleştirin.",
+      "name": "Marka adı",
+      "logo": "Logo URL’si",
+      "logoHint": "HTTPS URL’si veya aynı sitedeki bir yol kullanın.",
+      "color": "Marka rengi",
+      "save": "Markayı kaydet",
+      "saved": "Marka güncellendi"
+    }
   }
 }

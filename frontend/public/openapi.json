@@ -11624,6 +11624,60 @@
         }
       }
     },
+    "/panel/api/reseller/branding": {
+      "post": {
+        "tags": [
+          "Resellers (نمایندگی)"
+        ],
+        "summary": "Update the signed-in reseller own brand name, HTTPS or same-site logo URL, and six-digit hex brand color. Branding is shown in the reseller workspace and public registration/deposit pages.",
+        "operationId": "post_panel_api_reseller_branding",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "brandName": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "brandLogo": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "brandColor": {
+                    "type": "string",
+                    "description": ""
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/reseller/stats": {
       "get": {
         "tags": [
@@ -12960,7 +13014,7 @@
         "tags": [
           "Reseller Wallet Top-up (Public)"
         ],
-        "summary": "Fetch the reseller display name and configured payment currency for a signed top-up link.",
+        "summary": "Fetch the reseller display name, configured payment currency, and optional white-label brand details for a signed top-up link.",
         "operationId": "get_api_reseller_deposit_info",
         "parameters": [
           {
@@ -13114,7 +13168,7 @@
         "tags": [
           "Reseller Signup (Public)"
         ],
-        "summary": "Get the reseller display name and safe public details for the plan bound to a registration token.",
+        "summary": "Get the reseller display name, optional white-label brand details, and safe public plan details for a registration token.",
         "operationId": "get_api_reseller_signup_info",
         "parameters": [
           {

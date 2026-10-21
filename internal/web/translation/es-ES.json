@@ -2077,6 +2077,16 @@
     "txType": "Tipo",
     "deposit": "Depósito",
     "withdraw": "Retirada",
-    "walletActivity": "Actividad de la cartera"
+    "walletActivity": "Actividad de la cartera",
+    "branding": {
+      "title": "Tu marca",
+      "description": "Personaliza tu espacio de trabajo y las páginas públicas de invitación.",
+      "name": "Nombre de marca",
+      "logo": "URL del logotipo",
+      "logoHint": "Usa una URL HTTPS o una ruta del mismo sitio.",
+      "color": "Color de marca",
+      "save": "Guardar marca",
+      "saved": "Marca actualizada"
+    }
   }
 }

@@ -1587,6 +1587,16 @@ export const sections: readonly Section[] = [
         summary: 'The signed-in reseller own profile and live usage snapshot.',
       },
       {
+        method: 'POST',
+        path: '/panel/api/reseller/branding',
+        summary: 'Update the signed-in reseller own brand name, HTTPS or same-site logo URL, and six-digit hex brand color. Branding is shown in the reseller workspace and public registration/deposit pages.',
+        params: [
+          { name: 'brandName', in: 'body (json)', type: 'string', optional: true },
+          { name: 'brandLogo', in: 'body (json)', type: 'string', optional: true },
+          { name: 'brandColor', in: 'body (json)', type: 'string', optional: true },
+        ],
+      },
+      {
         method: 'GET',
         path: '/panel/api/reseller/stats',
         summary: 'Same payload as /panel/api/reseller/profile — alias used by the reseller dashboard.',
@@ -1809,7 +1819,7 @@ export const sections: readonly Section[] = [
       {
         method: 'GET',
         path: '/api/reseller-deposit/info',
-        summary: 'Fetch the reseller display name and configured payment currency for a signed top-up link.',
+        summary: 'Fetch the reseller display name, configured payment currency, and optional white-label brand details for a signed top-up link.',
         params: [{ name: 'ref', in: 'query', type: 'string', desc: 'Signed reseller deposit token.' }],
       },
       {
@@ -1841,7 +1851,7 @@ export const sections: readonly Section[] = [
       {
         method: 'GET',
         path: '/api/reseller-signup/info',
-        summary: 'Get the reseller display name and safe public details for the plan bound to a registration token.',
+        summary: 'Get the reseller display name, optional white-label brand details, and safe public plan details for a registration token.',
         params: [{ name: 'ref', in: 'query', type: 'string', desc: 'Signed invitation token.' }],
       },
       {

@@ -28,7 +28,7 @@ func TestResellerSignupSignedLinkAndTemplateScope(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AddInbound: %v", err)
 	}
-	reseller := &model.Reseller{Username: "signup-reseller", Password: "test-password", Name: "Signup Shop", Enable: true, ClientLimit: 1}
+	reseller := &model.Reseller{Username: "signup-reseller", Password: "test-password", Name: "Signup Shop", BrandName: "Northstar", BrandLogo: "/assets/northstar.svg", BrandColor: "#224466", Enable: true, ClientLimit: 1}
 	if err := db.Create(reseller).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +61,7 @@ func TestResellerSignupSignedLinkAndTemplateScope(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Info: %v", err)
 	}
-	if info.ResellerName != "Signup Shop" || info.PlanName != "Signup Basic" || info.TotalBytes != 10*bytesPerGB {
+	if info.ResellerName != "Signup Shop" || info.BrandName != "Northstar" || info.BrandLogo != "/assets/northstar.svg" || info.BrandColor != "#224466" || info.PlanName != "Signup Basic" || info.TotalBytes != 10*bytesPerGB {
 		t.Fatalf("unexpected public info: %+v", info)
 	}
 

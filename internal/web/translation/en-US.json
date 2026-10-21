@@ -2382,6 +2382,16 @@
       "confirmPassword": "Confirm the new password",
       "passwordMismatch": "Passwords do not match",
       "amount": "Enter an amount"
+    },
+    "branding": {
+      "title": "Your brand",
+      "description": "Customize your reseller workspace and public invitation pages.",
+      "name": "Brand name",
+      "logo": "Logo URL",
+      "logoHint": "Use an HTTPS URL or a same-site path.",
+      "color": "Brand color",
+      "save": "Save branding",
+      "saved": "Branding updated"
     }
   },
   "commandPalette": {

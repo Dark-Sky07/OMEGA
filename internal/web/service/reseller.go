@@ -4,9 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/Dark-Sky07/phoenix/internal/database"
 	"github.com/Dark-Sky07/phoenix/internal/database/model"
@@ -197,6 +200,70 @@ func (s *ResellerService) Update(reseller *model.Reseller, password string) erro
 	}
 	db := database.GetDB()
 	return db.Model(model.Reseller{}).Where("id = ?", reseller.Id).Updates(updates).Error
+}
+
+// NormalizeResellerBranding trims and validates reseller-controlled brand fields.
+// Logos may be same-origin absolute paths or HTTPS URLs; colors are six-digit hex.
+func NormalizeResellerBranding(name, logo, color string) (string, string, string, error) {
+	name = strings.TrimSpace(name)
+	if utf8.RuneCountInString(name) > 80 {
+		return "", "", "", errors.New("brand name must be at most 80 characters")
+	}
+	for _, r := range name {
+		if unicode.IsControl(r) {
+			return "", "", "", errors.New("brand name contains invalid characters")
+		}
+	}
+
+	logo = strings.TrimSpace(logo)
+	if len(logo) > 2048 || strings.ContainsAny(logo, string([]byte{92, 13, 10})) {
+		return "", "", "", errors.New("brand logo must be a valid URL")
+	}
+	if logo != "" {
+		parsed, err := url.Parse(logo)
+		if err != nil {
+			return "", "", "", errors.New("brand logo must be a valid URL")
+		}
+		if strings.HasPrefix(logo, "/") {
+			if strings.HasPrefix(logo, "//") || parsed.IsAbs() || parsed.Host != "" {
+				return "", "", "", errors.New("brand logo path must stay on this site")
+			}
+		} else if parsed.Scheme != "https" || parsed.Hostname() == "" || parsed.User != nil {
+			return "", "", "", errors.New("brand logo must use HTTPS or a same-site path")
+		}
+	}
+
+	color = strings.TrimSpace(color)
+	if color != "" {
+		if len(color) != 7 || color[0] != '#' {
+			return "", "", "", errors.New("brand color must be a six-digit hex color")
+		}
+		for _, r := range color[1:] {
+			if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')) {
+				return "", "", "", errors.New("brand color must be a six-digit hex color")
+			}
+		}
+		color = strings.ToUpper(color)
+	}
+	return name, logo, color, nil
+}
+
+// UpdateBranding lets a reseller customize the appearance of its own panel and
+// public invitation pages without changing any account or quota settings.
+func (s *ResellerService) UpdateBranding(resellerID int, name, logo, color string) error {
+	if resellerID <= 0 {
+		return errors.New("reseller is required")
+	}
+	name, logo, color, err := NormalizeResellerBranding(name, logo, color)
+	if err != nil {
+		return err
+	}
+	return database.GetDB().Model(&model.Reseller{}).Where("id = ?", resellerID).Updates(map[string]any{
+		"brand_name":  name,
+		"brand_logo":  logo,
+		"brand_color": color,
+		"updated_at":  time.Now().UnixMilli(),
+	}).Error
 }
 
 // Delete removes a reseller, its ownership mappings and its ledger. The
