@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Card, InputNumber, Result, Space, Spin, Typography, message } from 'antd';
+import { Alert, Button, Card, ConfigProvider, InputNumber, Result, Space, Spin, Typography, message } from 'antd';
 import { CheckCircleOutlined, WalletOutlined } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
@@ -10,6 +10,9 @@ import { useTheme } from '@/hooks/useTheme';
 
 interface DepositInfo {
   resellerName: string;
+  brandName?: string;
+  brandLogo?: string;
+  brandColor?: string;
   currency: string;
 }
 interface DepositOrder {
@@ -82,7 +85,8 @@ export default function ResellerDepositPage() {
   const info = infoQuery.data;
   const completed = statusQuery.data === 'completed';
   return (
-    <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 16, background: isDark ? '#10131a' : '#f5f7fa' }}>
+    <ConfigProvider theme={info?.brandColor ? { token: { colorPrimary: info.brandColor } } : undefined}>
+      <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 16, background: isDark ? '#10131a' : '#f5f7fa' }}>
       {holder}
       <Card style={{ width: 'min(100%, 460px)' }}>
         {infoQuery.isLoading ? <Spin /> : null}
@@ -95,8 +99,8 @@ export default function ResellerDepositPage() {
         {info && !completed ? (
           <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <div style={{ textAlign: 'center' }}>
-              <WalletOutlined style={{ fontSize: 30, color: '#1677ff' }} />
-              <Typography.Title level={3} style={{ margin: '10px 0 4px' }}>{info.resellerName}</Typography.Title>
+              {info.brandLogo ? <img src={info.brandLogo} alt={info.brandName || info.resellerName} style={{ maxWidth: 160, maxHeight: 64, objectFit: 'contain' }} /> : <WalletOutlined style={{ fontSize: 30, color: info.brandColor || '#1677ff' }} />}
+              <Typography.Title level={3} style={{ margin: '10px 0 4px', color: info.brandColor || undefined }}>{info.brandName || info.resellerName}</Typography.Title>
               <Typography.Text type="secondary">{t('pages.checkout.resellerDeposit.title', 'Add credit to reseller wallet')}</Typography.Text>
             </div>
             {order ? (
@@ -122,6 +126,7 @@ export default function ResellerDepositPage() {
           </Space>
         ) : null}
       </Card>
-    </main>
+      </main>
+    </ConfigProvider>
   );
 }

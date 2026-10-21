@@ -29,6 +29,9 @@ type ResellerDepositCheckoutService struct{}
 
 type ResellerDepositInfo struct {
 	ResellerName string `json:"resellerName"`
+	BrandName    string `json:"brandName,omitempty"`
+	BrandLogo    string `json:"brandLogo,omitempty"`
+	BrandColor   string `json:"brandColor,omitempty"`
 	Currency     string `json:"currency"`
 }
 
@@ -80,6 +83,9 @@ func (s *ResellerDepositCheckoutService) Info(token string, secret []byte, now t
 	}
 	return &ResellerDepositInfo{
 		ResellerName: firstNonEmptySignup(strings.TrimSpace(reseller.Name), reseller.Username),
+		BrandName:    reseller.BrandName,
+		BrandLogo:    reseller.BrandLogo,
+		BrandColor:   reseller.BrandColor,
 		Currency:     cfg.currency,
 	}, nil
 }

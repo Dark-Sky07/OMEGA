@@ -25,6 +25,9 @@ var (
 
 type ResellerSignupInfo struct {
 	ResellerName string `json:"resellerName"`
+	BrandName    string `json:"brandName,omitempty"`
+	BrandLogo    string `json:"brandLogo,omitempty"`
+	BrandColor   string `json:"brandColor,omitempty"`
 	PlanName     string `json:"planName"`
 	Description  string `json:"description,omitempty"`
 	TotalBytes   int64  `json:"totalBytes"`
@@ -86,6 +89,9 @@ func (s *ResellerSignupService) Info(token string, secret []byte, now time.Time)
 	}
 	return &ResellerSignupInfo{
 		ResellerName: firstNonEmptySignup(strings.TrimSpace(reseller.Name), reseller.Username),
+		BrandName:    reseller.BrandName,
+		BrandLogo:    reseller.BrandLogo,
+		BrandColor:   reseller.BrandColor,
 		PlanName:     template.Name,
 		Description:  template.Description,
 		TotalBytes:   template.TotalGB,

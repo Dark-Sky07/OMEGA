@@ -36,6 +36,7 @@ func NewResellerSelfController(g *gin.RouterGroup) *ResellerSelfController {
 
 func (a *ResellerSelfController) initRouter(g *gin.RouterGroup) {
 	g.GET("/profile", a.profile)
+	g.POST("/branding", a.updateBranding)
 	g.GET("/stats", a.stats)
 	g.GET("/report", a.report)
 	g.GET("/report/export", a.reportExport)
@@ -82,6 +83,37 @@ func (a *ResellerSelfController) profile(c *gin.Context) {
 		return
 	}
 	stat, err := a.resellerService.Stat(reseller)
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, stat, nil)
+}
+
+func (a *ResellerSelfController) updateBranding(c *gin.Context) {
+	reseller := a.currentReseller(c)
+	if reseller == nil {
+		return
+	}
+	var form struct {
+		BrandName  string `json:"brandName"`
+		BrandLogo  string `json:"brandLogo"`
+		BrandColor string `json:"brandColor"`
+	}
+	if err := c.ShouldBindJSON(&form); err != nil {
+		jsonMsg(c, "invalid branding payload", err)
+		return
+	}
+	if err := a.resellerService.UpdateBranding(reseller.Id, form.BrandName, form.BrandLogo, form.BrandColor); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	updated, err := a.resellerService.Get(reseller.Id)
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	stat, err := a.resellerService.Stat(updated)
 	if err != nil {
 		jsonMsg(c, "", err)
 		return

@@ -2077,6 +2077,16 @@
     "txType": "類型",
     "deposit": "儲值",
     "withdraw": "扣減",
-    "walletActivity": "錢包收支"
+    "walletActivity": "錢包收支",
+    "branding": {
+      "title": "品牌設定",
+      "description": "自訂經銷商工作區與公開邀請頁面。",
+      "name": "品牌名稱",
+      "logo": "Logo 網址",
+      "logoHint": "請使用 HTTPS 網址或本站路徑。",
+      "color": "品牌顏色",
+      "save": "儲存品牌設定",
+      "saved": "品牌已更新"
+    }
   }
 }

@@ -7,11 +7,19 @@ import { ThemeProvider } from '@/hooks/useTheme';
 import AppSidebar from '@/layouts/AppSidebar';
 import { appRoutes } from '@/routes';
 
-const sessionState = vi.hoisted(() => ({ role: 'admin' as 'admin' | 'reseller' }));
+const sessionState = vi.hoisted(() => ({
+  role: 'admin' as 'admin' | 'reseller',
+  brand: null as null | { name: string; logo: string; color: string },
+}));
 
 vi.mock('@/api/queries/useSession', () => ({
   useSession: () => ({
-    session: { role: sessionState.role, username: 'ali', name: 'Ali' },
+    session: {
+      role: sessionState.role,
+      username: 'ali',
+      name: 'Ali',
+      stat: sessionState.brand ? { reseller: { brandName: sessionState.brand.name, brandLogo: sessionState.brand.logo, brandColor: sessionState.brand.color } } : undefined,
+    },
     role: sessionState.role,
     isAdmin: sessionState.role === 'admin',
     isReseller: sessionState.role === 'reseller',
@@ -74,6 +82,7 @@ function menuLabels(): string[] {
 describe('reseller navigation', () => {
   beforeEach(() => {
     sessionState.role = 'admin';
+    sessionState.brand = null;
   });
 
   it('admin sidebar offers the reseller management entry and PHOENIX branding', () => {
@@ -95,6 +104,17 @@ describe('reseller navigation', () => {
     for (const adminOnly of ['Panel Settings', 'Xray Configs', 'API Docs', 'Nodes', 'Groups', 'Overview']) {
       expect(labels).not.toContain(adminOnly);
     }
+  });
+
+  it('applies reseller branding and hides the PHOENIX version link', () => {
+    sessionState.role = 'reseller';
+    sessionState.brand = { name: 'Northstar', logo: '/assets/northstar.svg', color: '#224466' };
+    renderSidebar();
+
+    expect(document.querySelector('.brand-text')?.textContent).toBe('Northstar');
+    expect(document.querySelector('.brand-mark-img')?.getAttribute('src')).toBe('/assets/northstar.svg');
+    expect(document.querySelector('.brand-text')?.getAttribute('style')).toContain('color: rgb(34, 68, 102)');
+    expect(document.querySelector('.sider-version')).toBeNull();
   });
 
   it('reseller landing route redirects to the sales report', async () => {

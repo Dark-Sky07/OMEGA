@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Card, Form, Input, Result, Space, Spin, Typography, message } from 'antd';
+import { Alert, Button, Card, ConfigProvider, Form, Input, Result, Space, Spin, Typography, message } from 'antd';
 import { CheckCircleOutlined, ShopOutlined, UserAddOutlined } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
@@ -10,6 +10,9 @@ import { useTheme } from '@/hooks/useTheme';
 
 interface SignupInfo {
   resellerName: string;
+  brandName?: string;
+  brandLogo?: string;
+  brandColor?: string;
   planName: string;
   description?: string;
   totalBytes: number;
@@ -65,7 +68,8 @@ export default function ResellerSignupPage() {
 
   const info = infoQuery.data;
   return (
-    <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 16, background: isDark ? '#10131a' : '#f5f7fa' }}>
+    <ConfigProvider theme={info?.brandColor ? { token: { colorPrimary: info.brandColor } } : undefined}>
+      <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 16, background: isDark ? '#10131a' : '#f5f7fa' }}>
       {holder}
       <Card style={{ width: 'min(100%, 460px)' }}>
         {infoQuery.isLoading ? <Spin /> : null}
@@ -83,8 +87,8 @@ export default function ResellerSignupPage() {
         {info && !complete ? (
           <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <div style={{ textAlign: 'center' }}>
-              <ShopOutlined style={{ fontSize: 30, color: '#1677ff' }} />
-              <Typography.Title level={3} style={{ margin: '10px 0 4px' }}>{info.resellerName}</Typography.Title>
+              {info.brandLogo ? <img src={info.brandLogo} alt={info.brandName || info.resellerName} style={{ maxWidth: 160, maxHeight: 64, objectFit: 'contain' }} /> : <ShopOutlined style={{ fontSize: 30, color: info.brandColor || '#1677ff' }} />}
+              <Typography.Title level={3} style={{ margin: '10px 0 4px', color: info.brandColor || undefined }}>{info.brandName || info.resellerName}</Typography.Title>
               <Typography.Text type="secondary">{t('pages.checkout.resellerSignup.invited', 'invites you to register')}</Typography.Text>
             </div>
             <Card size="small" type="inner" title={info.planName}>
@@ -116,6 +120,7 @@ export default function ResellerSignupPage() {
           </Space>
         ) : null}
       </Card>
-    </main>
+      </main>
+    </ConfigProvider>
   );
 }

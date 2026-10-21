@@ -86,16 +86,17 @@ function readCollapsed(): boolean {
   }
 }
 
-/** PHOENIX crest medallion + fiery wordmark. `.brand-text` always reads "PHOENIX". */
-function Brand({ compact }: { compact?: boolean }) {
+/** PHOENIX branding by default; reseller accounts may show their own identity. */
+function Brand({ compact, name, logo, color }: { compact?: boolean; name?: string; logo?: string; color?: string }) {
+  const branded = Boolean(name || logo);
   return (
-    <div className={`brand-block${compact ? ' is-compact' : ''}`}>
-      <span className="brand-mark" aria-hidden="true">
-        <img src={phoenixCrest} alt="" className="brand-mark-img" />
+    <div className={`brand-block${compact ? ' is-compact' : ''}${branded ? ' is-branded' : ''}`}>
+      <span className="brand-mark" aria-hidden="true" style={branded && color ? { boxShadow: `0 0 0 1px ${color}` } : undefined}>
+        {logo ? <img src={logo} alt="" className="brand-mark-img" /> : branded ? <span className="brand-mark-glyph">{(name || 'R').slice(0, 1).toUpperCase()}</span> : <img src={phoenixCrest} alt="" className="brand-mark-img" />}
       </span>
       <span className="brand-copy">
-        <span className="brand-text">PHOENIX</span>
-        <span className="brand-sub">Eternal Flame Core</span>
+        <span className={`brand-text${branded ? ' is-branded' : ''}`} style={branded && color ? { color } : undefined}>{branded ? (name || 'Reseller') : 'PHOENIX'}</span>
+        {!branded && <span className="brand-sub">Eternal Flame Core</span>}
       </span>
     </div>
   );
@@ -152,7 +153,14 @@ export default function AppSidebar() {
   const navigate = useNavigate();
   const { pathname, hash } = useLocation();
   const { allSetting } = useAllSettings();
-  const { isReseller } = useSession();
+  const { isReseller, session } = useSession();
+  const resellerBrand = session?.stat?.reseller;
+  const hasCustomBrand = Boolean(isReseller && (resellerBrand?.brandName || resellerBrand?.brandLogo));
+  const brandProps = hasCustomBrand ? {
+    name: resellerBrand?.brandName || session?.name,
+    logo: resellerBrand?.brandLogo,
+    color: resellerBrand?.brandColor,
+  } : {};
   const showSubFormats = !!(allSetting.subJsonEnable || allSetting.subClashEnable);
 
   const [collapsed, setCollapsed] = useState<boolean>(() => readCollapsed());
@@ -318,7 +326,7 @@ export default function AppSidebar() {
         onCollapse={onSiderCollapse}
       >
         <div className={`sider-brand${collapsed ? ' sider-brand-collapsed' : ''}`}>
-          <Brand compact={collapsed} />
+          <Brand compact={collapsed} {...brandProps} />
         </div>
 
         <Menu
@@ -374,7 +382,7 @@ export default function AppSidebar() {
                 </button>
               </Tooltip>
             </div>
-            <VersionBadge version={panelVersion} updateAvailable={panelUpdateInfo.updateAvailable} collapsed={collapsed} />
+            {!hasCustomBrand && <VersionBadge version={panelVersion} updateAvailable={panelUpdateInfo.updateAvailable} collapsed={collapsed} />}
           </div>
         </div>
       </Layout.Sider>
@@ -393,7 +401,7 @@ export default function AppSidebar() {
         onClose={() => setDrawerOpen(false)}
       >
         <div className="drawer-header">
-          <Brand />
+          <Brand {...brandProps} />
           <div className="drawer-header-actions">
             <ThemeCycleButton
               id="theme-cycle-drawer"
@@ -433,7 +441,7 @@ export default function AppSidebar() {
           onClick={(info) => { onMenuClick(info); setDrawerOpen(false); }}
         />
         <div className="drawer-footer">
-          <VersionBadge version={panelVersion} updateAvailable={panelUpdateInfo.updateAvailable} />
+          {!hasCustomBrand && <VersionBadge version={panelVersion} updateAvailable={panelUpdateInfo.updateAvailable} />}
         </div>
       </Drawer>
 

@@ -30,7 +30,7 @@ func TestResellerDepositCheckoutWebhookAndToken(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	reseller := &model.Reseller{Username: "deposit-shop", Name: "Deposit Shop", Password: "hash", Enable: true}
+	reseller := &model.Reseller{Username: "deposit-shop", Name: "Deposit Shop", BrandName: "Northstar", BrandLogo: "/assets/northstar.svg", BrandColor: "#224466", Password: "hash", Enable: true}
 	if err := database.GetDB().Create(reseller).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestResellerDepositCheckoutWebhookAndToken(t *testing.T) {
 		t.Fatalf("CreateLink: %v", err)
 	}
 	info, err := svc.Info(token, secret, now)
-	if err != nil || info.ResellerName != "Deposit Shop" || info.Currency != "USD" {
+	if err != nil || info.ResellerName != "Deposit Shop" || info.BrandName != "Northstar" || info.BrandLogo != "/assets/northstar.svg" || info.BrandColor != "#224466" || info.Currency != "USD" {
 		t.Fatalf("Info = %+v, err=%v", info, err)
 	}
 	if _, err := svc.Info(token, secret, now.Add(resellerDepositLinkTTL+time.Second)); err == nil {

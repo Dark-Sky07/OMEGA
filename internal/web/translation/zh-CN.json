@@ -2077,6 +2077,16 @@
     "txType": "类型",
     "deposit": "充值",
     "withdraw": "扣减",
-    "walletActivity": "钱包收支"
+    "walletActivity": "钱包收支",
+    "branding": {
+      "title": "品牌设置",
+      "description": "自定义经销商工作区和公开邀请页面。",
+      "name": "品牌名称",
+      "logo": "Logo 地址",
+      "logoHint": "请使用 HTTPS 地址或本站路径。",
+      "color": "品牌颜色",
+      "save": "保存品牌设置",
+      "saved": "品牌已更新"
+    }
   }
 }

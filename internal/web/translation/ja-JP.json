@@ -2077,6 +2077,16 @@
     "txType": "種別",
     "deposit": "入金",
     "withdraw": "出金",
-    "walletActivity": "ウォレットの入出金"
+    "walletActivity": "ウォレットの入出金",
+    "branding": {
+      "title": "ブランド設定",
+      "description": "リセラーのワークスペースと公開招待ページをカスタマイズします。",
+      "name": "ブランド名",
+      "logo": "ロゴ URL",
+      "logoHint": "HTTPS URL または同一サイト内のパスを使用してください。",
+      "color": "ブランドカラー",
+      "save": "ブランドを保存",
+      "saved": "ブランドを更新しました"
+    }
   }
 }

@@ -57,6 +57,12 @@ type TelegramLinkInfo = {
   botUsername?: string;
 };
 
+type ResellerBrandingValues = {
+  brandName: string;
+  brandLogo: string;
+  brandColor: string;
+};
+
 const NOTIF_TAG_COLOR: Record<string, string> = {
   quota80: 'gold',
   quota95: 'orange',
@@ -98,6 +104,7 @@ export default function ResellerProfilePage() {
   const queryClient = useQueryClient();
   const [messageApi, messageContextHolder] = message.useMessage();
   const [saving, setSaving] = useState(false);
+  const [brandingSaving, setBrandingSaving] = useState(false);
   const [ticketsOpen, setTicketsOpen] = useState(false);
   const [voucherCode, setVoucherCode] = useState('');
   const [redeeming, setRedeeming] = useState(false);
@@ -110,6 +117,7 @@ export default function ResellerProfilePage() {
   const [depositLink, setDepositLink] = useState('');
   const [depositLinkLoading, setDepositLinkLoading] = useState(false);
   const [passwordForm] = Form.useForm<{ oldPassword: string; newPassword: string; confirmPassword: string }>();
+  const [brandingForm] = Form.useForm<ResellerBrandingValues>();
 
   const redeemVoucher = useCallback(async () => {
     const code = voucherCode.trim();
@@ -148,6 +156,15 @@ export default function ResellerProfilePage() {
   });
 
   const stat = profileQuery.data;
+  useEffect(() => {
+    if (!stat) return;
+    brandingForm.setFieldsValue({
+      brandName: stat.reseller.brandName || '',
+      brandLogo: stat.reseller.brandLogo || '',
+      brandColor: stat.reseller.brandColor || '',
+    });
+  }, [brandingForm, stat]);
+
   const signupTemplatesQuery = useQuery({
     queryKey: [...keys.resellers.selfReport(), 'signup-templates'],
     queryFn: async (): Promise<Array<{ id: number; name: string; totalGB: number; expireDurationDays: number }>> => {
@@ -177,6 +194,24 @@ export default function ResellerProfilePage() {
       queryClient.invalidateQueries({ queryKey: keys.resellers.notifications() });
     }
   }, [queryClient]);
+
+  const saveBranding = useCallback(async () => {
+    const values = await brandingForm.validateFields().catch(() => null);
+    if (!values) return;
+    setBrandingSaving(true);
+    try {
+      const response = await HttpUtil.post('/panel/api/reseller/branding', values, { ...JSON_HEADERS, silent: true } as never);
+      if (!response.success || !response.obj) {
+        messageApi.error(response.msg || t('somethingWentWrong'));
+        return;
+      }
+      queryClient.setQueryData([...keys.resellers.selfReport(), 'profile'], response.obj as ResellerStat);
+      queryClient.invalidateQueries({ queryKey: keys.session.me() });
+      messageApi.success(t('resellers.branding.saved'));
+    } finally {
+      setBrandingSaving(false);
+    }
+  }, [brandingForm, messageApi, queryClient, t]);
 
   const generateTgLink = useCallback(async () => {
     setTgLinking(true);
@@ -337,6 +372,36 @@ export default function ResellerProfilePage() {
                         {stat?.reseller.expiryTime ? new Date(stat.reseller.expiryTime).toLocaleString() : t('resellers.never')}
                       </Descriptions.Item>
                     </Descriptions>
+                  </Card>
+                </Col>
+
+                <Col span={24}>
+                  <Card size="small" className="phoenix-rise phoenix-rise-2" title={t('resellers.branding.title')}>
+                    <Typography.Paragraph type="secondary">
+                      {t('resellers.branding.description')}
+                    </Typography.Paragraph>
+                    <Form form={brandingForm} layout="vertical">
+                      <Row gutter={12}>
+                        <Col xs={24} md={8}>
+                          <Form.Item name="brandName" label={t('resellers.branding.name')}>
+                            <Input maxLength={80} />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} md={10}>
+                          <Form.Item name="brandLogo" label={t('resellers.branding.logo')} help={t('resellers.branding.logoHint')}>
+                            <Input maxLength={2048} />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} md={6}>
+                          <Form.Item name="brandColor" label={t('resellers.branding.color')}>
+                            <Input maxLength={7} placeholder="#1677FF" />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+                      <Button type="primary" loading={brandingSaving} onClick={() => void saveBranding()}>
+                        {t('resellers.branding.save')}
+                      </Button>
+                    </Form>
                   </Card>
                 </Col>
 

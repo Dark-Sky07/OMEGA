@@ -16,6 +16,9 @@ type Reseller struct {
 	Password   string `json:"-" form:"password" gorm:"not null"`
 	Name       string `json:"name" form:"name" example:"Ali Reseller"`         // Display name shown in the panel
 	Comment    string `json:"comment" form:"comment" example:"Telegram: @ali"` // Free-form note for the admin
+	BrandName  string `json:"brandName" gorm:"column:brand_name;size:80"`
+	BrandLogo  string `json:"brandLogo" gorm:"column:brand_logo;size:2048"`
+	BrandColor string `json:"brandColor" gorm:"column:brand_color;size:7"`
 	Enable     bool   `json:"enable" form:"enable" gorm:"default:true" example:"true"`
 	LoginEpoch int64  `json:"-" gorm:"default:0"` // Bumped to invalidate existing sessions
 

@@ -89,6 +89,22 @@
   transform: translateY(-1px);
 }
 
+.brand-block.is-branded .brand-mark {
+  background: rgba(127, 127, 127, 0.12);
+}
+
+.brand-block.is-branded .brand-mark::after,
+.brand-block.is-branded .brand-mark-img {
+  filter: none;
+  background: none;
+}
+
+.brand-text.is-branded {
+  background: none;
+  -webkit-text-fill-color: currentColor;
+  letter-spacing: 0.04em;
+}
+
 .brand-copy {
   display: flex;
   flex-direction: column;

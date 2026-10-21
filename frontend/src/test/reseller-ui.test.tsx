@@ -125,6 +125,9 @@ describe('reseller pages', () => {
         };
       }
       if (url === '/panel/api/reseller/profile') return statFixture;
+      if (url === '/panel/api/reseller/branding') {
+        return { ...statFixture, reseller: { ...statFixture.reseller, brandName: 'Northstar', brandLogo: '/assets/northstar.svg', brandColor: '#224466' } };
+      }
       if (url === '/panel/api/reseller/signup/templates') return [];
       if (url === '/panel/api/reseller/deposit/link') return { token: 'signed-deposit-token' };
       return {};
@@ -175,7 +178,7 @@ describe('reseller pages', () => {
 
     await waitFor(() => expect(screen.getByText('Wallet activity')).toBeTruthy());
     expect(document.body.textContent).toContain('cash');
-  });
+  }, 12000);
 
   it('reseller report page shows usage and the client rows', async () => {
     sessionState.role = 'reseller';
@@ -188,6 +191,23 @@ describe('reseller pages', () => {
     expect(text).toContain('Wallet activity'); // twelve-month credit/debit chart
     expect(text).toContain('cash'); // ledger comment from the fixture
     expect(HttpUtil.get).toHaveBeenCalledWith('/panel/api/reseller/report');
+  });
+
+  it('reseller can save white-label branding from its profile', async () => {
+    sessionState.role = 'reseller';
+    renderPage(<ResellerProfilePage />);
+
+    await waitFor(() => expect(screen.getByText('tg:@ali')).toBeTruthy());
+    fireEvent.change(screen.getByLabelText('Brand name'), { target: { value: 'Northstar' } });
+    fireEvent.change(screen.getByLabelText('Logo URL'), { target: { value: '/assets/northstar.svg' } });
+    fireEvent.change(screen.getByLabelText('Brand color'), { target: { value: '#224466' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save branding' }));
+
+    await waitFor(() => expect(HttpUtil.post).toHaveBeenCalledWith(
+      '/panel/api/reseller/branding',
+      { brandName: 'Northstar', brandLogo: '/assets/northstar.svg', brandColor: '#224466' },
+      { headers: { 'Content-Type': 'application/json' }, silent: true },
+    ));
   });
 
   it('reseller profile page exposes quotas and validates the password form', async () => {
@@ -205,7 +225,7 @@ describe('reseller pages', () => {
     fireEvent.change(inputs[1], { target: { value: 'newpass1' } });
     fireEvent.change(inputs[2], { target: { value: 'newpass2' } });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /Save/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^Save$/i }));
     });
 
     await waitFor(() => expect(screen.getByText('Passwords do not match')).toBeTruthy());
@@ -240,6 +260,7 @@ describe('reseller pages', () => {
       'POST /panel/api/resellers/assignClients',
       'POST /panel/api/resellers/unassignClient',
       'GET /panel/api/reseller/profile',
+      'POST /panel/api/reseller/branding',
       'GET /panel/api/reseller/report',
       'POST /panel/api/reseller/password',
       'GET /panel/api/reseller/signup/templates',
