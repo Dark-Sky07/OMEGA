@@ -2068,6 +2068,14 @@
       "unlinked": "Telegram diputuskan."
     },
     "exportCsv": "Ekspor CSV",
-    "exportListCsv": "Ekspor daftar (CSV)"
+    "exportListCsv": "Ekspor daftar (CSV)",
+    "pricePerGb": "Harga per GB",
+    "pricePerGbHint": "Ditagihkan untuk setiap GB yang dikonsumsi klien reseller; saldo = deposit − biaya pemakaian. 0 menonaktifkan penagihan.",
+    "adjustBalance": "Sesuaikan saldo",
+    "adjustBalanceHint": "Nominal positif berarti deposit, negatif berarti penarikan. Setiap perubahan tercatat di buku kas.",
+    "amount": "Nominal",
+    "txType": "Jenis",
+    "deposit": "Deposit",
+    "withdraw": "Penarikan"
   }
 }

@@ -2068,6 +2068,14 @@
       "unlinked": "已解除 Telegram 綁定。"
     },
     "exportCsv": "匯出 CSV",
-    "exportListCsv": "匯出清單 (CSV)"
+    "exportListCsv": "匯出清單 (CSV)",
+    "pricePerGb": "每 GB 價格",
+    "pricePerGbHint": "按經銷商客戶消耗的每 GB 計費；餘額 = 儲值 − 使用費用。0 表示關閉計費。",
+    "adjustBalance": "調整餘額",
+    "adjustBalanceHint": "正數為儲值，負數為扣減。每次變動都會記入帳本。",
+    "amount": "金額",
+    "txType": "類型",
+    "deposit": "儲值",
+    "withdraw": "扣減"
   }
 }

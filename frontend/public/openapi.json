@@ -3199,7 +3199,7 @@
             "required": true,
             "description": "Inbound ID.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -3336,7 +3336,7 @@
             "required": true,
             "description": "Inbound ID.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -3436,7 +3436,7 @@
             "required": true,
             "description": "Inbound ID.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -3477,7 +3477,7 @@
             "required": true,
             "description": "Inbound ID.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -3531,7 +3531,7 @@
             "required": true,
             "description": "Inbound ID.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -3572,7 +3572,7 @@
             "required": true,
             "description": "Inbound ID.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -3642,6 +3642,30 @@
         ],
         "summary": "Bulk-import an inbound from a JSON blob (e.g. one exported via the UI). The body uses form encoding with a single \"data\" field.",
         "operationId": "post_panel_api_inbounds_import",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "string",
+                    "description": "JSON-encoded inbound payload."
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -3677,7 +3701,21 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "masterGuid": {
+                    "type": "string",
+                    "description": "Stable GUID of the pushing master panel."
+                  },
+                  "traffics": {
+                    "type": "string",
+                    "description": "Client traffic rows; only email/up/down are read."
+                  }
+                },
+                "required": [
+                  "masterGuid",
+                  "traffics"
+                ]
               },
               "example": {
                 "masterGuid": "9f6c2d-…",
@@ -3732,7 +3770,7 @@
             "required": true,
             "description": "Master inbound ID.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -3787,7 +3825,7 @@
             "required": true,
             "description": "Master inbound ID.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -3796,7 +3834,16 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "fallbacks": {
+                    "type": "string",
+                    "description": "Array of {childId, name, alpn, path, dest, xver, sortOrder} entries. Leave dest empty to auto-resolve from the child inbound's listen+port; set it (e.g. \"8443\", \"127.0.0.1:8443\", \"/dev/shm/x.sock\") to override."
+                  }
+                },
+                "required": [
+                  "fallbacks"
+                ]
               },
               "example": {
                 "fallbacks": [
@@ -3918,7 +3965,7 @@
             "required": true,
             "description": "Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -3968,7 +4015,7 @@
             "required": true,
             "description": "Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -4061,7 +4108,7 @@
             "required": true,
             "description": "Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -4141,7 +4188,7 @@
             "required": true,
             "description": "Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -5021,6 +5068,20 @@
               "schema": {
                 "type": "object"
               }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fileName": {
+                    "type": "string",
+                    "description": "Filename to update (e.g. geoip.dat, geosite.dat). Omit to update all defaults."
+                  }
+                },
+                "required": [
+                  "fileName"
+                ]
+              }
             }
           }
         },
@@ -5102,7 +5163,7 @@
             "required": true,
             "description": "Number of trailing log lines.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -5161,7 +5222,7 @@
             "required": true,
             "description": "Number of trailing log lines.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -5171,6 +5232,35 @@
             "application/json": {
               "schema": {
                 "type": "object"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "filter": {
+                    "type": "string",
+                    "description": "Keyword filter — only lines containing this string."
+                  },
+                  "showDirect": {
+                    "type": "string",
+                    "description": "\"true\" to include direct (freedom) traffic lines."
+                  },
+                  "showBlocked": {
+                    "type": "string",
+                    "description": "\"true\" to include blocked (blackhole) traffic lines."
+                  },
+                  "showProxy": {
+                    "type": "string",
+                    "description": "\"true\" to include proxy traffic lines."
+                  }
+                },
+                "required": [
+                  "filter",
+                  "showDirect",
+                  "showBlocked",
+                  "showProxy"
+                ]
               }
             }
           }
@@ -5216,7 +5306,7 @@
             "required": true,
             "description": "Maximum peer rows and event lines to return.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -5226,6 +5316,20 @@
             "application/json": {
               "schema": {
                 "type": "object"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "filter": {
+                    "type": "string",
+                    "description": "Keyword filter — only rows/lines containing this string."
+                  }
+                },
+                "required": [
+                  "filter"
+                ]
               }
             }
           }
@@ -5322,6 +5426,20 @@
               "schema": {
                 "type": "object"
               }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sni": {
+                    "type": "string",
+                    "description": "Server Name Indication to generate the ECH config for."
+                  }
+                },
+                "required": [
+                  "sni"
+                ]
+              }
             }
           }
         },
@@ -5398,6 +5516,25 @@
         ],
         "summary": "Submit a list of recently active IP timestamps. The panel merges them with the existing database to maintain a unified global IP-limit view.",
         "operationId": "post_panel_api_server_clientIps",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ips": {
+                    "type": "string",
+                    "description": "Array of InboundClientIps to merge."
+                  }
+                },
+                "required": [
+                  "ips"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -5572,7 +5709,7 @@
             "required": true,
             "description": "1-indexed page number. Defaults to 1.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           },
           {
@@ -5581,7 +5718,7 @@
             "required": true,
             "description": "Rows per page. Defaults to 25, capped at 200.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           },
           {
@@ -5747,7 +5884,21 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "client": {
+                    "type": "object",
+                    "description": "Client fields: email, subId, id (uuid), password, auth, flow, totalGB, expiryTime, limitIp, tgId (numeric Telegram user ID, 0 = none), comment, enable."
+                  },
+                  "inboundIds": {
+                    "type": "string",
+                    "description": "Inbound IDs to attach the client to. At least one required."
+                  }
+                },
+                "required": [
+                  "client",
+                  "inboundIds"
+                ]
               },
               "example": {
                 "client": {
@@ -5999,7 +6150,16 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "inboundIds": {
+                    "type": "string",
+                    "description": "Inbound IDs to attach."
+                  }
+                },
+                "required": [
+                  "inboundIds"
+                ]
               },
               "example": {
                 "inboundIds": [
@@ -6059,7 +6219,16 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "inboundIds": {
+                    "type": "string",
+                    "description": "Inbound IDs to detach."
+                  }
+                },
+                "required": [
+                  "inboundIds"
+                ]
               },
               "example": {
                 "inboundIds": [
@@ -6477,7 +6646,21 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "emails": {
+                    "type": "array",
+                    "description": "Emails of existing clients to attach."
+                  },
+                  "inboundIds": {
+                    "type": "string",
+                    "description": "Target inbound IDs to attach every client to."
+                  }
+                },
+                "required": [
+                  "emails",
+                  "inboundIds"
+                ]
               },
               "example": {
                 "emails": [
@@ -6540,7 +6723,21 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "emails": {
+                    "type": "array",
+                    "description": "Emails of existing clients to detach."
+                  },
+                  "inboundIds": {
+                    "type": "string",
+                    "description": "Inbound IDs to detach the clients from."
+                  }
+                },
+                "required": [
+                  "emails",
+                  "inboundIds"
+                ]
               },
               "example": {
                 "emails": [
@@ -7626,7 +7823,7 @@
             "required": true,
             "description": "Node ID.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -7667,7 +7864,7 @@
             "required": true,
             "description": "Node ID.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -7766,7 +7963,7 @@
             "required": true,
             "description": "Node ID.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -7828,7 +8025,7 @@
             "required": true,
             "description": "Node ID.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -7869,7 +8066,7 @@
             "required": true,
             "description": "Node ID.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -8096,7 +8293,7 @@
             "required": true,
             "description": "Node ID.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -8200,7 +8397,7 @@
             "required": true,
             "description": "Node ID.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           },
           {
@@ -8218,7 +8415,7 @@
             "required": true,
             "description": "Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -8650,7 +8847,7 @@
             "required": true,
             "description": "Token row ID.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -8694,7 +8891,7 @@
             "required": true,
             "description": "Token row ID.",
             "schema": {
-              "type": "integer"
+              "type": "number"
             }
           }
         ],
@@ -9130,6 +9327,35 @@
         ],
         "summary": "Save the Xray JSON config template and optionally the outbound test URL. Both are sent as form fields.",
         "operationId": "post_panel_api_xray_update",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "xraySetting": {
+                    "type": "string",
+                    "description": "Full Xray JSON config template."
+                  },
+                  "outboundTestUrl": {
+                    "type": "string",
+                    "description": "URL used for outbound reachability tests. Defaults to https://www.google.com/generate_204."
+                  }
+                },
+                "required": [
+                  "xraySetting",
+                  "outboundTestUrl"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -9171,6 +9397,40 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "privateKey": {
+                    "type": "string",
+                    "description": "Required when action=reg."
+                  },
+                  "publicKey": {
+                    "type": "string",
+                    "description": "Required when action=reg."
+                  },
+                  "license": {
+                    "type": "string",
+                    "description": "Required when action=license."
+                  }
+                },
+                "required": [
+                  "privateKey",
+                  "publicKey",
+                  "license"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -9212,6 +9472,40 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "countryId": {
+                    "type": "string",
+                    "description": "Required when action=servers."
+                  },
+                  "token": {
+                    "type": "string",
+                    "description": "Required when action=reg."
+                  },
+                  "key": {
+                    "type": "string",
+                    "description": "Required when action=setKey."
+                  }
+                },
+                "required": [
+                  "countryId",
+                  "token",
+                  "key"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -9248,6 +9542,20 @@
             "application/json": {
               "schema": {
                 "type": "object"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tag": {
+                    "type": "string",
+                    "description": "Outbound tag to reset (e.g. \"proxy\", \"direct\")."
+                  }
+                },
+                "required": [
+                  "tag"
+                ]
               }
             }
           }
@@ -9289,6 +9597,30 @@
               "schema": {
                 "type": "object"
               }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "outbound": {
+                    "type": "string",
+                    "description": "JSON-encoded single outbound to test (required)."
+                  },
+                  "allOutbounds": {
+                    "type": "string",
+                    "description": "JSON array of all outbounds — used to resolve dialerProxy chains."
+                  },
+                  "mode": {
+                    "type": "string",
+                    "description": "\"tcp\" for a fast dial-only probe (parallel-safe). Default/empty uses a full HTTP probe through a temp xray instance."
+                  }
+                },
+                "required": [
+                  "outbound",
+                  "allOutbounds",
+                  "mode"
+                ]
+              }
             }
           }
         },
@@ -9328,6 +9660,30 @@
             "application/json": {
               "schema": {
                 "type": "object"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "outbounds": {
+                    "type": "string",
+                    "description": "JSON array of outbound configs to test (required)."
+                  },
+                  "allOutbounds": {
+                    "type": "string",
+                    "description": "JSON array of all outbounds — used to resolve dialerProxy chains."
+                  },
+                  "mode": {
+                    "type": "string",
+                    "description": "\"tcp\" for fast dial-only probes (UDP-transport outbounds are still probed over HTTP). Default/empty routes a real HTTP request through each outbound."
+                  }
+                },
+                "required": [
+                  "outbounds",
+                  "allOutbounds",
+                  "mode"
+                ]
               }
             }
           }
@@ -9369,6 +9725,20 @@
               "schema": {
                 "type": "object"
               }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tags": {
+                    "type": "string",
+                    "description": "Comma-separated balancer tags to query (e.g. \"b1,b2\")."
+                  }
+                },
+                "required": [
+                  "tags"
+                ]
+              }
             }
           }
         },
@@ -9409,6 +9779,25 @@
               "schema": {
                 "type": "object"
               }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tag": {
+                    "type": "string",
+                    "description": "Balancer tag (required)."
+                  },
+                  "target": {
+                    "type": "string",
+                    "description": "Outbound tag to force. Empty clears the override and returns control to the strategy."
+                  }
+                },
+                "required": [
+                  "tag",
+                  "target"
+                ]
+              }
             }
           }
         },
@@ -9448,6 +9837,50 @@
             "application/json": {
               "schema": {
                 "type": "object"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "domain": {
+                    "type": "string",
+                    "description": "Target domain. Either domain or ip is required."
+                  },
+                  "ip": {
+                    "type": "string",
+                    "description": "Target IP. Either domain or ip is required."
+                  },
+                  "port": {
+                    "type": "number",
+                    "description": "Target port (optional)."
+                  },
+                  "network": {
+                    "type": "string",
+                    "description": "\"tcp\" (default) or \"udp\"."
+                  },
+                  "inboundTag": {
+                    "type": "string",
+                    "description": "Simulate arrival on this inbound (optional)."
+                  },
+                  "protocol": {
+                    "type": "string",
+                    "description": "Sniffed protocol such as http, tls, bittorrent (optional)."
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "User attribution for user-based rules (optional)."
+                  }
+                },
+                "required": [
+                  "domain",
+                  "ip",
+                  "port",
+                  "network",
+                  "inboundTag",
+                  "protocol",
+                  "email"
+                ]
               }
             }
           }
@@ -9510,6 +9943,60 @@
         ],
         "summary": "Create an outbound subscription. The URL is fetched, parsed into outbounds with stable tags, and merged additively into the running Xray config.",
         "operationId": "post_panel_api_xray_outbound_subs",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "remark": {
+                    "type": "string",
+                    "description": "Optional display label."
+                  },
+                  "url": {
+                    "type": "string",
+                    "description": "Subscription URL (required). Must be a public http(s) address; private/internal targets are blocked unless allowPrivate is true."
+                  },
+                  "tagPrefix": {
+                    "type": "string",
+                    "description": "Prefix for generated outbound tags. Defaults to \"sub<id>-\"."
+                  },
+                  "updateInterval": {
+                    "type": "integer",
+                    "description": "Seconds between auto-refreshes. Default 600."
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "Whether the subscription is active. Default true."
+                  },
+                  "allowPrivate": {
+                    "type": "boolean",
+                    "description": "Allow the URL to point at a private/internal/loopback address (localhost/LAN). Default false (SSRF guard blocks private targets)."
+                  },
+                  "prepend": {
+                    "type": "boolean",
+                    "description": "Place this subscription's outbounds before the manual template outbounds (so one can become the default). Default false."
+                  }
+                },
+                "required": [
+                  "remark",
+                  "url",
+                  "tagPrefix",
+                  "updateInterval",
+                  "enabled",
+                  "allowPrivate",
+                  "prepend"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -9713,6 +10200,30 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dir": {
+                    "type": "string",
+                    "description": "\"up\" to raise priority, anything else to lower it."
+                  }
+                },
+                "required": [
+                  "dir"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -9743,6 +10254,30 @@
         ],
         "summary": "Preview a subscription URL: fetch and parse it into outbounds without persisting anything.",
         "operationId": "post_panel_api_xray_outbound_subs_parse",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "description": "Subscription URL to preview (required)."
+                  }
+                },
+                "required": [
+                  "url"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -10231,6 +10766,58 @@
         ],
         "summary": "Create a reseller. The password is hashed with bcrypt; a zero quota means \"no limit\". The username must differ from the panel admin and from every other reseller.",
         "operationId": "post_panel_api_resellers_add",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "comment": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "enable": {
+                    "type": "boolean",
+                    "description": ""
+                  },
+                  "trafficLimit": {
+                    "type": "integer",
+                    "description": "Bytes. Cap on the sum of the reseller client quotas."
+                  },
+                  "clientLimit": {
+                    "type": "integer",
+                    "description": ""
+                  },
+                  "expiryTime": {
+                    "type": "integer",
+                    "description": "Unix ms, 0 = never."
+                  },
+                  "pricePerGb": {
+                    "type": "number",
+                    "description": "GB-based billing price. Cost = used GB × pricePerGb; balance = deposit − cost. 0 (default) disables billing."
+                  }
+                },
+                "required": [
+                  "username",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -10354,6 +10941,25 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "enable": {
+                    "type": "boolean",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "enable"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -10395,6 +11001,25 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "password"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -10425,6 +11050,30 @@
         ],
         "summary": "Hand an inbound (with all of its clients) to a reseller.",
         "operationId": "post_panel_api_resellers_assignInbound",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "resellerId": {
+                    "type": "integer",
+                    "description": ""
+                  },
+                  "inboundId": {
+                    "type": "integer",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "resellerId",
+                  "inboundId"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -10455,6 +11104,30 @@
         ],
         "summary": "Return an inbound to the admin. Clients that only belonged to the reseller through this inbound go back with it; explicitly assigned clients stay.",
         "operationId": "post_panel_api_resellers_unassignInbound",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "resellerId": {
+                    "type": "integer",
+                    "description": ""
+                  },
+                  "inboundId": {
+                    "type": "integer",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "resellerId",
+                  "inboundId"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -10485,6 +11158,30 @@
         ],
         "summary": "Atomically add a batch of inbounds to a reseller; missing ids or an ownership conflict reject the whole batch.",
         "operationId": "post_panel_api_resellers_assignInbounds",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "resellerId": {
+                    "type": "integer",
+                    "description": ""
+                  },
+                  "inboundIds": {
+                    "type": "string",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "resellerId",
+                  "inboundIds"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -10515,6 +11212,30 @@
         ],
         "summary": "Atomically remove a batch of inbound mappings for a reseller without changing inbound configuration.",
         "operationId": "post_panel_api_resellers_unassignInbounds",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "resellerId": {
+                    "type": "integer",
+                    "description": ""
+                  },
+                  "inboundIds": {
+                    "type": "string",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "resellerId",
+                  "inboundIds"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -10545,6 +11266,29 @@
         ],
         "summary": "Atomically replace the reseller inbound assignment set. Send the complete multi-select (an empty inboundIds array clears only this reseller); conflicts with another reseller or missing ids reject the whole transaction.",
         "operationId": "post_panel_api_resellers_setInbounds",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "resellerId": {
+                    "type": "integer",
+                    "description": ""
+                  },
+                  "inboundIds": {
+                    "type": "string",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "resellerId"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -10575,6 +11319,30 @@
         ],
         "summary": "Atomically add explicit client visibility mappings for a reseller.",
         "operationId": "post_panel_api_resellers_assignClients",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "resellerId": {
+                    "type": "integer",
+                    "description": ""
+                  },
+                  "emails": {
+                    "type": "string",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "resellerId",
+                  "emails"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -10605,6 +11373,30 @@
         ],
         "summary": "Atomically remove explicit client visibility mappings without deleting clients or inbound attachments.",
         "operationId": "post_panel_api_resellers_unassignClients",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "resellerId": {
+                    "type": "integer",
+                    "description": ""
+                  },
+                  "emails": {
+                    "type": "string",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "resellerId",
+                  "emails"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -10635,6 +11427,30 @@
         ],
         "summary": "Assign a single client (by email) to a reseller. Used for clients that live on a shared inbound owned by the admin.",
         "operationId": "post_panel_api_resellers_assignClient",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "resellerId": {
+                    "type": "integer",
+                    "description": ""
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "resellerId",
+                  "email"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -10665,6 +11481,30 @@
         ],
         "summary": "Remove an explicit client assignment.",
         "operationId": "post_panel_api_resellers_unassignClient",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "resellerId": {
+                    "type": "integer",
+                    "description": ""
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "resellerId",
+                  "email"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -10695,6 +11535,34 @@
         ],
         "summary": "Top up (positive amount) or settle (negative amount) a reseller balance and append the movement to its ledger. A withdrawal cannot push the balance below zero.",
         "operationId": "post_panel_api_resellers_balance",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "resellerId": {
+                    "type": "integer",
+                    "description": ""
+                  },
+                  "amount": {
+                    "type": "number",
+                    "description": ""
+                  },
+                  "comment": {
+                    "type": "string",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "resellerId",
+                  "amount"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -10845,6 +11713,30 @@
         ],
         "summary": "Change the signed-in reseller own password. The old password is verified first; the session is cleared afterwards because the login epoch is bumped.",
         "operationId": "post_panel_api_reseller_password",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "oldPassword": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "oldPassword",
+                  "newPassword"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -11667,6 +12559,22 @@
         ],
         "summary": "Flag one notification (body id > 0) or every unread notification (id omitted/0) of the signed-in reseller as read.",
         "operationId": "post_panel_api_reseller_notifications_read",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "description": "Notification id, or 0/omitted to mark all as read."
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -12026,11 +12934,21 @@
           }
         ],
         "requestBody": {
-          "required": true,
+          "required": false,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "gb": {
+                    "type": "integer",
+                    "description": "Extra traffic in GB (0-10000)."
+                  },
+                  "months": {
+                    "type": "integer",
+                    "description": "Renewal months, 30 days each (0-36)."
+                  }
+                }
               },
               "example": {
                 "gb": 20,

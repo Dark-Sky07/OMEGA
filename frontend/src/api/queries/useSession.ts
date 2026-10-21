@@ -16,8 +16,9 @@ export interface ResellerStat {
     expiryTime: number;
     /** Linked Telegram chat id, 0 = not linked. */
     tgId?: number;
-    // Kept for backward compat, billing is now removed from UI
+    /** GB-based billing price (0 = billing disabled). */
     pricePerGb?: number;
+    /** Ledger deposits minus usage cost. */
     deposit?: number;
     createdAt?: number;
     updatedAt?: number;
@@ -28,7 +29,9 @@ export interface ResellerStat {
   usedTraffic: number;
   allocatedTraffic: number;
   remainingTraffic: number;
+  /** Usage cost: usedTraffic / GB * pricePerGb. */
   cost?: number;
+  /** Deposit minus cost; negative = reseller owes credit. */
   balance?: number;
   expired: boolean;
   overQuota: boolean;
