@@ -2208,8 +2208,14 @@
     "noAssignedClients": "No explicitly assigned clients",
     "unassign": "Remove",
     "balance": "Balance",
+    "pricePerGb": "Price per GB",
+    "pricePerGbHint": "Billed for every GB the reseller's clients consume; balance = deposits − usage cost. 0 disables billing.",
+    "adjustBalance": "Adjust balance",
+    "adjustBalanceHint": "Positive amount deposits credit, negative withdraws it. Every change is recorded in the ledger.",
     "amount": "Amount",
-    "amountHint": "Positive to deposit, negative to withdraw. Balance cannot go below zero.",
+    "txType": "Type",
+    "deposit": "Deposit",
+    "withdraw": "Withdraw",
     "resetPassword": "Reset password",
     "report": "Report",
     "usedTraffic": "Used traffic",
@@ -2247,14 +2253,6 @@
       "actions": "Actions",
       "quota": "Quota",
       "date": "Date"
-    },
-    "validation": {
-      "username": "Enter a username",
-      "password": "Enter a password",
-      "email": "Choose a client",
-      "newPassword": "New password must be at least 6 characters",
-      "confirmPassword": "Confirm the new password",
-      "passwordMismatch": "Passwords do not match"
     },
     "toasts": {
       "created": "Reseller created",
@@ -2333,7 +2331,16 @@
       "unlinked": "Telegram disconnected."
     },
     "exportCsv": "Export CSV",
-    "exportListCsv": "Export list (CSV)"
+    "exportListCsv": "Export list (CSV)",
+    "validation": {
+      "username": "Enter a username",
+      "password": "Enter a password",
+      "email": "Choose a client",
+      "newPassword": "New password must be at least 6 characters",
+      "confirmPassword": "Confirm the new password",
+      "passwordMismatch": "Passwords do not match",
+      "amount": "Enter an amount"
+    }
   },
   "commandPalette": {
     "open": "Quick search",

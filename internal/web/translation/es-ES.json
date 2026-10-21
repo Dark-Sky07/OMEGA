@@ -2068,6 +2068,14 @@
       "unlinked": "Telegram desvinculado."
     },
     "exportCsv": "Exportar CSV",
-    "exportListCsv": "Exportar lista (CSV)"
+    "exportListCsv": "Exportar lista (CSV)",
+    "pricePerGb": "Precio por GB",
+    "pricePerGbHint": "Se cobra por cada GB que consumen los clientes del revendedor; saldo = depósitos − coste de uso. 0 desactiva la facturación.",
+    "adjustBalance": "Ajustar saldo",
+    "adjustBalanceHint": "Un importe positivo deposita crédito y uno negativo lo retira. Cada cambio queda registrado en el libro de cuentas.",
+    "amount": "Importe",
+    "txType": "Tipo",
+    "deposit": "Depósito",
+    "withdraw": "Retirada"
   }
 }

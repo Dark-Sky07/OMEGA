@@ -22,7 +22,7 @@ import { ApiOutlined, DatabaseOutlined, DownloadOutlined, ShopOutlined, Thunderb
 import { PageHeader, StatStrip, type StatItem } from '@/components/ui';
 
 import AppSidebar from '@/layouts/AppSidebar';
-import { HttpUtil } from '@/utils';
+import { HttpUtil, formatMoney } from '@/utils';
 import { SizeFormatter } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
 import { keys } from '@/api/queryKeys';
@@ -84,6 +84,14 @@ export default function ResellerReportPage() {
     { key: 'allocated', icon: <DatabaseOutlined />, tone: 'default', label: t('resellers.allocatedTraffic'), value: SizeFormatter.sizeFormat(stat?.allocatedTraffic || 0) },
     { key: 'inbounds', icon: <ApiOutlined />, tone: 'accent', label: t('resellers.table.inbounds'), value: String(stat?.inboundCount || 0) },
     { key: 'online', icon: <WifiOutlined />, tone: (stat?.onlineCount || 0) > 0 ? 'success' : 'muted', label: t('resellers.online'), value: String(stat?.onlineCount || 0) },
+    { key: 'cost', icon: <ShopOutlined />, tone: 'default', label: t('resellers.table.cost'), value: formatMoney(stat?.cost || 0) },
+    {
+      key: 'balance',
+      icon: <ShopOutlined />,
+      tone: (stat?.balance || 0) < 0 ? 'danger' : 'success',
+      label: t('resellers.balance'),
+      value: formatMoney(stat?.balance || 0),
+    },
   ], [t, stat]);
 
   return (
@@ -155,6 +163,20 @@ export default function ResellerReportPage() {
                         <Descriptions.Item label={t('resellers.table.used')}>
                           {SizeFormatter.sizeFormat(stat.usedTraffic)}
                         </Descriptions.Item>
+                        <Descriptions.Item label={t('resellers.pricePerGb')}>
+                          {formatMoney(stat.reseller.pricePerGb)}
+                        </Descriptions.Item>
+                        <Descriptions.Item label={t('resellers.deposit')}>
+                          {formatMoney(stat.reseller.deposit)}
+                        </Descriptions.Item>
+                        <Descriptions.Item label={t('resellers.table.cost')}>
+                          {formatMoney(stat.cost)}
+                        </Descriptions.Item>
+                        <Descriptions.Item label={t('resellers.balance')}>
+                          <Typography.Text type={(stat.balance || 0) < 0 ? 'danger' : undefined}>
+                            {formatMoney(stat.balance)}
+                          </Typography.Text>
+                        </Descriptions.Item>
                       </Descriptions>
                     </Card>
                   </Col>
@@ -187,6 +209,52 @@ export default function ResellerReportPage() {
                           key: 'inbounds',
                           render: (_v, row) => row.inboundIds.map((id) => <Tag key={id}>#{id}</Tag>),
                         },
+                      ]}
+                    />
+                  </Card>
+                </Col>
+
+                <Col span={24}>
+                  <Card size="small" hoverable title={t('resellers.ledger')}>
+                    <Table
+                      rowKey="id"
+                      size="small"
+                      loading={reportQuery.isLoading}
+                      dataSource={reportQuery.data?.transactions || []}
+                      pagination={{ pageSize: 10 }}
+                      locale={{ emptyText: <Empty description={t('resellers.noTransactions')} /> }}
+                      columns={[
+                        {
+                          title: t('resellers.table.date'),
+                          dataIndex: 'createdAt',
+                          key: 'createdAt',
+                          render: (v: number) => new Date(v).toLocaleString(),
+                        },
+                        {
+                          title: t('resellers.txType'),
+                          dataIndex: 'type',
+                          key: 'type',
+                          render: (v: string) => (
+                            <Tag color={v === 'deposit' ? 'green' : 'orange'}>
+                              {t(v === 'deposit' ? 'resellers.deposit' : 'resellers.withdraw')}
+                            </Tag>
+                          ),
+                        },
+                        {
+                          title: t('resellers.amount'),
+                          dataIndex: 'amount',
+                          key: 'amount',
+                          render: (v: number) => (
+                            <Typography.Text type={v < 0 ? 'danger' : undefined}>{formatMoney(v)}</Typography.Text>
+                          ),
+                        },
+                        {
+                          title: t('resellers.balance'),
+                          dataIndex: 'balance',
+                          key: 'balance',
+                          render: (v: number) => formatMoney(v),
+                        },
+                        { title: t('comment'), dataIndex: 'comment', key: 'comment' },
                       ]}
                     />
                   </Card>

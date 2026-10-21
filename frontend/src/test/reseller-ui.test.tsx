@@ -37,6 +37,8 @@ const statFixture = {
     trafficLimit: 53687091200,
     clientLimit: 10,
     expiryTime: 0,
+    pricePerGb: 0.5,
+    deposit: 10,
     createdAt: 1789343363011,
     updatedAt: 1789343363011,
   },
@@ -46,6 +48,8 @@ const statFixture = {
   usedTraffic: 2147483648,
   allocatedTraffic: 32212254720,
   remainingTraffic: 21474836480,
+  cost: 1,
+  balance: 9,
   expired: false,
   overQuota: false,
   disabled: false,
@@ -134,6 +138,8 @@ describe('reseller pages', () => {
     expect(list).not.toContain('1 / 2'); // inbounds have no cap anymore: plain count
     expect(list).toContain('2 / 10'); // clients used / limit
     expect(list).toContain('30.00 GB / 50.00 GB'); // allocated / limit
+    expect(list).toContain('Balance'); // billing column
+    expect(list).toContain('0.50/GB'); // price per GB
     expect(HttpUtil.get).toHaveBeenCalledWith('/panel/api/resellers/list', undefined, { silent: true });
   });
 
@@ -154,7 +160,7 @@ describe('reseller pages', () => {
     expect(within(dialog).getByText('Traffic quota')).toBeTruthy();
     expect(within(dialog).getByText('Client limit')).toBeTruthy();
     expect(within(dialog).queryByText('Inbound limit')).toBeNull();
-    expect(within(dialog).queryByText('Price per GB')).toBeNull();
+    expect(within(dialog).getByText('Price per GB')).toBeTruthy();
     expect(within(dialog).queryByText('Initial deposit')).toBeNull();
     expect(within(dialog).getByText('Attach Inbound')).toBeTruthy();
   });
@@ -166,6 +172,8 @@ describe('reseller pages', () => {
     await waitFor(() => expect(screen.getByText('ali-c2')).toBeTruthy());
     const text = document.body.textContent ?? '';
     expect(text).toContain('2.00 GB'); // used traffic
+    expect(text).toContain('Account ledger'); // billing ledger card
+    expect(text).toContain('cash'); // ledger comment from the fixture
     expect(HttpUtil.get).toHaveBeenCalledWith('/panel/api/reseller/report');
   });
 

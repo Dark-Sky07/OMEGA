@@ -2068,6 +2068,14 @@
       "unlinked": "已解绑 Telegram。"
     },
     "exportCsv": "导出 CSV",
-    "exportListCsv": "导出列表 (CSV)"
+    "exportListCsv": "导出列表 (CSV)",
+    "pricePerGb": "每 GB 价格",
+    "pricePerGbHint": "按经销商客户消耗的每 GB 计费；余额 = 充值 − 使用费用。0 表示关闭计费。",
+    "adjustBalance": "调整余额",
+    "adjustBalanceHint": "正数为充值，负数为扣减。每次变动都会记入账本。",
+    "amount": "金额",
+    "txType": "类型",
+    "deposit": "充值",
+    "withdraw": "扣减"
   }
 }

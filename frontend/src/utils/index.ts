@@ -661,6 +661,14 @@ export class Base64 {
   }
 }
 
+/** Formats billing money values: up to 2 decimals, trailing zeros trimmed. */
+export function formatMoney(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return '0';
+  const rounded = Math.round(value * 100) / 100;
+  if (Number.isInteger(rounded)) return String(rounded);
+  return rounded.toFixed(2);
+}
+
 export class SizeFormatter {
   static readonly ONE_KB = 1024;
   static readonly ONE_MB = SizeFormatter.ONE_KB * 1024;

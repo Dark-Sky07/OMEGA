@@ -40,8 +40,8 @@ function extractPathParams(openApiPath) {
 
 function mapType(t) {
   const v = String(t || '').toLowerCase();
-  if (v === 'number' || v === 'integer' || v === 'int') return 'integer';
-  if (v === 'float' || v === 'double') return 'number';
+  if (v === 'integer' || v === 'int') return 'integer';
+  if (v === 'number' || v === 'float' || v === 'double') return 'number';
   if (v === 'boolean' || v === 'bool') return 'boolean';
   if (v === 'array') return 'array';
   if (v === 'object') return 'object';
@@ -80,9 +80,12 @@ function buildOperation(ep, tag) {
 
   const params = [];
   const bodyParams = [];
+  const formParams = [];
   for (const p of ep.params || []) {
-    if (p.in === 'body') {
+    if (p.in === 'body' || p.in === 'body (json)') {
       bodyParams.push(p);
+    } else if (p.in === 'body (form)') {
+      formParams.push(p);
     } else if (p.in === 'path' || p.in === 'query' || p.in === 'header') {
       params.push(paramToOpenApi(p));
     }
@@ -103,7 +106,7 @@ function buildOperation(ep, tag) {
 
   if (params.length > 0) op.parameters = params;
 
-  if (ep.body || bodyParams.length > 0) {
+  if (ep.body || bodyParams.length > 0 || formParams.length > 0) {
     const example = tryParseJson(ep.body);
     const properties = {};
     const required = [];
@@ -118,14 +121,34 @@ function buildOperation(ep, tag) {
       ? { type: 'object', properties, ...(required.length > 0 ? { required } : {}) }
       : { type: 'object' };
 
-    op.requestBody = {
-      required: required.length > 0 || bodyParams.length === 0,
-      content: {
-        'application/json': {
-          schema,
-          ...(example !== undefined ? { example } : {}),
-        },
+    const content = {
+      'application/json': {
+        schema,
+        ...(example !== undefined ? { example } : {}),
       },
+    };
+    if (formParams.length > 0) {
+      const formProperties = {};
+      const formRequired = [];
+      for (const fp of formParams) {
+        formProperties[fp.name] = {
+          type: mapType(fp.type),
+          description: fp.desc || '',
+        };
+        if (!fp.optional) formRequired.push(fp.name);
+      }
+      content['application/x-www-form-urlencoded'] = {
+        schema: {
+          type: 'object',
+          properties: formProperties,
+          ...(formRequired.length > 0 ? { required: formRequired } : {}),
+        },
+      };
+    }
+
+    op.requestBody = {
+      required: required.length > 0 || formParams.some((fp) => !fp.optional) || (bodyParams.length === 0 && formParams.length === 0),
+      content,
     };
   }
 

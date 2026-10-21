@@ -1451,6 +1451,7 @@ export const sections: readonly Section[] = [
           { name: 'trafficLimit', in: 'body (json)', type: 'integer', optional: true, desc: 'Bytes. Cap on the sum of the reseller client quotas.' },
           { name: 'clientLimit', in: 'body (json)', type: 'integer', optional: true },
           { name: 'expiryTime', in: 'body (json)', type: 'integer', optional: true, desc: 'Unix ms, 0 = never.' },
+          { name: 'pricePerGb', in: 'body (json)', type: 'number', optional: true, desc: 'GB-based billing price. Cost = used GB × pricePerGb; balance = deposit − cost. 0 (default) disables billing.' },
         ],
       },
       {

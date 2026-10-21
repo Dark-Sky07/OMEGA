@@ -33,7 +33,7 @@ import {
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
-  AccountBookOutlined,
+  AccountBookOutlined, WalletOutlined,
   CustomerServiceOutlined,
   DeleteOutlined,
   DownloadOutlined,
@@ -47,8 +47,7 @@ import {
 } from '@ant-design/icons';
 
 import AppSidebar from '@/layouts/AppSidebar';
-import { HttpUtil } from '@/utils';
-import { SizeFormatter } from '@/utils';
+import { HttpUtil, SizeFormatter, formatMoney } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
 import { keys } from '@/api/queryKeys';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -71,6 +70,7 @@ interface ResellerFormValues {
   enable: boolean;
   trafficLimitGb?: number | null;
   clientLimit?: number | null;
+  pricePerGb?: number | null;
   inboundIds?: number[];
 }
 
@@ -104,6 +104,7 @@ export default function ResellersPage() {
   const [view, setView] = useState<'manage' | 'overview'>('manage');
   const [editing, setEditing] = useState<ResellerStat | null>(null);
   const [passwordFor, setPasswordFor] = useState<ResellerStat | null>(null);
+  const [balanceFor, setBalanceFor] = useState<ResellerStat | null>(null);
   const [reportFor, setReportFor] = useState<ResellerStat | null>(null);
   const [clientFor, setClientFor] = useState<ResellerStat | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -111,6 +112,7 @@ export default function ResellersPage() {
   const [exportingReport, setExportingReport] = useState(false);
   const [form] = Form.useForm<ResellerFormValues>();
   const [passwordForm] = Form.useForm<{ password: string }>();
+  const [balanceForm] = Form.useForm<{ amount: number | null; comment?: string }>();
   const [clientForm] = Form.useForm<{ emails: string[]; resellerId: number }>();
 
   const pageClass = useMemo(() => {
@@ -214,7 +216,7 @@ export default function ResellersPage() {
   const openCreate = useCallback(() => {
     setEditing(null);
     form.resetFields();
-    form.setFieldsValue({ enable: true, inboundIds: [] });
+    form.setFieldsValue({ enable: true, inboundIds: [], pricePerGb: 0 });
     setFormOpen(true);
   }, [form]);
 
@@ -229,6 +231,7 @@ export default function ResellersPage() {
         enable: stat.reseller.enable,
         trafficLimitGb: stat.reseller.trafficLimit ? stat.reseller.trafficLimit / GB : 0,
         clientLimit: stat.reseller.clientLimit,
+        pricePerGb: stat.reseller.pricePerGb || 0,
         // The assignment query is enabled by the modal. Start empty and let
         // the effect below replace this once the authoritative map arrives.
         inboundIds: [],
@@ -255,6 +258,7 @@ export default function ResellersPage() {
         enable: values.enable ?? true,
         trafficLimit: Math.round((values.trafficLimitGb || 0) * GB),
         clientLimit: values.clientLimit || 0,
+        pricePerGb: values.pricePerGb || 0,
       };
       const msg = editing
         ? await HttpUtil.post(`/panel/api/resellers/update/${editing.reseller.id}`, body, {
@@ -348,6 +352,28 @@ export default function ResellersPage() {
       messageApi.error(msg.msg || t('somethingWentWrong'));
     }
   }, [messageApi, passwordFor, passwordForm, t]);
+
+  const submitBalance = useCallback(async () => {
+    const values = await balanceForm.validateFields().catch(() => null);
+    if (!values || !values.amount || !balanceFor) return;
+    const msg = await HttpUtil.post(
+      '/panel/api/resellers/balance',
+      {
+        resellerId: balanceFor.reseller.id,
+        amount: values.amount,
+        comment: values.comment || '',
+      },
+      { ...JSON_HEADERS, silent: true } as never,
+    );
+    if (msg.success) {
+      messageApi.success(t('resellers.toasts.updated'));
+      setBalanceFor(null);
+      balanceForm.resetFields();
+      refreshAll();
+    } else {
+      messageApi.error(msg.msg || t('somethingWentWrong'));
+    }
+  }, [balanceForm, balanceFor, messageApi, refreshAll, t]);
 
   const submitAssignClient = useCallback(async () => {
     const values = await clientForm.validateFields().catch(() => null);
@@ -499,9 +525,25 @@ export default function ResellersPage() {
       },
     },
     {
+      title: t('resellers.table.balance'),
+      key: 'balance',
+      width: 150,
+      render: (_value, stat) => (
+        <Space orientation="vertical" size={0}>
+          <Typography.Text type={(stat.balance || 0) < 0 ? 'danger' : undefined}>
+            {formatMoney(stat.balance || 0)}
+          </Typography.Text>
+          <Typography.Text type="secondary">
+            {t('resellers.table.cost')}: {formatMoney(stat.cost || 0)}
+            {stat.reseller.pricePerGb ? ` · ${formatMoney(stat.reseller.pricePerGb)}/GB` : ''}
+          </Typography.Text>
+        </Space>
+      ),
+    },
+    {
       title: t('resellers.table.actions'),
       key: 'actions',
-      width: isMobile ? 90 : 220,
+      width: isMobile ? 90 : 250,
       render: (_value, stat) => (
         <Space size={1} wrap>
           <Tooltip title={t('resellers.report')}>
@@ -527,6 +569,16 @@ export default function ResellersPage() {
               onClick={() => {
                 setPasswordFor(stat);
                 passwordForm.resetFields();
+              }}
+            />
+          </Tooltip>
+          <Tooltip title={t('resellers.adjustBalance')}>
+            <Button
+              size="small"
+              icon={<WalletOutlined />}
+              onClick={() => {
+                setBalanceFor(stat);
+                balanceForm.resetFields();
               }}
             />
           </Tooltip>
@@ -655,14 +707,19 @@ export default function ResellersPage() {
                   <Switch />
                 </Form.Item>
                 <Row gutter={8}>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="trafficLimitGb" label={t('resellers.trafficLimit')} extra={t('resellers.zeroUnlimited')}>
                       <InputNumber min={0} step={10} style={{ width: '100%' }} addonAfter="GB" />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="clientLimit" label={t('resellers.clientLimit')} extra={t('resellers.zeroUnlimited')}>
                       <InputNumber min={0} style={{ width: '100%' }} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={12}>
+                    <Form.Item name="pricePerGb" label={t('resellers.pricePerGb')} extra={t('resellers.pricePerGbHint')}>
+                      <InputNumber min={0} step={0.1} style={{ width: '100%' }} />
                     </Form.Item>
                   </Col>
                 </Row>
@@ -770,6 +827,35 @@ export default function ResellersPage() {
               </Form>
             </Modal>
 
+            <Modal
+              open={balanceFor !== null}
+              title={`${t('resellers.adjustBalance')} — ${balanceFor?.reseller.name || ''}`}
+              onCancel={() => setBalanceFor(null)}
+              onOk={submitBalance}
+              okText={t('save')}
+              cancelText={t('close')}
+              destroyOnHidden
+            >
+              <Typography.Paragraph type="secondary">
+                {t('resellers.adjustBalanceHint')}
+              </Typography.Paragraph>
+              <Typography.Paragraph>
+                {t('resellers.balance')}: <b>{formatMoney(balanceFor?.reseller.deposit || 0)}</b>
+              </Typography.Paragraph>
+              <Form form={balanceForm} layout="vertical">
+                <Form.Item
+                  name="amount"
+                  label={t('resellers.amount')}
+                  rules={[{ required: true, message: t('resellers.validation.amount') }]}
+                >
+                  <InputNumber style={{ width: '100%' }} step={1} />
+                </Form.Item>
+                <Form.Item name="comment" label={t('comment')}>
+                  <Input />
+                </Form.Item>
+              </Form>
+            </Modal>
+
             <Drawer
               open={reportFor !== null}
               onClose={() => setReportFor(null)}
@@ -801,6 +887,19 @@ export default function ResellersPage() {
                     </Col>
                     <Col xs={12} md={6}>
                       <Statistic title={t('resellers.online')} value={reportQuery.data.stat.onlineCount} />
+                    </Col>
+                    <Col xs={12} md={6}>
+                      <Statistic
+                        title={t('resellers.table.cost')}
+                        value={formatMoney(reportQuery.data.stat.cost || 0)}
+                      />
+                    </Col>
+                    <Col xs={12} md={6}>
+                      <Statistic
+                        title={t('resellers.balance')}
+                        value={formatMoney(reportQuery.data.stat.balance || 0)}
+                        valueStyle={(reportQuery.data.stat.balance || 0) < 0 ? { color: '#cf1322' } : undefined}
+                      />
                     </Col>
                   </Row>
                   <Descriptions size="small" bordered column={isMobile ? 1 : 2}>
@@ -841,6 +940,48 @@ export default function ResellersPage() {
                           key: 'inbounds',
                           render: (_v, row) => row.inboundIds.map((id) => <Tag key={id}>#{id}</Tag>),
                         },
+                      ]}
+                    />
+                  </Card>
+                  <Card size="small" title={t('resellers.ledger')}>
+                    <Table
+                      rowKey="id"
+                      size="small"
+                      dataSource={reportQuery.data.transactions || []}
+                      pagination={{ pageSize: 10 }}
+                      locale={{ emptyText: <Empty description={t('resellers.noTransactions')} /> }}
+                      columns={[
+                        {
+                          title: t('resellers.table.date'),
+                          dataIndex: 'createdAt',
+                          key: 'createdAt',
+                          render: (v: number) => new Date(v).toLocaleString(),
+                        },
+                        {
+                          title: t('resellers.txType'),
+                          dataIndex: 'type',
+                          key: 'type',
+                          render: (v: string) => (
+                            <Tag color={v === 'deposit' ? 'green' : 'orange'}>
+                              {t(v === 'deposit' ? 'resellers.deposit' : 'resellers.withdraw')}
+                            </Tag>
+                          ),
+                        },
+                        {
+                          title: t('resellers.amount'),
+                          dataIndex: 'amount',
+                          key: 'amount',
+                          render: (v: number) => (
+                            <Typography.Text type={v < 0 ? 'danger' : undefined}>{formatMoney(v)}</Typography.Text>
+                          ),
+                        },
+                        {
+                          title: t('resellers.balance'),
+                          dataIndex: 'balance',
+                          key: 'balance',
+                          render: (v: number) => formatMoney(v),
+                        },
+                        { title: t('comment'), dataIndex: 'comment', key: 'comment' },
                       ]}
                     />
                   </Card>

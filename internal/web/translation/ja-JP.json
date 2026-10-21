@@ -2068,6 +2068,14 @@
       "unlinked": "Telegramの連携を解除しました。"
     },
     "exportCsv": "CSVエクスポート",
-    "exportListCsv": "リストをエクスポート (CSV)"
+    "exportListCsv": "リストをエクスポート (CSV)",
+    "pricePerGb": "1GBあたりの単価",
+    "pricePerGbHint": "リセラーのクライアントが消費したGBごとに課金されます。残高 = 入金 − 利用料金。0で無効になります。",
+    "adjustBalance": "残高の調整",
+    "adjustBalanceHint": "正の金額は入金、負の金額は引き出しです。変更はすべて元帳に記録されます。",
+    "amount": "金額",
+    "txType": "種別",
+    "deposit": "入金",
+    "withdraw": "出金"
   }
 }

@@ -2067,6 +2067,14 @@
       "unlinked": "Telegram bağlantısı kaldırıldı."
     },
     "exportCsv": "CSV indir",
-    "exportListCsv": "Listeyi indir (CSV)"
+    "exportListCsv": "Listeyi indir (CSV)",
+    "pricePerGb": "GB başına fiyat",
+    "pricePerGbHint": "Bayi müşterilerinin tükettiği her GB için faturalanır; bakiye = yatırımlar − kullanım maliyeti. 0 faturalandırmayı kapatır.",
+    "adjustBalance": "Bakiye ayarla",
+    "adjustBalanceHint": "Pozitif tutar yatırım, negatif tutar çekimdir. Her değişiklik hesap defterine kaydedilir.",
+    "amount": "Tutar",
+    "txType": "Tür",
+    "deposit": "Yatırım",
+    "withdraw": "Çekim"
   }
 }

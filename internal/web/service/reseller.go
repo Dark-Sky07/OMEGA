@@ -144,8 +144,9 @@ func (s *ResellerService) Add(reseller *model.Reseller, password string) error {
 	if reseller.Name == "" {
 		reseller.Name = reseller.Username
 	}
-	// Force billing to 0 - removed from UI per admin request
-	reseller.PricePerGB = 0
+	// Billing: the per-GB price is part of the contract and may be set at
+	// creation, but deposits only enter through the audited ledger
+	// (AdjustBalance) so the transaction history stays truthful.
 	reseller.Deposit = 0
 	reseller.LoginEpoch = 1
 	reseller.CreatedAt = time.Now().UnixMilli()
@@ -183,6 +184,7 @@ func (s *ResellerService) Update(reseller *model.Reseller, password string) erro
 		"traffic_limit": reseller.TrafficLimit,
 		"client_limit":  reseller.ClientLimit,
 		"expiry_time":   reseller.ExpiryTime,
+		"price_per_gb":  reseller.PricePerGB,
 		"updated_at":    time.Now().UnixMilli(),
 	}
 	if strings.TrimSpace(password) != "" {
@@ -992,9 +994,11 @@ func (s *ResellerService) Stat(reseller *model.Reseller) (*ResellerStat, error) 
 		}
 	}
 
-	// Billing removed: cost/balance always 0, kept for backward compat
-	stat.Cost = 0
-	stat.Balance = 0
+	// GB-based billing: cost accrues from measured usage at the reseller's
+	// per-GB price; the balance is the prepaid deposit minus that cost
+	// (negative = debt, shown red in the UI).
+	stat.Cost = Round2(float64(stat.UsedTraffic) / bytesPerGB * reseller.PricePerGB)
+	stat.Balance = Round2(reseller.Deposit - stat.Cost)
 	stat.Expired = IsExpired(reseller.ExpiryTime)
 	if reseller.TrafficLimit > 0 {
 		stat.RemainingTraffic = reseller.TrafficLimit - stat.AllocatedTraffic

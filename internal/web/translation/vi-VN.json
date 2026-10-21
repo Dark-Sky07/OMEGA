@@ -2068,6 +2068,14 @@
       "unlinked": "Đã gỡ liên kết Telegram."
     },
     "exportCsv": "Xuất CSV",
-    "exportListCsv": "Xuất danh sách (CSV)"
+    "exportListCsv": "Xuất danh sách (CSV)",
+    "pricePerGb": "Giá mỗi GB",
+    "pricePerGbHint": "Tính phí cho mỗi GB khách hàng của đại lý sử dụng; số dư = tiền nạp − chi phí sử dụng. 0 để tắt tính phí.",
+    "adjustBalance": "Điều chỉnh số dư",
+    "adjustBalanceHint": "Số dương là nạp tiền, số âm là rút tiền. Mọi thay đổi đều được ghi vào sổ kế toán.",
+    "amount": "Số tiền",
+    "txType": "Loại",
+    "deposit": "Nạp",
+    "withdraw": "Rút"
   }
 }
