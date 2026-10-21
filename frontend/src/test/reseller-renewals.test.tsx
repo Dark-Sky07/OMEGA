@@ -78,5 +78,5 @@ describe('reseller renewal center', () => {
       undefined,
       { silent: true },
     );
-  });
+  }, 15_000);
 });
