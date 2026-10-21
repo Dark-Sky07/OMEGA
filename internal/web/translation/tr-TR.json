@@ -2075,6 +2075,7 @@
     "amount": "Tutar",
     "txType": "Tür",
     "deposit": "Yatırım",
-    "withdraw": "Çekim"
+    "withdraw": "Çekim",
+    "walletActivity": "Cüzdan hareketleri"
   }
 }

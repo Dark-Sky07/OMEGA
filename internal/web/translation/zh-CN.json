@@ -2076,6 +2076,7 @@
     "amount": "金额",
     "txType": "类型",
     "deposit": "充值",
-    "withdraw": "扣减"
+    "withdraw": "扣减",
+    "walletActivity": "钱包收支"
   }
 }

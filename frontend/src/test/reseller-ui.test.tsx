@@ -167,6 +167,16 @@ describe('reseller pages', () => {
     expect(within(dialog).getByText('Attach Inbound')).toBeTruthy();
   });
 
+  it('admin reseller report includes wallet activity chart', async () => {
+    renderPage(<ResellersPage />);
+
+    await waitFor(() => expect(screen.getByText('Ali')).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Report' }));
+
+    await waitFor(() => expect(screen.getByText('Wallet activity')).toBeTruthy());
+    expect(document.body.textContent).toContain('cash');
+  });
+
   it('reseller report page shows usage and the client rows', async () => {
     sessionState.role = 'reseller';
     renderPage(<ResellerReportPage />);
@@ -175,6 +185,7 @@ describe('reseller pages', () => {
     const text = document.body.textContent ?? '';
     expect(text).toContain('2.00 GB'); // used traffic
     expect(text).toContain('Account ledger'); // billing ledger card
+    expect(text).toContain('Wallet activity'); // twelve-month credit/debit chart
     expect(text).toContain('cash'); // ledger comment from the fixture
     expect(HttpUtil.get).toHaveBeenCalledWith('/panel/api/reseller/report');
   });

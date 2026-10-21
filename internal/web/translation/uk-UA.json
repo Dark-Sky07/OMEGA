@@ -2076,6 +2076,7 @@
     "amount": "Сума",
     "txType": "Тип",
     "deposit": "Поповнення",
-    "withdraw": "Списання"
+    "withdraw": "Списання",
+    "walletActivity": "Рух коштів"
   }
 }
