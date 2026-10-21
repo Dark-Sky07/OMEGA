@@ -4,6 +4,7 @@ import { createMemoryRouter, MemoryRouter, RouterProvider } from 'react-router-d
 import { render, screen, waitFor } from '@testing-library/react';
 
 import { ThemeProvider } from '@/hooks/useTheme';
+import { usePageTitle } from '@/hooks/usePageTitle';
 import AppSidebar from '@/layouts/AppSidebar';
 import { appRoutes } from '@/routes';
 
@@ -75,6 +76,11 @@ function renderSidebar() {
   );
 }
 
+function PageTitleHarness() {
+  usePageTitle();
+  return null;
+}
+
 function menuLabels(): string[] {
   return Array.from(document.querySelectorAll('.ant-menu-item')).map((el) => (el.textContent ?? '').trim());
 }
@@ -115,6 +121,41 @@ describe('reseller navigation', () => {
     expect(document.querySelector('.brand-mark-img')?.getAttribute('src')).toBe('/assets/northstar.svg');
     expect(document.querySelector('.brand-text')?.getAttribute('style')).toContain('color: rgb(34, 68, 102)');
     expect(document.querySelector('.sider-version')).toBeNull();
+  });
+
+  it('uses reseller branding in the tab title and favicon, then restores defaults for admins', async () => {
+    const favicon = document.createElement('link');
+    favicon.rel = 'icon';
+    favicon.href = '/phoenix-icon.png';
+    document.head.insertBefore(favicon, document.head.firstChild);
+    sessionState.role = 'reseller';
+    sessionState.brand = { name: 'Northstar', logo: '/assets/northstar.svg', color: '#224466' };
+
+    const view = render(
+      <MemoryRouter initialEntries={['/reseller/profile']}>
+        <PageTitleHarness />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(document.title).toContain('Northstar'));
+    expect(favicon.getAttribute('href')).toBe('/assets/northstar.svg');
+
+    sessionState.brand = { name: 'Northstar', logo: 'javascript:alert(1)', color: '#224466' };
+    view.rerender(
+      <MemoryRouter initialEntries={['/reseller/profile']}>
+        <PageTitleHarness />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(favicon.href).toMatch(/^data:image\/svg\+xml,/));
+
+    sessionState.role = 'admin';
+    view.rerender(
+      <MemoryRouter initialEntries={['/reseller/profile']}>
+        <PageTitleHarness />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(document.title).not.toContain('Northstar'));
+    expect(favicon.getAttribute('href')).toBe('/phoenix-icon.png');
+    favicon.remove();
   });
 
   it('reseller landing route redirects to the sales report', async () => {
