@@ -16,6 +16,7 @@ const TITLE_KEYS: Record<string, string> = {
   '/resellers': 'menu.resellers',
   '/reseller/report': 'menu.report',
   '/reseller/profile': 'menu.profile',
+  '/reseller/renewals': 'resellers.renewalCenter',
 };
 
 function safeBrandLogo(value?: string): string | undefined {

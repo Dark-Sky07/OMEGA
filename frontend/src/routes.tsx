@@ -15,6 +15,7 @@ const ApiDocsPage = lazy(() => import('@/pages/api-docs/ApiDocsPage'));
 const ResellersPage = lazy(() => import('@/pages/resellers/ResellersPage'));
 const ResellerReportPage = lazy(() => import('@/pages/resellers/ResellerReportPage'));
 const ResellerProfilePage = lazy(() => import('@/pages/resellers/ResellerProfilePage'));
+const ResellerRenewalsPage = lazy(() => import('@/pages/resellers/ResellerRenewalsPage'));
 const CheckoutPage = lazy(() => import('@/pages/checkout/CheckoutPage'));
 const ResellerSignupPage = lazy(() => import('@/pages/checkout/ResellerSignupPage'));
 const ResellerDepositPage = lazy(() => import('@/pages/checkout/ResellerDepositPage'));
@@ -92,6 +93,10 @@ export const appRoutes: RouteObject[] = [
       {
         path: 'reseller/profile',
         element: <ResellerOnly>{withSuspense(<ResellerProfilePage />)}</ResellerOnly>,
+      },
+      {
+        path: 'reseller/renewals',
+        element: <ResellerOnly>{withSuspense(<ResellerRenewalsPage />)}</ResellerOnly>,
       },
     ],
   },
