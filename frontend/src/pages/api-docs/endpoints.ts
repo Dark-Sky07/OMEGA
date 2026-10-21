@@ -1755,6 +1755,18 @@ export const sections: readonly Section[] = [
         summary: 'Detach the signed-in reseller Telegram account from the panel bot.',
       },
       {
+        method: 'GET',
+        path: '/panel/api/reseller/signup/templates',
+        summary: 'List plan templates whose inbound assignments are all owned by the signed-in reseller; only these templates can be offered through public registration links.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/reseller/signup/link',
+        summary: 'Generate a signed registration link, valid for 30 days, for one eligible template. The link creates a client under the reseller and enforces client and traffic quotas.',
+        params: [{ name: 'templateId', in: 'body (json)', type: 'integer' }],
+        response: '{\\n  "success": true,\\n  "obj": { "token": "signed-token", "expiresAt": 1799999999999 }\\n}',
+      },
+      {
         method: 'POST',
         path: '/panel/api/server/checkHost',
         summary: 'Run an Iran & international Check-Host TCP port or ICMP ping reachability test against a target host or host:port.',
@@ -1784,6 +1796,29 @@ export const sections: readonly Section[] = [
     ],
   },
 
+  {
+    id: 'reseller-signup',
+    title: 'Reseller Signup (Public)',
+    description: 'Anonymous customer registration from a signed, expiring reseller invitation. Each link is bound to one reseller and one plan template; current reseller activity, inbound ownership, and quotas are revalidated at submission.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/api/reseller-signup/info',
+        summary: 'Get the reseller display name and safe public details for the plan bound to a registration token.',
+        params: [{ name: 'ref', in: 'query', type: 'string', desc: 'Signed invitation token.' }],
+      },
+      {
+        method: 'POST',
+        path: '/api/reseller-signup/register',
+        summary: 'Register a new client using the invitation plan. Duplicate identifiers are rejected and reseller client/traffic limits are checked before client creation.',
+        params: [
+          { name: 'ref', in: 'query', type: 'string', desc: 'Signed invitation token.' },
+          { name: 'email', in: 'body (json)', type: 'string', desc: 'Unique client email/account identifier.' },
+        ],
+        body: '{ "email": "customer@example.com" }',
+      },
+    ],
+  },
   {
     id: 'checkout',
     title: 'Client Checkout (Public)',

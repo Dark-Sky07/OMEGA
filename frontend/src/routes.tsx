@@ -16,6 +16,7 @@ const ResellersPage = lazy(() => import('@/pages/resellers/ResellersPage'));
 const ResellerReportPage = lazy(() => import('@/pages/resellers/ResellerReportPage'));
 const ResellerProfilePage = lazy(() => import('@/pages/resellers/ResellerProfilePage'));
 const CheckoutPage = lazy(() => import('@/pages/checkout/CheckoutPage'));
+const ResellerSignupPage = lazy(() => import('@/pages/checkout/ResellerSignupPage'));
 
 function withSuspense(node: React.ReactNode) {
   return <Suspense fallback={null}>{node}</Suspense>;
@@ -98,6 +99,11 @@ export const appRoutes: RouteObject[] = [
     // (?ref=<token>), never behind a panel session.
     path: 'checkout',
     element: withSuspense(<CheckoutPage />),
+  },
+  {
+    // Public reseller self-registration using a signed plan invitation.
+    path: 'reseller-signup',
+    element: withSuspense(<ResellerSignupPage />),
   },
 ];
 

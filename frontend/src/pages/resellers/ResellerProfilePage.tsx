@@ -18,6 +18,7 @@ import {
   Space,
   Statistic,
   Tag,
+  Select,
   Typography,
   message,
 } from 'antd';
@@ -103,6 +104,9 @@ export default function ResellerProfilePage() {
   const [tgLink, setTgLink] = useState<TelegramLinkInfo | null>(null);
   const [tgLinking, setTgLinking] = useState(false);
   const [tgUnlinking, setTgUnlinking] = useState(false);
+  const [signupTemplateId, setSignupTemplateId] = useState<number>();
+  const [signupLink, setSignupLink] = useState('');
+  const [signupLinkLoading, setSignupLinkLoading] = useState(false);
   const [passwordForm] = Form.useForm<{ oldPassword: string; newPassword: string; confirmPassword: string }>();
 
   const redeemVoucher = useCallback(async () => {
@@ -142,6 +146,14 @@ export default function ResellerProfilePage() {
   });
 
   const stat = profileQuery.data;
+  const signupTemplatesQuery = useQuery({
+    queryKey: [...keys.resellers.selfReport(), 'signup-templates'],
+    queryFn: async (): Promise<Array<{ id: number; name: string; totalGB: number; expireDurationDays: number }>> => {
+      const response = await HttpUtil.get('/panel/api/reseller/signup/templates');
+      if (!response.success) throw new Error(response.msg || 'failed');
+      return (response.obj || []) as Array<{ id: number; name: string; totalGB: number; expireDurationDays: number }>;
+    },
+  });
   const trafficPercent = stat?.reseller.trafficLimit
     ? Math.min(100, Math.round((stat.allocatedTraffic / stat.reseller.trafficLimit) * 100))
     : 0;
@@ -199,6 +211,33 @@ export default function ResellerProfilePage() {
     await navigator.clipboard.writeText(`/start reseller_${tgLink.code}`);
     messageApi.success(t('resellers.telegram.copied', 'Copied to clipboard'));
   }, [messageApi, t, tgLink]);
+
+  const createSignupLink = useCallback(async () => {
+    if (!signupTemplateId) return;
+    setSignupLinkLoading(true);
+    try {
+      const response = await HttpUtil.post(
+        '/panel/api/reseller/signup/link',
+        { templateId: signupTemplateId },
+        { headers: { 'Content-Type': 'application/json' }, silent: true },
+      );
+      const token = (response.obj as { token?: string } | null)?.token;
+      if (!response.success || !token) {
+        messageApi.error(response.msg || t('somethingWentWrong'));
+        return;
+      }
+      const base = (window.X_UI_BASE_PATH || '/').replace(/\/+$/, '');
+      setSignupLink(`${window.location.origin}${base}/panel/reseller-signup?ref=${encodeURIComponent(token)}`);
+    } finally {
+      setSignupLinkLoading(false);
+    }
+  }, [messageApi, signupTemplateId, t]);
+
+  const copySignupLink = useCallback(async () => {
+    if (!signupLink) return;
+    await navigator.clipboard.writeText(signupLink);
+    messageApi.success(t('resellers.signupLinkCopied', 'Registration link copied'));
+  }, [messageApi, signupLink, t]);
 
   const changePassword = useCallback(async () => {
     const values = await passwordForm.validateFields().catch(() => null);
@@ -362,6 +401,45 @@ export default function ResellerProfilePage() {
                         )}
                       />
                     )}
+                  </Card>
+                </Col>
+
+                <Col span={24}>
+                  <Card
+                    size="small"
+                    hoverable
+                    title={<Space><UserOutlined />{t('resellers.signup.title', 'Customer self-registration')}</Space>}
+                  >
+                    <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                      <Typography.Text type="secondary">
+                        {t('resellers.signup.description', 'Create a shareable link that registers a customer on one of your templates. Your client and traffic limits are checked at registration.')}
+                      </Typography.Text>
+                      {signupTemplatesQuery.data?.length ? (
+                        <Select
+                          value={signupTemplateId}
+                          onChange={(value: number) => { setSignupTemplateId(value); setSignupLink(''); }}
+                          placeholder={t('resellers.signup.choosePlan', 'Choose a plan template')}
+                          style={{ width: '100%', maxWidth: 420 }}
+                          options={signupTemplatesQuery.data.map((template) => ({
+                            value: template.id,
+                            label: `${template.name} · ${template.totalGB > 0 ? `${(template.totalGB / (1024 ** 3)).toFixed(2)} GB` : t('unlimited', 'Unlimited')}${template.expireDurationDays > 0 ? ` · ${template.expireDurationDays}d` : ''}`,
+                          }))}
+                        />
+                      ) : (
+                        <Alert
+                          type="info"
+                          showIcon
+                          message={t('resellers.signup.noPlans', 'No eligible plan templates. Ask the administrator to create a template with inbounds assigned to your account.')}
+                        />
+                      )}
+                      <Space wrap>
+                        <Button type="primary" loading={signupLinkLoading} disabled={!signupTemplateId} onClick={createSignupLink}>
+                          {t('resellers.signup.createLink', 'Generate registration link')}
+                        </Button>
+                        {signupLink ? <Button icon={<CopyOutlined />} onClick={copySignupLink}>{t('copy', 'Copy link')}</Button> : null}
+                      </Space>
+                      {signupLink ? <Input.TextArea value={signupLink} readOnly autoSize={{ minRows: 2, maxRows: 4 }} /> : null}
+                    </Space>
                   </Card>
                 </Col>
 
