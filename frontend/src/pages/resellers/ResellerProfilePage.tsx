@@ -501,7 +501,7 @@ export default function ResellerProfilePage() {
                   >
                     <Space direction="vertical" size={10} style={{ width: '100%' }}>
                       <Typography.Text type="secondary">
-                        {t('resellers.signup.description', 'Create a shareable link that registers a customer on one of your templates. Your client and traffic limits are checked at registration.')}
+                        {t('resellers.signup.intro', 'Create a shareable link that registers a customer on one of your templates. Your client and traffic limits are checked at registration.')}
                       </Typography.Text>
                       {signupTemplatesQuery.data?.length ? (
                         <Select
