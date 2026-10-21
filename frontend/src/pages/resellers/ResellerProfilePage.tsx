@@ -536,15 +536,15 @@ export default function ResellerProfilePage() {
                   <Card
                     size="small"
                     hoverable
-                    title={<Space><WalletOutlined />{t('resellers.deposit.title', 'Public wallet top-up')}</Space>}
+                    title={<Space><WalletOutlined />{t('resellers.depositLink.title', 'Public wallet top-up')}</Space>}
                   >
                     <Space direction="vertical" size={10} style={{ width: '100%' }}>
                       <Typography.Text type="secondary">
-                        {t('resellers.deposit.description', 'Share a payment link so a customer can add credit directly to your reseller wallet. Payment is confirmed by the configured webhook.')}
+                        {t('resellers.depositLink.intro', 'Share a payment link so a customer can add credit directly to your reseller wallet. Payment is confirmed by the configured webhook.')}
                       </Typography.Text>
                       <Space wrap>
                         <Button type="primary" icon={<WalletOutlined />} loading={depositLinkLoading} onClick={createDepositLink}>
-                          {t('resellers.deposit.createLink', 'Generate wallet top-up link')}
+                          {t('resellers.depositLink.createLink', 'Generate wallet top-up link')}
                         </Button>
                         {depositLink ? <Button icon={<CopyOutlined />} onClick={copyDepositLink}>{t('copy', 'Copy link')}</Button> : null}
                       </Space>

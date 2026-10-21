@@ -2366,9 +2366,9 @@
       "createLink": "Generate registration link"
     },
     "signupLinkCopied": "Registration link copied",
-    "deposit": {
+    "depositLink": {
       "title": "Public wallet top-up",
-      "description": "Share a payment link so a customer can add credit directly to your reseller wallet. Payment is confirmed by the configured webhook.",
+      "intro": "Share a payment link so a customer can add credit directly to your reseller wallet. Payment is confirmed by the configured webhook.",
       "createLink": "Generate wallet top-up link"
     },
     "depositLinkCopied": "Wallet top-up link copied",
