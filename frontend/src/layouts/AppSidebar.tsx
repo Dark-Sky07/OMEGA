@@ -227,6 +227,7 @@ export default function AppSidebar() {
       // Reseller (نمایندگی) accounts manage only what the admin assigned to them.
       return [
         { key: '/reseller/report', icon: 'dashboard', title: t('menu.report') },
+        { key: '/reseller/renewals', icon: 'team', title: t('resellers.renewalCenter') },
         { key: '/inbounds', icon: 'inbound', title: t('menu.inbounds') },
         { key: '/clients', icon: 'team', title: t('menu.clients') },
         { key: '/reseller/profile', icon: 'profile', title: t('menu.profile') },

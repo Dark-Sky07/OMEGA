@@ -43,11 +43,12 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 	g.GET("/api-docs", a.panelSPA)
 
 	// Reseller (نمایندگی) pages. /resellers is the admin-side management page;
-	// /reseller/report and /reseller/profile are the two pages a reseller
-	// account can open besides the shared inbounds/clients views.
+	// /reseller/report, /reseller/profile and /reseller/renewals are reseller
+	// pages available alongside the shared inbounds/clients views.
 	g.GET("/resellers", a.panelSPA)
 	g.GET("/reseller/report", a.panelSPA)
 	g.GET("/reseller/profile", a.panelSPA)
+	g.GET("/reseller/renewals", a.panelSPA)
 
 	// SPA pages built by Vite don't have a server-rendered <meta name="csrf-token">,
 	// so they fetch the session token via this endpoint at startup and replay it

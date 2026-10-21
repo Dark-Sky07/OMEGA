@@ -50,6 +50,7 @@ vi.mock('@/pages/api-docs/ApiDocsPage', () => ({ default: () => <div>page:apidoc
 vi.mock('@/pages/resellers/ResellersPage', () => ({ default: () => <div>page:resellers</div> }));
 vi.mock('@/pages/resellers/ResellerReportPage', () => ({ default: () => <div>page:report</div> }));
 vi.mock('@/pages/resellers/ResellerProfilePage', () => ({ default: () => <div>page:profile</div> }));
+vi.mock('@/pages/resellers/ResellerRenewalsPage', () => ({ default: () => <div>page:renewals</div> }));
 
 function renderAt(path: string) {
   const router = createMemoryRouter(appRoutes, { initialEntries: [path] });
@@ -103,6 +104,7 @@ describe('reseller navigation', () => {
 
     const labels = menuLabels();
     expect(labels).toContain('Report');
+    expect(labels).toContain('Renewals');
     expect(labels).toContain('Inbounds');
     expect(labels).toContain('Clients');
     expect(labels).toContain('Profile');
@@ -166,6 +168,17 @@ describe('reseller navigation', () => {
     await waitFor(() => expect(document.title).not.toContain('Northstar'));
     expect(favicon.getAttribute('href')).toBe('/phoenix-icon.png');
     favicon.remove();
+  });
+
+  it('reseller renewal center is available only to reseller accounts', async () => {
+    sessionState.role = 'reseller';
+    const resellerPage = renderAt('/reseller/renewals');
+    await waitFor(() => expect(screen.getByText('page:renewals')).toBeTruthy());
+    resellerPage.unmount();
+
+    sessionState.role = 'admin';
+    renderAt('/reseller/renewals');
+    await waitFor(() => expect(screen.getByText('page:resellers')).toBeTruthy());
   });
 
   it('reseller landing route redirects to the sales report', async () => {
