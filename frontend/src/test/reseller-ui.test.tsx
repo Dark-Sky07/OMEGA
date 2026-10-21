@@ -198,9 +198,16 @@ describe('reseller pages', () => {
     renderPage(<ResellerProfilePage />);
 
     await waitFor(() => expect(screen.getByText('tg:@ali')).toBeTruthy());
+    const preview = screen.getByTestId('reseller-branding-preview');
     fireEvent.change(screen.getByLabelText('Brand name'), { target: { value: 'Northstar' } });
+    await waitFor(() => expect(preview.textContent).toContain('Northstar'));
+
+    fireEvent.change(screen.getByLabelText('Logo URL'), { target: { value: 'http://example.com/logo.png' } });
+    expect(preview.querySelector('img')).toBeNull(); // insecure logos are not fetched even in the preview
     fireEvent.change(screen.getByLabelText('Logo URL'), { target: { value: '/assets/northstar.svg' } });
+    await waitFor(() => expect(preview.querySelector('img')?.getAttribute('src')).toBe('/assets/northstar.svg'));
     fireEvent.change(screen.getByLabelText('Brand color'), { target: { value: '#224466' } });
+    await waitFor(() => expect(preview.querySelector('div[aria-hidden="true"]')?.getAttribute('style')).toContain('rgb(34, 68, 102)'));
     fireEvent.click(screen.getByRole('button', { name: 'Save branding' }));
 
     await waitFor(() => expect(HttpUtil.post).toHaveBeenCalledWith(

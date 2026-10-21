@@ -97,6 +97,21 @@ function notifTitle(
   return t(`resellers.notif.${kind}.title`, parseNotifParams(params));
 }
 
+function safeBrandLogoPreview(value: string): string | undefined {
+  const logo = value.trim();
+  if (!logo || logo.length > 2048 || /[\\\r\n]/.test(logo)) return undefined;
+  try {
+    if (logo.startsWith('/')) {
+      if (logo.startsWith('//')) return undefined;
+      return new URL(logo, window.location.origin).origin === window.location.origin ? logo : undefined;
+    }
+    const parsed = new URL(logo);
+    return parsed.protocol === 'https:' && parsed.hostname && !parsed.username && !parsed.password ? logo : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export default function ResellerProfilePage() {
   const { t } = useTranslation();
   const { isDark, isUltra, antdThemeConfig } = useTheme();
@@ -118,6 +133,9 @@ export default function ResellerProfilePage() {
   const [depositLinkLoading, setDepositLinkLoading] = useState(false);
   const [passwordForm] = Form.useForm<{ oldPassword: string; newPassword: string; confirmPassword: string }>();
   const [brandingForm] = Form.useForm<ResellerBrandingValues>();
+  const previewBrandNameInput = Form.useWatch('brandName', brandingForm) || '';
+  const previewBrandLogoInput = Form.useWatch('brandLogo', brandingForm) || '';
+  const previewBrandColorInput = Form.useWatch('brandColor', brandingForm) || '';
 
   const redeemVoucher = useCallback(async () => {
     const code = voucherCode.trim();
@@ -156,6 +174,11 @@ export default function ResellerProfilePage() {
   });
 
   const stat = profileQuery.data;
+  const previewBrandName = previewBrandNameInput.trim() || stat?.reseller.name || t('resellers.branding.title');
+  const previewBrandLogo = safeBrandLogoPreview(previewBrandLogoInput);
+  const previewBrandColor = /^#[0-9a-fA-F]{6}$/.test(previewBrandColorInput) ? previewBrandColorInput : undefined;
+  const previewBrandInitial = Array.from(previewBrandName)[0]?.toUpperCase() || 'R';
+
   useEffect(() => {
     if (!stat) return;
     brandingForm.setFieldsValue({
@@ -398,6 +421,65 @@ export default function ResellerProfilePage() {
                           </Form.Item>
                         </Col>
                       </Row>
+                      <div
+                        data-testid="reseller-branding-preview"
+                        role="region"
+                        aria-label={t('resellers.branding.title')}
+                        style={{
+                          maxWidth: 480,
+                          marginBottom: 16,
+                          padding: 16,
+                          border: `1px solid ${previewBrandColor || (isDark ? 'rgba(255,255,255,0.14)' : '#d9e1ee')}`,
+                          borderRadius: 12,
+                          background: isDark ? 'rgba(255,255,255,0.03)' : '#f7f9fc',
+                        }}
+                      >
+                        <Space align="center" size={12}>
+                          <div
+                            style={{
+                              position: 'relative',
+                              display: 'grid',
+                              placeItems: 'center',
+                              width: 48,
+                              height: 48,
+                              overflow: 'hidden',
+                              borderRadius: 12,
+                              background: previewBrandColor || '#1677ff',
+                              color: '#fff',
+                              fontSize: 20,
+                              fontWeight: 700,
+                            }}
+                          >
+                            <span aria-hidden="true">{previewBrandInitial}</span>
+                            {previewBrandLogo && (
+                              <img
+                                src={previewBrandLogo}
+                                alt=""
+                                onError={(event) => { event.currentTarget.style.display = 'none'; }}
+                                style={{
+                                  position: 'absolute',
+                                  inset: 0,
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'contain',
+                                  borderRadius: 12,
+                                  background: '#fff',
+                                }}
+                              />
+                            )}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <Typography.Text type="secondary">{t('resellers.branding.title')}</Typography.Text>
+                            <Typography.Title level={5} style={{ margin: 0, color: previewBrandColor }}>
+                              {previewBrandName}
+                            </Typography.Title>
+                          </div>
+                        </Space>
+                        <div
+                          aria-hidden="true"
+                          style={{ height: 4, marginTop: 14, borderRadius: 4, background: previewBrandColor || '#1677ff' }}
+                        />
+                      </div>
                       <Button type="primary" loading={brandingSaving} onClick={() => void saveBranding()}>
                         {t('resellers.branding.save')}
                       </Button>
