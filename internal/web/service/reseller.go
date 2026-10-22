@@ -280,11 +280,27 @@ func (s *ResellerService) CheckSubDomainAvailable(resellerID int, value string) 
 	if net.ParseIP(domain) != nil {
 		return "", errors.New("subscription domain must be a valid DNS hostname")
 	}
-	var existing model.Reseller
-	if err := database.GetDB().Where("LOWER(sub_domain) = ? AND id <> ?", domain, resellerID).First(&existing).Error; err == nil {
-		return "", errors.New("subscription domain is already assigned to another reseller")
-	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+	globalDomain, err := s.SubscriptionDomain()
+	if err != nil {
 		return "", err
+	}
+	if strings.TrimSpace(globalDomain) != "" {
+		globalDomain, err = ValidateCertDomain(globalDomain)
+		if err != nil {
+			return "", fmt.Errorf("configured panel subscription domain is invalid: %w", err)
+		}
+		if globalDomain == domain {
+			return "", errors.New("subscription domain is already used by the panel")
+		}
+	}
+	var existing []model.Reseller
+	if err := database.GetDB().Select("id, sub_domain").Where("id <> ? AND sub_domain <> ''", resellerID).Find(&existing).Error; err != nil {
+		return "", err
+	}
+	for _, reseller := range existing {
+		if assigned, err := ValidateCertDomain(reseller.SubDomain); err == nil && assigned == domain {
+			return "", errors.New("subscription domain is already assigned to another reseller")
+		}
 	}
 	return domain, nil
 }

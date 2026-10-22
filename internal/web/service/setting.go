@@ -1145,7 +1145,23 @@ func validateBrandSettings(settings *entity.AllSetting) error {
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	currentCurrency, _ := s.GetCheckoutCurrency()
-	currentSubDomain, _ := s.GetSubDomain()
+	currentSubDomain, err := s.GetSubDomain()
+	if err != nil {
+		return err
+	}
+	requestedDomain := strings.TrimSpace(allSetting.SubDomain)
+	canonicalRequestedDomain := requestedDomain
+	if requestedDomain != "" {
+		canonicalRequestedDomain, err = ValidateCertDomain(requestedDomain)
+		if err != nil {
+			return err
+		}
+		allSetting.SubDomain = canonicalRequestedDomain
+	}
+	canonicalCurrentDomain := strings.ToLower(strings.TrimSpace(currentSubDomain))
+	if clean, err := ValidateCertDomain(currentSubDomain); err == nil {
+		canonicalCurrentDomain = clean
+	}
 	requestedCurrency := strings.TrimSpace(allSetting.CheckoutCurrency)
 	if requestedCurrency == "" {
 		requestedCurrency = strings.TrimSpace(currentCurrency)
@@ -1162,13 +1178,15 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	} else {
 		return errors.New("checkout currency must be a supported currency code")
 	}
-	if !strings.EqualFold(strings.TrimSpace(currentSubDomain), strings.TrimSpace(allSetting.SubDomain)) && strings.TrimSpace(allSetting.SubDomain) != "" {
-		var conflicts int64
-		if err := database.GetDB().Model(&model.Reseller{}).Where("LOWER(sub_domain) = ?", strings.ToLower(strings.TrimSpace(allSetting.SubDomain))).Count(&conflicts).Error; err != nil {
+	if canonicalRequestedDomain != "" && !strings.EqualFold(canonicalCurrentDomain, canonicalRequestedDomain) {
+		var resellers []model.Reseller
+		if err := database.GetDB().Select("id, sub_domain").Where("sub_domain <> ''").Find(&resellers).Error; err != nil {
 			return err
 		}
-		if conflicts > 0 {
-			return errors.New("subscription domain is already assigned to a reseller")
+		for _, reseller := range resellers {
+			if assigned, err := ValidateCertDomain(reseller.SubDomain); err == nil && assigned == canonicalRequestedDomain {
+				return errors.New("subscription domain is already assigned to a reseller")
+			}
 		}
 	}
 	if !strings.EqualFold(strings.TrimSpace(currentCurrency), allSetting.CheckoutCurrency) {

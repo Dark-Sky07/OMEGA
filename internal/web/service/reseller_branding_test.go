@@ -100,6 +100,37 @@ func TestUpdateResellerBrandSettingsValidatesThemeAndUniqueDomain(t *testing.T) 
 	}
 }
 
+func TestResellerDomainCollisionChecksCanonicalPanelAndLegacyDomains(t *testing.T) {
+	if err := database.InitDB(t.TempDir() + "/x-ui.db"); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	db := database.GetDB()
+	if err := db.Create(&model.Setting{Key: "subDomain", Value: "Panel.Example.com."}).Error; err != nil {
+		t.Fatal(err)
+	}
+	first := &model.Reseller{Username: "legacy-domain-owner", Enable: true, SubDomain: "reseller.example.com."}
+	second := &model.Reseller{Username: "new-domain-owner", Enable: true}
+	if err := db.Create(first).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(second).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	var svc ResellerService
+	if _, err := svc.CheckSubDomainAvailable(second.Id, "PANEL.EXAMPLE.COM"); err == nil {
+		t.Fatal("panel domain collision was accepted after case/trailing-dot normalization")
+	}
+	if _, err := svc.CheckSubDomainAvailable(second.Id, "reseller.example.com"); err == nil {
+		t.Fatal("legacy reseller domain collision was accepted after normalization")
+	}
+	if clean, err := svc.CheckSubDomainAvailable(second.Id, "Fresh.Example.com."); err != nil || clean != "fresh.example.com" {
+		t.Fatalf("new canonical domain = (%q, %v), want (fresh.example.com, nil)", clean, err)
+	}
+}
+
 func TestValidateBrandSettingsNormalizesAndRejectsInvalidTheme(t *testing.T) {
 	settings := &entity.AllSetting{
 		BrandName: "  Main Brand  ", BrandLogo: "/brand.svg", BrandColor: "#abcdef", BrandTheme: "OCEAN",
