@@ -7,6 +7,10 @@ export class AllSetting {
   webCertFile = '';
   webKeyFile = '';
   webBasePath = '/';
+  brandName = 'PHOENIX';
+  brandLogo = '';
+  brandColor = '';
+  brandTheme = 'default';
   sessionMaxAge = 360;
   trustedProxyCIDRs = '127.0.0.1/32,::1/128';
   panelOutbound = '';
@@ -83,6 +87,10 @@ export class AllSetting {
   subJsonRules = '';
   subJsonFinalMask = '';
   subThemeDir = '';
+  subBrandName = '';
+  subBrandLogo = '';
+  subBrandColor = '';
+  subBrandTheme = 'default';
 
   timeLocation = 'Local';
 

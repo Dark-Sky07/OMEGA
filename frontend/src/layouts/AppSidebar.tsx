@@ -92,11 +92,11 @@ function Brand({ compact, name, logo, color }: { compact?: boolean; name?: strin
   const branded = Boolean(name || logo);
   return (
     <div className={`brand-block${compact ? ' is-compact' : ''}${branded ? ' is-branded' : ''}`}>
-      <span className="brand-mark" aria-hidden="true" style={branded && color ? { boxShadow: `0 0 0 1px ${color}` } : undefined}>
+      <span className="brand-mark" aria-hidden="true" style={color ? { boxShadow: `0 0 0 1px ${color}` } : undefined}>
         {logo ? <img src={logo} alt="" className="brand-mark-img" /> : branded ? <span className="brand-mark-glyph">{(name || 'R').slice(0, 1).toUpperCase()}</span> : <img src={phoenixCrest} alt="" className="brand-mark-img" />}
       </span>
       <span className="brand-copy">
-        <span className={`brand-text${branded ? ' is-branded' : ''}`} style={branded && color ? { color } : undefined}>{branded ? (name || 'Reseller') : 'PHOENIX'}</span>
+        <span className={`brand-text${branded ? ' is-branded' : ''}`} style={color ? { color } : undefined}>{branded ? (name || 'Reseller') : 'PHOENIX'}</span>
         {!branded && <span className="brand-sub">Eternal Flame Core</span>}
       </span>
     </div>
@@ -207,12 +207,24 @@ export default function AppSidebar() {
   const { allSetting } = useAllSettings();
   const { isReseller, session } = useSession();
   const resellerBrand = session?.stat?.reseller;
-  const hasCustomBrand = Boolean(isReseller && (resellerBrand?.brandName || resellerBrand?.brandLogo));
-  const brandProps = hasCustomBrand ? {
-    name: resellerBrand?.brandName || session?.name,
-    logo: resellerBrand?.brandLogo,
-    color: resellerBrand?.brandColor,
+  const activeBrand: { brandName?: string; brandLogo?: string; brandColor?: string; brandTheme?: string } = isReseller ? (resellerBrand || {}) : allSetting;
+  const themeAccents: Record<string, string> = { ocean: '#1677FF', forest: '#1C9A68', sunset: '#D9485F' };
+  const accent = activeBrand?.brandColor || themeAccents[activeBrand?.brandTheme || ''];
+  const configuredBrandName = activeBrand?.brandName && activeBrand.brandName !== 'PHOENIX' ? activeBrand.brandName : undefined;
+  const brandProps = configuredBrandName || activeBrand?.brandLogo || accent ? {
+    name: configuredBrandName || (activeBrand?.brandLogo ? (isReseller ? session?.name : 'PHOENIX') : undefined),
+    logo: activeBrand?.brandLogo,
+    color: accent,
   } : {};
+  const hasCustomBrand = Boolean(brandProps.name || brandProps.logo);
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('phoenix-branding-change', {
+      detail: { theme: activeBrand?.brandTheme || 'default', color: activeBrand?.brandColor || '' },
+    }));
+  }, [activeBrand?.brandTheme, activeBrand?.brandColor]);
+  useEffect(() => () => {
+    window.dispatchEvent(new CustomEvent('phoenix-branding-change', { detail: { theme: 'default', color: '' } }));
+  }, []);
   const showSubFormats = !!(allSetting.subJsonEnable || allSetting.subClashEnable);
 
   const [collapsed, setCollapsed] = useState<boolean>(() => readCollapsed());

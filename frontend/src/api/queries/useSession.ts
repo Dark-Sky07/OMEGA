@@ -13,6 +13,8 @@ export interface ResellerStat {
     brandName?: string;
     brandLogo?: string;
     brandColor?: string;
+    brandTheme?: string;
+    subDomain?: string;
     enable: boolean;
     trafficLimit: number;
     clientLimit: number;

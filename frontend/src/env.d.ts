@@ -34,6 +34,10 @@ interface SubPageData {
   subJsonUrl?: string;
   subClashUrl?: string;
   subTitle?: string;
+  brandName?: string;
+  brandLogo?: string;
+  brandColor?: string;
+  brandTheme?: string;
   links?: string[];
   emails?: string[];
   datepicker?: 'gregorian' | 'jalalian';

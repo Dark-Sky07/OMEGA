@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net"
 	"net/url"
 	"sort"
 	"strings"
@@ -103,6 +104,11 @@ func (s *ResellerService) Get(id int) (*model.Reseller, error) {
 		return nil, err
 	}
 	return reseller, nil
+}
+
+// SubscriptionDomain returns the panel-wide subscription hostname for collision checks.
+func (s *ResellerService) SubscriptionDomain() (string, error) {
+	return s.settingService.GetSubDomain()
 }
 
 // GetByUsername loads one reseller by its login name.
@@ -261,10 +267,63 @@ func (s *ResellerService) UpdateBranding(resellerID int, name, logo, color strin
 		return err
 	}
 	return database.GetDB().Model(&model.Reseller{}).Where("id = ?", resellerID).Updates(map[string]any{
-		"brand_name":  name,
-		"brand_logo":  logo,
-		"brand_color": color,
-		"updated_at":  time.Now().UnixMilli(),
+		"brand_name": name, "brand_logo": logo, "brand_color": color, "updated_at": time.Now().UnixMilli(),
+	}).Error
+}
+
+// CheckSubDomainAvailable validates and checks a reseller's custom subscription hostname.
+func (s *ResellerService) CheckSubDomainAvailable(resellerID int, value string) (string, error) {
+	domain, err := ValidateCertDomain(value)
+	if err != nil {
+		return "", err
+	}
+	if net.ParseIP(domain) != nil {
+		return "", errors.New("subscription domain must be a valid DNS hostname")
+	}
+	var existing model.Reseller
+	if err := database.GetDB().Where("LOWER(sub_domain) = ? AND id <> ?", domain, resellerID).First(&existing).Error; err == nil {
+		return "", errors.New("subscription domain is already assigned to another reseller")
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return "", err
+	}
+	return domain, nil
+}
+
+// NormalizeResellerBrandSettings validates visual branding before it is
+// persisted or a certificate is requested.
+func NormalizeResellerBrandSettings(name, logo, color, theme string) (string, string, string, string, error) {
+	name, logo, color, err := NormalizeResellerBranding(name, logo, color)
+	if err != nil {
+		return "", "", "", "", err
+	}
+	theme = strings.ToLower(strings.TrimSpace(theme))
+	if theme != "" && theme != "default" && theme != "ocean" && theme != "forest" && theme != "sunset" {
+		return "", "", "", "", errors.New("unsupported brand theme")
+	}
+	return name, logo, color, theme, nil
+}
+
+// UpdateBrandSettings validates and persists the visual brand plus an optional
+// per-reseller subscription hostname. The hostname is unique across resellers;
+// certificate issuance is performed by the controller before this is called.
+func (s *ResellerService) UpdateBrandSettings(resellerID int, name, logo, color, theme, domain string) error {
+	if resellerID <= 0 {
+		return errors.New("reseller is required")
+	}
+	name, logo, color, theme, err := NormalizeResellerBrandSettings(name, logo, color, theme)
+	if err != nil {
+		return err
+	}
+	domain = strings.TrimSpace(domain)
+	if domain != "" {
+		domain, err = s.CheckSubDomainAvailable(resellerID, domain)
+		if err != nil {
+			return err
+		}
+	}
+	return database.GetDB().Model(&model.Reseller{}).Where("id = ?", resellerID).Updates(map[string]any{
+		"brand_name": name, "brand_logo": logo, "brand_color": color,
+		"brand_theme": theme, "sub_domain": domain, "updated_at": time.Now().UnixMilli(),
 	}).Error
 }
 

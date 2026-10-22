@@ -31,6 +31,12 @@ type AllSetting struct {
 	TrustedProxyCIDRs string `json:"trustedProxyCIDRs" form:"trustedProxyCIDRs"`                     // Trusted reverse proxy IPs/CIDRs for forwarded headers
 	PanelOutbound     string `json:"panelOutbound" form:"panelOutbound"`                             // Xray outbound tag for the panel's own outbound HTTP (update checks/downloads, Telegram, geo updates, outbound-subscription fetches)
 
+	// Panel branding (independent of each user's light/dark preference).
+	BrandName  string `json:"brandName" form:"brandName"`
+	BrandLogo  string `json:"brandLogo" form:"brandLogo"`
+	BrandColor string `json:"brandColor" form:"brandColor"`
+	BrandTheme string `json:"brandTheme" form:"brandTheme"`
+
 	// UI settings
 	PageSize    int    `json:"pageSize" form:"pageSize" validate:"gte=0,lte=1000"`      // Number of items per page in lists (0 disables pagination)
 	ExpireDiff  int    `json:"expireDiff" form:"expireDiff" validate:"gte=0"`           // Expiration warning threshold in days
@@ -112,6 +118,10 @@ type AllSetting struct {
 	SubJsonRules                string `json:"subJsonRules" form:"subJsonRules"`
 	SubJsonFinalMask            string `json:"subJsonFinalMask" form:"subJsonFinalMask"` // JSON subscription global finalmask (tcp/udp masks + quicParams)
 	SubThemeDir                 string `json:"subThemeDir" form:"subThemeDir"`           // Absolute path to a folder containing a custom subscription page template
+	SubBrandName                string `json:"subBrandName" form:"subBrandName"`
+	SubBrandLogo                string `json:"subBrandLogo" form:"subBrandLogo"`
+	SubBrandColor               string `json:"subBrandColor" form:"subBrandColor"`
+	SubBrandTheme               string `json:"subBrandTheme" form:"subBrandTheme"`
 
 	// LDAP settings
 	LdapEnable     bool   `json:"ldapEnable" form:"ldapEnable"`

@@ -18,7 +18,8 @@ func NewCertRenewJob() *CertRenewJob {
 }
 
 func (j *CertRenewJob) Run() {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
 	_, _ = j.certService.RenewIfDue(ctx)
+	_ = j.certService.RenewResellerDomainsIfDue(ctx)
 }

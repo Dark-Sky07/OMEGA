@@ -21,6 +21,8 @@ import (
 	"golang.org/x/crypto/acme"
 
 	"github.com/Dark-Sky07/phoenix/internal/config"
+	"github.com/Dark-Sky07/phoenix/internal/database"
+	"github.com/Dark-Sky07/phoenix/internal/database/model"
 	"github.com/Dark-Sky07/phoenix/internal/logger"
 	"github.com/Dark-Sky07/phoenix/internal/util/common"
 )
@@ -175,10 +177,49 @@ func (s *CertService) IssueSelfSigned(domain string, baseDir string, applyToPane
 	return InspectFile(certFile, keyFile), nil
 }
 
+var acmeIssueSlots = make(chan struct{}, 1)
+
 // IssueLetsEncrypt obtains a publicly-trusted certificate for domain via RFC
 // 8555 HTTP-01 challenge on port 80, writes fullchain.pem + privkey.pem under
 // baseDir, and optionally applies the paths to the panel settings.
 func (s *CertService) IssueLetsEncrypt(ctx context.Context, domain string, email string, baseDir string, applyToPanel bool) (*CertStatus, error) {
+	if err := acquireACMEIssueSlot(ctx); err != nil {
+		return nil, err
+	}
+	defer releaseACMEIssueSlot()
+	if baseDir == "" {
+		baseDir = CertDir()
+	}
+	return s.issueLetsEncrypt(ctx, domain, email, baseDir, baseDir, applyToPanel)
+}
+
+// IssueResellerLetsEncrypt shares one ACME account across reseller domains
+// while keeping each certificate and private key in the reseller's own folder.
+func (s *CertService) IssueResellerLetsEncrypt(ctx context.Context, resellerID int, domain string) (*CertStatus, error) {
+	if resellerID <= 0 {
+		return nil, common.NewError("reseller is required")
+	}
+	if err := acquireACMEIssueSlot(ctx); err != nil {
+		return nil, err
+	}
+	defer releaseACMEIssueSlot()
+	accountDir := filepath.Join(CertDir(), "reseller")
+	certRoot := filepath.Join(accountDir, fmt.Sprint(resellerID))
+	return s.issueLetsEncrypt(ctx, domain, "", accountDir, certRoot, false)
+}
+
+func acquireACMEIssueSlot(ctx context.Context) error {
+	select {
+	case acmeIssueSlots <- struct{}{}:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func releaseACMEIssueSlot() { <-acmeIssueSlots }
+
+func (s *CertService) issueLetsEncrypt(ctx context.Context, domain, email, accountDir, certRoot string, applyToPanel bool) (*CertStatus, error) {
 	clean, err := ValidateCertDomain(domain)
 	if err != nil {
 		return nil, err
@@ -186,10 +227,7 @@ func (s *CertService) IssueLetsEncrypt(ctx context.Context, domain string, email
 	if net.ParseIP(clean) != nil {
 		return nil, common.NewError("Let's Encrypt HTTP-01 requires a domain name (use self-signed for a bare IP)")
 	}
-	if baseDir == "" {
-		baseDir = CertDir()
-	}
-	acctKey, err := loadOrCreateAccountKey(baseDir)
+	acctKey, err := loadOrCreateAccountKey(accountDir)
 	if err != nil {
 		return nil, fmt.Errorf("acme account key: %w", err)
 	}
@@ -269,7 +307,7 @@ func (s *CertService) IssueLetsEncrypt(ctx context.Context, domain string, email
 	if err != nil {
 		return nil, fmt.Errorf("acme finalize: %w", err)
 	}
-	certFile, keyFile, err := writeCertAndKey(filepath.Join(baseDir, clean), derChain, leafKey)
+	certFile, keyFile, err := writeCertAndKey(filepath.Join(certRoot, clean), derChain, leafKey)
 	if err != nil {
 		return nil, err
 	}
@@ -299,6 +337,37 @@ func (s *CertService) RenewIfDue(ctx context.Context) (bool, error) {
 	}
 	logger.Infof("TLS certificate for %s renewed successfully", st.Subject)
 	return true, nil
+}
+
+// RenewResellerDomainsIfDue renews active reseller subscription certificates
+// from their existing managed paths. It is safe to call from the daily job.
+func (s *CertService) RenewResellerDomainsIfDue(ctx context.Context) error {
+	var resellers []model.Reseller
+	if err := database.GetDB().Where("sub_domain <> ''").Order("id ASC").Find(&resellers).Error; err != nil {
+		return err
+	}
+	var errs []error
+	for _, reseller := range resellers {
+		if err := ctx.Err(); err != nil {
+			errs = append(errs, err)
+			break
+		}
+		domain, err := ValidateCertDomain(reseller.SubDomain)
+		if err != nil || domain == "" || net.ParseIP(domain) != nil {
+			continue
+		}
+		baseDir := filepath.Join(CertDir(), "reseller", fmt.Sprint(reseller.Id))
+		status := InspectFile(filepath.Join(baseDir, domain, "fullchain.pem"), filepath.Join(baseDir, domain, "privkey.pem"))
+		if status.SelfSigned || (status.Error == "" && status.DaysLeft > CertRenewBeforeDays) {
+			continue
+		}
+		logger.Infof("Auto-renewing reseller TLS certificate for %s (reseller %d, %d days remaining)", domain, reseller.Id, status.DaysLeft)
+		if _, err := s.IssueResellerLetsEncrypt(ctx, reseller.Id, domain); err != nil {
+			logger.Warningf("Auto-renewal for reseller domain %s failed: %v", domain, err)
+			errs = append(errs, fmt.Errorf("reseller %d (%s): %w", reseller.Id, domain, err))
+		}
+	}
+	return errors.Join(errs...)
 }
 
 func (s *CertService) startHTTP01Server(chalPath, respBody string) (func(), error) {

@@ -99,12 +99,39 @@ func (a *ResellerSelfController) updateBranding(c *gin.Context) {
 		BrandName  string `json:"brandName"`
 		BrandLogo  string `json:"brandLogo"`
 		BrandColor string `json:"brandColor"`
+		BrandTheme string `json:"brandTheme"`
+		SubDomain  string `json:"subDomain"`
 	}
 	if err := c.ShouldBindJSON(&form); err != nil {
 		jsonMsg(c, "invalid branding payload", err)
 		return
 	}
-	if err := a.resellerService.UpdateBranding(reseller.Id, form.BrandName, form.BrandLogo, form.BrandColor); err != nil {
+	if _, _, _, _, err := service.NormalizeResellerBrandSettings(form.BrandName, form.BrandLogo, form.BrandColor, form.BrandTheme); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	// Issue the certificate before activating a new hostname. The ACME HTTP-01
+	// listener binds port 80 only during the challenge; the reseller domain is
+	// not saved if validation fails, so existing subscription links stay live.
+	newDomain := strings.TrimSpace(form.SubDomain)
+	oldDomain := strings.TrimSpace(reseller.SubDomain)
+	if newDomain != "" && !strings.EqualFold(newDomain, oldDomain) {
+		globalDomain, _ := a.resellerService.SubscriptionDomain()
+		if strings.EqualFold(newDomain, globalDomain) {
+			jsonMsg(c, "", errors.New("subscription domain is already used by the panel"))
+			return
+		}
+		clean, err := a.resellerService.CheckSubDomainAvailable(reseller.Id, newDomain)
+		if err != nil {
+			jsonMsg(c, "", err)
+			return
+		}
+		if _, err := (&service.CertService{}).IssueResellerLetsEncrypt(c.Request.Context(), reseller.Id, clean); err != nil {
+			jsonMsg(c, "", fmt.Errorf("TLS certificate could not be issued: %w", err))
+			return
+		}
+	}
+	if err := a.resellerService.UpdateBrandSettings(reseller.Id, form.BrandName, form.BrandLogo, form.BrandColor, form.BrandTheme, newDomain); err != nil {
 		jsonMsg(c, "", err)
 		return
 	}

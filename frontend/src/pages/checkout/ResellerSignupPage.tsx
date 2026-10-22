@@ -13,6 +13,7 @@ interface SignupInfo {
   brandName?: string;
   brandLogo?: string;
   brandColor?: string;
+  brandTheme?: string;
   planName: string;
   description?: string;
   totalBytes: number;
@@ -67,8 +68,10 @@ export default function ResellerSignupPage() {
   }
 
   const info = infoQuery.data;
+  const themeColors: Record<string, string> = { ocean: '#1677ff', forest: '#1c9a68', sunset: '#d9485f' };
+  const brandAccent = info?.brandColor || themeColors[info?.brandTheme || ''] || undefined;
   return (
-    <ConfigProvider theme={info?.brandColor ? { token: { colorPrimary: info.brandColor } } : undefined}>
+    <ConfigProvider theme={brandAccent ? { token: { colorPrimary: brandAccent } } : undefined}>
       <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 16, background: isDark ? '#10131a' : '#f5f7fa' }}>
       {holder}
       <Card style={{ width: 'min(100%, 460px)' }}>

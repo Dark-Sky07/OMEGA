@@ -169,6 +169,23 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
         label: catTabLabel(<IdcardOutlined />, t('pages.settings.profile'), isMobile),
         children: (
           <>
+            <SettingListItem paddings="small" title={t('pages.settings.subBrandName', 'Subscription page brand name')}>
+              <Input maxLength={80} value={allSetting.subBrandName} onChange={(e) => updateSetting({ subBrandName: e.target.value })} />
+            </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.subBrandLogo', 'Subscription page logo URL')}>
+              <Input maxLength={2048} value={allSetting.subBrandLogo} placeholder="https://example.com/logo.png" onChange={(e) => updateSetting({ subBrandLogo: e.target.value })} />
+            </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.subBrandColor', 'Subscription page accent color')}>
+              <Input maxLength={7} value={allSetting.subBrandColor} placeholder="#1677FF" onChange={(e) => updateSetting({ subBrandColor: e.target.value })} />
+            </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.subBrandTheme', 'Subscription brand palette')}>
+              <Select value={allSetting.subBrandTheme || 'default'} style={{ width: '100%' }} onChange={(v) => updateSetting({ subBrandTheme: v })} options={[
+                { value: 'default', label: t('pages.settings.brandThemeDefault', 'Phoenix') },
+                { value: 'ocean', label: t('pages.settings.brandThemeOcean', 'Ocean') },
+                { value: 'forest', label: t('pages.settings.brandThemeForest', 'Forest') },
+                { value: 'sunset', label: t('pages.settings.brandThemeSunset', 'Sunset') },
+              ]} />
+            </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.subTitle')} description={t('pages.settings.subTitleDesc')}>
               <Input value={allSetting.subTitle} onChange={(e) => updateSetting({ subTitle: e.target.value })} />
             </SettingListItem>

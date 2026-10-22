@@ -431,6 +431,23 @@ export default function GeneralTab({ allSetting, updateSetting, defaultSubTab = 
         label: catTabLabel(<SettingOutlined />, t('pages.settings.panelSettings'), isMobile),
         children: (
           <>
+            <SettingListItem paddings="small" title={t('pages.settings.brandName', 'Panel brand name')} description={t('pages.settings.brandingDesc', 'Choose your logo and accent independently of each user’s light or dark preference.')}>
+              <Input maxLength={80} value={allSetting.brandName} onChange={(e) => updateSetting({ brandName: e.target.value })} />
+            </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.brandLogo', 'Panel logo URL')}>
+              <Input maxLength={2048} value={allSetting.brandLogo} placeholder="https://example.com/logo.png" onChange={(e) => updateSetting({ brandLogo: e.target.value })} />
+            </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.brandColor', 'Panel accent color')}>
+              <Input maxLength={7} value={allSetting.brandColor} placeholder="#E85002" onChange={(e) => updateSetting({ brandColor: e.target.value })} />
+            </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.brandTheme', 'Brand palette')}>
+              <Select value={allSetting.brandTheme || 'default'} style={{ width: '100%' }} onChange={(v) => updateSetting({ brandTheme: v })} options={[
+                { value: 'default', label: t('pages.settings.brandThemeDefault', 'Phoenix') },
+                { value: 'ocean', label: t('pages.settings.brandThemeOcean', 'Ocean') },
+                { value: 'forest', label: t('pages.settings.brandThemeForest', 'Forest') },
+                { value: 'sunset', label: t('pages.settings.brandThemeSunset', 'Sunset') },
+              ]} />
+            </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.panelListeningIP')} description={t('pages.settings.panelListeningIPDesc')}>
               <Input value={allSetting.webListen} onChange={(e) => updateSetting({ webListen: e.target.value })} />
             </SettingListItem>

@@ -41,3 +41,30 @@ func TestPreserveResellerNotificationSettingsForOlderClients(t *testing.T) {
 		t.Fatalf("preserved settings = %+v, want stored values and explicit false channel preserved", got)
 	}
 }
+
+func TestPreserveBrandSettingsForOlderClients(t *testing.T) {
+	current := &entity.AllSetting{
+		BrandName: "Main", BrandLogo: "/main.svg", BrandColor: "#123456", BrandTheme: "ocean",
+		SubBrandName: "Subscription", SubBrandLogo: "/sub.svg", SubBrandColor: "#654321", SubBrandTheme: "forest",
+	}
+	explicitEmpty, err := json.Marshal("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	submitted := map[string]json.RawMessage{"brandName": explicitEmpty}
+
+	preserveBrandSettings(submitted, current)
+
+	encoded, err := json.Marshal(submitted)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got entity.AllSetting
+	if err := json.Unmarshal(encoded, &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.BrandName != "" || got.BrandLogo != "/main.svg" || got.BrandColor != "#123456" || got.BrandTheme != "ocean" ||
+		got.SubBrandName != "Subscription" || got.SubBrandLogo != "/sub.svg" || got.SubBrandColor != "#654321" || got.SubBrandTheme != "forest" {
+		t.Fatalf("preserved branding = %+v, want omitted settings retained and explicit empty preserved", got)
+	}
+}

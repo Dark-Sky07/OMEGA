@@ -9,6 +9,10 @@ export type trafficLocalApplyAction = number;
 export type transportBits = number;
 
 export interface AllSetting {
+  brandColor: string;
+  brandLogo: string;
+  brandName: string;
+  brandTheme: string;
   checkoutCurrency: string;
   checkoutEnable: boolean;
   checkoutGatewayURL: string;
@@ -70,6 +74,10 @@ export interface AllSetting {
   restartXrayOnClientDisable: boolean;
   sessionMaxAge: number;
   subAnnounce: string;
+  subBrandColor: string;
+  subBrandLogo: string;
+  subBrandName: string;
+  subBrandTheme: string;
   subCertFile: string;
   subClashEnable: boolean;
   subClashEnableRouting: boolean;
@@ -133,6 +141,10 @@ export interface AllSetting {
 }
 
 export interface AllSettingView {
+  brandColor: string;
+  brandLogo: string;
+  brandName: string;
+  brandTheme: string;
   checkoutCurrency: string;
   checkoutEnable: boolean;
   checkoutGatewayURL: string;
@@ -202,6 +214,10 @@ export interface AllSettingView {
   restartXrayOnClientDisable: boolean;
   sessionMaxAge: number;
   subAnnounce: string;
+  subBrandColor: string;
+  subBrandLogo: string;
+  subBrandName: string;
+  subBrandTheme: string;
   subCertFile: string;
   subClashEnable: boolean;
   subClashEnableRouting: boolean;

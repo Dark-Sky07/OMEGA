@@ -39,6 +39,14 @@ var defaultValueMap = map[string]string{
 	"secret":                              random.Seq(32),
 	"panelGuid":                           uuid.NewString(),
 	"apiToken":                            "",
+	"brandName":                           "PHOENIX",
+	"brandLogo":                           "",
+	"brandColor":                          "",
+	"brandTheme":                          "default",
+	"subBrandName":                        "",
+	"subBrandLogo":                        "",
+	"subBrandColor":                       "",
+	"subBrandTheme":                       "default",
 	"webBasePath":                         normalizeBasePath(getEnv("XUI_INIT_WEB_BASE_PATH", "/")),
 	"sessionMaxAge":                       "360",
 	"trustedProxyCIDRs":                   "127.0.0.1/32,::1/128",
@@ -961,6 +969,11 @@ func (s *SettingService) GetOutboundWatchdogFailThreshold() (int, error) {
 	return s.getInt("outboundWatchdogFailThreshold")
 }
 
+func (s *SettingService) GetSubBrandName() (string, error)  { return s.getString("subBrandName") }
+func (s *SettingService) GetSubBrandLogo() (string, error)  { return s.getString("subBrandLogo") }
+func (s *SettingService) GetSubBrandColor() (string, error) { return s.getString("subBrandColor") }
+func (s *SettingService) GetSubBrandTheme() (string, error) { return s.getString("subBrandTheme") }
+
 func (s *SettingService) GetSubThemeDir() (string, error) {
 	return s.getString("subThemeDir")
 }
@@ -1109,8 +1122,30 @@ func (s *SettingService) GetLdapDefaultLimitIP() (int, error) {
 	return s.getInt("ldapDefaultLimitIP")
 }
 
+func validateBrandSettings(settings *entity.AllSetting) error {
+	var err error
+	settings.BrandName, settings.BrandLogo, settings.BrandColor, err = NormalizeResellerBranding(settings.BrandName, settings.BrandLogo, settings.BrandColor)
+	if err != nil {
+		return err
+	}
+	settings.SubBrandName, settings.SubBrandLogo, settings.SubBrandColor, err = NormalizeResellerBranding(settings.SubBrandName, settings.SubBrandLogo, settings.SubBrandColor)
+	if err != nil {
+		return err
+	}
+	settings.BrandTheme = strings.ToLower(strings.TrimSpace(settings.BrandTheme))
+	settings.SubBrandTheme = strings.ToLower(strings.TrimSpace(settings.SubBrandTheme))
+	validTheme := func(theme string) bool {
+		return theme == "" || theme == "default" || theme == "ocean" || theme == "forest" || theme == "sunset"
+	}
+	if !validTheme(settings.BrandTheme) || !validTheme(settings.SubBrandTheme) {
+		return errors.New("unsupported brand theme")
+	}
+	return nil
+}
+
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	currentCurrency, _ := s.GetCheckoutCurrency()
+	currentSubDomain, _ := s.GetSubDomain()
 	requestedCurrency := strings.TrimSpace(allSetting.CheckoutCurrency)
 	if requestedCurrency == "" {
 		requestedCurrency = strings.TrimSpace(currentCurrency)
@@ -1127,6 +1162,15 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	} else {
 		return errors.New("checkout currency must be a supported currency code")
 	}
+	if !strings.EqualFold(strings.TrimSpace(currentSubDomain), strings.TrimSpace(allSetting.SubDomain)) && strings.TrimSpace(allSetting.SubDomain) != "" {
+		var conflicts int64
+		if err := database.GetDB().Model(&model.Reseller{}).Where("LOWER(sub_domain) = ?", strings.ToLower(strings.TrimSpace(allSetting.SubDomain))).Count(&conflicts).Error; err != nil {
+			return err
+		}
+		if conflicts > 0 {
+			return errors.New("subscription domain is already assigned to a reseller")
+		}
+	}
 	if !strings.EqualFold(strings.TrimSpace(currentCurrency), allSetting.CheckoutCurrency) {
 		var pending int64
 		if err := database.GetDB().Model(&model.PaymentOrder{}).
@@ -1136,6 +1180,9 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 		if pending > 0 {
 			return errors.New("cannot change currency while checkout payments are pending")
 		}
+	}
+	if err := validateBrandSettings(allSetting); err != nil {
+		return err
 	}
 	if err := s.preserveRedactedSecrets(allSetting); err != nil {
 		return err

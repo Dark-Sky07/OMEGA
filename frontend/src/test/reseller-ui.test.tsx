@@ -212,7 +212,7 @@ describe('reseller pages', () => {
 
     await waitFor(() => expect(HttpUtil.post).toHaveBeenCalledWith(
       '/panel/api/reseller/branding',
-      { brandName: 'Northstar', brandLogo: '/assets/northstar.svg', brandColor: '#224466' },
+      { brandName: 'Northstar', brandLogo: '/assets/northstar.svg', brandColor: '#224466', brandTheme: 'default', subDomain: '' },
       { headers: { 'Content-Type': 'application/json' }, silent: true },
     ));
   });

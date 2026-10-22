@@ -5,6 +5,24 @@ import type { ThemeConfig } from 'antd';
 
 const STORAGE_DARK = 'dark-mode';
 const STORAGE_ULTRA = 'isUltraDarkThemeEnabled';
+const BRAND_ACCENTS: Record<string, string> = { ocean: '#1677FF', forest: '#1C9A68', sunset: '#D9485F' };
+
+function validBrandTheme(value: string): string {
+  return ['default', ...Object.keys(BRAND_ACCENTS)].includes(value) ? value : 'default';
+}
+
+function validBrandColor(value: string): string {
+  return /^#[0-9a-fA-F]{6}$/.test(value) ? value.toUpperCase() : '';
+}
+
+function rgba(hex: string, alpha: number): string {
+  const color = validBrandColor(hex);
+  if (!color) return `rgba(232, 80, 2, ${alpha})`;
+  const r = Number.parseInt(color.slice(1, 3), 16);
+  const g = Number.parseInt(color.slice(3, 5), 16);
+  const b = Number.parseInt(color.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 function readBool(key: string, fallback: boolean): boolean {
   const raw = localStorage.getItem(key);
@@ -138,10 +156,12 @@ const STATISTIC_TOKENS = {
   titleFontSize: 12,
 };
 
-function buildComponents(mode: 'light' | 'dark' | 'ultra'): ThemeConfig['components'] {
+function buildComponents(mode: 'light' | 'dark' | 'ultra', brandPrimary?: string): ThemeConfig['components'] {
   const isDark = mode !== 'light';
   const solid = SOLID_SURFACE[mode];
-  const primary = isDark ? '#ff6a00' : '#e85002';
+  const primary = brandPrimary || (isDark ? '#ff6a00' : '#e85002');
+  const accentHover = rgba(primary, isDark ? 0.08 : 0.06);
+  const accentSelected = rgba(primary, isDark ? 0.2 : 0.12);
   const muted = isDark ? 'rgba(249, 241, 236, 0.74)' : 'rgba(28, 16, 8, 0.7)';
   return {
     Layout: {
@@ -168,15 +188,15 @@ function buildComponents(mode: 'light' | 'dark' | 'ultra'): ThemeConfig['compone
       subMenuItemBg: 'transparent',
       popupBg: isDark ? '#170d10' : '#ffffff',
       itemColor: muted,
-      itemHoverBg: isDark ? 'rgba(255, 122, 24, 0.08)' : 'rgba(232, 80, 2, 0.06)',
-      itemSelectedBg: isDark ? 'rgba(255, 106, 0, 0.2)' : 'rgba(232, 80, 2, 0.12)',
+      itemHoverBg: accentHover,
+      itemSelectedBg: accentSelected,
       itemSelectedColor: isDark ? '#ffffff' : '#b83700',
       darkItemBg: 'transparent',
       darkSubMenuItemBg: 'transparent',
       darkPopupBg: '#170d10',
       darkItemColor: muted,
-      darkItemHoverBg: 'rgba(255, 122, 24, 0.08)',
-      darkItemSelectedBg: 'rgba(255, 106, 0, 0.2)',
+      darkItemHoverBg: accentHover,
+      darkItemSelectedBg: accentSelected,
       darkItemSelectedColor: '#ffffff',
       groupTitleColor: isDark ? 'rgba(249, 241, 236, 0.42)' : 'rgba(28, 16, 8, 0.44)',
       groupTitleFontSize: 11,
@@ -190,12 +210,12 @@ function buildComponents(mode: 'light' | 'dark' | 'ultra'): ThemeConfig['compone
     },
     Table: {
       colorBgContainer: solid,
-      headerBg: isDark ? 'rgba(255, 140, 66, 0.04)' : 'rgba(232, 80, 2, 0.04)',
+      headerBg: rgba(primary, 0.04),
       headerColor: isDark ? 'rgba(249, 241, 236, 0.54)' : 'rgba(28, 16, 8, 0.54)',
       headerSplitColor: 'transparent',
-      rowHoverBg: isDark ? 'rgba(255, 106, 0, 0.09)' : 'rgba(232, 80, 2, 0.06)',
-      rowSelectedBg: isDark ? 'rgba(255, 106, 0, 0.14)' : 'rgba(232, 80, 2, 0.1)',
-      rowSelectedHoverBg: isDark ? 'rgba(255, 106, 0, 0.18)' : 'rgba(232, 80, 2, 0.14)',
+      rowHoverBg: rgba(primary, isDark ? 0.09 : 0.06),
+      rowSelectedBg: rgba(primary, isDark ? 0.14 : 0.1),
+      rowSelectedHoverBg: rgba(primary, isDark ? 0.18 : 0.14),
       borderColor: isDark ? 'rgba(255, 148, 92, 0.13)' : 'rgba(67, 20, 7, 0.08)',
       cellPaddingBlock: 12,
       cellPaddingInline: 14,
@@ -209,16 +229,16 @@ function buildComponents(mode: 'light' | 'dark' | 'ultra'): ThemeConfig['compone
       defaultHoverBg: isDark ? 'rgba(255, 122, 24, 0.1)' : '#ffffff',
     },
     Input: {
-      activeShadow: `0 0 0 3px ${isDark ? 'rgba(255, 106, 0, 0.28)' : 'rgba(232, 80, 2, 0.2)'}`,
+      activeShadow: `0 0 0 3px ${rgba(primary, isDark ? 0.28 : 0.2)}`,
       hoverBorderColor: primary,
       activeBorderColor: primary,
     },
     InputNumber: {
-      activeShadow: `0 0 0 3px ${isDark ? 'rgba(255, 106, 0, 0.28)' : 'rgba(232, 80, 2, 0.2)'}`,
+      activeShadow: `0 0 0 3px ${rgba(primary, isDark ? 0.28 : 0.2)}`,
     },
     Select: {
-      optionSelectedBg: isDark ? 'rgba(255, 106, 0, 0.2)' : 'rgba(232, 80, 2, 0.12)',
-      optionActiveBg: isDark ? 'rgba(255, 122, 24, 0.08)' : 'rgba(232, 80, 2, 0.06)',
+      optionSelectedBg: accentSelected,
+      optionActiveBg: accentHover,
     },
     Modal: {
       contentBg: isDark ? (mode === 'ultra' ? 'rgba(12, 7, 9, 0.96)' : 'rgba(20, 12, 15, 0.95)') : 'rgba(255, 252, 248, 0.97)',
@@ -295,9 +315,15 @@ const ULTRA_DARK_CONFIG: ThemeConfig = {
   components: buildComponents('ultra'),
 };
 
-export function buildAntdThemeConfig(isDark: boolean, isUltra: boolean): ThemeConfig {
-  if (!isDark) return LIGHT_CONFIG;
-  return isUltra ? ULTRA_DARK_CONFIG : DARK_CONFIG;
+export function buildAntdThemeConfig(isDark: boolean, isUltra: boolean, brandPrimary?: string): ThemeConfig {
+  const mode = !isDark ? 'light' : isUltra ? 'ultra' : 'dark';
+  const base = mode === 'light' ? LIGHT_CONFIG : mode === 'ultra' ? ULTRA_DARK_CONFIG : DARK_CONFIG;
+  if (!brandPrimary) return base;
+  return {
+    ...base,
+    token: { ...base.token, colorPrimary: brandPrimary, colorLink: brandPrimary },
+    components: buildComponents(mode, brandPrimary),
+  };
 }
 
 export function pauseAnimationsUntilLeave(elementId: string): void {
@@ -326,6 +352,20 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [isDark, setIsDark] = useState<boolean>(initialDark);
   const [isUltra, setIsUltra] = useState<boolean>(initialUltra);
+  const [brandTheme, setBrandTheme] = useState('default');
+  const [brandColor, setBrandColor] = useState('');
+
+  useEffect(() => {
+    const onBrandingChange = (event: Event) => {
+      const detail = (event as CustomEvent<{ theme?: string; color?: string }>).detail || {};
+      const theme = validBrandTheme(detail.theme || 'default');
+      const color = validBrandColor(detail.color || '');
+      setBrandTheme(theme);
+      setBrandColor(color);
+    };
+    window.addEventListener('phoenix-branding-change', onBrandingChange);
+    return () => window.removeEventListener('phoenix-branding-change', onBrandingChange);
+  }, []);
 
   useEffect(() => {
     applyDom(isDark, isUltra);
@@ -336,7 +376,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const toggleTheme = useCallback(() => setIsDark((v) => !v), []);
   const toggleUltra = useCallback(() => setIsUltra((v) => !v), []);
 
-  const antdThemeConfig = useMemo(() => buildAntdThemeConfig(isDark, isUltra), [isDark, isUltra]);
+  const brandPrimary = brandColor || BRAND_ACCENTS[brandTheme];
+  const antdThemeConfig = useMemo(() => buildAntdThemeConfig(isDark, isUltra, brandPrimary), [isDark, isUltra, brandPrimary]);
 
   const value = useMemo<ThemeContextValue>(
     () => ({ isDark, isUltra, toggleTheme, toggleUltra, antdThemeConfig }),

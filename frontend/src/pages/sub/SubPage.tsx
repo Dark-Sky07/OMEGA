@@ -59,6 +59,12 @@ const subUrl = subData.subUrl || '';
 const subJsonUrl = subData.subJsonUrl || '';
 const subClashUrl = subData.subClashUrl || '';
 const subTitle = subData.subTitle || '';
+const brandName = subData.brandName || '';
+const brandLogo = subData.brandLogo || '';
+const brandThemeValue = subData.brandTheme || '';
+const brandTheme = ['ocean', 'forest', 'sunset'].includes(brandThemeValue) ? brandThemeValue : 'default';
+const themeAccents: Record<string, string> = { ocean: '#1677ff', forest: '#1c9a68', sunset: '#d9485f' };
+const brandAccent = /^#[0-9a-fA-F]{6}$/.test(subData.brandColor || '') ? (subData.brandColor as string) : themeAccents[brandTheme];
 const links: string[] = Array.isArray(subData.links) ? subData.links : [];
 const linkEmails: string[] = Array.isArray(subData.emails) ? subData.emails : [];
 const datepicker = subData.datepicker || 'gregorian';
@@ -172,6 +178,7 @@ export default function SubPage() {
     const classes = ['subscription-page'];
     if (isDark) classes.push('is-dark');
     if (isUltra) classes.push('is-ultra');
+    if (brandTheme !== 'default') classes.push(`brand-${brandTheme}`);
     return classes.join(' ');
   }, [isDark, isUltra]);
 
@@ -350,12 +357,18 @@ export default function SubPage() {
   );
 
   return (
-    <ConfigProvider theme={antdThemeConfig}>
+    <ConfigProvider theme={{ ...antdThemeConfig, token: { ...antdThemeConfig.token, ...(brandAccent ? { colorPrimary: brandAccent } : {}) } }}>
       {messageContextHolder}
       <Layout className={pageClass}>
         <Layout.Content className="content">
           <Row justify="center">
             <Col xs={24} sm={22} md={18} lg={14} xl={12}>
+              {(brandName || brandLogo) && (
+                <div className="subscription-brand" style={{ color: brandAccent }}>
+                  {brandLogo ? <img src={brandLogo} alt={brandName || t('subscription.title')} /> : null}
+                  {brandName ? <strong>{brandName}</strong> : null}
+                </div>
+              )}
               <Card hoverable className="subscription-card" title={cardTitle} extra={cardExtra}>
                 <Descriptions
                   bordered
