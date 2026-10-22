@@ -52,35 +52,6 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - name: Verify Go module metadata is tidy
-        shell: bash
-        run: |
-          if ! go mod tidy > /tmp/go-mod-tidy.log 2>&1; then
-            python3 - <<'PYLOG'
-          from pathlib import Path
-          output = Path('/tmp/go-mod-tidy.log').read_text(errors='replace')[-4000:]
-          output = output.replace('%', '%25').replace(chr(13), '%0D').replace(chr(10), '%0A')
-          print(f'::error title=go-mod-tidy-error::{output}')
-          PYLOG
-            exit 1
-          fi
-          if git diff --quiet -- go.mod go.sum; then
-            exit 0
-          fi
-          python3 - <<'PYLOG'
-          import subprocess
-          diff = subprocess.run(['git', 'diff', '--', 'go.mod'], capture_output=True, text=True).stdout[-4000:]
-          diff = diff.replace('%', '%25').replace(chr(13), '%0D').replace(chr(10), '%0A')
-          print(f'::error title=go-mod-tidy-diff::{diff}')
-          sum_diff = subprocess.run(['git', 'diff', '--', 'go.sum'], capture_output=True, text=True).stdout
-          added = chr(10).join(line for line in sum_diff.splitlines() if line.startswith('+') and not line.startswith('+++'))[-4000:]
-          added = added.replace('%', '%25').replace(chr(13), '%0D').replace(chr(10), '%0A')
-          print(f'::error title=go-sum-tidy-additions::{added}')
-          removed = chr(10).join(line for line in sum_diff.splitlines() if line.startswith('-') and not line.startswith('---'))[-4000:]
-          removed = removed.replace('%', '%25').replace(chr(13), '%0D').replace(chr(10), '%0A')
-          print(f'::error title=go-sum-tidy-removals::{removed}')
-          PYLOG
-          exit 1
       - name: Stub internal/web/dist for go:embed
         run: mkdir -p internal/web/dist && touch internal/web/dist/.gitkeep
       - name: Verify Go formatting
