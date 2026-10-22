@@ -1,8 +1,7 @@
-# PHOENIX pins the exact dependency set of PHOENIX v3.3.1 (go.mod and
-# frontend/package-lock.json are intentionally untouched), so automated
-# *version* updates are disabled: open-pull-requests-limit 0 keeps the file
-# (and the security-alert integration) in place without opening bump PRs that
-# would move the panel off its pinned base.
+# Routine dependency version updates remain disabled to avoid broad, unreviewed
+# changes. Security fixes are applied manually, required to pass CI, and should
+# be released after compatibility checks. Repository-level Dependabot security
+# updates are controlled separately from this version-update schedule.
 # https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 version: 2
 updates:

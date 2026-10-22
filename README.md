@@ -412,11 +412,9 @@ are the authoritative references.
 
 ## Security notes
 
-- The panel pins the **exact PHOENIX v3.3.1 dependency set** on purpose (`go.mod` / `frontend/package-lock.json`
-  are untouched). Advisories published after that release therefore show up in CI's `govulncheck` and
-  `npm audit` steps; those two steps report without failing the build. Fixing them would mean changing the
-  pinned dependencies, which is outside the "PHOENIX v3.3.1 + resellers only" scope — upstream's newer releases
-  carry those fixes.
+- Go and frontend dependencies are pinned by `go.mod` and `frontend/package-lock.json`, but security patches
+  are applied when advisories affect shipped code. CI runs `govulncheck` and `npm audit` as blocking checks; do
+  not publish a release while either check reports an unresolved vulnerability without a documented exception.
 - Keep the panel on a private port or behind a VPN/HTTPS reverse proxy, change the default `admin/admin` login,
   and rotate reseller passwords from the **Resellers** page whenever one is shared with too many people.
 

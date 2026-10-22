@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
@@ -19,6 +20,7 @@ import (
 	"time"
 
 	"golang.org/x/crypto/acme"
+	"golang.org/x/net/idna"
 
 	"github.com/Dark-Sky07/phoenix/internal/config"
 	"github.com/Dark-Sky07/phoenix/internal/database"
@@ -67,14 +69,30 @@ func CertDir() string {
 // suitable for certificate issuance (no path separators, spaces, or schemes).
 func ValidateCertDomain(domain string) (string, error) {
 	d := strings.ToLower(strings.TrimSpace(domain))
+	d = strings.TrimSuffix(d, ".")
 	if d == "" {
 		return "", common.NewError("domain is required")
 	}
+	if strings.ContainsAny(d, " /\\:@?#\t\r\n") {
+		return "", common.NewError("invalid domain name")
+	}
+	ascii, err := idna.Lookup.ToASCII(d)
+	if err != nil {
+		return "", common.NewError("invalid domain name")
+	}
+	d = strings.ToLower(ascii)
 	if len(d) > 253 {
 		return "", common.NewError("domain is too long")
 	}
-	if strings.ContainsAny(d, " /\\:@?#\t\r\n") || strings.Contains(d, "..") {
-		return "", common.NewError("invalid domain name")
+	for _, label := range strings.Split(d, ".") {
+		if len(label) == 0 || len(label) > 63 || label[0] == '-' || label[len(label)-1] == '-' {
+			return "", common.NewError("invalid domain name")
+		}
+		for _, r := range label {
+			if !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-') {
+				return "", common.NewError("invalid domain name")
+			}
+		}
 	}
 	return d, nil
 }
@@ -119,6 +137,13 @@ func InspectFile(certFile, keyFile string) *CertStatus {
 	st.NotAfter = cert.NotAfter.UnixMilli()
 	st.DaysLeft = int(cert.NotAfter.Sub(now).Hours() / 24)
 	st.Expired = now.After(cert.NotAfter)
+	if keyFile == "" {
+		st.Error = "private key file is not configured"
+		return st
+	}
+	if _, err := tls.LoadX509KeyPair(certFile, keyFile); err != nil {
+		st.Error = fmt.Sprintf("certificate and private key do not match: %v", err)
+	}
 	return st
 }
 
@@ -323,13 +348,26 @@ func (s *CertService) issueLetsEncrypt(ctx context.Context, domain, email, accou
 // CertRenewBeforeDays remaining. Safe to call daily from cron.
 func (s *CertService) RenewIfDue(ctx context.Context) (bool, error) {
 	st := s.CurrentStatus()
-	if !st.Configured || st.Error != "" || st.SelfSigned || st.Subject == "" {
+	if !st.Configured || st.Subject == "" {
 		return false, nil
 	}
-	if st.DaysLeft > CertRenewBeforeDays {
+	if st.Error == "" && (st.SelfSigned || st.DaysLeft > CertRenewBeforeDays) {
 		return false, nil
 	}
-	logger.Infof("Auto-renewing TLS certificate for %s (%d days remaining)", st.Subject, st.DaysLeft)
+	if st.Error != "" {
+		logger.Warningf("Configured TLS certificate for %s is unusable; attempting repair: %s", st.Subject, st.Error)
+	} else {
+		logger.Infof("Auto-renewing TLS certificate for %s (%d days remaining)", st.Subject, st.DaysLeft)
+	}
+	if st.SelfSigned {
+		_, err := s.IssueSelfSigned(st.Subject, "", true)
+		if err != nil {
+			logger.Warningf("TLS certificate repair for %s failed: %v", st.Subject, err)
+			return false, err
+		}
+		logger.Infof("TLS certificate for %s repaired successfully", st.Subject)
+		return true, nil
+	}
 	_, err := s.IssueLetsEncrypt(ctx, st.Subject, "", "", true)
 	if err != nil {
 		logger.Warningf("Auto-renewal for %s failed: %v", st.Subject, err)
@@ -358,7 +396,7 @@ func (s *CertService) RenewResellerDomainsIfDue(ctx context.Context) error {
 		}
 		baseDir := filepath.Join(CertDir(), "reseller", fmt.Sprint(reseller.Id))
 		status := InspectFile(filepath.Join(baseDir, domain, "fullchain.pem"), filepath.Join(baseDir, domain, "privkey.pem"))
-		if status.SelfSigned || (status.Error == "" && status.DaysLeft > CertRenewBeforeDays) {
+		if status.Error == "" && (status.SelfSigned || status.DaysLeft > CertRenewBeforeDays) {
 			continue
 		}
 		logger.Infof("Auto-renewing reseller TLS certificate for %s (reseller %d, %d days remaining)", domain, reseller.Id, status.DaysLeft)
@@ -427,6 +465,9 @@ func writeCertAndKey(domainDir string, derChain [][]byte, key *ecdsa.PrivateKey)
 	if err := os.MkdirAll(domainDir, 0o700); err != nil {
 		return "", "", err
 	}
+	if err := os.Chmod(domainDir, 0o700); err != nil {
+		return "", "", err
+	}
 	var certPEM []byte
 	for _, der := range derChain {
 		certPEM = append(certPEM, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})...)
@@ -436,14 +477,82 @@ func writeCertAndKey(domainDir string, derChain [][]byte, key *ecdsa.PrivateKey)
 		return "", "", err
 	}
 	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER})
+	if _, err := tls.X509KeyPair(certPEM, keyPEM); err != nil {
+		return "", "", fmt.Errorf("certificate and private key do not match: %w", err)
+	}
 
 	certFile := filepath.Join(domainDir, "fullchain.pem")
 	keyFile := filepath.Join(domainDir, "privkey.pem")
-	if err := os.WriteFile(certFile, certPEM, 0o644); err != nil {
+	oldCert, oldCertErr := os.ReadFile(certFile)
+	if oldCertErr != nil && !errors.Is(oldCertErr, os.ErrNotExist) {
+		return "", "", fmt.Errorf("read existing certificate before replacement: %w", oldCertErr)
+	}
+	certTmp, err := writeTempFile(domainDir, ".fullchain-*.tmp", certPEM, 0o644)
+	if err != nil {
 		return "", "", err
 	}
-	if err := os.WriteFile(keyFile, keyPEM, 0o600); err != nil {
+	defer os.Remove(certTmp)
+	keyTmp, err := writeTempFile(domainDir, ".privkey-*.tmp", keyPEM, 0o600)
+	if err != nil {
 		return "", "", err
+	}
+	defer os.Remove(keyTmp)
+
+	// Each file is replaced atomically. If the second replacement fails, restore
+	// the prior certificate so an I/O error cannot leave a mismatched pair.
+	if err := os.Rename(certTmp, certFile); err != nil {
+		return "", "", fmt.Errorf("replace certificate: %w", err)
+	}
+	if err := os.Rename(keyTmp, keyFile); err != nil {
+		var restoreErr error
+		if oldCertErr == nil {
+			restoreErr = writeAtomicFile(certFile, oldCert, 0o644)
+		} else {
+			restoreErr = os.Remove(certFile)
+			if errors.Is(restoreErr, os.ErrNotExist) {
+				restoreErr = nil
+			}
+		}
+		if restoreErr != nil {
+			return "", "", fmt.Errorf("replace private key: %v (also failed to restore prior certificate: %w)", err, restoreErr)
+		}
+		return "", "", fmt.Errorf("replace private key: %w", err)
 	}
 	return certFile, keyFile, nil
+}
+
+func writeTempFile(dir, pattern string, contents []byte, mode os.FileMode) (string, error) {
+	file, err := os.CreateTemp(dir, pattern)
+	if err != nil {
+		return "", err
+	}
+	path := file.Name()
+	cleanup := func(err error) (string, error) {
+		_ = file.Close()
+		_ = os.Remove(path)
+		return "", err
+	}
+	if err := file.Chmod(mode); err != nil {
+		return cleanup(err)
+	}
+	if _, err := file.Write(contents); err != nil {
+		return cleanup(err)
+	}
+	if err := file.Sync(); err != nil {
+		return cleanup(err)
+	}
+	if err := file.Close(); err != nil {
+		_ = os.Remove(path)
+		return "", err
+	}
+	return path, nil
+}
+
+func writeAtomicFile(path string, contents []byte, mode os.FileMode) error {
+	tmp, err := writeTempFile(filepath.Dir(path), ".restore-*.tmp", contents, mode)
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp)
+	return os.Rename(tmp, path)
 }

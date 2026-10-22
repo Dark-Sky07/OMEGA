@@ -62,12 +62,14 @@
     "jsdom": "^29.1.1",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.60.1",
-    "vite": "8.0.16",
+    "vite": "8.3.5",
     "vitest": "^4.1.12"
   },
   "overrides": {
     "react-copy-to-clipboard": "^5.1.1",
     "react-inspector": "^9.0.0",
+    "follow-redirects": "^1.16.1",
+    "argparse": "^2.0.1",
     "react-debounce-input": {
       "react": "^19.0.0"
     }
