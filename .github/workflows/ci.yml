@@ -88,6 +88,15 @@ jobs:
         working-directory: frontend
       - name: Fail if generated files are stale (run 'npm run gen' and commit')
         run: git diff --exit-code -- frontend/src/generated frontend/public/openapi.json
+      - name: Temporary generated-file diff diagnostic
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          diff = subprocess.run(['git', 'diff', '--', 'frontend/src/generated', 'frontend/public/openapi.json'], capture_output=True, text=True).stdout
+          message = diff[-50000:].replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+          print(f'::error title=generated-file-diff::{message}')
+          PY
 
   govulncheck:
     runs-on: ubuntu-latest
