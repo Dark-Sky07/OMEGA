@@ -11,12 +11,22 @@ on:
       - "go.mod"
       - "go.sum"
       - "frontend/**"
+      - "scripts/**"
+      - "install.sh"
+      - "install-phoenix.sh"
+      - "phoenix.sh"
+      - "x-ui.sh"
   pull_request:
     paths:
       - "**.go"
       - "go.mod"
       - "go.sum"
       - "frontend/**"
+      - "scripts/**"
+      - "install.sh"
+      - "install-phoenix.sh"
+      - "phoenix.sh"
+      - "x-ui.sh"
   schedule:
     - cron: "18 2 * * 2"
 
@@ -41,6 +51,8 @@ jobs:
           - language: go
             build-mode: autobuild
           - language: javascript-typescript
+            build-mode: none
+          - language: python
             build-mode: none
 
     steps:
