@@ -71,12 +71,19 @@ func TestSimurghHTMLAndScriptStayUnderPanelPrefix(t *testing.T) {
 }
 
 func TestSimurghManifestRewrite(t *testing.T) {
-	input := `{"icons":[{"src":"/assets/simurgh.png"}],"start_url":"/"}`
+	input := `{"icons":[{"src":"/assets/simurgh.png"}], "start_url": "/", "scope": "/"}`
 	got := rewriteSimurghManifest(input, "/panel/simurgh")
 	if !strings.Contains(got, `"src":"/panel/simurgh/assets/simurgh.png"`) {
 		t.Fatalf("manifest asset path was not rewritten: %s", got)
 	}
-	if _, err := json.Marshal(got); err != nil {
-		t.Fatalf("manifest result is not JSON-serializable: %v", err)
+	var manifest struct {
+		StartURL string `json:"start_url"`
+		Scope    string `json:"scope"`
+	}
+	if err := json.Unmarshal([]byte(got), &manifest); err != nil {
+		t.Fatalf("rewritten manifest is invalid JSON: %v", err)
+	}
+	if manifest.StartURL != "/panel/simurgh/" || manifest.Scope != "/panel/simurgh/" {
+		t.Fatalf("manifest paths = (%q, %q), want the panel prefix", manifest.StartURL, manifest.Scope)
 	}
 }

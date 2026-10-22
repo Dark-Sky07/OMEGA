@@ -185,9 +185,11 @@ func rewriteSimurghJS(body, prefix string) string {
 	return body
 }
 
+var simurghManifestRootPath = regexp.MustCompile(`("(?:start_url|scope)"\s*:\s*")/`)
+
 func rewriteSimurghManifest(body, prefix string) string {
 	for _, path := range []string{"/assets/", "/favicon.ico"} {
 		body = strings.ReplaceAll(body, `"`+path, `"`+prefix+path)
 	}
-	return body
+	return simurghManifestRootPath.ReplaceAllString(body, `${1}`+prefix+`/`)
 }
