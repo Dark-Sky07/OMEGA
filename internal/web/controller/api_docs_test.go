@@ -137,7 +137,7 @@ func TestAPIRoutesDocumented(t *testing.T) {
 			"/": true, "/panel/": true, "/panel/inbounds": true,
 			"/panel/clients": true, "/panel/groups": true,
 			"/panel/nodes": true, "/panel/settings": true,
-			"/panel/xray": true, "/panel/api-docs": true,
+			"/panel/xray": true, "/panel/api-docs": true, "/panel/simurgh": true,
 			"/panel/resellers": true, "/panel/reseller/report": true,
 			"/panel/reseller/profile": true, "/panel/reseller/renewals": true,
 		}
