@@ -1,16 +1,11 @@
 # ========================================================
-# Stage: Pinned Simurgh runtime source
+# Stage: Latest verified Simurgh runtime package
 # ========================================================
-FROM alpine AS simurgh
-ARG SIMURGH_VERSION=3.1.1
-RUN apk add --no-cache ca-certificates curl tar \
-  && mkdir -p /opt/phoenix-simurgh/lib \
-  && curl -fL --retry 2 "https://codeload.github.com/Dark-Sky07/Simurgh-Tunnel/tar.gz/refs/tags/v${SIMURGH_VERSION}" -o /tmp/simurgh.tar.gz \
-  && echo "c8f3abfc55f686c4fda594dc3774e38da59b37c823beb6250972bb2aff77acb7  /tmp/simurgh.tar.gz" | sha256sum -c - \
-  && tar -xzf /tmp/simurgh.tar.gz --strip-components=1 -C /opt/phoenix-simurgh/lib \
-    "Simurgh-Tunnel-${SIMURGH_VERSION}/simurgh" \
-    "Simurgh-Tunnel-${SIMURGH_VERSION}/LICENSE" \
-  && rm -f /tmp/simurgh.tar.gz
+FROM --platform=$BUILDPLATFORM alpine AS simurgh
+RUN apk add --no-cache ca-certificates python3
+COPY scripts/update_simurgh.py scripts/build_latest_simurgh.py /tmp/simurgh-build/
+RUN mkdir -p /opt/phoenix-simurgh/lib \
+  && python3 /tmp/simurgh-build/build_latest_simurgh.py /opt/phoenix-simurgh/lib
 COPY scripts/phoenix-simurgh-launcher.py /opt/phoenix-simurgh/launcher.py
 RUN printf '%s\n' '#!/bin/sh' 'APP_DIR="/opt/phoenix-simurgh"' 'export PYTHONPATH="$APP_DIR/lib${PYTHONPATH:+:$PYTHONPATH}"' 'exec python3 "$APP_DIR/launcher.py" "$@"' > /opt/phoenix-simurgh/simurgh \
   && chmod 755 /opt/phoenix-simurgh/simurgh

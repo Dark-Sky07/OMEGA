@@ -1198,6 +1198,45 @@ service_is_active() {
     fi
 }
 
+auto_update_simurgh() {
+    local app_dir="${PHOENIX_SIMURGH_DIR:-/opt/phoenix-simurgh}"
+    local updater="/usr/bin/phoenix-simurgh-update" updater_tmp
+    [[ "${XUI_IN_DOCKER:-}" != "true" && ! -e /.dockerenv ]] || return 0
+    [[ -f "$app_dir/lib/simurgh/__init__.py" ]] || return 0
+    if ! command -v python3 >/dev/null 2>&1; then
+        echo -e "${yellow}Python 3 unavailable; Simurgh auto-update was skipped. The PHOENIX update succeeded.${plain}"
+        return 0
+    fi
+
+    updater_tmp="$(mktemp /usr/bin/.phoenix-simurgh-update.XXXXXX 2>/dev/null)" || updater_tmp=""
+    if [[ -n "$updater_tmp" ]] \
+        && "$curl_bin" -fLRsS -o "$updater_tmp" "https://raw.githubusercontent.com/${PHOENIX_REPO}/${tag_version}/scripts/update_simurgh.py" \
+        && python3 - "$updater_tmp" <<'PY'
+import ast
+import pathlib
+import sys
+ast.parse(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+PY
+    then
+        chmod 755 "$updater_tmp" && mv -f "$updater_tmp" "$updater" || {
+            rm -f "$updater_tmp"
+            echo -e "${yellow}Could not install the Simurgh updater; the PHOENIX update succeeded, but Simurgh was not auto-updated.${plain}"
+            return 0
+        }
+    else
+        [[ -z "$updater_tmp" ]] || rm -f "$updater_tmp"
+        if [[ ! -x "$updater" ]]; then
+            echo -e "${yellow}Could not fetch the Simurgh updater; the PHOENIX update succeeded, but Simurgh was not auto-updated.${plain}"
+            return 0
+        fi
+    fi
+
+    if ! python3 "$updater" --yes; then
+        echo -e "${yellow}Simurgh could not be updated to the latest release; its previous files were preserved and the PHOENIX update succeeded.${plain}"
+    fi
+    return 0
+}
+
 service_is_enabled() {
     if [[ "$release" == "alpine" ]]; then
         rc-update show default 2>/dev/null | grep -Eq '(^|[[:space:]])x-ui([[:space:]]|$)'
@@ -1435,6 +1474,11 @@ update_x-ui() {
         _fail "ERROR: x-ui failed its post-configuration health check; rollback completed."
     fi
     finalize_update_transaction
+
+    # Simurgh is updated only after the PHOENIX transaction and health check
+    # have committed, so a Simurgh network/update failure cannot roll back or
+    # interrupt a successful panel/Xray update.
+    auto_update_simurgh
 
     echo -e "${green}x-ui ${tag_version} and Xray-core ${xray_update_version} update finished; it is running now.${plain}"
     echo -e "${green}The prior installation was retained until the new service passed its health check, then removed.${plain}"

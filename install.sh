@@ -1641,6 +1641,20 @@ PY
         echo -e "${yellow}Simurgh updater unavailable; it can be fetched when needed from the management menu.${plain}"
     fi
 
+    # Keep the bundled Simurgh service on the latest stable upstream release
+    # after both fresh installs and PHOENIX updates. This updater only touches
+    # Simurgh and rolls back its package if validation or health checks fail.
+    if [[ "${XUI_IN_DOCKER:-}" != "true" && ! -e /.dockerenv && -x "$simurgh_updater" && -f /opt/phoenix-simurgh/lib/simurgh/__init__.py ]]; then
+        if command -v python3 >/dev/null 2>&1; then
+            echo -e "${blue}Checking for the latest Simurgh release...${plain}"
+            if ! python3 "$simurgh_updater" --yes; then
+                echo -e "${yellow}Simurgh could not be updated to the latest release; PHOENIX installation is complete and Simurgh files were preserved.${plain}"
+            fi
+        else
+            echo -e "${yellow}Python 3 is unavailable; Simurgh was not auto-updated. PHOENIX installation is complete.${plain}"
+        fi
+    fi
+
     echo -e "${green}PHOENIX ${tag_version}${plain} installation finished, it is running now..."
     echo -e ""
     echo -e "┌───────────────────────────────────────────────────────┐

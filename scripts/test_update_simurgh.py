@@ -6,6 +6,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import sys
 import tarfile
 import tempfile
 import unittest
@@ -16,6 +17,14 @@ SPEC = importlib.util.spec_from_file_location("update_simurgh", SCRIPT)
 assert SPEC and SPEC.loader
 updater = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(updater)
+sys.modules["update_simurgh"] = updater
+
+BUILD_SPEC = importlib.util.spec_from_file_location(
+    "build_latest_simurgh", Path(__file__).with_name("build_latest_simurgh.py")
+)
+assert BUILD_SPEC and BUILD_SPEC.loader
+builder = importlib.util.module_from_spec(BUILD_SPEC)
+BUILD_SPEC.loader.exec_module(builder)
 
 
 class FakeServiceManager:
@@ -135,6 +144,46 @@ class ArchiveSafetyTests(unittest.TestCase):
                 archive.addfile(info, io.BytesIO(payload))
             with self.assertRaises(updater.UpdateError):
                 updater.extract_package(archive_path, base / "stage")
+
+
+class DockerBuildPackageTests(unittest.TestCase):
+    def test_build_helper_stages_verified_latest_package(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            archive = base / "latest.tar.gz"
+            digest = make_archive(archive, "3.2.0")
+            release = release_for(archive, "3.2.0", digest)
+            destination = base / "image" / "lib"
+
+            version = builder.install_latest_package(
+                destination,
+                release=release,
+                download=lambda _url, target: target.write_bytes(archive.read_bytes()),
+            )
+
+            self.assertEqual(version, "3.2.0")
+            self.assertEqual(updater.read_installed_version(destination / "simurgh"), "3.2.0")
+            self.assertEqual((destination / "LICENSE").read_text(), "MIT License\n")
+            self.assertFalse(list(destination.parent.glob(".simurgh-build-*")))
+
+    def test_build_helper_rejects_bad_digest_without_leaving_files(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            archive = base / "latest.tar.gz"
+            make_archive(archive, "3.2.0")
+            release = release_for(archive, "3.2.0", "0" * 64)
+            destination = base / "image" / "lib"
+
+            with self.assertRaises(updater.UpdateError):
+                builder.install_latest_package(
+                    destination,
+                    release=release,
+                    download=lambda _url, target: target.write_bytes(archive.read_bytes()),
+                )
+
+            self.assertFalse((destination / "simurgh").exists())
+            self.assertFalse((destination / "LICENSE").exists())
+            self.assertFalse(list(destination.parent.glob(".simurgh-build-*")))
 
 
 class TransactionTests(unittest.TestCase):
