@@ -543,6 +543,10 @@
           }
         },
         "required": [
+          "brandColor",
+          "brandLogo",
+          "brandName",
+          "brandTheme",
           "checkoutCurrency",
           "checkoutEnable",
           "checkoutGatewayURL",
@@ -604,6 +608,10 @@
           "restartXrayOnClientDisable",
           "sessionMaxAge",
           "subAnnounce",
+          "subBrandColor",
+          "subBrandLogo",
+          "subBrandName",
+          "subBrandTheme",
           "subCertFile",
           "subClashEnable",
           "subClashEnableRouting",
@@ -1208,6 +1216,10 @@
           }
         },
         "required": [
+          "brandColor",
+          "brandLogo",
+          "brandName",
+          "brandTheme",
           "checkoutCurrency",
           "checkoutEnable",
           "checkoutGatewayURL",
@@ -1277,6 +1289,10 @@
           "restartXrayOnClientDisable",
           "sessionMaxAge",
           "subAnnounce",
+          "subBrandColor",
+          "subBrandLogo",
+          "subBrandName",
+          "subBrandTheme",
           "subCertFile",
           "subClashEnable",
           "subClashEnableRouting",

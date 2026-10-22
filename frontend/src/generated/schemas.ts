@@ -517,6 +517,10 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "brandColor",
+      "brandLogo",
+      "brandName",
+      "brandTheme",
       "checkoutCurrency",
       "checkoutEnable",
       "checkoutGatewayURL",
@@ -578,6 +582,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "restartXrayOnClientDisable",
       "sessionMaxAge",
       "subAnnounce",
+      "subBrandColor",
+      "subBrandLogo",
+      "subBrandName",
+      "subBrandTheme",
       "subCertFile",
       "subClashEnable",
       "subClashEnableRouting",
@@ -1182,6 +1190,10 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "brandColor",
+      "brandLogo",
+      "brandName",
+      "brandTheme",
       "checkoutCurrency",
       "checkoutEnable",
       "checkoutGatewayURL",
@@ -1251,6 +1263,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "restartXrayOnClientDisable",
       "sessionMaxAge",
       "subAnnounce",
+      "subBrandColor",
+      "subBrandLogo",
+      "subBrandName",
+      "subBrandTheme",
       "subCertFile",
       "subClashEnable",
       "subClashEnableRouting",
