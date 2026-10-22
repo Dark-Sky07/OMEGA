@@ -61,7 +61,7 @@ jobs:
           fi
           python3 - <<'PYLOG'
           import subprocess
-          diff = subprocess.run(['git', 'diff', '--', 'go.mod', 'go.sum'], capture_output=True, text=True).stdout[-4000:]
+          diff = subprocess.run(['git', 'diff', '--', 'go.mod'], capture_output=True, text=True).stdout[-4000:]
           diff = diff.replace('%', '%25').replace(chr(13), '%0D').replace(chr(10), '%0A')
           print(f'::error title=go-mod-tidy-diff::{diff}')
           PYLOG
