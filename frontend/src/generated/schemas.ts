@@ -10,6 +10,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "brandName": {
+        "description": "Panel branding (independent of each user's light/dark preference).",
         "type": "string"
       },
       "brandTheme": {
@@ -650,6 +651,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "brandName": {
+        "description": "Panel branding (independent of each user's light/dark preference).",
         "type": "string"
       },
       "brandTheme": {

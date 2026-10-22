@@ -36,6 +36,7 @@
             "type": "string"
           },
           "brandName": {
+            "description": "Panel branding (independent of each user's light/dark preference).",
             "type": "string"
           },
           "brandTheme": {
@@ -676,6 +677,7 @@
             "type": "string"
           },
           "brandName": {
+            "description": "Panel branding (independent of each user's light/dark preference).",
             "type": "string"
           },
           "brandTheme": {
