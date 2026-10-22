@@ -50,9 +50,37 @@ fi
 
 mkdir -p "$APP_DIR/lib" "$SIMURGH_HOME"
 chmod 700 "$SIMURGH_HOME"
-tar -xzf "$work/simurgh.tar.gz" --strip-components=1 -C "$APP_DIR/lib" \
-  "Simurgh-Tunnel-${SIMURGH_VERSION}/simurgh" \
-  "Simurgh-Tunnel-${SIMURGH_VERSION}/LICENSE"
+
+# A standalone Simurgh update may be newer than the version bundled by this
+# PHOENIX release. Never replace a newer (or equal) Python engine with the
+# older bundled source during a PHOENIX reinstall/update.
+installed_version=""
+if [[ -f "$APP_DIR/lib/simurgh/__init__.py" ]]; then
+  installed_version="$(python3 - "$APP_DIR/lib/simurgh/__init__.py" <<'PY'
+import re
+import sys
+from pathlib import Path
+match = re.search(r"^__version__\s*=\s*['\"]([^'\"]+)['\"]", Path(sys.argv[1]).read_text(encoding="utf-8"), re.M)
+print(match.group(1) if match else "")
+PY
+)"
+fi
+keep_installed=false
+if [[ "$installed_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && python3 - "$installed_version" "$SIMURGH_VERSION" <<'PY'
+import sys
+version = lambda value: tuple(int(part) for part in value.split("."))
+raise SystemExit(0 if version(sys.argv[1]) >= version(sys.argv[2]) else 1)
+PY
+then
+  keep_installed=true
+  say "Keeping installed Simurgh v${installed_version}; bundled version is ${SIMURGH_VERSION}."
+fi
+
+if [[ "$keep_installed" != true ]]; then
+  tar -xzf "$work/simurgh.tar.gz" --strip-components=1 -C "$APP_DIR/lib" \
+    "Simurgh-Tunnel-${SIMURGH_VERSION}/simurgh" \
+    "Simurgh-Tunnel-${SIMURGH_VERSION}/LICENSE"
+fi
 install -m 644 "$(dirname "$0")/phoenix-simurgh-launcher.py" "$APP_DIR/launcher.py"
 cat > "$APP_DIR/simurgh" <<'SH'
 #!/bin/sh

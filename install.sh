@@ -1621,6 +1621,26 @@ install_x-ui() {
         echo -e "${yellow}Simurgh installer unavailable; PHOENIX and Xray remain unchanged.${plain}"
     fi
 
+    # Keep the separate Simurgh updater available to the PHOENIX management menu.
+    simurgh_updater=/usr/bin/phoenix-simurgh-update
+    simurgh_updater_tmp="$(mktemp /usr/bin/.phoenix-simurgh-update.XXXXXX 2>/dev/null)" || simurgh_updater_tmp=""
+    if [[ -n "$simurgh_updater_tmp" ]] && curl -fLRo "$simurgh_updater_tmp" "https://raw.githubusercontent.com/${PHOENIX_REPO}/${tag_version}/scripts/update_simurgh.py" >/dev/null 2>&1 && python3 - "$simurgh_updater_tmp" <<'PY'
+import ast
+import pathlib
+import sys
+ast.parse(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+PY
+    then
+        chmod 755 "$simurgh_updater_tmp"
+        if ! mv -f "$simurgh_updater_tmp" "$simurgh_updater"; then
+            rm -f "$simurgh_updater_tmp"
+            echo -e "${yellow}Simurgh update option could not be installed; PHOENIX remains available.${plain}"
+        fi
+    else
+        [[ -z "$simurgh_updater_tmp" ]] || rm -f "$simurgh_updater_tmp"
+        echo -e "${yellow}Simurgh updater unavailable; it can be fetched when needed from the management menu.${plain}"
+    fi
+
     echo -e "${green}PHOENIX ${tag_version}${plain} installation finished, it is running now..."
     echo -e ""
     echo -e "┌───────────────────────────────────────────────────────┐
