@@ -15,6 +15,7 @@ on:
       - "install.sh"
       - "install-phoenix.sh"
       - "phoenix.sh"
+      - "x-ui.sh"
       - ".nvmrc"
       - ".github/workflows/ci.yml"
   push:
@@ -30,6 +31,7 @@ on:
       - "install.sh"
       - "install-phoenix.sh"
       - "phoenix.sh"
+      - "x-ui.sh"
       - ".nvmrc"
       - ".github/workflows/ci.yml"
 
@@ -43,6 +45,10 @@ jobs:
       - uses: actions/checkout@v6
       - name: Verify transactional update rollback guards
         run: bash scripts/update-transaction-test.sh
+      - name: Verify paired installer and management scripts
+        run: cmp -s install.sh install-phoenix.sh && cmp -s phoenix.sh x-ui.sh
+      - name: Test isolated Simurgh update and rollback
+        run: python3 scripts/test_update_simurgh.py
 
   go-test:
     runs-on: ubuntu-latest
