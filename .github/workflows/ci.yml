@@ -52,6 +52,20 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - name: Verify Go module metadata is tidy
+        shell: bash
+        run: |
+          go mod tidy
+          if git diff --quiet -- go.mod go.sum; then
+            exit 0
+          fi
+          python3 - <<'PYLOG'
+          import subprocess
+          diff = subprocess.run(['git', 'diff', '--', 'go.mod', 'go.sum'], capture_output=True, text=True).stdout[-4000:]
+          diff = diff.replace('%', '%25').replace(chr(13), '%0D').replace(chr(10), '%0A')
+          print(f'::error title=go-mod-tidy-diff::{diff}')
+          PYLOG
+          exit 1
       - name: Stub internal/web/dist for go:embed
         run: mkdir -p internal/web/dist && touch internal/web/dist/.gitkeep
       - name: Verify Go formatting
