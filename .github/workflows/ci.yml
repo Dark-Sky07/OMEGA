@@ -55,7 +55,15 @@ jobs:
       - name: Verify Go module metadata is tidy
         shell: bash
         run: |
-          go mod tidy
+          if ! go mod tidy > /tmp/go-mod-tidy.log 2>&1; then
+            python3 - <<'PYLOG'
+          from pathlib import Path
+          output = Path('/tmp/go-mod-tidy.log').read_text(errors='replace')[-4000:]
+          output = output.replace('%', '%25').replace(chr(13), '%0D').replace(chr(10), '%0A')
+          print(f'::error title=go-mod-tidy-error::{output}')
+          PYLOG
+            exit 1
+          fi
           if git diff --quiet -- go.mod go.sum; then
             exit 0
           fi
