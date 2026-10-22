@@ -503,6 +503,54 @@ export default function GeneralTab({ allSetting, updateSetting, defaultSubTab = 
         label: catTabLabel(<BellOutlined />, t('pages.settings.notifications'), isMobile),
         children: (
           <>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.resellerNotifTrafficWarningPercent', 'Reseller traffic warning (%)')}
+              description={t('pages.settings.resellerNotifTrafficWarningPercentDesc', 'Send a warning when reseller traffic usage reaches this percentage.')}
+            >
+              <InputNumber value={allSetting.resellerNotifTrafficWarningPercent} min={1} max={98} style={{ width: '100%' }}
+                onChange={(v) => updateSetting({ resellerNotifTrafficWarningPercent: Number(v) || 1 })} />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.resellerNotifTrafficCriticalPercent', 'Reseller traffic critical (%)')}
+              description={t('pages.settings.resellerNotifTrafficCriticalPercentDesc', 'Send a critical warning at this traffic usage; it must be above the warning threshold.')}
+            >
+              <InputNumber value={allSetting.resellerNotifTrafficCriticalPercent} min={2} max={99} style={{ width: '100%' }}
+                onChange={(v) => updateSetting({ resellerNotifTrafficCriticalPercent: Number(v) || 2 })} />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.resellerNotifClientWarningPercent', 'Reseller client-limit warning (%)')}
+              description={t('pages.settings.resellerNotifClientWarningPercentDesc', 'Send a warning when the reseller reaches this share of their client limit.')}
+            >
+              <InputNumber value={allSetting.resellerNotifClientWarningPercent} min={1} max={99} style={{ width: '100%' }}
+                onChange={(v) => updateSetting({ resellerNotifClientWarningPercent: Number(v) || 1 })} />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.resellerNotifExpiryWarningDays', 'Reseller expiry warning (days)')}
+              description={t('pages.settings.resellerNotifExpiryWarningDaysDesc', 'Notify resellers this many days before their account expires.')}
+            >
+              <InputNumber value={allSetting.resellerNotifExpiryWarningDays} min={1} max={365} style={{ width: '100%' }}
+                onChange={(v) => updateSetting({ resellerNotifExpiryWarningDays: Number(v) || 1 })} />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.resellerNotifInPanelEnable', 'In-panel reseller notifications')}
+              description={t('pages.settings.resellerNotifInPanelEnableDesc', 'Store reseller alerts in the reseller dashboard notification center.')}
+            >
+              <Switch checked={allSetting.resellerNotifInPanelEnable}
+                onChange={(v) => updateSetting({ resellerNotifInPanelEnable: v })} />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.resellerNotifTelegramEnable', 'Reseller Telegram notifications')}
+              description={t('pages.settings.resellerNotifTelegramEnableDesc', 'Send alerts to linked reseller Telegram accounts when the Telegram bot is running.')}
+            >
+              <Switch checked={allSetting.resellerNotifTelegramEnable}
+                onChange={(v) => updateSetting({ resellerNotifTelegramEnable: v })} />
+            </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.expireTimeDiff')} description={t('pages.settings.expireTimeDiffDesc')}>
               <InputNumber value={allSetting.expireDiff} min={0} style={{ width: '100%' }}
                 onChange={(v) => updateSetting({ expireDiff: Number(v) || 0 })} />

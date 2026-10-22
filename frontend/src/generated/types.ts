@@ -61,6 +61,12 @@ export interface AllSetting {
   pageSize: number;
   panelOutbound: string;
   remarkModel: string;
+  resellerNotifClientWarningPercent: number;
+  resellerNotifExpiryWarningDays: number;
+  resellerNotifInPanelEnable: boolean;
+  resellerNotifTelegramEnable: boolean;
+  resellerNotifTrafficCriticalPercent: number;
+  resellerNotifTrafficWarningPercent: number;
   restartXrayOnClientDisable: boolean;
   sessionMaxAge: number;
   subAnnounce: string;
@@ -187,6 +193,12 @@ export interface AllSettingView {
   pageSize: number;
   panelOutbound: string;
   remarkModel: string;
+  resellerNotifClientWarningPercent: number;
+  resellerNotifExpiryWarningDays: number;
+  resellerNotifInPanelEnable: boolean;
+  resellerNotifTelegramEnable: boolean;
+  resellerNotifTrafficCriticalPercent: number;
+  resellerNotifTrafficWarningPercent: number;
   restartXrayOnClientDisable: boolean;
   sessionMaxAge: number;
   subAnnounce: string;

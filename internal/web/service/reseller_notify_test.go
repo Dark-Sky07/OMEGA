@@ -250,3 +250,117 @@ func TestResellerNotifyListAndMarkRead(t *testing.T) {
 		t.Fatalf("List with huge limit: %v", err)
 	}
 }
+
+func TestResellerNotifyUsesConfiguredThresholdsAndChannels(t *testing.T) {
+	setupConflictDB(t)
+	db := database.GetDB()
+	reseller := &model.Reseller{Username: "notify-config", Password: "hash", Enable: true, TrafficLimit: 1000, ClientLimit: 10}
+	if err := db.Create(reseller).Error; err != nil {
+		t.Fatalf("create reseller: %v", err)
+	}
+	svc := &ResellerNotifyService{}
+	config := ResellerNotifyConfig{
+		TrafficWarningPercent:  70,
+		TrafficCriticalPercent: 90,
+		ClientWarningPercent:   75,
+		ExpiryWarningDays:      10,
+		InPanelEnable:          false,
+		TelegramEnable:         true,
+	}
+
+	// With both delivery channels disabled, the episode is not claimed; enabling
+	// Telegram while the warning condition remains active can still deliver it.
+	disabled := config
+	disabled.TelegramEnable = false
+	if fresh := svc.EvaluateWithConfig(&ResellerStat{Reseller: reseller, AllocatedTraffic: 750}, disabled); len(fresh) != 0 {
+		t.Fatalf("disabled channels emitted %d notifications, want 0", len(fresh))
+	}
+
+	fresh := svc.EvaluateWithConfig(&ResellerStat{Reseller: reseller, AllocatedTraffic: 750}, config)
+	if len(fresh) != 1 || fresh[0].Kind != ResellerNotifQuota80 {
+		t.Fatalf("custom traffic warning rows = %+v, want one %q", fresh, ResellerNotifQuota80)
+	}
+	if got := notifyRowCount(t, reseller.Id); got != 0 {
+		t.Fatalf("Telegram-only notification persisted %d in-panel rows, want 0", got)
+	}
+	var params map[string]any
+	if err := json.Unmarshal([]byte(fresh[0].Params), &params); err != nil || params["pct"] != float64(75) {
+		t.Fatalf("transient Telegram parameters = %v (err %v), want pct=75", params, err)
+	}
+
+	// Thresholds are honored independently for the critical quota and client limit.
+	critical := &model.Reseller{Username: "notify-critical-config", Password: "hash", Enable: true, TrafficLimit: 1000}
+	if err := db.Create(critical).Error; err != nil {
+		t.Fatalf("create critical reseller: %v", err)
+	}
+	fresh = svc.EvaluateWithConfig(&ResellerStat{Reseller: critical, AllocatedTraffic: 920}, config)
+	if len(fresh) != 1 || fresh[0].Kind != ResellerNotifQuota95 {
+		t.Fatalf("custom critical rows = %+v, want one %q", fresh, ResellerNotifQuota95)
+	}
+
+	clients := &model.Reseller{Username: "notify-client-config", Password: "hash", Enable: true, ClientLimit: 10}
+	if err := db.Create(clients).Error; err != nil {
+		t.Fatalf("create client-limit reseller: %v", err)
+	}
+	fresh = svc.EvaluateWithConfig(&ResellerStat{Reseller: clients, ClientCount: 8}, config)
+	if len(fresh) != 1 || fresh[0].Kind != ResellerNotifClient80 {
+		t.Fatalf("custom client threshold rows = %+v, want one %q", fresh, ResellerNotifClient80)
+	}
+	if got := notifyRowCount(t, clients.Id); got != 0 {
+		t.Fatalf("client Telegram-only notification persisted %d rows, want 0", got)
+	}
+
+	expiring := &model.Reseller{Username: "notify-expiry-config", Password: "hash", Enable: true, ExpiryTime: time.Now().Add(9 * 24 * time.Hour).UnixMilli()}
+	if err := db.Create(expiring).Error; err != nil {
+		t.Fatalf("create expiring reseller: %v", err)
+	}
+	fresh = svc.EvaluateWithConfig(&ResellerStat{Reseller: expiring}, config)
+	if len(fresh) != 1 || fresh[0].Kind != ResellerNotifExpirySoon {
+		t.Fatalf("custom expiry threshold rows = %+v, want one %q", fresh, ResellerNotifExpirySoon)
+	}
+	if got := notifyRowCount(t, expiring.Id); got != 0 {
+		t.Fatalf("expiry Telegram-only notification persisted %d rows, want 0", got)
+	}
+
+	// In-panel-only mode still stores a fresh alert even if Telegram is off.
+	panelOnly := config
+	panelOnly.InPanelEnable = true
+	panelOnly.TelegramEnable = false
+	panelReseller := &model.Reseller{Username: "notify-panel-only", Password: "hash", Enable: true, TrafficLimit: 1000}
+	if err := db.Create(panelReseller).Error; err != nil {
+		t.Fatalf("create panel-only reseller: %v", err)
+	}
+	fresh = svc.EvaluateWithConfig(&ResellerStat{Reseller: panelReseller, AllocatedTraffic: 750}, panelOnly)
+	if len(fresh) != 1 || notifyRowCount(t, panelReseller.Id) != 1 {
+		t.Fatalf("in-panel-only notification = %+v, stored rows = %d", fresh, notifyRowCount(t, panelReseller.Id))
+	}
+}
+
+func TestResellerNotifyConfigDefaultsPreserveCurrentBehavior(t *testing.T) {
+	setupConflictDB(t)
+	svc := &ResellerNotifyService{}
+	config := svc.Config()
+	if config.TrafficWarningPercent != 80 || config.TrafficCriticalPercent != 95 ||
+		config.ClientWarningPercent != 80 || config.ExpiryWarningDays != 7 ||
+		!config.InPanelEnable || !config.TelegramEnable {
+		t.Fatalf("default config = %+v, want legacy thresholds and both channels enabled", config)
+	}
+
+	settings := []model.Setting{
+		{Key: "resellerNotifTrafficWarningPercent", Value: "72"},
+		{Key: "resellerNotifTrafficCriticalPercent", Value: "91"},
+		{Key: "resellerNotifClientWarningPercent", Value: "68"},
+		{Key: "resellerNotifExpiryWarningDays", Value: "12"},
+		{Key: "resellerNotifInPanelEnable", Value: "false"},
+		{Key: "resellerNotifTelegramEnable", Value: "false"},
+	}
+	if err := database.GetDB().Create(&settings).Error; err != nil {
+		t.Fatalf("save notification settings: %v", err)
+	}
+	config = svc.Config()
+	if config.TrafficWarningPercent != 72 || config.TrafficCriticalPercent != 91 ||
+		config.ClientWarningPercent != 68 || config.ExpiryWarningDays != 12 ||
+		config.InPanelEnable || config.TelegramEnable {
+		t.Fatalf("stored config = %+v, want configured thresholds and both channels disabled", config)
+	}
+}
