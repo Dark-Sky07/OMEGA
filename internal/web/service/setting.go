@@ -17,6 +17,7 @@ import (
 	"github.com/Dark-Sky07/phoenix/internal/database/model"
 	"github.com/Dark-Sky07/phoenix/internal/logger"
 	"github.com/Dark-Sky07/phoenix/internal/util/common"
+	"github.com/Dark-Sky07/phoenix/internal/util/currency"
 	"github.com/Dark-Sky07/phoenix/internal/util/netproxy"
 	"github.com/Dark-Sky07/phoenix/internal/util/random"
 	"github.com/Dark-Sky07/phoenix/internal/util/reflect_util"
@@ -400,7 +401,7 @@ func (s *SettingService) GetCheckoutEnable() (bool, error) {
 	return s.getBool("checkoutEnable")
 }
 
-// GetCheckoutCurrency returns the currency label shown to clients.
+// GetCheckoutCurrency returns the configured ISO currency code (or a legacy label).
 func (s *SettingService) GetCheckoutCurrency() (string, error) {
 	return s.getString("checkoutCurrency")
 }
@@ -1103,6 +1104,33 @@ func (s *SettingService) GetLdapDefaultLimitIP() (int, error) {
 }
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
+	currentCurrency, _ := s.GetCheckoutCurrency()
+	requestedCurrency := strings.TrimSpace(allSetting.CheckoutCurrency)
+	if requestedCurrency == "" {
+		requestedCurrency = strings.TrimSpace(currentCurrency)
+		if requestedCurrency == "" {
+			requestedCurrency = defaultValueMap["checkoutCurrency"]
+		}
+	}
+	if code, ok := currency.Normalize(requestedCurrency); ok {
+		allSetting.CheckoutCurrency = code
+	} else if strings.EqualFold(requestedCurrency, strings.TrimSpace(currentCurrency)) {
+		// Preserve a pre-existing custom currency label when an older client
+		// sends a full settings update. New labels must use supported codes.
+		allSetting.CheckoutCurrency = currentCurrency
+	} else {
+		return errors.New("checkout currency must be a supported currency code")
+	}
+	if !strings.EqualFold(strings.TrimSpace(currentCurrency), allSetting.CheckoutCurrency) {
+		var pending int64
+		if err := database.GetDB().Model(&model.PaymentOrder{}).
+			Where("gateway = ? AND status = ?", "checkout", "pending").Count(&pending).Error; err != nil {
+			return err
+		}
+		if pending > 0 {
+			return errors.New("cannot change currency while checkout payments are pending")
+		}
+	}
 	if err := s.preserveRedactedSecrets(allSetting); err != nil {
 		return err
 	}

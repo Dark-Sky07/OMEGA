@@ -24,7 +24,7 @@ import {
   ShoppingOutlined,
 } from '@ant-design/icons';
 
-import { HttpUtil, IntlUtil } from '@/utils';
+import { HttpUtil, IntlUtil, formatMoney, roundCurrencyAmount } from '@/utils';
 import { useTheme } from '@/hooks/useTheme';
 
 interface CheckoutInfo {
@@ -61,8 +61,8 @@ function formatBytes(bytes: number): string {
   return `${value >= 100 ? Math.round(value) : value.toFixed(2)} ${units[unit]}`;
 }
 
-function formatAmount(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(2);
+function formatAmount(value: number, currency: string): string {
+  return formatMoney(value, currency);
 }
 
 /** Public client checkout page — opened from a signed per-client link. */
@@ -118,7 +118,7 @@ export default function CheckoutPage() {
 
   const total = useMemo(() => {
     if (!info) return 0;
-    return Math.round((gb * info.pricePerGb + months * info.pricePerMonth) * 100) / 100;
+    return roundCurrencyAmount(gb * info.pricePerGb + months * info.pricePerMonth, info.currency);
   }, [info, gb, months]);
 
   const currency = info?.currency || '';
@@ -235,7 +235,7 @@ export default function CheckoutPage() {
                     {t('pages.checkout.orderId')}: <Typography.Text copyable code>{order.orderId}</Typography.Text>
                   </Typography.Text>
                   <Typography.Text strong>
-                    {t('pages.checkout.amount')}: {formatAmount(order.amount)} {order.currency}
+                    {t('pages.checkout.amount')}: {formatAmount(order.amount, order.currency)}
                   </Typography.Text>
                 </Space>
               }
@@ -299,7 +299,7 @@ export default function CheckoutPage() {
                 />
                 {info.pricePerGb > 0 && (
                   <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    {formatAmount(info.pricePerGb)} {currency} / GB
+                    {formatAmount(info.pricePerGb, currency)} / GB
                   </Typography.Text>
                 )}
               </Col>
@@ -316,7 +316,7 @@ export default function CheckoutPage() {
                 />
                 {info.pricePerMonth > 0 && (
                   <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    {formatAmount(info.pricePerMonth)} {currency} / {t('pages.checkout.month')}
+                    {formatAmount(info.pricePerMonth, currency)} / {t('pages.checkout.month')}
                   </Typography.Text>
                 )}
               </Col>
@@ -331,7 +331,7 @@ export default function CheckoutPage() {
               disabled={total <= 0}
               onClick={placeOrder}
             >
-              {t('pages.checkout.pay')} — {formatAmount(total)} {currency}
+              {t('pages.checkout.pay')} — {formatAmount(total, currency)}
             </Button>
           </Space>
         )}

@@ -13,6 +13,7 @@ import (
 	"github.com/Dark-Sky07/phoenix/internal/database"
 	"github.com/Dark-Sky07/phoenix/internal/database/model"
 	"github.com/Dark-Sky07/phoenix/internal/util/common"
+	moneycurrency "github.com/Dark-Sky07/phoenix/internal/util/currency"
 	"gorm.io/gorm"
 )
 
@@ -258,7 +259,10 @@ func (s *PaymentWebhookService) ProcessWebhook(p PaymentWebhookPayload) (*model.
 		// effects were chosen when the order was created, the webhook only
 		// proves the payment happened. targetRef/targetType of the payload
 		// are ignored — the stored order stays authoritative.
-		if p.Amount > 0 && existing.Amount > 0 && math.Abs(p.Amount-existing.Amount) > 0.01 {
+		var settingSvc SettingService
+		configuredCurrency, _ := settingSvc.GetCheckoutCurrency()
+		amountTolerance := 0.5 / math.Pow10(moneycurrency.FractionDigits(configuredCurrency))
+		if p.Amount > 0 && existing.Amount > 0 && math.Abs(p.Amount-existing.Amount) > amountTolerance {
 			return nil, common.NewError("webhook amount does not match pending order ", p.OrderId)
 		}
 		if err := s.applyOrderEffects(&existing); err != nil {

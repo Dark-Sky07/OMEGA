@@ -85,13 +85,13 @@ export default function ResellerReportPage() {
     { key: 'allocated', icon: <DatabaseOutlined />, tone: 'default', label: t('resellers.allocatedTraffic'), value: SizeFormatter.sizeFormat(stat?.allocatedTraffic || 0) },
     { key: 'inbounds', icon: <ApiOutlined />, tone: 'accent', label: t('resellers.table.inbounds'), value: String(stat?.inboundCount || 0) },
     { key: 'online', icon: <WifiOutlined />, tone: (stat?.onlineCount || 0) > 0 ? 'success' : 'muted', label: t('resellers.online'), value: String(stat?.onlineCount || 0) },
-    { key: 'cost', icon: <ShopOutlined />, tone: 'default', label: t('resellers.table.cost'), value: formatMoney(stat?.cost || 0) },
+    { key: 'cost', icon: <ShopOutlined />, tone: 'default', label: t('resellers.table.cost'), value: formatMoney(stat?.cost || 0, stat?.currency) },
     {
       key: 'balance',
       icon: <ShopOutlined />,
       tone: (stat?.balance || 0) < 0 ? 'danger' : 'success',
       label: t('resellers.balance'),
-      value: formatMoney(stat?.balance || 0),
+      value: formatMoney(stat?.balance || 0, stat?.currency),
     },
   ], [t, stat]);
 
@@ -165,17 +165,17 @@ export default function ResellerReportPage() {
                           {SizeFormatter.sizeFormat(stat.usedTraffic)}
                         </Descriptions.Item>
                         <Descriptions.Item label={t('resellers.pricePerGb')}>
-                          {formatMoney(stat.reseller.pricePerGb)}
+                          {formatMoney(stat.reseller.pricePerGb, stat.currency)}
                         </Descriptions.Item>
                         <Descriptions.Item label={t('resellers.deposit')}>
-                          {formatMoney(stat.reseller.deposit)}
+                          {formatMoney(stat.reseller.deposit, stat.currency)}
                         </Descriptions.Item>
                         <Descriptions.Item label={t('resellers.table.cost')}>
-                          {formatMoney(stat.cost)}
+                          {formatMoney(stat.cost, stat.currency)}
                         </Descriptions.Item>
                         <Descriptions.Item label={t('resellers.balance')}>
                           <Typography.Text type={(stat.balance || 0) < 0 ? 'danger' : undefined}>
-                            {formatMoney(stat.balance)}
+                            {formatMoney(stat.balance, stat.currency)}
                           </Typography.Text>
                         </Descriptions.Item>
                       </Descriptions>
@@ -184,7 +184,7 @@ export default function ResellerReportPage() {
                 )}
 
                 <Col span={24}>
-                  <ResellerWalletChart transactions={reportQuery.data?.transactions || []} />
+                  <ResellerWalletChart transactions={reportQuery.data?.transactions || []} currency={stat?.currency || 'USD'} />
                 </Col>
 
                 <Col span={24}>
@@ -250,14 +250,14 @@ export default function ResellerReportPage() {
                           dataIndex: 'amount',
                           key: 'amount',
                           render: (v: number) => (
-                            <Typography.Text type={v < 0 ? 'danger' : undefined}>{formatMoney(v)}</Typography.Text>
+                            <Typography.Text type={v < 0 ? 'danger' : undefined}>{formatMoney(v, stat?.currency)}</Typography.Text>
                           ),
                         },
                         {
                           title: t('resellers.balance'),
                           dataIndex: 'balance',
                           key: 'balance',
-                          render: (v: number) => formatMoney(v),
+                          render: (v: number) => formatMoney(v, stat?.currency),
                         },
                         { title: t('comment'), dataIndex: 'comment', key: 'comment' },
                       ]}

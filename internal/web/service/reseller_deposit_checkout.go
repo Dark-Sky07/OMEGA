@@ -14,6 +14,7 @@ import (
 	"github.com/Dark-Sky07/phoenix/internal/database"
 	"github.com/Dark-Sky07/phoenix/internal/database/model"
 	"github.com/Dark-Sky07/phoenix/internal/util/common"
+	"github.com/Dark-Sky07/phoenix/internal/util/currency"
 	"github.com/Dark-Sky07/phoenix/internal/util/random"
 )
 
@@ -98,10 +99,6 @@ func (s *ResellerDepositCheckoutService) CreateOrder(token string, amount float6
 	if math.IsNaN(amount) || math.IsInf(amount, 0) || amount <= 0 || amount > resellerDepositMaxAmount {
 		return nil, common.NewError("amount must be greater than 0 and no more than ", resellerDepositMaxAmount)
 	}
-	amount = Round2(amount)
-	if amount <= 0 {
-		return nil, common.NewError("amount must be at least 0.01")
-	}
 	reseller, err := s.resolveReseller(token, secret, now)
 	if err != nil {
 		return nil, err
@@ -109,6 +106,10 @@ func (s *ResellerDepositCheckoutService) CreateOrder(token string, amount float6
 	cfg, err := loadCheckoutConfig()
 	if err != nil {
 		return nil, err
+	}
+	amount = RoundMoney(amount, cfg.currency)
+	if amount <= 0 {
+		return nil, common.NewError("amount is below the minimum unit for ", cfg.currency)
 	}
 	db := database.GetDB()
 	var pending int64
@@ -135,7 +136,7 @@ func (s *ResellerDepositCheckoutService) CreateOrder(token string, amount float6
 	if cfg.gatewayURL != "" {
 		out.GatewayURL = strings.NewReplacer(
 			"{orderId}", order.OrderId,
-			"{amount}", strconv.FormatFloat(amount, 'f', 2, 64),
+			"{amount}", strconv.FormatFloat(amount, 'f', currency.FractionDigits(cfg.currency), 64),
 			"{ref}", reseller.Username,
 		).Replace(cfg.gatewayURL)
 	}

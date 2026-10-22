@@ -4,6 +4,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	moneycurrency "github.com/Dark-Sky07/phoenix/internal/util/currency"
 )
 
 // csvBOM lets Excel auto-detect UTF-8 so Persian/Arabic/CJK values stay
@@ -52,10 +54,17 @@ func (w *csvRowBuilder) bytes() []byte {
 func RenderResellerClientsCSV(report *ResellerReport) []byte {
 	w := &csvRowBuilder{}
 	w.row("email", "comment", "group", "enabled", "quota_gb", "used_gb", "up_gb", "down_gb",
-		"cost", "expiry", "inbound_ids", "sub_id")
+		"currency", "cost", "expiry", "inbound_ids", "sub_id")
 	if report == nil {
 		return w.bytes()
 	}
+	currencyCode := "USD"
+	if report.Stat != nil {
+		if code, ok := moneycurrency.Normalize(report.Stat.Currency); ok {
+			currencyCode = code
+		}
+	}
+	fractionDigits := moneycurrency.FractionDigits(currencyCode)
 	for _, row := range report.Clients {
 		quota := ""
 		if row.TotalBytes > 0 {
@@ -74,7 +83,8 @@ func RenderResellerClientsCSV(report *ResellerReport) []byte {
 			csvGB(row.Used),
 			csvGB(row.Up),
 			csvGB(row.Down),
-			strconv.FormatFloat(row.Cost, 'f', 3, 64),
+			currencyCode,
+			strconv.FormatFloat(row.Cost, 'f', fractionDigits, 64),
 			csvDate(row.ExpiryTime),
 			csvEscape(strings.Join(ids, ";")),
 			csvEscape(row.SubID),
@@ -88,12 +98,17 @@ func RenderResellerClientsCSV(report *ResellerReport) []byte {
 func RenderResellerListCSV(stats []*ResellerStat) []byte {
 	w := &csvRowBuilder{}
 	w.row("id", "username", "name", "comment", "enabled", "clients", "client_limit", "online",
-		"used_gb", "allocated_gb", "traffic_limit_gb", "balance", "price_per_gb", "expiry")
+		"used_gb", "allocated_gb", "traffic_limit_gb", "currency", "balance", "price_per_gb", "expiry")
 	for _, stat := range stats {
 		if stat == nil || stat.Reseller == nil {
 			continue
 		}
 		r := stat.Reseller
+		currencyCode, ok := moneycurrency.Normalize(stat.Currency)
+		if !ok {
+			currencyCode = "USD"
+		}
+		fractionDigits := moneycurrency.FractionDigits(currencyCode)
 		clientLimit := ""
 		if r.ClientLimit > 0 {
 			clientLimit = strconv.Itoa(r.ClientLimit)
@@ -114,8 +129,9 @@ func RenderResellerListCSV(stats []*ResellerStat) []byte {
 			csvGB(stat.UsedTraffic),
 			csvGB(stat.AllocatedTraffic),
 			trafficLimit,
-			strconv.FormatFloat(r.Deposit-stat.Cost, 'f', 2, 64),
-			strconv.FormatFloat(r.PricePerGB, 'f', 3, 64),
+			currencyCode,
+			strconv.FormatFloat(RoundMoney(r.Deposit-stat.Cost, currencyCode), 'f', fractionDigits, 64),
+			strconv.FormatFloat(r.PricePerGB, 'f', fractionDigits, 64),
 			csvDate(r.ExpiryTime),
 		)
 	}

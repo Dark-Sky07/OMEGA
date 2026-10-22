@@ -13,7 +13,7 @@ import {
 } from 'recharts';
 
 import type { ResellerTransaction } from '@/api/queries/useSession';
-import { formatMoney } from '@/utils';
+import { formatMoney, roundCurrencyAmount } from '@/utils';
 
 export interface WalletActivityPoint {
   month: string;
@@ -26,6 +26,7 @@ export function buildWalletActivity(
   transactions: ResellerTransaction[],
   now = new Date(),
   locale?: string,
+  currency = 'USD',
 ): WalletActivityPoint[] {
   const monthStart = new Date(now.getFullYear(), now.getMonth() - 11, 1);
   const points: WalletActivityPoint[] = [];
@@ -58,20 +59,21 @@ export function buildWalletActivity(
 
   return points.map((point) => ({
     ...point,
-    deposits: Math.round(point.deposits * 100) / 100,
-    withdrawals: Math.round(point.withdrawals * 100) / 100,
+    deposits: roundCurrencyAmount(point.deposits, currency),
+    withdrawals: roundCurrencyAmount(point.withdrawals, currency),
   }));
 }
 
 interface ResellerWalletChartProps {
   transactions: ResellerTransaction[];
+  currency: string;
 }
 
-export default function ResellerWalletChart({ transactions }: ResellerWalletChartProps) {
+export default function ResellerWalletChart({ transactions, currency }: ResellerWalletChartProps) {
   const { t, i18n } = useTranslation();
   const data = useMemo(
-    () => buildWalletActivity(transactions, new Date(), i18n.resolvedLanguage || i18n.language),
-    [transactions, i18n.language, i18n.resolvedLanguage],
+    () => buildWalletActivity(transactions, new Date(), i18n.resolvedLanguage || i18n.language, currency),
+    [transactions, i18n.language, i18n.resolvedLanguage, currency],
   );
 
   return (
@@ -84,8 +86,8 @@ export default function ResellerWalletChart({ transactions }: ResellerWalletChar
             <BarChart data={data} margin={{ top: 8, right: 12, bottom: 4, left: 8 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="month" interval="preserveStartEnd" minTickGap={12} />
-              <YAxis width={52} tickFormatter={(value: number) => String(value)} />
-              <Tooltip formatter={(value, name) => [formatMoney(Number(value ?? 0)), String(name)]} />
+              <YAxis width={92} tickFormatter={(value: number) => formatMoney(value, currency)} />
+              <Tooltip formatter={(value, name) => [formatMoney(Number(value ?? 0), currency), String(name)]} />
               <Legend />
               <Bar dataKey="deposits" name={t('resellers.deposit')} fill="#52c41a" radius={[3, 3, 0, 0]} />
               <Bar dataKey="withdrawals" name={t('resellers.withdraw')} fill="#fa8c16" radius={[3, 3, 0, 0]} />

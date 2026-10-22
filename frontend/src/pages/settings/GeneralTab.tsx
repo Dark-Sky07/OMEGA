@@ -35,6 +35,7 @@ import { SettingListItem } from '@/components/ui';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
 import { sanitizePath } from './uriPath';
+import { CURRENCY_OPTIONS, LEGACY_CURRENCY_OPTIONS, currencyFractionDigits } from '@/constants/currencies';
 
 interface ApiMsg<T = unknown> {
   success?: boolean;
@@ -413,6 +414,16 @@ export default function GeneralTab({ allSetting, updateSetting, defaultSubTab = 
   );
 
   const activeCloudProvider = (allSetting.cloudBackupProvider || 's3').toLowerCase();
+
+  const selectedCheckoutCurrency = allSetting.checkoutCurrency?.trim().toUpperCase() || 'USD';
+  const checkoutCurrencyOptions = [
+    ...CURRENCY_OPTIONS,
+    ...(selectedCheckoutCurrency === 'IRT'
+      ? LEGACY_CURRENCY_OPTIONS
+      : !CURRENCY_OPTIONS.some(({ value }) => value === selectedCheckoutCurrency)
+        ? [{ value: selectedCheckoutCurrency, label: `${selectedCheckoutCurrency} — legacy custom label` }]
+        : []),
+  ];
 
   const tabItems = [
       {
@@ -1191,13 +1202,15 @@ export default function GeneralTab({ allSetting, updateSetting, defaultSubTab = 
             </SettingListItem>
             <SettingListItem
               paddings="small"
-              title={t('pages.settings.checkoutCurrency', 'Currency Label')}
-              description={t('pages.settings.checkoutCurrencyDesc', 'Currency shown to clients on the checkout page (e.g. USD, IRT, EUR).')}
+              title={t('pages.settings.checkoutCurrency', 'Currency')}
+              description={t('pages.settings.checkoutCurrencyDesc', 'Select the ISO currency used for checkout and reseller billing. Changing it does not convert existing prices, balances, or transaction values; update those amounts to match.')}
             >
-              <Input
-                value={allSetting.checkoutCurrency}
-                onChange={(e) => updateSetting({ checkoutCurrency: e.target.value })}
-                placeholder="USD"
+              <Select
+                showSearch
+                optionFilterProp="label"
+                value={selectedCheckoutCurrency}
+                options={checkoutCurrencyOptions}
+                onChange={(value) => updateSetting({ checkoutCurrency: value })}
                 style={{ width: '100%' }}
               />
             </SettingListItem>
@@ -1209,6 +1222,7 @@ export default function GeneralTab({ allSetting, updateSetting, defaultSubTab = 
               <InputNumber
                 value={allSetting.checkoutPricePerGB}
                 min={0}
+                precision={currencyFractionDigits(allSetting.checkoutCurrency)}
                 style={{ width: '100%' }}
                 onChange={(v) => updateSetting({ checkoutPricePerGB: Number(v) || 0 })}
               />
@@ -1221,6 +1235,7 @@ export default function GeneralTab({ allSetting, updateSetting, defaultSubTab = 
               <InputNumber
                 value={allSetting.checkoutPricePerMonth}
                 min={0}
+                precision={currencyFractionDigits(allSetting.checkoutCurrency)}
                 style={{ width: '100%' }}
                 onChange={(v) => updateSetting({ checkoutPricePerMonth: Number(v) || 0 })}
               />

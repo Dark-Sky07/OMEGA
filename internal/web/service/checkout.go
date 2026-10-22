@@ -13,6 +13,7 @@ import (
 	"github.com/Dark-Sky07/phoenix/internal/database"
 	"github.com/Dark-Sky07/phoenix/internal/database/model"
 	"github.com/Dark-Sky07/phoenix/internal/util/common"
+	moneycurrency "github.com/Dark-Sky07/phoenix/internal/util/currency"
 	"github.com/Dark-Sky07/phoenix/internal/util/random"
 )
 
@@ -139,8 +140,12 @@ func loadCheckoutConfig() (*checkoutConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	if strings.TrimSpace(currency) == "" {
+	if normalized, ok := moneycurrency.Normalize(currency); ok {
+		currency = normalized
+	} else if strings.TrimSpace(currency) == "" {
 		currency = defaultValueMap["checkoutCurrency"]
+	} else {
+		currency = strings.ToUpper(strings.TrimSpace(currency))
 	}
 	pricePerGB, err := settingSvc.GetCheckoutPricePerGB()
 	if err != nil {
@@ -220,7 +225,7 @@ func (s *CheckoutService) CreateOrder(email string, gb int64, months int) (*Chec
 	if err != nil {
 		return nil, err
 	}
-	amount := Round2(float64(gb)*cfg.pricePerGB + float64(months)*cfg.pricePerMon)
+	amount := RoundMoney(float64(gb)*cfg.pricePerGB+float64(months)*cfg.pricePerMon, cfg.currency)
 	if amount <= 0 {
 		return nil, common.NewError("checkout prices are not configured")
 	}

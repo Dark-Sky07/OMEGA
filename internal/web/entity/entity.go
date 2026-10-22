@@ -153,7 +153,7 @@ type AllSetting struct {
 
 	// Public client checkout (link-based renewals topped up by the payment webhook)
 	CheckoutEnable        bool    `json:"checkoutEnable" form:"checkoutEnable"`               // Enable the public client checkout page
-	CheckoutCurrency      string  `json:"checkoutCurrency" form:"checkoutCurrency"`           // Currency label shown to clients (USD, IRT, ...)
+	CheckoutCurrency      string  `json:"checkoutCurrency" form:"checkoutCurrency"`           // ISO currency code used as the checkout and reseller billing denomination
 	CheckoutPricePerGB    float64 `json:"checkoutPricePerGB" form:"checkoutPricePerGB"`       // Price charged per added GB
 	CheckoutPricePerMonth float64 `json:"checkoutPricePerMonth" form:"checkoutPricePerMonth"` // Price charged per 30-day renewal
 	CheckoutGatewayURL    string  `json:"checkoutGatewayURL" form:"checkoutGatewayURL"`       // Payment link template with {orderId}/{amount}/{ref} placeholders
