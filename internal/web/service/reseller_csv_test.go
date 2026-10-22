@@ -54,19 +54,19 @@ func TestRenderResellerClientsCSV(t *testing.T) {
 	// Comma, quotes and the embedded newline force RFC 4180 quoting; the
 	// semicolon-separated inbound ids and plain fields stay unquoted.
 	first := lines[1]
-	if !strings.HasPrefix(first, `"ali, ""the reseller"" @x","مشتری ویژه`+"\n"+`line two",gold,true,5.000,3.000,1.000,2.000,1.500,2026-12-01,3;7,sub-1`) {
+	if !strings.HasPrefix(first, `"ali, ""the reseller"" @x","مشتری ویژه`+"\n"+`line two",gold,true,5.000,3.000,1.000,2.000,USD,1.50,2026-12-01,3;7,sub-1`) {
 		t.Fatalf("first row = %q", first)
 	}
 
 	// Unlimited quota and never-expiring client render as empty fields.
-	if second := lines[2]; second != "plain@x,,,false,,0.500,0.000,0.000,0.000,,," {
+	if second := lines[2]; second != "plain@x,,,false,,0.500,0.000,0.000,USD,0.00,,," {
 		t.Fatalf("second row = %q", second)
 	}
 }
 
 func TestRenderResellerClientsCSVEmpty(t *testing.T) {
 	csv := string(RenderResellerClientsCSV(nil))
-	if csv != "\xEF\xBB\xBFemail,comment,group,enabled,quota_gb,used_gb,up_gb,down_gb,cost,expiry,inbound_ids,sub_id\r\n" {
+	if csv != "\xEF\xBB\xBFemail,comment,group,enabled,quota_gb,used_gb,up_gb,down_gb,currency,cost,expiry,inbound_ids,sub_id\r\n" {
 		t.Fatalf("nil report = %q", csv)
 	}
 	if csv := string(RenderResellerClientsCSV(&ResellerReport{})); strings.Count(csv, "\r\n") != 1 {
@@ -104,13 +104,13 @@ func TestRenderResellerListCSV(t *testing.T) {
 	if len(lines) != 3 {
 		t.Fatalf("lines = %d, want header + 2 rows (nil stat skipped)", len(lines))
 	}
-	if lines[0] != "id,username,name,comment,enabled,clients,client_limit,online,used_gb,allocated_gb,traffic_limit_gb,balance,price_per_gb,expiry" {
+	if lines[0] != "id,username,name,comment,enabled,clients,client_limit,online,used_gb,allocated_gb,traffic_limit_gb,currency,balance,price_per_gb,expiry" {
 		t.Fatalf("header = %q", lines[0])
 	}
-	if lines[1] != `7,reseller1,Ali,"note, with comma",true,4,10,2,2.000,5.000,,19.00,0.500,2027-03-01` {
+	if lines[1] != `7,reseller1,Ali,"note, with comma",true,4,10,2,2.000,5.000,,USD,19.00,0.50,2027-03-01` {
 		t.Fatalf("first row = %q", lines[1])
 	}
-	if lines[2] != "8,reseller2,,,false,0,,0,0.000,0.000,,0.00,0.000," {
+	if lines[2] != "8,reseller2,,,false,0,,0,0.000,0.000,,USD,0.00,0.00," {
 		t.Fatalf("second row = %q", lines[2])
 	}
 }

@@ -2,6 +2,9 @@ import axios from 'axios';
 import type { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import i18next from 'i18next';
 import { getMessage } from './messageBus';
+import { currencyFractionDigits, roundCurrencyAmount } from '@/constants/currencies';
+
+export { currencyFractionDigits, roundCurrencyAmount } from '@/constants/currencies';
 
 type RespEnvelope = { success?: unknown; msg?: unknown; obj?: unknown };
 
@@ -661,12 +664,27 @@ export class Base64 {
   }
 }
 
-/** Formats billing money values: up to 2 decimals, trailing zeros trimmed. */
-export function formatMoney(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value)) return '0';
-  const rounded = Math.round(value * 100) / 100;
-  if (Number.isInteger(rounded)) return String(rounded);
-  return rounded.toFixed(2);
+/** Formats money using the selected currency code and its minor-unit precision. */
+export function formatMoney(value: number | null | undefined, currency = 'USD'): string {
+  if (value == null || !Number.isFinite(value)) value = 0;
+  const code = currency.trim().toUpperCase() || 'USD';
+  const rounded = roundCurrencyAmount(value, code);
+  // IRT is a legacy, non-ISO label and cannot be passed to Intl.NumberFormat.
+  if (code === 'IRT') {
+    return `${new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(rounded)} IRT`;
+  }
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: code,
+      currencyDisplay: 'code',
+    }).format(rounded);
+  } catch {
+    return `${new Intl.NumberFormat(undefined, {
+      minimumFractionDigits: currencyFractionDigits(code),
+      maximumFractionDigits: currencyFractionDigits(code),
+    }).format(rounded)} ${code}`;
+  }
 }
 
 export class SizeFormatter {

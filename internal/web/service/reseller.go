@@ -15,6 +15,7 @@ import (
 	"github.com/Dark-Sky07/phoenix/internal/database/model"
 	"github.com/Dark-Sky07/phoenix/internal/logger"
 	"github.com/Dark-Sky07/phoenix/internal/util/crypto"
+	moneycurrency "github.com/Dark-Sky07/phoenix/internal/util/currency"
 	"github.com/Dark-Sky07/phoenix/internal/xray"
 	"gorm.io/gorm"
 )
@@ -34,6 +35,7 @@ const bytesPerGB = 1024 * 1024 * 1024
 // admin's reseller table and the reseller's own dashboard render.
 type ResellerStat struct {
 	Reseller         *model.Reseller `json:"reseller"`
+	Currency         string          `json:"currency"` // Currency denomination for reseller financial values.
 	InboundCount     int             `json:"inboundCount"`
 	ClientCount      int             `json:"clientCount"`
 	OnlineCount      int             `json:"onlineCount"`
@@ -999,7 +1001,15 @@ func (s *ResellerService) Stat(reseller *model.Reseller) (*ResellerStat, error) 
 		return nil, errors.New("reseller is required")
 	}
 	db := database.GetDB()
-	stat := &ResellerStat{Reseller: reseller}
+	stat := &ResellerStat{Reseller: reseller, Currency: "USD"}
+	var settingSvc SettingService
+	if configured, err := settingSvc.GetCheckoutCurrency(); err == nil && strings.TrimSpace(configured) != "" {
+		if code, ok := moneycurrency.Normalize(configured); ok {
+			stat.Currency = code
+		} else {
+			stat.Currency = strings.ToUpper(strings.TrimSpace(configured))
+		}
+	}
 
 	ids, err := s.OwnedInboundIds(reseller.Id)
 	if err != nil {
@@ -1064,8 +1074,8 @@ func (s *ResellerService) Stat(reseller *model.Reseller) (*ResellerStat, error) 
 	// GB-based billing: cost accrues from measured usage at the reseller's
 	// per-GB price; the balance is the prepaid deposit minus that cost
 	// (negative = debt, shown red in the UI).
-	stat.Cost = Round2(float64(stat.UsedTraffic) / bytesPerGB * reseller.PricePerGB)
-	stat.Balance = Round2(reseller.Deposit - stat.Cost)
+	stat.Cost = RoundMoney(float64(stat.UsedTraffic)/bytesPerGB*reseller.PricePerGB, stat.Currency)
+	stat.Balance = RoundMoney(reseller.Deposit-stat.Cost, stat.Currency)
 	stat.Expired = IsExpired(reseller.ExpiryTime)
 	if reseller.TrafficLimit > 0 {
 		stat.RemainingTraffic = reseller.TrafficLimit - stat.AllocatedTraffic
@@ -1204,6 +1214,16 @@ func (s *ResellerService) AdjustBalance(resellerId int, amount float64, comment 
 	if math.IsNaN(amount) || math.IsInf(amount, 0) || amount == 0 {
 		return nil, errors.New("amount must be a non-zero number")
 	}
+	var settingSvc SettingService
+	configuredCurrency, _ := settingSvc.GetCheckoutCurrency()
+	currencyCode, ok := moneycurrency.Normalize(configuredCurrency)
+	if !ok {
+		currencyCode = "USD"
+	}
+	amount = RoundMoney(amount, currencyCode)
+	if amount == 0 {
+		return nil, errors.New("amount is below the minimum currency unit")
+	}
 	reseller, err := s.Get(resellerId)
 	if err != nil {
 		return nil, err
@@ -1211,7 +1231,7 @@ func (s *ResellerService) AdjustBalance(resellerId int, amount float64, comment 
 	if reseller.Deposit+amount < 0 {
 		return nil, fmt.Errorf("balance can not go below zero (current: %s)", FormatNumber(reseller.Deposit))
 	}
-	newBalance := Round2(reseller.Deposit + amount)
+	newBalance := RoundMoney(reseller.Deposit+amount, currencyCode)
 	txType := "deposit"
 	if amount < 0 {
 		txType = "withdraw"
@@ -1227,7 +1247,7 @@ func (s *ResellerService) AdjustBalance(resellerId int, amount float64, comment 
 		return tx.Create(&model.ResellerTransaction{
 			ResellerId: resellerId,
 			Type:       txType,
-			Amount:     Round2(amount),
+			Amount:     amount,
 			Balance:    newBalance,
 			Comment:    strings.TrimSpace(comment),
 			CreatedAt:  time.Now().UnixMilli(),
@@ -1297,9 +1317,15 @@ func (s *ResellerService) CheckClientQuota(reseller *model.Reseller, adding int,
 // helpers
 // ---------------------------------------------------------------------------
 
-// Round2 rounds a money amount to two decimals.
+// Round2 remains for legacy callers that explicitly use a two-decimal amount.
 func Round2(v float64) float64 {
 	return math.Round(v*100) / 100
+}
+
+// RoundMoney rounds to the configured currency's ISO minor-unit precision.
+func RoundMoney(v float64, code string) float64 {
+	factor := math.Pow10(moneycurrency.FractionDigits(code))
+	return math.Round(v*factor) / factor
 }
 
 // FormatBytes renders a byte count using binary units.

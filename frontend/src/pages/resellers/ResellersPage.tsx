@@ -52,6 +52,8 @@ import { setMessageInstance } from '@/utils/messageBus';
 import { keys } from '@/api/queryKeys';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useTheme } from '@/hooks/useTheme';
+import { useAllSettings } from '@/api/queries/useAllSettings';
+import { currencyFractionDigits } from '@/constants/currencies';
 import type { ResellerReport, ResellerStat } from '@/api/queries/useSession';
 import { PageHeader } from '@/components/ui';
 import ResellersOverview from './ResellersOverview';
@@ -93,6 +95,10 @@ export default function ResellersPage() {
   const { isDark, isUltra, antdThemeConfig } = useTheme();
   const { isMobile } = useMediaQuery();
   const queryClient = useQueryClient();
+  const { allSetting } = useAllSettings();
+  const currency = allSetting.checkoutCurrency || 'USD';
+  const currencyDigits = currencyFractionDigits(currency);
+  const currencyStep = 10 ** -currencyDigits;
   const [messageApi, messageContextHolder] = message.useMessage();
 
   useEffect(() => {
@@ -532,11 +538,11 @@ export default function ResellersPage() {
       render: (_value, stat) => (
         <Space orientation="vertical" size={0}>
           <Typography.Text type={(stat.balance || 0) < 0 ? 'danger' : undefined}>
-            {formatMoney(stat.balance || 0)}
+            {formatMoney(stat.balance || 0, stat.currency)}
           </Typography.Text>
           <Typography.Text type="secondary">
-            {t('resellers.table.cost')}: {formatMoney(stat.cost || 0)}
-            {stat.reseller.pricePerGb ? ` · ${formatMoney(stat.reseller.pricePerGb)}/GB` : ''}
+            {t('resellers.table.cost')}: {formatMoney(stat.cost || 0, stat.currency)}
+            {stat.reseller.pricePerGb ? ` · ${formatMoney(stat.reseller.pricePerGb, stat.currency)}/GB` : ''}
           </Typography.Text>
         </Space>
       ),
@@ -719,8 +725,8 @@ export default function ResellersPage() {
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={12}>
-                    <Form.Item name="pricePerGb" label={t('resellers.pricePerGb')} extra={t('resellers.pricePerGbHint')}>
-                      <InputNumber min={0} step={0.1} style={{ width: '100%' }} />
+                    <Form.Item name="pricePerGb" label={`${t('resellers.pricePerGb')} (${currency}/GB)`} extra={t('resellers.pricePerGbHint')}>
+                      <InputNumber min={0} step={currencyStep} precision={currencyDigits} style={{ width: '100%' }} />
                     </Form.Item>
                   </Col>
                 </Row>
@@ -841,15 +847,15 @@ export default function ResellersPage() {
                 {t('resellers.adjustBalanceHint')}
               </Typography.Paragraph>
               <Typography.Paragraph>
-                {t('resellers.balance')}: <b>{formatMoney(balanceFor?.reseller.deposit || 0)}</b>
+                {t('resellers.balance')}: <b>{formatMoney(balanceFor?.reseller.deposit || 0, balanceFor?.currency)}</b>
               </Typography.Paragraph>
               <Form form={balanceForm} layout="vertical">
                 <Form.Item
                   name="amount"
-                  label={t('resellers.amount')}
+                  label={`${t('resellers.amount')} (${balanceFor?.currency || currency})`}
                   rules={[{ required: true, message: t('resellers.validation.amount') }]}
                 >
-                  <InputNumber style={{ width: '100%' }} step={1} />
+                  <InputNumber style={{ width: '100%' }} step={currencyStep} precision={currencyDigits} />
                 </Form.Item>
                 <Form.Item name="comment" label={t('comment')}>
                   <Input />
@@ -892,13 +898,13 @@ export default function ResellersPage() {
                     <Col xs={12} md={6}>
                       <Statistic
                         title={t('resellers.table.cost')}
-                        value={formatMoney(reportQuery.data.stat.cost || 0)}
+                        value={formatMoney(reportQuery.data.stat.cost || 0, reportQuery.data.stat.currency)}
                       />
                     </Col>
                     <Col xs={12} md={6}>
                       <Statistic
                         title={t('resellers.balance')}
-                        value={formatMoney(reportQuery.data.stat.balance || 0)}
+                        value={formatMoney(reportQuery.data.stat.balance || 0, reportQuery.data.stat.currency)}
                         valueStyle={(reportQuery.data.stat.balance || 0) < 0 ? { color: '#cf1322' } : undefined}
                       />
                     </Col>
@@ -917,7 +923,7 @@ export default function ResellersPage() {
                         : t('resellers.never')}
                     </Descriptions.Item>
                   </Descriptions>
-                  <ResellerWalletChart transactions={reportQuery.data.transactions || []} />
+                  <ResellerWalletChart transactions={reportQuery.data.transactions || []} currency={reportQuery.data.stat.currency || 'USD'} />
                   <Card size="small" title={t('resellers.clientsTitle')}>
                     <Table
                       rowKey="email"
@@ -974,14 +980,14 @@ export default function ResellersPage() {
                           dataIndex: 'amount',
                           key: 'amount',
                           render: (v: number) => (
-                            <Typography.Text type={v < 0 ? 'danger' : undefined}>{formatMoney(v)}</Typography.Text>
+                            <Typography.Text type={v < 0 ? 'danger' : undefined}>{formatMoney(v, reportQuery.data?.stat.currency)}</Typography.Text>
                           ),
                         },
                         {
                           title: t('resellers.balance'),
                           dataIndex: 'balance',
                           key: 'balance',
-                          render: (v: number) => formatMoney(v),
+                          render: (v: number) => formatMoney(v, reportQuery.data?.stat.currency),
                         },
                         { title: t('comment'), dataIndex: 'comment', key: 'comment' },
                       ]}

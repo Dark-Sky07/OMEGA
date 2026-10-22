@@ -165,7 +165,7 @@ describe('reseller pages', () => {
     expect(within(dialog).getByText('Traffic quota')).toBeTruthy();
     expect(within(dialog).getByText('Client limit')).toBeTruthy();
     expect(within(dialog).queryByText('Inbound limit')).toBeNull();
-    expect(within(dialog).getByText('Price per GB')).toBeTruthy();
+    expect(within(dialog).getByText(/Price per GB/)).toBeTruthy();
     expect(within(dialog).queryByText('Initial deposit')).toBeNull();
     expect(within(dialog).getByText('Attach Inbound')).toBeTruthy();
   });

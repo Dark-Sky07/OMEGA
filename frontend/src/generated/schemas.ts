@@ -4,7 +4,7 @@ export const SCHEMAS: Record<string, unknown> = {
     "description": "AllSetting contains all configuration settings for the PHOENIX panel including web server, Telegram bot, and subscription settings.",
     "properties": {
       "checkoutCurrency": {
-        "description": "Currency label shown to clients (USD, IRT, ...)",
+        "description": "ISO currency code used as the checkout and reseller billing denomination",
         "type": "string"
       },
       "checkoutEnable": {
@@ -582,7 +582,7 @@ export const SCHEMAS: Record<string, unknown> = {
     "description": "AllSettingView is the browser-safe settings read model. Secret values\nare redacted from the embedded write model and represented by presence\nflags so the UI can show configured/not configured state.",
     "properties": {
       "checkoutCurrency": {
-        "description": "Currency label shown to clients (USD, IRT, ...)",
+        "description": "ISO currency code used as the checkout and reseller billing denomination",
         "type": "string"
       },
       "checkoutEnable": {

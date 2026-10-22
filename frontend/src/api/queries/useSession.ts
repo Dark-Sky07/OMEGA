@@ -26,6 +26,7 @@ export interface ResellerStat {
     createdAt?: number;
     updatedAt?: number;
   };
+  currency: string;
   inboundCount: number;
   clientCount: number;
   onlineCount: number;
