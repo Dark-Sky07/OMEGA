@@ -288,7 +288,8 @@ func (a *SUBController) subs(c *gin.Context) {
 			traffic.Enable = len(emails) > 0
 		}
 
-		subURL, subJsonURL, subClashURL, subSingboxURL, subOutlineURL := a.subService.BuildURLs(a.subPath, a.subJsonPath, a.subClashPath, a.subSingboxPath, a.subOutlinePath, subId)
+		reseller := a.subService.ResellerForEmails(emails)
+		subURL, subJsonURL, subClashURL, subSingboxURL, subOutlineURL := a.subService.BuildURLsForReseller(a.subPath, a.subJsonPath, a.subClashPath, a.subSingboxPath, a.subOutlinePath, subId, reseller)
 		if !a.jsonEnabled {
 			subJsonURL = ""
 		}
@@ -313,6 +314,23 @@ func (a *SUBController) subs(c *gin.Context) {
 		basePathStr := basePath.(string)
 		page := a.subService.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, emails, subURL, subJsonURL, subClashURL, subSingboxURL, subOutlineURL, basePathStr, a.subTitle, a.subSupportUrl)
 		page.L2TP = l2tpConnections
+		if reseller != nil {
+			page.BrandName, page.BrandLogo, page.BrandColor, page.BrandTheme = reseller.BrandName, reseller.BrandLogo, reseller.BrandColor, reseller.BrandTheme
+		}
+		if page.BrandName == "" {
+			page.BrandName, _ = a.settingService.GetSubBrandName()
+		}
+		if page.BrandLogo == "" {
+			page.BrandLogo, _ = a.settingService.GetSubBrandLogo()
+		}
+		if page.BrandColor == "" {
+			page.BrandColor, _ = a.settingService.GetSubBrandColor()
+		}
+		if page.BrandTheme == "" {
+			if theme, _ := a.settingService.GetSubBrandTheme(); theme != "" {
+				page.BrandTheme = theme
+			}
+		}
 		if ovpnEmails, oErr := a.subService.GetOpenvpnEmailsBySubId(subId); oErr == nil {
 			page.Openvpn = len(ovpnEmails) > 0
 		}
@@ -402,6 +420,10 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 		"subClashUrl":   page.SubClashUrl,
 		"subTitle":      page.SubTitle,
 		"subSupportUrl": page.SubSupportUrl,
+		"brandName":     page.BrandName,
+		"brandLogo":     page.BrandLogo,
+		"brandColor":    page.BrandColor,
+		"brandTheme":    page.BrandTheme,
 		"links":         page.Result,
 		"emails":        page.Emails,
 		"datepicker":    datepicker,

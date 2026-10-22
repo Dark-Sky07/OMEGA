@@ -3,6 +3,19 @@ export const SCHEMAS: Record<string, unknown> = {
   "AllSetting": {
     "description": "AllSetting contains all configuration settings for the PHOENIX panel including web server, Telegram bot, and subscription settings.",
     "properties": {
+      "brandColor": {
+        "type": "string"
+      },
+      "brandLogo": {
+        "type": "string"
+      },
+      "brandName": {
+        "description": "Panel branding (independent of each user's light/dark preference).",
+        "type": "string"
+      },
+      "brandTheme": {
+        "type": "string"
+      },
       "checkoutCurrency": {
         "description": "ISO currency code used as the checkout and reseller billing denomination",
         "type": "string"
@@ -238,6 +251,18 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "subAnnounce": {
         "description": "Subscription announce",
+        "type": "string"
+      },
+      "subBrandColor": {
+        "type": "string"
+      },
+      "subBrandLogo": {
+        "type": "string"
+      },
+      "subBrandName": {
+        "type": "string"
+      },
+      "subBrandTheme": {
         "type": "string"
       },
       "subCertFile": {
@@ -492,6 +517,10 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "brandColor",
+      "brandLogo",
+      "brandName",
+      "brandTheme",
       "checkoutCurrency",
       "checkoutEnable",
       "checkoutGatewayURL",
@@ -553,6 +582,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "restartXrayOnClientDisable",
       "sessionMaxAge",
       "subAnnounce",
+      "subBrandColor",
+      "subBrandLogo",
+      "subBrandName",
+      "subBrandTheme",
       "subCertFile",
       "subClashEnable",
       "subClashEnableRouting",
@@ -619,6 +652,19 @@ export const SCHEMAS: Record<string, unknown> = {
   "AllSettingView": {
     "description": "AllSettingView is the browser-safe settings read model. Secret values\nare redacted from the embedded write model and represented by presence\nflags so the UI can show configured/not configured state.",
     "properties": {
+      "brandColor": {
+        "type": "string"
+      },
+      "brandLogo": {
+        "type": "string"
+      },
+      "brandName": {
+        "description": "Panel branding (independent of each user's light/dark preference).",
+        "type": "string"
+      },
+      "brandTheme": {
+        "type": "string"
+      },
       "checkoutCurrency": {
         "description": "ISO currency code used as the checkout and reseller billing denomination",
         "type": "string"
@@ -880,6 +926,18 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Subscription announce",
         "type": "string"
       },
+      "subBrandColor": {
+        "type": "string"
+      },
+      "subBrandLogo": {
+        "type": "string"
+      },
+      "subBrandName": {
+        "type": "string"
+      },
+      "subBrandTheme": {
+        "type": "string"
+      },
       "subCertFile": {
         "description": "SSL certificate file for subscription server",
         "type": "string"
@@ -1132,6 +1190,10 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "brandColor",
+      "brandLogo",
+      "brandName",
+      "brandTheme",
       "checkoutCurrency",
       "checkoutEnable",
       "checkoutGatewayURL",
@@ -1201,6 +1263,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "restartXrayOnClientDisable",
       "sessionMaxAge",
       "subAnnounce",
+      "subBrandColor",
+      "subBrandLogo",
+      "subBrandName",
+      "subBrandTheme",
       "subCertFile",
       "subClashEnable",
       "subClashEnableRouting",

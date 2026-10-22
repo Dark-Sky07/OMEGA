@@ -5,13 +5,19 @@ package sub
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"io"
 	"io/fs"
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
+
+	"github.com/Dark-Sky07/phoenix/internal/database"
+	"github.com/Dark-Sky07/phoenix/internal/database/model"
 	"time"
 
 	"github.com/Dark-Sky07/phoenix/internal/logger"
@@ -61,9 +67,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		return nil, err
 	}
 
-	if subDomain != "" {
-		engine.Use(middleware.DomainValidatorMiddleware(subDomain))
-	}
+	engine.Use(middleware.SubscriptionDomainValidatorMiddleware(subDomain))
 
 	LinksPath, err := s.settingService.GetSubPath()
 	if err != nil {
@@ -312,21 +316,26 @@ func (s *Server) Start() (err error) {
 		return err
 	}
 
-	if certFile != "" || keyFile != "" {
-		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-		if err == nil {
-			c := &tls.Config{
-				Certificates: []tls.Certificate{cert},
-			}
-			listener = network.NewAutoHttpsListener(listener)
-			listener = tls.NewListener(listener, c)
-			logger.Info("Sub server running HTTPS on", listener.Addr())
+	var defaultCert *tls.Certificate
+	if certFile != "" && keyFile != "" {
+		cert, loadErr := tls.LoadX509KeyPair(certFile, keyFile)
+		if loadErr != nil {
+			logger.Error("Error loading subscription certificate:", loadErr)
 		} else {
-			logger.Error("Error loading certificates:", err)
-			logger.Info("Sub server running HTTP on", listener.Addr())
+			defaultCert = &cert
 		}
+	}
+	tlsConfig := &tls.Config{
+		MinVersion:     tls.VersionTLS12,
+		GetCertificate: resellerCertificateSelector(defaultCert),
+	}
+	if defaultCert != nil {
+		tlsConfig.Certificates = []tls.Certificate{*defaultCert}
+		listener = tls.NewListener(network.NewAutoHttpsListener(listener), tlsConfig)
+		logger.Info("Sub server running HTTPS on", listener.Addr())
 	} else {
-		logger.Info("Sub server running HTTP on", listener.Addr())
+		listener = newMixedTLSListener(listener, tlsConfig)
+		logger.Info("Sub server running HTTP with SNI-based reseller TLS on", listener.Addr())
 	}
 	s.listener = listener
 
@@ -370,4 +379,48 @@ func (s *Server) Stop() error {
 // GetCtx returns the server's context for cancellation and deadline management.
 func (s *Server) GetCtx() context.Context {
 	return s.ctx
+}
+
+// resellerCertificateSelector adds per-reseller SNI certificates while
+// retaining the configured subscription certificate as the default. The
+// in-memory map refreshes once a minute so adding a domain does not require a
+// subscription-server restart.
+func resellerCertificateSelector(defaultCert *tls.Certificate) func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+	type certCacheEntry struct {
+		cert      *tls.Certificate
+		expiresAt time.Time
+	}
+	var mu sync.Mutex
+	certs := make(map[string]certCacheEntry)
+	return func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		host := strings.TrimSuffix(strings.ToLower(strings.TrimSpace(hello.ServerName)), ".")
+		if host == "" {
+			if defaultCert != nil {
+				return defaultCert, nil
+			}
+			return nil, errors.New("no certificate is available for this host")
+		}
+		now := time.Now()
+		mu.Lock()
+		entry, ok := certs[host]
+		if !ok || !now.Before(entry.expiresAt) {
+			var reseller model.Reseller
+			if err := database.GetDB().Where("LOWER(sub_domain) = ?", host).First(&reseller).Error; err == nil {
+				base := filepath.Join(service.CertDir(), "reseller", strconv.Itoa(reseller.Id), host)
+				if loaded, err := tls.LoadX509KeyPair(filepath.Join(base, "fullchain.pem"), filepath.Join(base, "privkey.pem")); err == nil {
+					entry.cert = &loaded
+				}
+			}
+			entry.expiresAt = now.Add(15 * time.Second)
+			certs[host] = entry
+		}
+		mu.Unlock()
+		if entry.cert != nil {
+			return entry.cert, nil
+		}
+		if defaultCert != nil {
+			return defaultCert, nil
+		}
+		return nil, errors.New("no certificate is available for this host")
+	}
 }

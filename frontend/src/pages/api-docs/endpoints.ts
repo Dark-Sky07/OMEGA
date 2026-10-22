@@ -1589,11 +1589,13 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/reseller/branding',
-        summary: 'Update the signed-in reseller own brand name, HTTPS or same-site logo URL, and six-digit hex brand color. Branding is shown in the reseller workspace and public registration/deposit pages.',
+        summary: 'Update the signed-in reseller own brand name, logo, accent color, visual theme, and optional custom subscription domain. Branding is shown in the reseller workspace and public registration/deposit pages.',
         params: [
           { name: 'brandName', in: 'body (json)', type: 'string', optional: true },
           { name: 'brandLogo', in: 'body (json)', type: 'string', optional: true },
           { name: 'brandColor', in: 'body (json)', type: 'string', optional: true },
+          { name: 'brandTheme', in: 'body (json)', type: 'string', optional: true },
+          { name: 'subDomain', in: 'body (json)', type: 'string', optional: true },
         ],
       },
       {

@@ -61,6 +61,8 @@ type ResellerBrandingValues = {
   brandName: string;
   brandLogo: string;
   brandColor: string;
+  brandTheme: string;
+  subDomain: string;
 };
 
 const NOTIF_TAG_COLOR: Record<string, string> = {
@@ -136,6 +138,7 @@ export default function ResellerProfilePage() {
   const previewBrandNameInput = Form.useWatch('brandName', brandingForm) || '';
   const previewBrandLogoInput = Form.useWatch('brandLogo', brandingForm) || '';
   const previewBrandColorInput = Form.useWatch('brandColor', brandingForm) || '';
+  const previewBrandTheme = Form.useWatch('brandTheme', brandingForm) || 'default';
 
   const redeemVoucher = useCallback(async () => {
     const code = voucherCode.trim();
@@ -176,7 +179,8 @@ export default function ResellerProfilePage() {
   const stat = profileQuery.data;
   const previewBrandName = previewBrandNameInput.trim() || stat?.reseller.name || t('resellers.branding.title');
   const previewBrandLogo = safeBrandLogoPreview(previewBrandLogoInput);
-  const previewBrandColor = /^#[0-9a-fA-F]{6}$/.test(previewBrandColorInput) ? previewBrandColorInput : undefined;
+  const themeAccent: Record<string, string> = { ocean: '#1677FF', forest: '#1C9A68', sunset: '#D9485F' };
+  const previewBrandColor = /^#[0-9a-fA-F]{6}$/.test(previewBrandColorInput) ? previewBrandColorInput : themeAccent[previewBrandTheme];
   const previewBrandInitial = Array.from(previewBrandName)[0]?.toUpperCase() || 'R';
 
   useEffect(() => {
@@ -185,6 +189,8 @@ export default function ResellerProfilePage() {
       brandName: stat.reseller.brandName || '',
       brandLogo: stat.reseller.brandLogo || '',
       brandColor: stat.reseller.brandColor || '',
+      brandTheme: stat.reseller.brandTheme || 'default',
+      subDomain: stat.reseller.subDomain || '',
     });
   }, [brandingForm, stat]);
 
@@ -418,6 +424,21 @@ export default function ResellerProfilePage() {
                         <Col xs={24} md={6}>
                           <Form.Item name="brandColor" label={t('resellers.branding.color')}>
                             <Input maxLength={7} placeholder="#1677FF" />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} md={12}>
+                          <Form.Item name="brandTheme" label={t('pages.settings.brandTheme', 'Brand palette')}>
+                            <Select options={[
+                              { value: 'default', label: t('pages.settings.brandThemeDefault', 'Phoenix') },
+                              { value: 'ocean', label: t('pages.settings.brandThemeOcean', 'Ocean') },
+                              { value: 'forest', label: t('pages.settings.brandThemeForest', 'Forest') },
+                              { value: 'sunset', label: t('pages.settings.brandThemeSunset', 'Sunset') },
+                            ]} />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} md={12}>
+                          <Form.Item name="subDomain" label={t('resellers.branding.subDomain', 'Custom subscription domain')} help={t('resellers.branding.subDomainHint', 'Point DNS to this server. Port 80 must be publicly reachable; a TLS certificate is issued automatically when saving.')}>
+                            <Input maxLength={253} placeholder="sub.example.com" autoComplete="off" />
                           </Form.Item>
                         </Col>
                       </Row>

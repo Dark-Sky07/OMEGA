@@ -2410,10 +2410,14 @@ type L2TPConnection struct {
 // PageData is a view model for subpage.html
 // PageData contains data for rendering the subscription information page.
 type PageData struct {
-	Host     string
-	BasePath string
-	SId      string
-	Enabled  bool
+	Host       string
+	BasePath   string
+	SId        string
+	BrandName  string
+	BrandLogo  string
+	BrandColor string
+	BrandTheme string
+	Enabled    bool
 	// Openvpn reports whether the subscription owner can download a per-client
 	// .ovpn profile (attached to an enabled local openvpn inbound). The SPA
 	// uses it to show the OpenVPN config row next to the share links.
@@ -2485,6 +2489,46 @@ func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string,
 		hostHeader = host
 	}
 	return
+}
+
+// ResellerForEmails resolves the owner of the subscription's explicitly mapped
+// client. ResellerClient is the ownership boundary used by reseller isolation.
+func (s *SubService) ResellerForEmails(emails []string) *model.Reseller {
+	keys := make([]string, 0, len(emails))
+	for _, email := range emails {
+		if key := strings.ToLower(strings.TrimSpace(email)); key != "" {
+			keys = append(keys, key)
+		}
+	}
+	if len(keys) == 0 {
+		return nil
+	}
+	var mapping model.ResellerClient
+	if err := database.GetDB().Where("LOWER(TRIM(email)) IN ?", keys).Order("reseller_id ASC").First(&mapping).Error; err != nil {
+		return nil
+	}
+	var reseller model.Reseller
+	if err := database.GetDB().Where("id = ? AND enable = ?", mapping.ResellerId, true).First(&reseller).Error; err != nil {
+		return nil
+	}
+	return &reseller
+}
+
+// BuildURLsForReseller uses the reseller's verified HTTPS hostname when one is
+// configured; otherwise it preserves the panel-wide URI behavior.
+func (s *SubService) BuildURLsForReseller(subPath, subJsonPath, subClashPath, subSingboxPath, subOutlinePath, subId string, reseller *model.Reseller) (string, string, string, string, string) {
+	if reseller == nil || strings.TrimSpace(reseller.SubDomain) == "" {
+		return s.BuildURLs(subPath, subJsonPath, subClashPath, subSingboxPath, subOutlinePath, subId)
+	}
+	base := "https://" + strings.TrimSpace(reseller.SubDomain)
+	if port, err := s.settingService.GetSubPort(); err == nil && port > 0 && port != 443 {
+		base += fmt.Sprintf(":%d", port)
+	}
+	return s.buildSingleURL("", base, subPath, subId),
+		s.buildSingleURL("", base, subJsonPath, subId),
+		s.buildSingleURL("", base, subClashPath, subId),
+		s.buildSingleURL("", base, subSingboxPath, subId),
+		s.buildSingleURL("", base, subOutlinePath, subId)
 }
 
 // BuildURLs constructs absolute subscription and JSON subscription URLs for a given subscription ID.

@@ -95,6 +95,26 @@ func (a *SettingController) getDefaultSettings(c *gin.Context) {
 	jsonObj(c, result, nil)
 }
 
+func preserveBrandSettings(submitted map[string]json.RawMessage, current *entity.AllSetting) {
+	if submitted == nil || current == nil {
+		return
+	}
+	values := map[string]any{
+		"brandName": current.BrandName, "brandLogo": current.BrandLogo,
+		"brandColor": current.BrandColor, "brandTheme": current.BrandTheme,
+		"subBrandName": current.SubBrandName, "subBrandLogo": current.SubBrandLogo,
+		"subBrandColor": current.SubBrandColor, "subBrandTheme": current.SubBrandTheme,
+	}
+	for key, value := range values {
+		if _, exists := submitted[key]; exists {
+			continue
+		}
+		if raw, err := json.Marshal(value); err == nil {
+			submitted[key] = raw
+		}
+	}
+}
+
 func preserveResellerNotificationSettings(submitted map[string]json.RawMessage, current *entity.AllSetting) {
 	if submitted == nil || current == nil {
 		return
@@ -134,6 +154,7 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 				return
 			}
 			preserveResellerNotificationSettings(submitted, current)
+			preserveBrandSettings(submitted, current)
 			body, _ = json.Marshal(submitted)
 		}
 		c.Request.Body = io.NopCloser(bytes.NewReader(body))

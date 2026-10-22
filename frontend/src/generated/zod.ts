@@ -25,6 +25,10 @@ export const transportBitsSchema = z.number().int();
 export type transportBits = z.infer<typeof transportBitsSchema>;
 
 export const AllSettingSchema = z.object({
+  brandColor: z.string(),
+  brandLogo: z.string(),
+  brandName: z.string(),
+  brandTheme: z.string(),
   checkoutCurrency: z.string(),
   checkoutEnable: z.boolean(),
   checkoutGatewayURL: z.string(),
@@ -86,6 +90,10 @@ export const AllSettingSchema = z.object({
   restartXrayOnClientDisable: z.boolean(),
   sessionMaxAge: z.number().int().min(1).max(525600),
   subAnnounce: z.string(),
+  subBrandColor: z.string(),
+  subBrandLogo: z.string(),
+  subBrandName: z.string(),
+  subBrandTheme: z.string(),
   subCertFile: z.string(),
   subClashEnable: z.boolean(),
   subClashEnableRouting: z.boolean(),
@@ -150,6 +158,10 @@ export const AllSettingSchema = z.object({
 export type AllSetting = z.infer<typeof AllSettingSchema>;
 
 export const AllSettingViewSchema = z.object({
+  brandColor: z.string(),
+  brandLogo: z.string(),
+  brandName: z.string(),
+  brandTheme: z.string(),
   checkoutCurrency: z.string(),
   checkoutEnable: z.boolean(),
   checkoutGatewayURL: z.string(),
@@ -219,6 +231,10 @@ export const AllSettingViewSchema = z.object({
   restartXrayOnClientDisable: z.boolean(),
   sessionMaxAge: z.number().int().min(1).max(525600),
   subAnnounce: z.string(),
+  subBrandColor: z.string(),
+  subBrandLogo: z.string(),
+  subBrandName: z.string(),
+  subBrandTheme: z.string(),
   subCertFile: z.string(),
   subClashEnable: z.boolean(),
   subClashEnableRouting: z.boolean(),
