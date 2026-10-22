@@ -13,11 +13,12 @@ import (
 // XUIController is the main controller for the X-UI panel, serving the SPA shell.
 type XUIController struct {
 	BaseController
+	simurgh *simurghProxy
 }
 
 // NewXUIController creates a new XUIController and initializes its routes.
 func NewXUIController(g *gin.RouterGroup) *XUIController {
-	a := &XUIController{}
+	a := &XUIController{simurgh: newSimurghProxy("")}
 	a.initRouter(g)
 	return a
 }
@@ -41,6 +42,8 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 	g.GET("/settings", a.panelSPA)
 	g.GET("/xray", a.panelSPA)
 	g.GET("/api-docs", a.panelSPA)
+	g.GET("/simurgh", a.simurghRedirect)
+	g.Any("/simurgh/*path", a.simurghPanel)
 
 	// Reseller (نمایندگی) pages. /resellers is the admin-side management page;
 	// /reseller/report, /reseller/profile and /reseller/renewals are reseller

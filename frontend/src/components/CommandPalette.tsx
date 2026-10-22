@@ -283,6 +283,13 @@ export default function CommandPalette() {
         onSelect: () => go('/xray#dns'),
       },
       {
+        id: 'nav-simurgh',
+        group: 'pages',
+        title: 'Simurgh',
+        keywords: 'simurgh tunnel relay exit',
+        onSelect: () => go('/simurgh'),
+      },
+      {
         id: 'nav-apidocs',
         group: 'pages',
         title: t('menu.apiDocs'),

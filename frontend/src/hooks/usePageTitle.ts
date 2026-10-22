@@ -55,7 +55,7 @@ export function usePageTitle() {
 
   useEffect(() => {
     const key = TITLE_KEYS[pathname];
-    const pageTitle = key ? t(key) : 'PHOENIX';
+    const pageTitle = pathname === '/simurgh' ? 'Simurgh' : key ? t(key) : 'PHOENIX';
     const title = hasCustomBrand && displayBrandName ? `${displayBrandName} - ${pageTitle}` : pageTitle;
     const host = window.location.hostname;
     document.title = host ? `${host} - ${title}` : title;
