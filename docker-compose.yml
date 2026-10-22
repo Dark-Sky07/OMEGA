@@ -26,6 +26,7 @@ services:
       net.ipv4.ip_forward: "1"
     volumes:
       - $PWD/db/:/etc/x-ui/
+      - $PWD/simurgh/:/etc/phoenix-simurgh/
       - $PWD/cert/:/root/cert/
     environment:
       XRAY_VMESS_AEAD_FORCED: "false"

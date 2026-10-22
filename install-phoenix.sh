@@ -1607,6 +1607,20 @@ install_x-ui() {
         fi
     fi
 
+    # Install the independent, loopback-only Simurgh service. Its setup is
+    # best-effort so a missing optional dependency never interrupts PHOENIX.
+    simurgh_installer=/usr/bin/phoenix-simurgh-install
+    simurgh_launcher=/usr/bin/phoenix-simurgh-launcher.py
+    if curl -fLRo "$simurgh_installer" "https://raw.githubusercontent.com/${PHOENIX_REPO}/${tag_version}/scripts/install-simurgh-tunnel.sh" >/dev/null 2>&1 \
+        && curl -fLRo "$simurgh_launcher" "https://raw.githubusercontent.com/${PHOENIX_REPO}/${tag_version}/scripts/phoenix-simurgh-launcher.py" >/dev/null 2>&1; then
+        chmod +x "$simurgh_installer"
+        if ! bash "$simurgh_installer"; then
+            echo -e "${yellow}Simurgh setup was skipped; PHOENIX and Xray remain unchanged.${plain}"
+        fi
+    else
+        echo -e "${yellow}Simurgh installer unavailable; PHOENIX and Xray remain unchanged.${plain}"
+    fi
+
     echo -e "${green}PHOENIX ${tag_version}${plain} installation finished, it is running now..."
     echo -e ""
     echo -e "┌───────────────────────────────────────────────────────┐

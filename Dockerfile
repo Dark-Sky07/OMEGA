@@ -1,4 +1,21 @@
 # ========================================================
+# Stage: Pinned Simurgh runtime source
+# ========================================================
+FROM alpine AS simurgh
+ARG SIMURGH_VERSION=3.1.1
+RUN apk add --no-cache ca-certificates curl tar \
+  && mkdir -p /opt/phoenix-simurgh/lib \
+  && curl -fL --retry 2 "https://codeload.github.com/Dark-Sky07/Simurgh-Tunnel/tar.gz/refs/tags/v${SIMURGH_VERSION}" -o /tmp/simurgh.tar.gz \
+  && echo "c8f3abfc55f686c4fda594dc3774e38da59b37c823beb6250972bb2aff77acb7  /tmp/simurgh.tar.gz" | sha256sum -c - \
+  && tar -xzf /tmp/simurgh.tar.gz --strip-components=1 -C /opt/phoenix-simurgh/lib \
+    "Simurgh-Tunnel-${SIMURGH_VERSION}/simurgh" \
+    "Simurgh-Tunnel-${SIMURGH_VERSION}/LICENSE" \
+  && rm -f /tmp/simurgh.tar.gz
+COPY scripts/phoenix-simurgh-launcher.py /opt/phoenix-simurgh/launcher.py
+RUN printf '%s\n' '#!/bin/sh' 'APP_DIR="/opt/phoenix-simurgh"' 'export PYTHONPATH="$APP_DIR/lib${PYTHONPATH:+:$PYTHONPATH}"' 'exec python3 "$APP_DIR/launcher.py" "$@"' > /opt/phoenix-simurgh/simurgh \
+  && chmod 755 /opt/phoenix-simurgh/simurgh
+
+# ========================================================
 # Stage: Frontend (Vite)
 # ========================================================
 FROM --platform=$BUILDPLATFORM node:22-alpine AS frontend
@@ -57,9 +74,11 @@ RUN apk add --no-cache --update \
   iproute2 \
   bash \
   curl \
-  openssl
+  openssl \
+  python3
 
 COPY --from=builder /app/build/ /app/
+COPY --from=simurgh /opt/phoenix-simurgh /opt/phoenix-simurgh
 COPY --from=builder /app/DockerEntrypoint.sh /app/
 COPY --from=builder /app/x-ui.sh /usr/bin/x-ui
 COPY --from=builder /app/x-ui.sh /usr/bin/phoenix
@@ -85,6 +104,6 @@ ENV XUI_ENABLE_FAIL2BAN="true"
 ENV XUI_DB_TYPE=""
 ENV XUI_DB_DSN=""
 EXPOSE 2053
-VOLUME [ "/etc/x-ui" ]
+VOLUME [ "/etc/x-ui", "/etc/phoenix-simurgh" ]
 CMD [ "./x-ui" ]
 ENTRYPOINT [ "/app/DockerEntrypoint.sh" ]

@@ -68,5 +68,21 @@ EOF
     fail2ban-client -x start
 fi
 
-# Run x-ui
+# Start the separately configured, loopback-only Simurgh panel. Its relay starts
+# unpaired and has no forwarding listeners until an administrator configures it.
+if [ -x /opt/phoenix-simurgh/simurgh ] && command -v python3 >/dev/null 2>&1; then
+    mkdir -p /etc/phoenix-simurgh /var/log/phoenix-simurgh
+    chmod 700 /etc/phoenix-simurgh
+    if [ ! -s /etc/phoenix-simurgh/relay.toml ]; then
+        SIMURGH_HOME=/etc/phoenix-simurgh /opt/phoenix-simurgh/simurgh install \
+            --role relay --pair-later --panel-port 18787 --engine python \
+            --no-units --no-enable --no-start --force \
+            >> /var/log/phoenix-simurgh/setup.log 2>&1 || true
+    fi
+    SIMURGH_HOME=/etc/phoenix-simurgh /opt/phoenix-simurgh/simurgh relay \
+        --panel-host 127.0.0.1 --panel-port 18787 \
+        >> /var/log/phoenix-simurgh/relay.log 2>&1 &
+fi
+
+# Run PHOENIX as the container's primary process.
 exec /app/x-ui

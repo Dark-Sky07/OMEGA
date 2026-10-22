@@ -11,6 +11,7 @@ const GroupsPage = lazy(() => import('@/pages/groups/GroupsPage'));
 const NodesPage = lazy(() => import('@/pages/nodes/NodesPage'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
 const XrayPage = lazy(() => import('@/pages/xray/XrayPage'));
+const SimurghPage = lazy(() => import('@/pages/simurgh/SimurghPage'));
 const ApiDocsPage = lazy(() => import('@/pages/api-docs/ApiDocsPage'));
 const ResellersPage = lazy(() => import('@/pages/resellers/ResellersPage'));
 const ResellerReportPage = lazy(() => import('@/pages/resellers/ResellerReportPage'));
@@ -77,6 +78,10 @@ export const appRoutes: RouteObject[] = [
       {
         path: 'xray',
         element: <AdminOnly>{withSuspense(<XrayPage />)}</AdminOnly>,
+      },
+      {
+        path: 'simurgh',
+        element: <AdminOnly>{withSuspense(<SimurghPage />)}</AdminOnly>,
       },
       {
         path: 'api-docs',
