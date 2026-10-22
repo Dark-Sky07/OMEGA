@@ -121,6 +121,7 @@ func newSimurghProxy(target string) *simurghProxy {
 			http.Error(w, "Simurgh service is not available", http.StatusServiceUnavailable)
 		},
 	}
+	return s
 }
 
 // simurghTransport keeps request-scoped rewrite data available to the response
