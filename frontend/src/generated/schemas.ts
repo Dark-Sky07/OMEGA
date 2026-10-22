@@ -194,6 +194,38 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Remark model pattern for inbounds",
         "type": "string"
       },
+      "resellerNotifClientWarningPercent": {
+        "description": "Client-limit usage percentage that triggers a reseller warning.",
+        "maximum": 99,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "resellerNotifExpiryWarningDays": {
+        "description": "Days before reseller account expiry to send a warning.",
+        "maximum": 365,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "resellerNotifInPanelEnable": {
+        "description": "Store reseller alerts in the in-panel notification center.",
+        "type": "boolean"
+      },
+      "resellerNotifTelegramEnable": {
+        "description": "Push reseller alerts to linked Telegram accounts.",
+        "type": "boolean"
+      },
+      "resellerNotifTrafficCriticalPercent": {
+        "description": "Traffic usage percentage that triggers the critical reseller warning.",
+        "maximum": 99,
+        "minimum": 2,
+        "type": "integer"
+      },
+      "resellerNotifTrafficWarningPercent": {
+        "description": "Traffic usage percentage that triggers the reseller warning.",
+        "maximum": 98,
+        "minimum": 1,
+        "type": "integer"
+      },
       "restartXrayOnClientDisable": {
         "description": "Restart Xray when clients are auto-disabled by expiry/traffic limit",
         "type": "boolean"
@@ -512,6 +544,12 @@ export const SCHEMAS: Record<string, unknown> = {
       "pageSize",
       "panelOutbound",
       "remarkModel",
+      "resellerNotifClientWarningPercent",
+      "resellerNotifExpiryWarningDays",
+      "resellerNotifInPanelEnable",
+      "resellerNotifTelegramEnable",
+      "resellerNotifTrafficCriticalPercent",
+      "resellerNotifTrafficWarningPercent",
       "restartXrayOnClientDisable",
       "sessionMaxAge",
       "subAnnounce",
@@ -795,6 +833,38 @@ export const SCHEMAS: Record<string, unknown> = {
       "remarkModel": {
         "description": "Remark model pattern for inbounds",
         "type": "string"
+      },
+      "resellerNotifClientWarningPercent": {
+        "description": "Client-limit usage percentage that triggers a reseller warning.",
+        "maximum": 99,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "resellerNotifExpiryWarningDays": {
+        "description": "Days before reseller account expiry to send a warning.",
+        "maximum": 365,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "resellerNotifInPanelEnable": {
+        "description": "Store reseller alerts in the in-panel notification center.",
+        "type": "boolean"
+      },
+      "resellerNotifTelegramEnable": {
+        "description": "Push reseller alerts to linked Telegram accounts.",
+        "type": "boolean"
+      },
+      "resellerNotifTrafficCriticalPercent": {
+        "description": "Traffic usage percentage that triggers the critical reseller warning.",
+        "maximum": 99,
+        "minimum": 2,
+        "type": "integer"
+      },
+      "resellerNotifTrafficWarningPercent": {
+        "description": "Traffic usage percentage that triggers the reseller warning.",
+        "maximum": 98,
+        "minimum": 1,
+        "type": "integer"
       },
       "restartXrayOnClientDisable": {
         "description": "Restart Xray when clients are auto-disabled by expiry/traffic limit",
@@ -1122,6 +1192,12 @@ export const SCHEMAS: Record<string, unknown> = {
       "pageSize",
       "panelOutbound",
       "remarkModel",
+      "resellerNotifClientWarningPercent",
+      "resellerNotifExpiryWarningDays",
+      "resellerNotifInPanelEnable",
+      "resellerNotifTelegramEnable",
+      "resellerNotifTrafficCriticalPercent",
+      "resellerNotifTrafficWarningPercent",
       "restartXrayOnClientDisable",
       "sessionMaxAge",
       "subAnnounce",

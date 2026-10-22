@@ -38,6 +38,13 @@ type AllSetting struct {
 	RemarkModel string `json:"remarkModel" form:"remarkModel"`                          // Remark model pattern for inbounds
 	Datepicker  string `json:"datepicker" form:"datepicker"`                            // Date picker format
 
+	ResellerNotifTrafficWarningPercent  int  `json:"resellerNotifTrafficWarningPercent" form:"resellerNotifTrafficWarningPercent" validate:"gte=1,lte=98"`   // Traffic usage percentage that triggers the reseller warning.
+	ResellerNotifTrafficCriticalPercent int  `json:"resellerNotifTrafficCriticalPercent" form:"resellerNotifTrafficCriticalPercent" validate:"gte=2,lte=99"` // Traffic usage percentage that triggers the critical reseller warning.
+	ResellerNotifClientWarningPercent   int  `json:"resellerNotifClientWarningPercent" form:"resellerNotifClientWarningPercent" validate:"gte=1,lte=99"`     // Client-limit usage percentage that triggers a reseller warning.
+	ResellerNotifExpiryWarningDays      int  `json:"resellerNotifExpiryWarningDays" form:"resellerNotifExpiryWarningDays" validate:"gte=1,lte=365"`          // Days before reseller account expiry to send a warning.
+	ResellerNotifInPanelEnable          bool `json:"resellerNotifInPanelEnable" form:"resellerNotifInPanelEnable"`                                           // Store reseller alerts in the in-panel notification center.
+	ResellerNotifTelegramEnable         bool `json:"resellerNotifTelegramEnable" form:"resellerNotifTelegramEnable"`                                         // Push reseller alerts to linked Telegram accounts.
+
 	// Telegram bot settings
 	TgBotEnable      bool   `json:"tgBotEnable" form:"tgBotEnable"`              // Enable Telegram bot notifications
 	TgBotToken       string `json:"tgBotToken" form:"tgBotToken"`                // Telegram bot token
@@ -187,6 +194,18 @@ func pathHasForbiddenChar(s string) bool {
 }
 
 func (s *AllSetting) CheckValid() error {
+	if s.ResellerNotifTrafficWarningPercent < 1 || s.ResellerNotifTrafficWarningPercent > 98 {
+		return common.NewError("reseller traffic warning threshold must be between 1 and 98 percent")
+	}
+	if s.ResellerNotifTrafficCriticalPercent < 2 || s.ResellerNotifTrafficCriticalPercent > 99 || s.ResellerNotifTrafficCriticalPercent <= s.ResellerNotifTrafficWarningPercent {
+		return common.NewError("reseller traffic critical threshold must be above the warning threshold and at most 99 percent")
+	}
+	if s.ResellerNotifClientWarningPercent < 1 || s.ResellerNotifClientWarningPercent > 99 {
+		return common.NewError("reseller client warning threshold must be between 1 and 99 percent")
+	}
+	if s.ResellerNotifExpiryWarningDays < 1 || s.ResellerNotifExpiryWarningDays > 365 {
+		return common.NewError("reseller expiry warning must be between 1 and 365 days")
+	}
 	if s.WebListen != "" {
 		ip := net.ParseIP(s.WebListen)
 		if ip == nil {

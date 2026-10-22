@@ -26,7 +26,7 @@ const (
 	resellerNotifyMaxCap     = 200
 )
 
-// Warning thresholds for the reseller notify job.
+// Default thresholds preserve the existing reseller notification behavior.
 const (
 	ResellerQuotaWarnPercent  = 80
 	ResellerQuotaCritPercent  = 95
@@ -34,6 +34,52 @@ const (
 	ResellerExpiryWarningDays = 7
 	resellerDayMilliseconds   = 24 * 60 * 60 * 1000
 )
+
+// ResellerNotifyConfig controls warning thresholds and delivery channels.
+type ResellerNotifyConfig struct {
+	TrafficWarningPercent  int
+	TrafficCriticalPercent int
+	ClientWarningPercent   int
+	ExpiryWarningDays      int
+	InPanelEnable          bool
+	TelegramEnable         bool
+}
+
+func defaultResellerNotifyConfig() ResellerNotifyConfig {
+	return ResellerNotifyConfig{
+		TrafficWarningPercent:  ResellerQuotaWarnPercent,
+		TrafficCriticalPercent: ResellerQuotaCritPercent,
+		ClientWarningPercent:   ResellerClientWarnPercent,
+		ExpiryWarningDays:      ResellerExpiryWarningDays,
+		InPanelEnable:          true,
+		TelegramEnable:         true,
+	}
+}
+
+// Config reads the current thresholds and channels, falling back to safe
+// legacy defaults if stored settings are unavailable or invalid.
+func (s *ResellerNotifyService) Config() ResellerNotifyConfig {
+	config := defaultResellerNotifyConfig()
+	settings, err := (&SettingService{}).GetAllSetting()
+	if err != nil || settings == nil {
+		return config
+	}
+	candidate := ResellerNotifyConfig{
+		TrafficWarningPercent:  settings.ResellerNotifTrafficWarningPercent,
+		TrafficCriticalPercent: settings.ResellerNotifTrafficCriticalPercent,
+		ClientWarningPercent:   settings.ResellerNotifClientWarningPercent,
+		ExpiryWarningDays:      settings.ResellerNotifExpiryWarningDays,
+		InPanelEnable:          settings.ResellerNotifInPanelEnable,
+		TelegramEnable:         settings.ResellerNotifTelegramEnable,
+	}
+	if candidate.TrafficWarningPercent < 1 || candidate.TrafficWarningPercent > 98 ||
+		candidate.TrafficCriticalPercent <= candidate.TrafficWarningPercent || candidate.TrafficCriticalPercent > 99 ||
+		candidate.ClientWarningPercent < 1 || candidate.ClientWarningPercent > 99 ||
+		candidate.ExpiryWarningDays < 1 || candidate.ExpiryWarningDays > 365 {
+		return config
+	}
+	return candidate
+}
 
 // ResellerNotifyService writes and reads the in-panel notifications shown on
 // a reseller's own dashboard. Episodes are de-duplicated through the shared
@@ -91,14 +137,37 @@ func (s *ResellerNotifyService) Notify(resellerId int, kind string, params map[s
 // It is safe to call on every job run; the freshly created notifications are
 // returned so callers (the notify job) can push them to Telegram.
 func (s *ResellerNotifyService) Evaluate(stat *ResellerStat) []*model.ResellerNotification {
+	return s.EvaluateWithConfig(stat, s.Config())
+}
+
+// EvaluateWithConfig evaluates one reseller using an already-loaded config so
+// the periodic job reads settings once rather than once for every reseller.
+func (s *ResellerNotifyService) EvaluateWithConfig(stat *ResellerStat, config ResellerNotifyConfig) []*model.ResellerNotification {
 	fresh := make([]*model.ResellerNotification, 0)
-	emit := func(kind string, params map[string]any) {
-		if row, err := s.Notify(stat.Reseller.Id, kind, params); err == nil {
-			fresh = append(fresh, row)
-		}
-	}
-	if stat == nil || stat.Reseller == nil || stat.Reseller.Id <= 0 {
+	if stat == nil || stat.Reseller == nil || stat.Reseller.Id <= 0 || (!config.InPanelEnable && !config.TelegramEnable) {
 		return fresh
+	}
+	emit := func(kind string, params map[string]any) {
+		paramsJSON := "{}"
+		if params != nil {
+			encoded, err := json.Marshal(params)
+			if err != nil {
+				return
+			}
+			paramsJSON = string(encoded)
+		}
+		row := &model.ResellerNotification{
+			ResellerId: stat.Reseller.Id,
+			Kind:       kind,
+			Params:     paramsJSON,
+			CreatedAt:  time.Now().UnixMilli(),
+		}
+		if config.InPanelEnable {
+			if persisted, err := s.Notify(stat.Reseller.Id, kind, params); err == nil {
+				row = persisted
+			}
+		}
+		fresh = append(fresh, row)
 	}
 	reseller := stat.Reseller
 	id := reseller.Id
@@ -112,11 +181,11 @@ func (s *ResellerNotifyService) Evaluate(stat *ResellerStat) []*model.ResellerNo
 			if s.claimEpisode(id, ResellerNotifQuotaOut) {
 				emit(ResellerNotifQuotaOut, map[string]any{"pct": pct})
 			}
-		case pct >= ResellerQuotaCritPercent:
+		case pct >= config.TrafficCriticalPercent:
 			if s.claimEpisode(id, ResellerNotifQuota95) {
 				emit(ResellerNotifQuota95, map[string]any{"pct": pct})
 			}
-		case pct >= ResellerQuotaWarnPercent:
+		case pct >= config.TrafficWarningPercent:
 			if s.claimEpisode(id, ResellerNotifQuota80) {
 				emit(ResellerNotifQuota80, map[string]any{"pct": pct})
 			}
@@ -136,7 +205,7 @@ func (s *ResellerNotifyService) Evaluate(stat *ResellerStat) []*model.ResellerNo
 					"limit": reseller.ClientLimit,
 				})
 			}
-		case pct >= ResellerClientWarnPercent:
+		case pct >= config.ClientWarningPercent:
 			if s.claimEpisode(id, ResellerNotifClient80) {
 				emit(ResellerNotifClient80, map[string]any{"pct": pct})
 			}
@@ -152,7 +221,7 @@ func (s *ResellerNotifyService) Evaluate(stat *ResellerStat) []*model.ResellerNo
 			if s.claimEpisode(id, ResellerNotifExpired) {
 				emit(ResellerNotifExpired, nil)
 			}
-		case reseller.ExpiryTime <= time.Now().UnixMilli()+ResellerExpiryWarningDays*resellerDayMilliseconds:
+		case reseller.ExpiryTime <= time.Now().UnixMilli()+int64(config.ExpiryWarningDays)*resellerDayMilliseconds:
 			days := int((reseller.ExpiryTime - time.Now().UnixMilli()) / resellerDayMilliseconds)
 			if s.claimEpisode(id, ResellerNotifExpirySoon) {
 				emit(ResellerNotifExpirySoon, map[string]any{"days": days})

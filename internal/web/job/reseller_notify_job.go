@@ -30,13 +30,20 @@ func (j *ResellerNotifyJob) Run() {
 		return
 	}
 	notify := &service.ResellerNotifyService{}
-	pushEnabled := j.tgbotService.IsRunning()
+	config := notify.Config()
+	pushEnabled := config.TelegramEnable && j.tgbotService.IsRunning()
 	for _, stat := range stats {
 		if stat == nil || stat.Reseller == nil {
 			continue
 		}
-		fresh := notify.Evaluate(stat)
-		if !pushEnabled || stat.Reseller.TgID == 0 || !stat.Reseller.Enable {
+		telegramRecipient := pushEnabled && stat.Reseller.TgID != 0 && stat.Reseller.Enable
+		// Avoid claiming an episode when Telegram is the only selected channel
+		// but this reseller cannot receive it yet (for example, before linking).
+		if !config.InPanelEnable && !telegramRecipient {
+			continue
+		}
+		fresh := notify.EvaluateWithConfig(stat, config)
+		if !telegramRecipient {
 			continue
 		}
 		for _, row := range fresh {

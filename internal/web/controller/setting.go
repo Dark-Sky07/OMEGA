@@ -1,8 +1,11 @@
 package controller
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -92,8 +95,49 @@ func (a *SettingController) getDefaultSettings(c *gin.Context) {
 	jsonObj(c, result, nil)
 }
 
+func preserveResellerNotificationSettings(submitted map[string]json.RawMessage, current *entity.AllSetting) {
+	if submitted == nil || current == nil {
+		return
+	}
+	defaults := map[string]any{
+		"resellerNotifTrafficWarningPercent":  current.ResellerNotifTrafficWarningPercent,
+		"resellerNotifTrafficCriticalPercent": current.ResellerNotifTrafficCriticalPercent,
+		"resellerNotifClientWarningPercent":   current.ResellerNotifClientWarningPercent,
+		"resellerNotifExpiryWarningDays":      current.ResellerNotifExpiryWarningDays,
+		"resellerNotifInPanelEnable":          current.ResellerNotifInPanelEnable,
+		"resellerNotifTelegramEnable":         current.ResellerNotifTelegramEnable,
+	}
+	for key, value := range defaults {
+		if _, exists := submitted[key]; !exists {
+			encoded, _ := json.Marshal(value)
+			submitted[key] = encoded
+		}
+	}
+}
+
 // updateSetting updates all settings with the provided data.
 func (a *SettingController) updateSetting(c *gin.Context) {
+	// Older panel versions submit a full settings object without reseller
+	// notification fields. Fill only absent fields from persisted/default
+	// settings so those updates cannot silently reset newer preferences.
+	if c.Request.Body != nil {
+		body, readErr := io.ReadAll(c.Request.Body)
+		if readErr != nil {
+			jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), readErr)
+			return
+		}
+		var submitted map[string]json.RawMessage
+		if json.Unmarshal(body, &submitted) == nil && submitted != nil {
+			current, err := a.settingService.GetAllSetting()
+			if err != nil {
+				jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+				return
+			}
+			preserveResellerNotificationSettings(submitted, current)
+			body, _ = json.Marshal(submitted)
+		}
+		c.Request.Body = io.NopCloser(bytes.NewReader(body))
+	}
 	allSetting, ok := middleware.BindAndValidate[entity.AllSetting](c)
 	if !ok {
 		return

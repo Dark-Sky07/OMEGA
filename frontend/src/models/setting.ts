@@ -13,6 +13,12 @@ export class AllSetting {
   pageSize = 25;
   expireDiff = 0;
   trafficDiff = 0;
+  resellerNotifTrafficWarningPercent = 80;
+  resellerNotifTrafficCriticalPercent = 95;
+  resellerNotifClientWarningPercent = 80;
+  resellerNotifExpiryWarningDays = 7;
+  resellerNotifInPanelEnable = true;
+  resellerNotifTelegramEnable = true;
   remarkModel = '-io';
   datepicker: 'gregorian' | 'jalalian' = 'gregorian';
   tgBotEnable = false;
