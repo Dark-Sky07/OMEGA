@@ -76,6 +76,9 @@ jobs:
           added = chr(10).join(line for line in sum_diff.splitlines() if line.startswith('+') and not line.startswith('+++'))[-4000:]
           added = added.replace('%', '%25').replace(chr(13), '%0D').replace(chr(10), '%0A')
           print(f'::error title=go-sum-tidy-additions::{added}')
+          removed = chr(10).join(line for line in sum_diff.splitlines() if line.startswith('-') and not line.startswith('---'))[-4000:]
+          removed = removed.replace('%', '%25').replace(chr(13), '%0D').replace(chr(10), '%0A')
+          print(f'::error title=go-sum-tidy-removals::{removed}')
           PYLOG
           exit 1
       - name: Stub internal/web/dist for go:embed
