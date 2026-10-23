@@ -29,12 +29,12 @@ const (
 // simurghProxy exposes the independent Simurgh panel only through PHOENIX's
 // authenticated panel session. The service itself remains loopback-only.
 type simurghProxy struct {
-	proxy          *httputil.ReverseProxy
-	stateFile      string
-	updaterPath    string
-	dockerMode     func() bool
-	updateMu       sync.Mutex
-	updateRunning  bool
+	proxy         *httputil.ReverseProxy
+	stateFile     string
+	updaterPath   string
+	dockerMode    func() bool
+	updateMu      sync.Mutex
+	updateRunning bool
 }
 
 type simurghUpdateResponse struct {
