@@ -42,7 +42,7 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 	g.GET("/settings", a.panelSPA)
 	g.GET("/xray", a.panelSPA)
 	g.GET("/api-docs", a.panelSPA)
-	g.GET("/simurgh", a.simurghRedirect)
+	g.GET("/simurgh", a.panelSPA)
 	g.Any("/simurgh/*path", a.simurghPanel)
 
 	// Reseller (نمایندگی) pages. /resellers is the admin-side management page;

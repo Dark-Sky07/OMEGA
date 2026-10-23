@@ -10,7 +10,9 @@ import sys
 import tarfile
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 SCRIPT = Path(__file__).with_name("update_simurgh.py")
 SPEC = importlib.util.spec_from_file_location("update_simurgh", SCRIPT)
@@ -119,6 +121,34 @@ class ReleaseMetadataTests(unittest.TestCase):
         payload["assets"][0]["digest"] = ""
         with self.assertRaises(updater.UpdateError):
             updater.parse_release(json.dumps(payload))
+
+
+class JsonUpdaterCLITests(unittest.TestCase):
+    def test_check_json_reports_update_without_modifying_the_package(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            app_dir = Path(temporary) / "app"
+            write_package(app_dir / "lib", "3.2.6", "keep")
+            release = {
+                "version": "3.2.7",
+                "tag": "v3.2.7",
+                "notes_url": "https://github.com/Dark-Sky07/Simurgh-Tunnel/releases/tag/v3.2.7",
+            }
+            output = io.StringIO()
+            with patch.object(updater.os, "geteuid", return_value=0), \
+                    patch.object(updater, "running_in_docker", return_value=False), \
+                    patch.object(updater, "fetch_latest_release", return_value=release), \
+                    redirect_stdout(output):
+                code = updater.main(["--check", "--json", "--app-dir", str(app_dir)])
+
+            payload = json.loads(output.getvalue())
+            self.assertEqual(code, 0)
+            self.assertTrue(payload["ok"])
+            self.assertTrue(payload["update_available"])
+            self.assertEqual(payload["version"], "3.2.6")
+            self.assertEqual(payload["latest"], "3.2.7")
+            self.assertFalse(payload["restart_required"])
+            self.assertEqual(updater.read_installed_version(app_dir / "lib" / "simurgh"), "3.2.6")
+            self.assertEqual((app_dir / "lib" / "simurgh" / "marker.txt").read_text(), "keep")
 
 
 class ArchiveSafetyTests(unittest.TestCase):
