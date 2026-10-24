@@ -256,6 +256,20 @@ PY
     python3 "${updater}" "$@"
 }
 
+open_simurgh_menu() {
+    local simurgh_cli="/opt/phoenix-simurgh/simurgh"
+    if [[ ! -x "${simurgh_cli}" || ! -s "/etc/phoenix-simurgh/relay.toml" ]]; then
+        LOGE "Simurgh Tunnel is not installed or initialized. Rerun the PHOENIX installer and check its Simurgh health report."
+        before_show_menu
+        return 1
+    fi
+
+    SIMURGH_HOME="/etc/phoenix-simurgh" "${simurgh_cli}" menu
+    local rc=$?
+    before_show_menu
+    return "${rc}"
+}
+
 update_menu() {
     echo -e "${yellow}Updating Menu${plain}"
     confirm "This function will update the menu to the latest changes." "y"
@@ -3214,10 +3228,11 @@ show_menu() {
 │────────────────────────────────────────────────│
 │  ${green}27.${plain} PostgreSQL Management                     │
 │  ${green}28.${plain} Update Simurgh Tunnel                     │
+│  ${green}29.${plain} Simurgh Tunnel                            │
 ╚────────────────────────────────────────────────╝
 "
     show_status
-    echo && read -rp "Please enter your selection [0-28]: " num
+    echo && read -rp "Please enter your selection [0-29]: " num
 
     case "${num}" in
         0)
@@ -3307,8 +3322,11 @@ show_menu() {
         28)
             check_install && update_simurgh
             ;;
+        29)
+            check_install && open_simurgh_menu
+            ;;
         *)
-            LOGE "Please enter the correct number [0-28]"
+            LOGE "Please enter the correct number [0-29]"
             ;;
     esac
 }

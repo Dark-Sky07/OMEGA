@@ -216,6 +216,47 @@ class DockerBuildPackageTests(unittest.TestCase):
             self.assertFalse(list(destination.parent.glob(".simurgh-build-*")))
 
 
+class InstallerBootstrapTests(unittest.TestCase):
+    def test_fresh_install_uses_latest_verified_release_and_requires_ui_health(self):
+        installer = Path(__file__).with_name("install-simurgh-tunnel.sh").read_text(encoding="utf-8")
+        self.assertIn("build_latest_simurgh.py", installer)
+        self.assertIn('python3 "$work/build_latest_simurgh.py" "$APP_DIR/lib"', installer)
+        self.assertNotIn('SIMURGH_VERSION="3.1.1"', installer)
+        self.assertIn("verify_panel", installer)
+        self.assertIn('"/healthz"', installer)
+        self.assertIn('"/app.js"', installer)
+        self.assertIn('"/app.css"', installer)
+        self.assertIn('Simurgh did not pass its health and UI checks', installer)
+
+    def test_installer_passes_the_exact_phoenix_release_to_bootstrap(self):
+        root = Path(__file__).resolve().parents[1]
+        for name in ("install.sh", "install-phoenix.sh"):
+            installer = (root / name).read_text(encoding="utf-8")
+            self.assertIn('PHOENIX_REF="$tag_version" PHOENIX_REPO="$PHOENIX_REPO" bash "$simurgh_installer"', installer)
+        self.assertEqual((root / "install.sh").read_bytes(), (root / "install-phoenix.sh").read_bytes())
+
+    def test_docker_entrypoint_checks_simurgh_without_blocking_phoenix(self):
+        root = Path(__file__).resolve().parents[1]
+        entrypoint = (root / "DockerEntrypoint.sh").read_text(encoding="utf-8")
+        for path in ("/healthz", "/app.js", "/app.css"):
+            self.assertIn(path, entrypoint)
+        self.assertIn('d.get("product") == "Simurgh Tunnel"', entrypoint)
+        self.assertIn(") &", entrypoint)
+        self.assertIn("exec /app/x-ui", entrypoint)
+
+    def test_simurgh_navigation_and_browser_title_use_the_requested_name(self):
+        root = Path(__file__).resolve().parents[1]
+        for name in (
+            "frontend/src/layouts/AppSidebar.tsx",
+            "frontend/src/components/CommandPalette.tsx",
+            "frontend/src/hooks/usePageTitle.ts",
+        ):
+            source = (root / name).read_text(encoding="utf-8")
+            self.assertIn("Simurgh Tunnel", source)
+        page_title = (root / "frontend/src/hooks/usePageTitle.ts").read_text(encoding="utf-8")
+        self.assertIn("document.title = isSimurghPage ? pageTitle", page_title)
+
+
 class TransactionTests(unittest.TestCase):
     def test_success_updates_simurgh_only_and_restarts_only_its_service(self):
         with tempfile.TemporaryDirectory() as temporary:

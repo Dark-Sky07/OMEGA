@@ -285,7 +285,7 @@ export default function CommandPalette() {
       {
         id: 'nav-simurgh',
         group: 'pages',
-        title: 'Simurgh',
+        title: 'Simurgh Tunnel',
         keywords: 'simurgh tunnel relay exit',
         onSelect: () => go('/simurgh'),
       },
