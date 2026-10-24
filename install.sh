@@ -1614,8 +1614,8 @@ install_x-ui() {
     if curl -fLRo "$simurgh_installer" "https://raw.githubusercontent.com/${PHOENIX_REPO}/${tag_version}/scripts/install-simurgh-tunnel.sh" >/dev/null 2>&1 \
         && curl -fLRo "$simurgh_launcher" "https://raw.githubusercontent.com/${PHOENIX_REPO}/${tag_version}/scripts/phoenix-simurgh-launcher.py" >/dev/null 2>&1; then
         chmod +x "$simurgh_installer"
-        if ! bash "$simurgh_installer"; then
-            echo -e "${yellow}Simurgh setup was skipped; PHOENIX and Xray remain unchanged.${plain}"
+        if ! PHOENIX_REF="$tag_version" PHOENIX_REPO="$PHOENIX_REPO" bash "$simurgh_installer"; then
+            echo -e "${yellow}Simurgh did not pass installation and health checks; PHOENIX and Xray remain running. Review the details above before opening its panel.${plain}"
         fi
     else
         echo -e "${yellow}Simurgh installer unavailable; PHOENIX and Xray remain unchanged.${plain}"

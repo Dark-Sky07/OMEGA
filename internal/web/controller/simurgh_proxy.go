@@ -1,17 +1,21 @@
 package controller
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -25,8 +29,26 @@ const (
 // simurghProxy exposes the independent Simurgh panel only through PHOENIX's
 // authenticated panel session. The service itself remains loopback-only.
 type simurghProxy struct {
-	proxy     *httputil.ReverseProxy
-	stateFile string
+	proxy         *httputil.ReverseProxy
+	stateFile     string
+	updaterPath   string
+	dockerMode    func() bool
+	updateMu      sync.Mutex
+	updateRunning bool
+}
+
+type simurghUpdateResponse struct {
+	OK              bool   `json:"ok"`
+	Error           string `json:"error,omitempty"`
+	UpdateAvailable bool   `json:"update_available"`
+	Version         string `json:"version,omitempty"`
+	Latest          string `json:"latest,omitempty"`
+	Tag             string `json:"tag,omitempty"`
+	NotesURL        string `json:"notes_url,omitempty"`
+	Action          string `json:"action,omitempty"`
+	Message         string `json:"message,omitempty"`
+	RestartRequired bool   `json:"restart_required"`
+	Restarting      bool   `json:"restarting"`
 }
 
 type simurghCredentials struct {
@@ -48,7 +70,21 @@ func newSimurghProxy(target string) *simurghProxy {
 	if stateFile == "" {
 		stateFile = "/etc/phoenix-simurgh/state.json"
 	}
-	s := &simurghProxy{stateFile: stateFile}
+	updaterPath := os.Getenv("PHOENIX_SIMURGH_UPDATER")
+	if updaterPath == "" {
+		updaterPath = "/usr/bin/phoenix-simurgh-update"
+	}
+	s := &simurghProxy{
+		stateFile:   stateFile,
+		updaterPath: updaterPath,
+		dockerMode: func() bool {
+			if strings.EqualFold(os.Getenv("XUI_IN_DOCKER"), "true") {
+				return true
+			}
+			_, err := os.Stat("/.dockerenv")
+			return err == nil
+		},
+	}
 	s.proxy = &httputil.ReverseProxy{
 		Director: func(req *http.Request) {
 			prefix := req.Header.Get(simurghPrefixHeader)
@@ -158,12 +194,129 @@ func (s *simurghProxy) serve(w http.ResponseWriter, r *http.Request, prefix, csr
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	if strings.TrimPrefix(r.URL.Path, prefix) == "/api/update" {
+		s.serveUpdateAPI(w, r)
+		return
+	}
 	r.Header.Set(simurghPrefixHeader, prefix)
 	r.Header.Set(simurghCSRFHeader, csrf)
 	r.Header.Set(simurghNonceHeader, nonce)
 	w.Header().Del("X-Frame-Options")
 	w.Header().Del("Content-Security-Policy")
 	s.proxy.ServeHTTP(w, r)
+}
+
+func (s *simurghProxy) serveUpdateAPI(w http.ResponseWriter, r *http.Request) {
+	writeJSON := func(status int, result simurghUpdateResponse) {
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(status)
+		_ = json.NewEncoder(w).Encode(result)
+	}
+	fail := func(status int, message string) {
+		writeJSON(status, simurghUpdateResponse{OK: false, Error: message})
+	}
+
+	if s.dockerMode != nil && s.dockerMode() {
+		fail(http.StatusConflict, "Simurgh is managed by the Docker image. Pull and recreate PHOENIX to update it.")
+		return
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodPost {
+		fail(http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
+	defer cancel()
+	result, err := s.runUpdater(ctx, "--check", "--json")
+	if err != nil {
+		message := err.Error()
+		if result.Error != "" {
+			message = result.Error
+		}
+		fail(http.StatusBadGateway, message)
+		return
+	}
+	if r.Method == http.MethodGet || !result.UpdateAvailable {
+		writeJSON(http.StatusOK, result)
+		return
+	}
+
+	s.updateMu.Lock()
+	if s.updateRunning {
+		s.updateMu.Unlock()
+		fail(http.StatusConflict, "a Simurgh update is already running")
+		return
+	}
+	python, err := exec.LookPath("python3")
+	if err != nil {
+		s.updateMu.Unlock()
+		fail(http.StatusServiceUnavailable, "Python 3 is required to update Simurgh")
+		return
+	}
+	if _, err := os.Stat(s.updaterPath); err != nil {
+		s.updateMu.Unlock()
+		fail(http.StatusServiceUnavailable, "the PHOENIX Simurgh updater is missing; update PHOENIX first")
+		return
+	}
+	cmd := exec.Command(python, s.updaterPath, "--yes", "--json")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	s.updateRunning = true
+	if err := cmd.Start(); err != nil {
+		s.updateRunning = false
+		s.updateMu.Unlock()
+		fail(http.StatusInternalServerError, fmt.Sprintf("could not start the Simurgh updater: %v", err))
+		return
+	}
+	s.updateMu.Unlock()
+
+	go func() {
+		err := cmd.Wait()
+		s.updateMu.Lock()
+		s.updateRunning = false
+		s.updateMu.Unlock()
+		if err != nil {
+			log.Printf("Simurgh panel update failed: %v", err)
+		}
+	}()
+
+	result.Action = "update started"
+	result.RestartRequired = true
+	result.Restarting = true
+	writeJSON(http.StatusOK, result)
+}
+
+func (s *simurghProxy) runUpdater(ctx context.Context, args ...string) (simurghUpdateResponse, error) {
+	var result simurghUpdateResponse
+	python, err := exec.LookPath("python3")
+	if err != nil {
+		return result, fmt.Errorf("Python 3 is required to check Simurgh updates")
+	}
+	if _, err := os.Stat(s.updaterPath); err != nil {
+		return result, fmt.Errorf("the PHOENIX Simurgh updater is missing; update PHOENIX first")
+	}
+	cmdArgs := append([]string{s.updaterPath}, args...)
+	output, err := exec.CommandContext(ctx, python, cmdArgs...).CombinedOutput()
+	if len(output) > 64*1024 {
+		return result, fmt.Errorf("the Simurgh updater returned an unexpectedly large response")
+	}
+	if decodeErr := json.Unmarshal(output, &result); decodeErr != nil {
+		if err != nil {
+			return result, fmt.Errorf("the Simurgh updater failed: %s", strings.TrimSpace(string(output)))
+		}
+		return result, fmt.Errorf("the Simurgh updater returned invalid JSON: %w", decodeErr)
+	}
+	if err != nil {
+		if result.Error != "" {
+			return result, fmt.Errorf("%s", result.Error)
+		}
+		return result, fmt.Errorf("the Simurgh updater failed: %w", err)
+	}
+	if !result.OK {
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	return result, nil
 }
 
 var simurghRootPath = regexp.MustCompile(`(['"])(/(?:api|assets|app\.css|app\.js|login\.js|manifest\.webmanifest|favicon\.ico|logout|login|metrics|healthz|ws)(?:[^'"]*)?)`)
@@ -181,6 +334,7 @@ func rewriteSimurghHTML(body, prefix, csrf, nonce string) string {
 func rewriteSimurghJS(body, prefix string) string {
 	body = simurghRootPath.ReplaceAllString(body, `${1}`+prefix+`${2}`)
 	body = strings.ReplaceAll(body, `headers: { 'Content-Type': 'application/json' }`, `headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.__PHOENIX_CSRF__ || '' }`)
+	body = strings.ReplaceAll(body, "attempt < 40", "attempt < 180")
 	body = strings.ReplaceAll(body, `location.href = '/';`, `location.href = '`+prefix+`/';`)
 	return body
 }

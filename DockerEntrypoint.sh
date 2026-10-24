@@ -73,15 +73,40 @@ fi
 if [ -x /opt/phoenix-simurgh/simurgh ] && command -v python3 >/dev/null 2>&1; then
     mkdir -p /etc/phoenix-simurgh /var/log/phoenix-simurgh
     chmod 700 /etc/phoenix-simurgh
+    SIMURGH_CONFIG_OK=true
     if [ ! -s /etc/phoenix-simurgh/relay.toml ]; then
-        SIMURGH_HOME=/etc/phoenix-simurgh /opt/phoenix-simurgh/simurgh install \
+        if ! SIMURGH_HOME=/etc/phoenix-simurgh /opt/phoenix-simurgh/simurgh install \
             --role relay --pair-later --panel-port 18787 --engine python \
             --no-units --no-enable --no-start --force \
-            >> /var/log/phoenix-simurgh/setup.log 2>&1 || true
+            >> /var/log/phoenix-simurgh/setup.log 2>&1; then
+            echo "[Simurgh] Relay configuration failed; check /var/log/phoenix-simurgh/setup.log. PHOENIX will still start."
+            SIMURGH_CONFIG_OK=false
+        fi
     fi
-    SIMURGH_HOME=/etc/phoenix-simurgh /opt/phoenix-simurgh/simurgh relay \
-        --panel-host 127.0.0.1 --panel-port 18787 \
-        >> /var/log/phoenix-simurgh/relay.log 2>&1 &
+
+    if [ "$SIMURGH_CONFIG_OK" = true ]; then
+        SIMURGH_HOME=/etc/phoenix-simurgh /opt/phoenix-simurgh/simurgh relay \
+            --panel-host 127.0.0.1 --panel-port 18787 \
+            >> /var/log/phoenix-simurgh/relay.log 2>&1 &
+
+        # Verify the bundled service and its UI assets in the background so a
+        # Simurgh startup issue never delays PHOENIX's own panel.
+        (
+            attempt=0
+            while [ "$attempt" -lt 30 ]; do
+                health="$(curl --noproxy '*' -fsS --max-time 1 http://127.0.0.1:18787/healthz 2>/dev/null || true)"
+                if [ -n "$health" ] && printf '%s' "$health" | python3 -c 'import json,sys; d=json.load(sys.stdin); raise SystemExit(0 if d.get("ok") is True and d.get("product") == "Simurgh Tunnel" and d.get("role") == "relay" else 1)' 2>/dev/null \
+                    && curl --noproxy '*' -fsS --max-time 2 http://127.0.0.1:18787/app.js -o /dev/null 2>/dev/null \
+                    && curl --noproxy '*' -fsS --max-time 2 http://127.0.0.1:18787/app.css -o /dev/null 2>/dev/null; then
+                    echo "[Simurgh] Tunnel service and panel assets are healthy."
+                    exit 0
+                fi
+                attempt=$((attempt + 1))
+                sleep 1
+            done
+            echo "[Simurgh] Panel health or UI assets failed; see /var/log/phoenix-simurgh/setup.log and relay.log. PHOENIX remains available."
+        ) &
+    fi
 fi
 
 # Run PHOENIX as the container's primary process.

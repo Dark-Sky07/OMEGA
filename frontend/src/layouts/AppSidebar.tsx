@@ -258,7 +258,7 @@ export default function AppSidebar() {
       { key: '/xray#outbound', icon: 'outbound', title: t('pages.xray.Outbounds'), group: 'manage' },
       { key: '/settings', icon: 'setting', title: t('menu.settings'), group: 'system' },
       { key: '/xray', icon: 'tool', title: t('menu.xray'), group: 'system' },
-      { key: '/simurgh', icon: 'simurgh', title: 'Simurgh', group: 'system' },
+      { key: '/simurgh', icon: 'simurgh', title: 'Simurgh Tunnel', group: 'system' },
       { key: '/api-docs', icon: 'apidocs', title: t('menu.apiDocs'), group: 'system' },
       { key: LOGOUT_KEY, icon: 'logout', title: t('logout') },
     ];

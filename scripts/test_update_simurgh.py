@@ -10,7 +10,9 @@ import sys
 import tarfile
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 SCRIPT = Path(__file__).with_name("update_simurgh.py")
 SPEC = importlib.util.spec_from_file_location("update_simurgh", SCRIPT)
@@ -121,6 +123,34 @@ class ReleaseMetadataTests(unittest.TestCase):
             updater.parse_release(json.dumps(payload))
 
 
+class JsonUpdaterCLITests(unittest.TestCase):
+    def test_check_json_reports_update_without_modifying_the_package(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            app_dir = Path(temporary) / "app"
+            write_package(app_dir / "lib", "3.2.6", "keep")
+            release = {
+                "version": "3.2.7",
+                "tag": "v3.2.7",
+                "notes_url": "https://github.com/Dark-Sky07/Simurgh-Tunnel/releases/tag/v3.2.7",
+            }
+            output = io.StringIO()
+            with patch.object(updater.os, "geteuid", return_value=0), \
+                    patch.object(updater, "running_in_docker", return_value=False), \
+                    patch.object(updater, "fetch_latest_release", return_value=release), \
+                    redirect_stdout(output):
+                code = updater.main(["--check", "--json", "--app-dir", str(app_dir)])
+
+            payload = json.loads(output.getvalue())
+            self.assertEqual(code, 0)
+            self.assertTrue(payload["ok"])
+            self.assertTrue(payload["update_available"])
+            self.assertEqual(payload["version"], "3.2.6")
+            self.assertEqual(payload["latest"], "3.2.7")
+            self.assertFalse(payload["restart_required"])
+            self.assertEqual(updater.read_installed_version(app_dir / "lib" / "simurgh"), "3.2.6")
+            self.assertEqual((app_dir / "lib" / "simurgh" / "marker.txt").read_text(), "keep")
+
+
 class ArchiveSafetyTests(unittest.TestCase):
     def test_extracts_only_package_and_license(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -184,6 +214,47 @@ class DockerBuildPackageTests(unittest.TestCase):
             self.assertFalse((destination / "simurgh").exists())
             self.assertFalse((destination / "LICENSE").exists())
             self.assertFalse(list(destination.parent.glob(".simurgh-build-*")))
+
+
+class InstallerBootstrapTests(unittest.TestCase):
+    def test_fresh_install_uses_latest_verified_release_and_requires_ui_health(self):
+        installer = Path(__file__).with_name("install-simurgh-tunnel.sh").read_text(encoding="utf-8")
+        self.assertIn("build_latest_simurgh.py", installer)
+        self.assertIn('python3 "$work/build_latest_simurgh.py" "$APP_DIR/lib"', installer)
+        self.assertNotIn('SIMURGH_VERSION="3.1.1"', installer)
+        self.assertIn("verify_panel", installer)
+        self.assertIn('"/healthz"', installer)
+        self.assertIn('"/app.js"', installer)
+        self.assertIn('"/app.css"', installer)
+        self.assertIn('Simurgh did not pass its health and UI checks', installer)
+
+    def test_installer_passes_the_exact_phoenix_release_to_bootstrap(self):
+        root = Path(__file__).resolve().parents[1]
+        for name in ("install.sh", "install-phoenix.sh"):
+            installer = (root / name).read_text(encoding="utf-8")
+            self.assertIn('PHOENIX_REF="$tag_version" PHOENIX_REPO="$PHOENIX_REPO" bash "$simurgh_installer"', installer)
+        self.assertEqual((root / "install.sh").read_bytes(), (root / "install-phoenix.sh").read_bytes())
+
+    def test_docker_entrypoint_checks_simurgh_without_blocking_phoenix(self):
+        root = Path(__file__).resolve().parents[1]
+        entrypoint = (root / "DockerEntrypoint.sh").read_text(encoding="utf-8")
+        for path in ("/healthz", "/app.js", "/app.css"):
+            self.assertIn(path, entrypoint)
+        self.assertIn('d.get("product") == "Simurgh Tunnel"', entrypoint)
+        self.assertIn(") &", entrypoint)
+        self.assertIn("exec /app/x-ui", entrypoint)
+
+    def test_simurgh_navigation_and_browser_title_use_the_requested_name(self):
+        root = Path(__file__).resolve().parents[1]
+        for name in (
+            "frontend/src/layouts/AppSidebar.tsx",
+            "frontend/src/components/CommandPalette.tsx",
+            "frontend/src/hooks/usePageTitle.ts",
+        ):
+            source = (root / name).read_text(encoding="utf-8")
+            self.assertIn("Simurgh Tunnel", source)
+        page_title = (root / "frontend/src/hooks/usePageTitle.ts").read_text(encoding="utf-8")
+        self.assertIn("document.title = isSimurghPage ? pageTitle", page_title)
 
 
 class TransactionTests(unittest.TestCase):
